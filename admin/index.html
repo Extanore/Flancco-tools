@@ -223,6 +223,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2"/><path d="M9 17h6"/><path d="M5 6h9"/></svg>
       <span>Wagenpark</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('interventies')" data-page="interventies">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Interventies</span>
+    </a>
     <a class="nav-item partner-only" onclick="showPage('overzicht')" data-page="overzicht">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Overzicht</span>
@@ -480,6 +484,67 @@
       </div>
     </div>
 
+    <div class="page admin-only" id="page-interventies">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <input type="text" id="int-search" placeholder="Zoek klant of omschrijving..." oninput="renderInterventies()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:240px">
+            <select id="int-status-filter" onchange="renderInterventies()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+              <option value="">Alle statussen</option>
+              <option value="open" selected>Open</option>
+              <option value="ingepland">Ingepland</option>
+              <option value="afgehandeld">Afgehandeld</option>
+            </select>
+            <select id="int-ernst-filter" onchange="renderInterventies()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+              <option value="">Alle ernst</option>
+              <option value="urgent">Urgent</option>
+              <option value="normaal">Normaal</option>
+              <option value="laag">Laag</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Klant</th>
+              <th>Omschrijving</th>
+              <th>Ernst</th>
+              <th>Actie door</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="int-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- INTERVENTIE DETAIL MODAL -->
+<div class="modal-overlay" id="modal-interventie">
+  <div class="modal" style="max-width:550px">
+    <h2 id="int-modal-title">Interventie</h2>
+    <input type="hidden" id="int-edit-id">
+    <div class="modal-field"><label>Omschrijving</label><textarea id="int-omschrijving" rows="3" style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical" readonly></textarea></div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Ernst</label>
+        <select id="int-ernst-edit"><option value="laag">Laag</option><option value="normaal">Normaal</option><option value="urgent">Urgent</option></select>
+      </div>
+      <div class="modal-field"><label>Status</label>
+        <select id="int-status-edit"><option value="open">Open</option><option value="ingepland">Ingepland</option><option value="afgehandeld">Afgehandeld</option></select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Plan datum</label><input id="int-plan-datum" type="date"></div>
+      <div class="modal-field"><label>Afhandel datum</label><input id="int-afhandel-datum" type="date"></div>
+    </div>
+    <div class="modal-field"><label>Afhandel notitie</label><textarea id="int-afhandel-notitie" rows="2" style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical" placeholder="Hoe is de interventie afgehandeld?"></textarea></div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeInterventieModal()">Annuleren</button>
+      <button class="btn" onclick="saveInterventie()">Opslaan</button>
+    </div>
   </div>
 </div>
 
@@ -742,6 +807,7 @@ let allClients = [];
 let allTechniekers = [];
 let allTechSectoren = [];
 let allVoertuigen = [];
+let allInterventies = [];
 
 // =============================================
 // AUTH
@@ -886,7 +952,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c, cl, tech, techSec, voert] = await Promise.all([
+  const [p, pr, s, c, cl, tech, techSec, voert, intv] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('staffel_min'),
     sb.from('supplementen').select('*'),
@@ -894,7 +960,8 @@ async function loadAllData() {
     sb.from('clients').select('*').order('contact_person'),
     sb.from('techniekers').select('*').order('naam'),
     sb.from('technieker_sectoren').select('*'),
-    sb.from('voertuigen').select('*').order('nummerplaat')
+    sb.from('voertuigen').select('*').order('nummerplaat'),
+    sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)').order('created_at', { ascending: false })
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
@@ -904,6 +971,7 @@ async function loadAllData() {
   allTechniekers = tech.data || [];
   allTechSectoren = techSec.data || [];
   allVoertuigen = voert.data || [];
+  allInterventies = intv.data || [];
 
   renderDashboard();
   renderPartners();
@@ -915,6 +983,7 @@ async function loadAllData() {
   renderForecast();
   renderTechniekers();
   renderWagenpark();
+  renderInterventies();
 }
 
 // =============================================
@@ -925,7 +994,7 @@ function showPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${name}"]`).classList.add('active');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Techniekers', wagenpark: 'Wagenpark', overzicht: 'Overzicht', instellingen: 'Instellingen' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Techniekers', wagenpark: 'Wagenpark', interventies: 'Interventies', overzicht: 'Overzicht', instellingen: 'Instellingen' };
   document.getElementById('page-title').textContent = titles[name] || name;
 }
 
@@ -1934,6 +2003,79 @@ async function deleteVoertuig() {
   if (res.error) { alert('Fout: ' + res.error.message); return; }
 
   closeWagenModal();
+  await loadAllData();
+}
+
+// =============================================
+// INTERVENTIES
+// =============================================
+function renderInterventies() {
+  var search = (document.getElementById('int-search').value || '').toLowerCase();
+  var statusF = document.getElementById('int-status-filter').value;
+  var ernstF = document.getElementById('int-ernst-filter').value;
+  var tbody = document.getElementById('int-tbody');
+  var filtered = allInterventies.filter(function(iv) {
+    if (statusF && iv.status !== statusF) return false;
+    if (ernstF && iv.ernst !== ernstF) return false;
+    if (search) {
+      var text = (iv.omschrijving + ' ' + (iv.contracten ? iv.contracten.klant_naam : '')).toLowerCase();
+      if (!text.includes(search)) return false;
+    }
+    return true;
+  });
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--grey);padding:40px">Geen interventies gevonden</td></tr>';
+    return;
+  }
+  var ernstColors = { urgent: 'var(--red)', normaal: 'var(--orange)', laag: 'var(--blue)' };
+  var statusLabels = { open: 'Open', ingepland: 'Ingepland', afgehandeld: 'Afgehandeld' };
+  var statusColors = { open: 'var(--red)', ingepland: 'var(--orange)', afgehandeld: 'var(--green)' };
+  tbody.innerHTML = filtered.map(function(iv) {
+    var klant = iv.contracten ? esc(iv.contracten.klant_naam) : '—';
+    var datum = iv.created_at ? iv.created_at.split('T')[0] : '—';
+    return '<tr style="cursor:pointer" onclick="openInterventieModal(\'' + iv.id + '\')">' +
+      '<td>' + datum + '</td>' +
+      '<td>' + klant + '</td>' +
+      '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(iv.omschrijving) + '</td>' +
+      '<td><span style="color:' + (ernstColors[iv.ernst] || 'var(--grey)') + ';font-weight:600;font-size:12px">● ' + (iv.ernst || '—').toUpperCase() + '</span></td>' +
+      '<td>' + esc(iv.actie_door || '—') + '</td>' +
+      '<td><span style="color:' + (statusColors[iv.status] || 'var(--grey)') + ';font-weight:600;font-size:12px">● ' + (statusLabels[iv.status] || iv.status) + '</span></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function openInterventieModal(id) {
+  var iv = allInterventies.find(function(x) { return x.id === id; });
+  if (!iv) return;
+  document.getElementById('int-edit-id').value = iv.id;
+  document.getElementById('int-modal-title').textContent = 'Interventie — ' + (iv.contracten ? iv.contracten.klant_naam : '');
+  document.getElementById('int-omschrijving').value = iv.omschrijving || '';
+  document.getElementById('int-ernst-edit').value = iv.ernst || 'normaal';
+  document.getElementById('int-status-edit').value = iv.status || 'open';
+  document.getElementById('int-plan-datum').value = iv.plan_datum || '';
+  document.getElementById('int-afhandel-datum').value = iv.afhandel_datum || '';
+  document.getElementById('int-afhandel-notitie').value = iv.afhandel_notitie || '';
+  document.getElementById('modal-interventie').classList.add('open');
+}
+
+function closeInterventieModal() {
+  document.getElementById('modal-interventie').classList.remove('open');
+}
+
+async function saveInterventie() {
+  var id = document.getElementById('int-edit-id').value;
+  if (!id) return;
+  var payload = {
+    ernst: document.getElementById('int-ernst-edit').value,
+    status: document.getElementById('int-status-edit').value,
+    plan_datum: document.getElementById('int-plan-datum').value || null,
+    afhandel_datum: document.getElementById('int-afhandel-datum').value || null,
+    afhandel_notitie: document.getElementById('int-afhandel-notitie').value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+  var res = await sb.from('interventies').update(payload).eq('id', id);
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  closeInterventieModal();
   await loadAllData();
 }
 
