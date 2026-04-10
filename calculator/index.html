@@ -239,11 +239,22 @@
   .btw6-box li { margin-bottom: 4px; }
 
   /* POST SUBMIT */
-  .post-submit { background: var(--primary-bg); border-radius: var(--radius); padding: 32px; text-align: center; }
-  .post-submit h2 { font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
-  .post-submit p { font-size: 14px; color: var(--dark); margin-bottom: 8px; }
-  .post-submit .steps-list { text-align: left; max-width: 400px; margin: 16px auto; }
-  .post-submit .steps-list li { font-size: 14px; color: var(--dark); margin-bottom: 8px; line-height: 1.6; }
+  .post-submit { border-radius: var(--radius); padding: 40px 32px; text-align: center; }
+  .post-check-icon { width: 64px; height: 64px; margin: 0 auto 20px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .post-submit h2 { font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+  .post-submit .post-sub { font-size: 14px; color: var(--grey); margin-bottom: 24px; }
+  .post-summary { background: var(--primary-bg, #f0f7f4); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; text-align: left; }
+  .post-summary h3 { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--grey); margin-bottom: 12px; }
+  .post-summary dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 20px; margin: 0; font-size: 14px; }
+  .post-summary dt { color: var(--grey); }
+  .post-summary dd { margin: 0; font-weight: 600; color: var(--black); text-align: right; }
+  .post-summary .post-total { font-size: 20px; color: var(--primary); }
+  .post-steps { text-align: left; max-width: 440px; margin: 0 auto 24px; }
+  .post-steps h3 { font-size: 14px; font-weight: 700; color: var(--black); margin-bottom: 12px; }
+  .post-steps ol { margin: 0; padding-left: 20px; }
+  .post-steps li { font-size: 14px; color: var(--dark); margin-bottom: 8px; line-height: 1.6; }
+  .post-contact { font-size: 14px; color: var(--grey); margin-top: 24px; }
+  .post-contact strong { color: var(--black); }
 
   /* FOOTER */
   .footer { text-align: center; padding: 20px; font-size: 12px; color: var(--grey); }
@@ -559,15 +570,33 @@
     <!-- POST SUBMIT -->
     <div id="post-submit" style="display:none">
       <div class="post-submit">
-        <h2>&#10003; Uw contract is ondertekend!</h2>
-        <p>Wat gebeurt er nu?</p>
-        <ol class="steps-list">
-          <li>U ontvangt een bevestigingsmail met uw contract als PDF</li>
-          <li id="post-seizoen">Wij plannen uw eerste reiniging in de periode maart&ndash;oktober</li>
-          <li>U wordt telefonisch gecontacteerd voor een exacte datum</li>
-        </ol>
-        <p style="margin-top:16px">Vragen? Neem contact op met <strong id="post-contact"></strong></p>
-        <button class="btn" onclick="downloadContract()" style="margin-top:16px">&#8681; Download PDF kopie</button>
+        <div class="post-check-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h2>Uw contract is succesvol ondertekend</h2>
+        <p class="post-sub">Uw PDF wordt automatisch gedownload. Bewaar dit als bevestiging.</p>
+
+        <div class="post-summary">
+          <h3>Uw overeenkomst</h3>
+          <dl>
+            <dt>Contractnummer</dt><dd id="post-nr">&mdash;</dd>
+            <dt>Datum</dt><dd id="post-datum"></dd>
+            <dt>Installatie</dt><dd id="post-panelen"></dd>
+            <dt>Frequentie</dt><dd id="post-freq"></dd>
+            <dt>Contractduur</dt><dd id="post-duur"></dd>
+            <dt>Totaal per beurt</dt><dd class="post-total" id="post-bedrag"></dd>
+          </dl>
+        </div>
+
+        <div class="post-steps">
+          <h3>Wat gebeurt er nu?</h3>
+          <ol>
+            <li>Uw contract PDF is automatisch gedownload &mdash; bewaar dit document</li>
+            <li id="post-seizoen">Wij plannen uw eerste reiniging in de periode maart&ndash;oktober</li>
+            <li>U wordt telefonisch gecontacteerd voor een exacte datum</li>
+          </ol>
+        </div>
+
+        <button class="btn" onclick="downloadContract()" style="margin-bottom:16px">&#8681; Download PDF opnieuw</button>
+        <div class="post-contact">Vragen? Neem contact op met <strong id="post-contact"></strong></div>
       </div>
     </div>
   </div>
@@ -1283,11 +1312,27 @@ async function submitContract() {
       }).catch(function(e) { console.warn('Email verzending mislukt:', e); });
     } catch (mailErr) { console.warn('Email call mislukt:', mailErr); }
 
-    // Show success
+    // Show success — hide contract, show confirmation
     document.getElementById('submit-row').style.display = 'none';
-    document.getElementById('download-hint').style.display = 'none';
+    var dlHint = document.getElementById('download-hint');
+    if (dlHint) dlHint.style.display = 'none';
+    document.getElementById('contract-body').style.display = 'none';
+    document.querySelector('#step-3 .intro.no-print').style.display = 'none';
     document.getElementById('post-submit').style.display = 'block';
-    document.getElementById('post-contact').textContent = (partner.bedrijfsnaam || partner.naam) + (partner.telefoon ? ' — ' + partner.telefoon : '') + (partner.email ? ' — ' + partner.email : '');
+    window.scrollTo(0, 0);
+
+    // Fill post-submit summary
+    var datumF = new Date(datum).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('post-nr').textContent = data[0].contract_nummer || '\u2014';
+    document.getElementById('post-datum').textContent = datumF;
+    document.getElementById('post-panelen').textContent = s.pan + ' zonnepanelen';
+    document.getElementById('post-freq').textContent = s.freq === 1 ? 'Jaarlijks (1×)' : 'Halfjaarlijks (2×)';
+    document.getElementById('post-duur').textContent = s.duur === 0 ? 'Eenmalige interventie' : s.duur + ' jaar';
+    document.getElementById('post-bedrag').textContent = fmtTotal(s.total);
+    document.getElementById('post-contact').textContent = (partner.bedrijfsnaam || partner.naam) + (partner.telefoon ? ' \u2014 ' + partner.telefoon : '') + (partner.email ? ' \u2014 ' + partner.email : '');
+
+    // Auto-download PDF
+    try { downloadContract(); } catch(e) { console.warn('Auto-download mislukt:', e); }
 
     // Disable interactions
     document.getElementById('accept-check').disabled = true;
