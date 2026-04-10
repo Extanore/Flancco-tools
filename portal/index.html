@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flancco — Klantenportaal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --navy: #1A1A2E; --navy-light: #2a2a4a; --red: #E74C3C; --green: #27AE60;
+    --blue: #3498DB; --orange: #F39C12; --grey: #6B7280; --light: #F3F4F6;
+    --white: #FFFFFF; --rule: #E5E7EB; --radius: 10px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: #1f2937; }
+
+  /* HEADER */
+  .header { background: var(--navy); color: white; padding: 20px 32px; }
+  .header-inner { max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header h1 span { color: var(--red); }
+  .header small { color: rgba(255,255,255,0.5); font-size: 12px; display: block; margin-top: 2px; }
+  .header-client { text-align: right; font-size: 13px; color: rgba(255,255,255,0.7); }
+
+  /* CONTENT */
+  .wrap { max-width: 900px; margin: 32px auto; padding: 0 24px; }
+
+  /* ERROR / LOADING */
+  .center-msg { text-align: center; padding: 80px 24px; }
+  .center-msg h2 { font-size: 20px; color: var(--navy); margin-bottom: 8px; }
+  .center-msg p { color: var(--grey); font-size: 14px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--white); border-radius: var(--radius); padding: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .tab { flex: 1; padding: 10px 16px; text-align: center; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--grey); transition: 0.2s; }
+  .tab.active { background: var(--navy); color: white; }
+  .tab:hover:not(.active) { color: var(--navy); }
+  .tab-badge { display: inline-block; background: var(--red); color: white; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
+
+  /* PANEL */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--white); border-radius: var(--radius); padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 16px; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .card h3 { font-size: 14px; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* CONTRACT CARD */
+  .contract-item { padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  .contract-item:last-child { border-bottom: none; }
+  .contract-row { display: flex; justify-content: space-between; align-items: center; }
+  .contract-label { font-size: 13px; color: var(--grey); }
+  .contract-value { font-size: 13px; font-weight: 600; color: var(--navy); }
+
+  /* BEURT CARD */
+  .beurt-card { background: var(--light); border-radius: 8px; padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .beurt-left { flex: 1; }
+  .beurt-left strong { font-size: 14px; color: var(--navy); }
+  .beurt-left small { display: block; font-size: 12px; color: var(--grey); margin-top: 2px; }
+  .beurt-status { padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .status-toekomstig { background: #EEF2FF; color: var(--blue); }
+  .status-in_te_plannen { background: #FFF8E7; color: var(--orange); }
+  .status-ingepland { background: #DEF7EC; color: var(--green); }
+  .status-uitgevoerd { background: var(--light); color: var(--grey); }
+  .status-geannuleerd { background: #FDE8E8; color: var(--red); }
+
+  /* RAPPORT CARD */
+  .rapport-card { background: var(--light); border-radius: 8px; padding: 16px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+  .rapport-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .rapport-header { display: flex; justify-content: space-between; align-items: center; }
+  .rapport-ref { font-size: 12px; color: var(--grey); font-family: monospace; }
+  .rapport-detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
+  .rapport-detail.open { display: block; }
+  .checklist-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .chk-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .chk-ok { background: #DEF7EC; color: var(--green); }
+  .chk-nok { background: #FDE8E8; color: var(--red); }
+  .chk-na { background: var(--light); color: var(--grey); }
+
+  /* INTERVENTIE */
+  .interventie-item { padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .interventie-item:last-child { border-bottom: none; }
+  .int-ernst { font-weight: 700; font-size: 11px; text-transform: uppercase; }
+  .int-urgent { color: var(--red); }
+  .int-normaal { color: var(--orange); }
+  .int-laag { color: var(--blue); }
+
+  /* SECTOR BADGE */
+  .sector-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .sector-zonnepanelen { background: #F39C1220; color: #F39C12; }
+  .sector-warmtepomp { background: #E74C3C20; color: #E74C3C; }
+  .sector-ventilatie { background: #1A1A2E20; color: #1A1A2E; }
+  .sector-verwarming { background: #6B728020; color: #6B7280; }
+
+  .empty-msg { text-align: center; padding: 40px; color: var(--grey); font-size: 13px; }
+
+  /* FOTOS */
+  .foto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 8px; }
+  .foto-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; }
+
+  @media (max-width: 600px) {
+    .wrap { margin: 16px auto; padding: 0 12px; }
+    .tabs { flex-wrap: wrap; }
+    .tab { min-width: 45%; }
+    .beurt-card { flex-direction: column; align-items: flex-start; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading" class="center-msg" style="padding-top:200px"><p>Laden...</p></div>
+<div id="error" class="center-msg" style="display:none;padding-top:200px">
+  <h2>Ongeldige link</h2>
+  <p>Deze portaallink is ongeldig of verlopen. Neem contact op met uw onderhoudsbedrijf.</p>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <h1>FLANCC<span>O</span></h1>
+        <small>Klantenportaal</small>
+      </div>
+      <div class="header-client" id="client-info"></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('overzicht')">Overzicht</div>
+      <div class="tab" onclick="showTab('beurten')">Onderhoud <span class="tab-badge" id="badge-beurten" style="display:none"></span></div>
+      <div class="tab" onclick="showTab('rapporten')">Rapporten</div>
+      <div class="tab" onclick="showTab('interventies')">Meldingen <span class="tab-badge" id="badge-int" style="display:none"></span></div>
+    </div>
+
+    <!-- OVERZICHT -->
+    <div class="panel active" id="panel-overzicht">
+      <div class="card">
+        <h3>Uw gegevens</h3>
+        <div id="client-details"></div>
+      </div>
+      <div class="card">
+        <h3>Actieve contracten</h3>
+        <div id="contracten-list"></div>
+      </div>
+      <div class="card" id="next-beurt-card" style="display:none">
+        <h3>Eerstvolgende onderhoudsbeurt</h3>
+        <div id="next-beurt"></div>
+      </div>
+    </div>
+
+    <!-- BEURTEN -->
+    <div class="panel" id="panel-beurten">
+      <div class="card">
+        <h3>Onderhoudsbeurten</h3>
+        <div id="beurten-list"></div>
+      </div>
+    </div>
+
+    <!-- RAPPORTEN -->
+    <div class="panel" id="panel-rapporten">
+      <div class="card">
+        <h3>Onderhoudsrapporten</h3>
+        <div id="rapporten-list"></div>
+      </div>
+    </div>
+
+    <!-- INTERVENTIES -->
+    <div class="panel" id="panel-interventies">
+      <div class="card">
+        <h3>Meldingen & interventies</h3>
+        <div id="interventies-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:32px;font-size:11px;color:var(--grey)">
+    Flancco BV &middot; Beervelde, 9080 Lochristi &middot; BE0466111526
+  </div>
+</div>
+
+<script>
+var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0MTc2MDQsImV4cCI6MjA1ODk5MzYwNH0.u-LuuUAdUFApCbZJGIFbVHj2K8eee5ShJd3MsefZMjM';
+var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+var client = null;
+var contracten = [];
+var beurten = [];
+var rapporten = [];
+var interventies = [];
+
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+var statusLabels = { toekomstig: 'Toekomstig', in_te_plannen: 'In te plannen', ingepland: 'Ingepland', uitgevoerd: 'Uitgevoerd', geannuleerd: 'Geannuleerd' };
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+async function init() {
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('token');
+  if (!token) { showError(); return; }
+
+  // Lookup client by portal_token
+  var clientRes = await sb.from('clients').select('*').eq('portal_token', token).single();
+  if (!clientRes.data) { showError(); return; }
+  client = clientRes.data;
+
+  // Load all related data
+  var [cRes, bRes, rRes, iRes] = await Promise.all([
+    sb.from('contracten').select('*').eq('client_id', client.id).order('datum_ondertekening', { ascending: false }),
+    sb.from('onderhoudsbeurten').select('*, contracten(klant_naam, sector)').eq('contracten.client_id', client.id).order('due_date'),
+    sb.from('rapporten').select('*').eq('contract_id', client.id),  // will re-fetch properly
+    sb.from('interventies').select('*, contracten(klant_naam, sector)').order('created_at', { ascending: false })
+  ]);
+
+  contracten = cRes.data || [];
+
+  // Fetch beurten via contract IDs
+  var contractIds = contracten.map(function(c) { return c.id; });
+  if (contractIds.length > 0) {
+    var bRes2 = await sb.from('onderhoudsbeurten').select('*').in('contract_id', contractIds).order('due_date');
+    beurten = bRes2.data || [];
+
+    var rRes2 = await sb.from('rapporten').select('*').in('contract_id', contractIds).order('datum_onderhoud', { ascending: false });
+    rapporten = rRes2.data || [];
+
+    var iRes2 = await sb.from('interventies').select('*').in('contract_id', contractIds).order('created_at', { ascending: false });
+    interventies = iRes2.data || [];
+  }
+
+  // Render
+  renderHeader();
+  renderOverzicht();
+  renderBeurten();
+  renderRapporten();
+  renderInterventies();
+
+  // Badges
+  var openBeurten = beurten.filter(function(b) { return b.status === 'ingepland' || b.status === 'in_te_plannen'; }).length;
+  if (openBeurten > 0) { var badge = document.getElementById('badge-beurten'); badge.textContent = openBeurten; badge.style.display = 'inline'; }
+  var openInt = interventies.filter(function(i) { return i.status === 'open'; }).length;
+  if (openInt > 0) { var badge2 = document.getElementById('badge-int'); badge2.textContent = openInt; badge2.style.display = 'inline'; }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'block';
+}
+
+// ═══════════════════════════════
+// TABS
+// ═══════════════════════════════
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t, i) {
+    var panels = ['overzicht', 'beurten', 'rapporten', 'interventies'];
+    t.classList.toggle('active', panels[i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════
+// RENDER
+// ═══════════════════════════════
+function renderHeader() {
+  document.getElementById('client-info').innerHTML =
+    '<strong>' + esc(client.contact_person) + '</strong>' +
+    (client.company_name ? '<br>' + esc(client.company_name) : '');
+}
+
+function renderOverzicht() {
+  // Client details
+  document.getElementById('client-details').innerHTML =
+    '<div class="contract-item">' +
+      '<div class="contract-row"><span class="contract-label">Naam</span><span class="contract-value">' + esc(client.contact_person) + '</span></div>' +
+      (client.company_name ? '<div class="contract-row"><span class="contract-label">Bedrijf</span><span class="contract-value">' + esc(client.company_name) + '</span></div>' : '') +
+      '<div class="contract-row"><span class="contract-label">Adres</span><span class="contract-value">' + esc((client.street || '') + ' ' + (client.house_number || '') + ', ' + (client.postal_code || '') + ' ' + (client.city || '')) + '</span></div>' +
+      '<div class="contract-row"><span class="contract-label">E-mail</span><span class="contract-value">' + esc(client.email) + '</span></div>' +
+      (client.phone ? '<div class="contract-row"><span class="contract-label">Telefoon</span><span class="contract-value">' + esc(client.phone) + '</span></div>' : '') +
+    '</div>';
+
+  // Contracten
+  if (contracten.length === 0) {
+    document.getElementById('contracten-list').innerHTML = '<div class="empty-msg">Geen actieve contracten</div>';
+  } else {
+    document.getElementById('contracten-list').innerHTML = contracten.map(function(c) {
+      return '<div class="contract-item">' +
+        '<div class="contract-row"><span class="contract-label">Contract</span><span class="contract-value">' + (c.contract_nummer || c.id.slice(0, 8)) + '</span></div>' +
+        '<div class="contract-row"><span class="contract-label">Sector</span><span class="contract-value"><span class="sector-badge sector-' + (c.sector || 'zonnepanelen') + '">' + (sectorLabels[c.sector] || c.sector || 'Zonnepanelen') + '</span></span></div>' +
+        '<div class="contract-row"><span class="contract-label">Frequentie</span><span class="contract-value">' + esc(c.frequentie || '—') + '</span></div>' +
+        '<div class="contract-row"><span class="contract-label">Looptijd</span><span class="contract-value">' + esc(c.contractduur || '—') + '</span></div>' +
+        '<div class="contract-row"><span class="contract-label">Ondertekend</span><span class="contract-value">' + (c.datum_ondertekening || '—') + '</span></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // Next beurt
+  var upcoming = beurten.filter(function(b) { return b.status === 'ingepland' || b.status === 'in_te_plannen'; });
+  if (upcoming.length > 0) {
+    var next = upcoming[0];
+    var contract = contracten.find(function(c) { return c.id === next.contract_id; });
+    document.getElementById('next-beurt-card').style.display = 'block';
+    document.getElementById('next-beurt').innerHTML =
+      '<div class="beurt-card">' +
+        '<div class="beurt-left">' +
+          '<strong>' + (sectorLabels[next.sector] || next.sector) + ' — beurt ' + next.volgnummer + '</strong>' +
+          '<small>' + (next.plan_datum ? 'Gepland: ' + next.plan_datum : 'Verwacht: ' + (next.due_date || '—')) + '</small>' +
+        '</div>' +
+        '<span class="beurt-status status-' + next.status + '">' + (statusLabels[next.status] || next.status) + '</span>' +
+      '</div>';
+  }
+}
+
+function renderBeurten() {
+  var list = document.getElementById('beurten-list');
+  if (beurten.length === 0) { list.innerHTML = '<div class="empty-msg">Nog geen onderhoudsbeurten</div>'; return; }
+  list.innerHTML = beurten.map(function(b) {
+    var contract = contracten.find(function(c) { return c.id === b.contract_id; });
+    return '<div class="beurt-card">' +
+      '<div class="beurt-left">' +
+        '<strong><span class="sector-badge sector-' + (b.sector || 'zonnepanelen') + '">' + (sectorLabels[b.sector] || b.sector) + '</span> — Beurt ' + b.volgnummer + '</strong>' +
+        '<small>' +
+          (b.plan_datum ? 'Gepland: ' + b.plan_datum : 'Verwacht: ' + (b.due_date || '—')) +
+          (b.uitvoer_datum ? ' · Uitgevoerd: ' + b.uitvoer_datum : '') +
+        '</small>' +
+      '</div>' +
+      '<span class="beurt-status status-' + b.status + '">' + (statusLabels[b.status] || b.status) + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function renderRapporten() {
+  var list = document.getElementById('rapporten-list');
+  if (rapporten.length === 0) { list.innerHTML = '<div class="empty-msg">Nog geen rapporten beschikbaar</div>'; return; }
+  list.innerHTML = rapporten.map(function(r) {
+    var chk = r.checklist_data || {};
+    var ok = 0, nok = 0;
+    Object.values(chk).forEach(function(v) { if (v.status === 'ok') ok++; else if (v.status === 'nok') nok++; });
+    var fotos = r.foto_urls || [];
+
+    return '<div class="rapport-card" onclick="toggleRapport(this)">' +
+      '<div class="rapport-header">' +
+        '<div>' +
+          '<strong><span class="sector-badge sector-' + (r.sector || 'zonnepanelen') + '">' + (sectorLabels[r.sector] || r.sector) + '</span> ' + r.datum_onderhoud + '</strong>' +
+        '</div>' +
+        '<span class="rapport-ref">' + esc(r.referentie) + '</span>' +
+      '</div>' +
+      '<div class="rapport-detail">' +
+        '<div style="font-size:13px;margin-bottom:8px"><strong>Checklist:</strong></div>' +
+        '<div class="checklist-summary">' +
+          '<span class="chk-badge chk-ok">&#10003; ' + ok + ' OK</span>' +
+          (nok > 0 ? '<span class="chk-badge chk-nok">&#10007; ' + nok + ' aandachtspunt' + (nok > 1 ? 'en' : '') + '</span>' : '') +
+        '</div>' +
+        (r.opmerkingen ? '<div style="font-size:13px;margin-top:12px"><strong>Opmerkingen:</strong><br>' + esc(r.opmerkingen) + '</div>' : '') +
+        (fotos.length > 0 ? '<div style="font-size:13px;margin-top:12px"><strong>Foto\'s (' + fotos.length + '):</strong></div><div class="foto-grid">' + fotos.map(function(url) { return '<img src="' + esc(url) + '" onclick="window.open(this.src)">'; }).join('') + '</div>' : '') +
+        renderNokDetails(chk) +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderNokDetails(chk) {
+  var nokItems = [];
+  Object.keys(chk).forEach(function(key) {
+    if (chk[key].status === 'nok') {
+      nokItems.push({ key: key, note: chk[key].note });
+    }
+  });
+  if (nokItems.length === 0) return '';
+  return '<div style="font-size:13px;margin-top:12px"><strong>Aandachtspunten:</strong></div>' +
+    nokItems.map(function(item) {
+      return '<div style="font-size:12px;padding:6px 0;color:var(--red)">' +
+        '&#10007; ' + esc(item.key.replace(/_/g, ' ')) +
+        (item.note ? ' — <em style="color:var(--grey)">' + esc(item.note) + '</em>' : '') +
+      '</div>';
+    }).join('');
+}
+
+function toggleRapport(el) {
+  var detail = el.querySelector('.rapport-detail');
+  detail.classList.toggle('open');
+}
+
+function renderInterventies() {
+  var list = document.getElementById('interventies-list');
+  if (interventies.length === 0) { list.innerHTML = '<div class="empty-msg">Geen meldingen</div>'; return; }
+  var statusLabel = { open: 'Open', ingepland: 'Ingepland', afgehandeld: 'Afgehandeld' };
+  var statusColor = { open: 'var(--red)', ingepland: 'var(--orange)', afgehandeld: 'var(--green)' };
+  list.innerHTML = interventies.map(function(iv) {
+    return '<div class="interventie-item">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<span><span class="int-ernst int-' + iv.ernst + '">&#9679; ' + (iv.ernst || '').toUpperCase() + '</span> ' + esc(iv.omschrijving) + '</span>' +
+        '<span style="color:' + (statusColor[iv.status] || 'var(--grey)') + ';font-size:12px;font-weight:600">' + (statusLabel[iv.status] || iv.status) + '</span>' +
+      '</div>' +
+      (iv.afhandel_notitie ? '<div style="font-size:12px;color:var(--grey);margin-top:4px">Afhandeling: ' + esc(iv.afhandel_notitie) + '</div>' : '') +
+      '<div style="font-size:11px;color:var(--grey);margin-top:4px">' + (iv.created_at ? iv.created_at.split('T')[0] : '') + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1677,6 +1677,7 @@ function showKlantDossier(clientId) {
       (client.notes ? '<p style="font-size:13px;color:var(--grey);margin:8px 0 0"><em>' + esc(client.notes) + '</em></p>' : '') +
       '<div class="dossier-actions">' +
         '<button onclick="editKlant(\'' + client.id + '\')">Bewerken</button>' +
+        '<button onclick="copyPortalLink(\'' + esc(client.portal_token) + '\')">Portaallink kopiëren</button>' +
         '<button class="btn-danger" onclick="deleteKlantFromDossier(\'' + client.id + '\')">Verwijderen</button>' +
       '</div>' +
     '</div>' +
@@ -1705,6 +1706,15 @@ function showKlantDossier(clientId) {
 function closeKlantDossier() {
   document.getElementById('klant-dossier').style.display = 'none';
   document.getElementById('klanten-lijst').style.display = 'block';
+}
+
+function copyPortalLink(token) {
+  var url = window.location.origin + '/Flancco-tools/portal/?token=' + token;
+  navigator.clipboard.writeText(url).then(function() {
+    alert('Portaallink gekopieerd!\n\n' + url);
+  }).catch(function() {
+    prompt('Kopieer deze link:', url);
+  });
 }
 
 async function deleteKlantFromDossier(id) {
