@@ -655,7 +655,7 @@ var SECTORS = {
         '<div class="field"><label>Aantal zonnepanelen</label>' +
         '<input type="number" id="solar-panelen" min="1" max="200" value="12" oninput="calculateAll()"></div>' +
         '<div class="field-row">' +
-        '<div class="field"><label>Type dak</label><select id="solar-daktype" onchange="calculateAll()"><option value="hellend">Hellend dak</option><option value="plat">Plat dak</option></select></div>' +
+        '<div class="field"><label>Type dak</label><select id="solar-daktype" onchange="calculateAll()"><option value="hellend">Hellend dak</option><option value="plat">Plat dak</option><option value="grond">Grondopstelling</option></select></div>' +
         '<div class="field"><label>Dakrandhoogte <small>(ca.)</small></label><select id="solar-dakhoogte" onchange="calculateAll()"><option value="laag">Lager dan 7,5 m</option><option value="hoog">Hoger dan 7,5 m</option></select></div>' +
         '</div></div>' +
         '<div class="card"><div class="card-title">Bijzonderheden</div>' +
@@ -738,7 +738,7 @@ var SECTORS = {
     },
 
     summaryDescription: function(inputs) {
-      return inputs.pan + ' zonnepanelen &mdash; ' + (inputs.daktype === 'hellend' ? 'hellend dak' : 'plat dak');
+      return inputs.pan + ' zonnepanelen &mdash; ' + (inputs.daktype === 'hellend' ? 'hellend dak' : inputs.daktype === 'plat' ? 'plat dak' : 'grondopstelling');
     },
 
     contractArticleVoorwerp: function(inputs) {
@@ -753,7 +753,7 @@ var SECTORS = {
       var water = document.getElementById('klant-water') ? document.getElementById('klant-water').value : 'Ja';
       return '<h2>Installatiegegevens &mdash; Zonnepanelen</h2>' +
         '<div class="data-row"><span class="data-label">Aantal zonnepanelen</span><span class="data-value">' + inputs.pan + '</span></div>' +
-        '<div class="data-row"><span class="data-label">Type dak</span><span class="data-value">' + (inputs.daktype === 'hellend' ? 'Hellend' : 'Plat') + '</span></div>' +
+        '<div class="data-row"><span class="data-label">Type dak</span><span class="data-value">' + (inputs.daktype === 'hellend' ? 'Hellend' : inputs.daktype === 'plat' ? 'Plat' : 'Grondopstelling') + '</span></div>' +
         '<div class="data-row"><span class="data-label">Dakrandhoogte</span><span class="data-value">' + hoogteTxt + '</span></div>' +
         '<div class="data-row"><span class="data-label">Bereikbaarheid</span><span class="data-value">' + bereik + '</span></div>' +
         '<div class="data-row"><span class="data-label">Wateraansluiting</span><span class="data-value">' + water + '</span></div>';
