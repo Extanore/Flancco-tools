@@ -1853,9 +1853,47 @@ async function submitContract() {
       }
     });
 
+    // Create or find client record
+    var clientId = null;
+    try {
+      var klantEmail = document.getElementById('klant-email').value.trim().toLowerCase();
+      var klantNaam = document.getElementById('klant-naam').value.trim();
+      var klantContact = document.getElementById('klant-contact').value.trim();
+      var klantStraat = document.getElementById('klant-straat').value.trim();
+      var klantHuisnr = document.getElementById('klant-huisnr').value.trim();
+      var klantPostcode = document.getElementById('klant-postcode').value.trim();
+      var klantGemeente = document.getElementById('klant-gemeente').value.trim();
+      var klantTel = document.getElementById('klant-tel').value.trim();
+
+      // Check for existing client (same email + partner)
+      var existingRes = await sb.from('clients').select('id').eq('partner_id', partner.id).eq('email', klantEmail).limit(1);
+      if (existingRes.data && existingRes.data.length > 0) {
+        clientId = existingRes.data[0].id;
+      } else {
+        // Create new client
+        var clientPayload = {
+          partner_id: partner.id,
+          contact_person: klantContact || klantNaam,
+          company_name: klantNaam !== klantContact ? klantNaam : null,
+          email: klantEmail,
+          phone: klantTel,
+          street: klantStraat,
+          house_number: klantHuisnr,
+          postal_code: klantPostcode,
+          city: klantGemeente,
+          country: klantPostcode && parseInt(klantPostcode) >= 1000 && parseInt(klantPostcode) <= 9999 ? 'BE' : 'NL'
+        };
+        var clientRes = await sb.from('clients').insert([clientPayload]).select();
+        if (clientRes.data && clientRes.data.length > 0) {
+          clientId = clientRes.data[0].id;
+        }
+      }
+    } catch (clientErr) { console.warn('Client aanmaken mislukt:', clientErr); }
+
     // Build main payload (uses primary sector for backward-compatible fields)
     var payload = {
       partner_id: partner.id,
+      client_id: clientId,
       sector: selectedSectors.length === 1 ? selectedSectors[0] : selectedSectors[0], // primary sector
       klant_naam: document.getElementById('klant-naam').value,
       klant_adres: document.getElementById('klant-straat').value + ' ' + document.getElementById('klant-huisnr').value,

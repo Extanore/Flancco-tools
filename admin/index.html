@@ -90,6 +90,28 @@
   .forecast-legend span { display: flex; align-items: center; gap: 6px; }
   .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
 
+  /* KLANT DOSSIER */
+  .dossier-back { display:inline-flex; align-items:center; gap:6px; color:var(--blue); font-size:13px; cursor:pointer; margin-bottom:16px; background:none; border:none; font-family:inherit; }
+  .dossier-back:hover { text-decoration:underline; }
+  .dossier-header { background:var(--white); border-radius:var(--radius); padding:24px; margin-bottom:16px; }
+  .dossier-name { font-size:20px; font-weight:700; color:var(--navy); margin:0 0 2px; }
+  .dossier-company { font-size:14px; color:var(--grey); margin:0 0 12px; }
+  .dossier-info { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--navy); margin-bottom:16px; }
+  .dossier-info a { color:var(--blue); text-decoration:none; }
+  .dossier-info a:hover { text-decoration:underline; }
+  .dossier-actions { display:flex; gap:8px; margin-top:12px; }
+  .dossier-actions button { padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid var(--rule); background:var(--white); color:var(--navy); }
+  .dossier-actions button:hover { background:var(--light); }
+  .dossier-actions .btn-danger { color:var(--red); border-color:var(--red); }
+  .dossier-actions .btn-danger:hover { background:#fee2e2; }
+  .dossier-section { background:var(--white); border-radius:var(--radius); padding:20px 24px; margin-bottom:16px; }
+  .dossier-section-title { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--grey); font-weight:600; margin:0 0 14px; }
+  .contract-card { background:var(--light); border-radius:8px; padding:14px 16px; margin-bottom:10px; }
+  .contract-card-row { display:flex; flex-wrap:wrap; gap:8px 20px; font-size:13px; color:var(--navy); }
+  .contract-card-row span { white-space:nowrap; }
+  .contract-card-label { color:var(--grey); font-size:11px; display:block; margin-bottom:2px; }
+  .placeholder-msg { color:var(--grey); font-size:13px; font-style:italic; }
+
   /* PRICING EDIT */
   .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .pricing-partner { background: var(--white); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
@@ -168,6 +190,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       <span>Contracten</span>
     </a>
+    <a class="nav-item" onclick="showPage('klanten')" data-page="klanten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Klanten</span>
+    </a>
     <div class="nav-section admin-only">Beheer</div>
     <a class="nav-item admin-only" onclick="showPage('pricing')" data-page="pricing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -176,6 +202,10 @@
     <a class="nav-item admin-only" onclick="showPage('forecast')" data-page="forecast">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>Forecast</span>
+    </a>
+    <a class="nav-item partner-only" onclick="showPage('overzicht')" data-page="overzicht">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Overzicht</span>
     </a>
     <div class="nav-section partner-only">Beheer</div>
     <a class="nav-item partner-only" onclick="showPage('instellingen')" data-page="instellingen">
@@ -229,6 +259,36 @@
         </table>
         <p id="no-all-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen contracten gevonden.</p>
       </div>
+    </div>
+
+    <!-- KLANTEN PAGE -->
+    <div class="page" id="page-klanten">
+      <div class="card" id="klanten-lijst">
+        <div class="card-header">
+          <span class="card-title">Klanten</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="klanten-zoek" placeholder="Zoek op naam, gemeente, email..." oninput="renderKlanten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;width:240px">
+            <select id="filter-klant-partner" class="admin-only" onchange="renderKlanten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+              <option value="">Alle partners</option>
+            </select>
+            <button class="btn-save" onclick="exportKlantenExcel()" style="margin:0;font-size:12px;background:var(--blue)">&#11015; Excel</button>
+            <button class="btn-save" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Naam / Bedrijf</th>
+            <th class="admin-only">Partner</th>
+            <th>Email</th>
+            <th>Telefoon</th>
+            <th>Gemeente</th>
+            <th>Contracten</th>
+          </tr></thead>
+          <tbody id="klanten-tbody"></tbody>
+        </table>
+        <p id="no-klanten" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen klanten gevonden.</p>
+      </div>
+      <div id="klant-dossier" style="display:none"></div>
     </div>
 
     <!-- PRICING PAGE -->
@@ -335,6 +395,15 @@
         </table>
       </div>
     </div>
+
+    <!-- OVERZICHT PAGE (partner only) -->
+    <div class="page partner-only" id="page-overzicht">
+      <div class="card" style="text-align:center;padding:60px 24px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--grey)" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <h3 style="margin:0 0 8px;color:var(--navy);font-size:16px">Overzicht wordt binnenkort beschikbaar</h3>
+        <p style="color:var(--grey);font-size:13px;max-width:400px;margin:0 auto">Hier vindt u straks een overzicht van alle ingeplande, lopende en uitgevoerde onderhoudsbeurten voor uw klanten — inclusief rapporten en downloads.</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -417,6 +486,44 @@
   </div>
 </div>
 
+<!-- KLANT MODAL -->
+<div class="modal-overlay" id="modal-klant">
+  <div class="modal">
+    <h2 id="klant-modal-title">Nieuwe klant</h2>
+    <input type="hidden" id="kl-id">
+    <div class="modal-row">
+      <div class="modal-field"><label>Contactpersoon *</label><input id="kl-contact"></div>
+      <div class="modal-field"><label>Bedrijfsnaam</label><input id="kl-bedrijf"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Email *</label><input type="email" id="kl-email"></div>
+      <div class="modal-field"><label>Telefoon *</label><input id="kl-telefoon"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Straat *</label><input id="kl-straat"></div>
+      <div class="modal-field"><label>Huisnr *</label><input id="kl-huisnr"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Postcode *</label><input id="kl-postcode"></div>
+      <div class="modal-field"><label>Gemeente *</label><input id="kl-gemeente"></div>
+    </div>
+    <div class="modal-field">
+      <label>Land</label>
+      <select id="kl-land"><option value="BE">België</option><option value="NL">Nederland</option></select>
+    </div>
+    <input type="hidden" id="kl-partner">
+    <div class="modal-field">
+      <label>Notities</label>
+      <textarea id="kl-notities" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;resize:vertical;font-family:inherit;font-size:13px"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeKlantModal()">Annuleren</button>
+      <button class="btn-submit" id="btn-delete-klant" onclick="deleteKlant()" style="background:var(--red);display:none">Verwijderen</button>
+      <button class="btn-submit" onclick="saveKlant()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // =============================================
 // SUPABASE INIT
@@ -432,6 +539,7 @@ let partners = [];
 let allPricing = [];
 let allSupplementen = [];
 let allContracten = [];
+let allClients = [];
 
 // =============================================
 // AUTH
@@ -576,21 +684,25 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c] = await Promise.all([
+  const [p, pr, s, c, cl] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('staffel_min'),
     sb.from('supplementen').select('*'),
-    sb.from('contracten').select('*').order('created_at', { ascending: false })
+    sb.from('contracten').select('*').order('created_at', { ascending: false }),
+    sb.from('clients').select('*').order('contact_person')
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
   allSupplementen = s.data || [];
   allContracten = c.data || [];
+  allClients = cl.data || [];
 
   renderDashboard();
   renderPartners();
   populateFilterDropdown();
+  populateKlantFilterDropdown();
   renderContracten();
+  renderKlanten();
   renderPricing();
   renderForecast();
 }
@@ -603,7 +715,7 @@ function showPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${name}"]`).classList.add('active');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', pricing: 'Prijsbeheer', forecast: 'Forecast', instellingen: 'Instellingen' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', overzicht: 'Overzicht', instellingen: 'Instellingen' };
   document.getElementById('page-title').textContent = titles[name] || name;
 }
 
@@ -1021,6 +1133,310 @@ async function saveNewContract() {
   }
 
   closeModal();
+  await loadAllData();
+}
+
+// =============================================
+// KLANTEN
+// =============================================
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function populateKlantFilterDropdown() {
+  var sel = document.getElementById('filter-klant-partner');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Alle partners</option>' +
+    partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('');
+}
+
+function renderKlanten() {
+  var list = allClients.slice();
+
+  // Role-based filtering
+  if (userRole === 'partner' && userPartner) {
+    list = list.filter(function(c) { return c.partner_id === userPartner.id; });
+  } else if (userRole === 'admin') {
+    var pf = document.getElementById('filter-klant-partner').value;
+    if (pf) list = list.filter(function(c) { return c.partner_id === pf; });
+  }
+
+  // Search filter
+  var q = (document.getElementById('klanten-zoek').value || '').toLowerCase().trim();
+  if (q) {
+    list = list.filter(function(c) {
+      return (c.contact_person || '').toLowerCase().indexOf(q) >= 0 ||
+        (c.company_name || '').toLowerCase().indexOf(q) >= 0 ||
+        (c.email || '').toLowerCase().indexOf(q) >= 0 ||
+        (c.city || '').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+
+  var tbody = document.getElementById('klanten-tbody');
+  var noEl = document.getElementById('no-klanten');
+  if (list.length === 0) {
+    tbody.innerHTML = '';
+    noEl.style.display = 'block';
+  } else {
+    noEl.style.display = 'none';
+    tbody.innerHTML = list.map(function(c) {
+      var partner = partners.find(function(p) { return p.id === c.partner_id; });
+      var contractCount = allContracten.filter(function(ct) { return ct.client_id === c.id; }).length;
+      return '<tr style="cursor:pointer" onclick="showKlantDossier(\'' + c.id + '\')">' +
+        '<td><strong>' + esc(c.contact_person || '') + '</strong>' +
+          (c.company_name ? '<br><small style="color:var(--grey)">' + esc(c.company_name) + '</small>' : '') + '</td>' +
+        '<td class="admin-only">' + (partner ? esc(partner.naam) : '—') + '</td>' +
+        '<td>' + esc(c.email || '') + '</td>' +
+        '<td>' + esc(c.phone || '') + '</td>' +
+        '<td>' + esc(c.city || '') + '</td>' +
+        '<td>' + contractCount + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+}
+
+function openKlantModal(editData) {
+  document.getElementById('klant-modal-title').textContent = editData ? 'Klant bewerken' : 'Nieuwe klant';
+  document.getElementById('kl-id').value = editData ? editData.id : '';
+  document.getElementById('kl-contact').value = editData ? editData.contact_person || '' : '';
+  document.getElementById('kl-bedrijf').value = editData ? editData.company_name || '' : '';
+  document.getElementById('kl-email').value = editData ? editData.email || '' : '';
+  document.getElementById('kl-telefoon').value = editData ? editData.phone || '' : '';
+  document.getElementById('kl-straat').value = editData ? editData.street || '' : '';
+  document.getElementById('kl-huisnr').value = editData ? editData.house_number || '' : '';
+  document.getElementById('kl-postcode').value = editData ? editData.postal_code || '' : '';
+  document.getElementById('kl-gemeente').value = editData ? editData.city || '' : '';
+  document.getElementById('kl-land').value = editData ? editData.country || 'BE' : 'BE';
+  document.getElementById('kl-notities').value = editData ? editData.notes || '' : '';
+
+  // Auto-assign partner: partner krijgt eigen id, admin krijgt actieve filter
+  var partnerField = document.getElementById('kl-partner');
+  if (editData && editData.partner_id) {
+    partnerField.value = editData.partner_id;
+  } else if (userRole === 'partner' && userPartner) {
+    partnerField.value = userPartner.id;
+  } else {
+    var filterVal = document.getElementById('filter-klant-partner').value;
+    partnerField.value = filterVal || '';
+  }
+
+  // Show delete button only when editing
+  document.getElementById('btn-delete-klant').style.display = editData ? 'inline-block' : 'none';
+
+  document.getElementById('modal-klant').classList.add('open');
+}
+
+function editKlant(id) {
+  var client = allClients.find(function(c) { return c.id === id; });
+  if (client) openKlantModal(client);
+}
+
+function closeKlantModal() {
+  document.getElementById('modal-klant').classList.remove('open');
+}
+
+async function saveKlant() {
+  var id = document.getElementById('kl-id').value;
+  var contact = document.getElementById('kl-contact').value.trim();
+  var email = document.getElementById('kl-email').value.trim();
+  var telefoon = document.getElementById('kl-telefoon').value.trim();
+  var straat = document.getElementById('kl-straat').value.trim();
+  var huisnr = document.getElementById('kl-huisnr').value.trim();
+  var postcode = document.getElementById('kl-postcode').value.trim();
+  var gemeente = document.getElementById('kl-gemeente').value.trim();
+  var partnerId = document.getElementById('kl-partner').value;
+
+  if (!contact || !email || !telefoon || !straat || !huisnr || !postcode || !gemeente) {
+    alert('Vul alle verplichte velden in.');
+    return;
+  }
+  if (!partnerId) {
+    alert('Selecteer eerst een partner in het filter bovenaan de klantenlijst.');
+    return;
+  }
+
+  var payload = {
+    partner_id: partnerId,
+    contact_person: contact,
+    company_name: document.getElementById('kl-bedrijf').value.trim() || null,
+    email: email,
+    phone: telefoon,
+    street: straat,
+    house_number: huisnr,
+    postal_code: postcode,
+    city: gemeente,
+    country: document.getElementById('kl-land').value,
+    notes: document.getElementById('kl-notities').value.trim() || null
+  };
+
+  var result;
+  if (id) {
+    result = await sb.from('clients').update(payload).eq('id', id).select();
+  } else {
+    result = await sb.from('clients').insert([payload]).select();
+  }
+
+  if (result.error) {
+    alert('Fout bij opslaan: ' + result.error.message);
+    return;
+  }
+
+  closeKlantModal();
+  await loadAllData();
+}
+
+async function deleteKlant() {
+  var id = document.getElementById('kl-id').value;
+  if (!id) return;
+  if (!confirm('Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden.')) return;
+
+  var { error } = await sb.from('clients').delete().eq('id', id);
+  if (error) {
+    alert('Fout bij verwijderen: ' + error.message);
+    return;
+  }
+
+  closeKlantModal();
+  await loadAllData();
+}
+
+function getFilteredKlanten() {
+  var list = allClients.slice();
+  if (userRole === 'partner' && userPartner) {
+    list = list.filter(function(c) { return c.partner_id === userPartner.id; });
+  } else if (userRole === 'admin') {
+    var pf = document.getElementById('filter-klant-partner').value;
+    if (pf) list = list.filter(function(c) { return c.partner_id === pf; });
+  }
+  var q = (document.getElementById('klanten-zoek').value || '').toLowerCase().trim();
+  if (q) {
+    list = list.filter(function(c) {
+      return (c.contact_person || '').toLowerCase().indexOf(q) >= 0 ||
+        (c.company_name || '').toLowerCase().indexOf(q) >= 0 ||
+        (c.email || '').toLowerCase().indexOf(q) >= 0 ||
+        (c.city || '').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  return list;
+}
+
+function exportKlantenExcel() {
+  var list = getFilteredKlanten();
+  if (list.length === 0) { alert('Geen klanten om te exporteren.'); return; }
+
+  var header = ['Contactpersoon','Bedrijf','Email','Telefoon','Straat','Nr','Postcode','Gemeente','Land','Partner','Notities'];
+  var rows = list.map(function(c) {
+    var partner = partners.find(function(p) { return p.id === c.partner_id; });
+    return [c.contact_person, c.company_name, c.email, c.phone, c.street, c.house_number, c.postal_code, c.city, c.country, partner ? partner.naam : '', c.notes]
+      .map(function(v) { return '"' + (v || '').replace(/"/g, '""') + '"'; });
+  });
+  var csv = '\uFEFF' + [header.join(';')].concat(rows.map(function(r) { return r.join(';'); })).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'klanten-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// =============================================
+// KLANT DOSSIER
+// =============================================
+function showKlantDossier(clientId) {
+  var client = allClients.find(function(c) { return c.id === clientId; });
+  if (!client) return;
+
+  var partner = partners.find(function(p) { return p.id === client.partner_id; });
+  var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
+
+  // Build address
+  var adres = [client.street, client.house_number].filter(Boolean).join(' ');
+  var plaats = [client.postal_code, client.city].filter(Boolean).join(' ');
+  var volledigAdres = [adres, plaats].filter(Boolean).join(', ');
+
+  // Build contracts HTML
+  var contractsHtml = '';
+  if (contracts.length === 0) {
+    contractsHtml = '<p class="placeholder-msg">Geen contracten gekoppeld aan deze klant.</p>';
+  } else {
+    contractsHtml = contracts.map(function(ct) {
+      return '<div class="contract-card">' +
+        '<div class="contract-card-row">' +
+          '<span><span class="contract-card-label">Contract</span>' + esc(ct.contract_nummer || ct.id.slice(0,8)) + '</span>' +
+          '<span><span class="contract-card-label">Sector</span>' + esc(ct.sector || 'Zonnepanelen') + '</span>' +
+          (ct.aantal_panelen ? '<span><span class="contract-card-label">Panelen</span>' + ct.aantal_panelen + '</span>' : '') +
+          '<span><span class="contract-card-label">Frequentie</span>' + esc(ct.frequentie || '—') + '</span>' +
+          '<span><span class="contract-card-label">Duur</span>' + esc(ct.contractduur || '—') + '</span>' +
+          '<span><span class="contract-card-label">Bedrag/beurt</span>&euro; ' + (ct.totaal_incl_btw ? parseFloat(ct.totaal_incl_btw).toFixed(2).replace('.',',') : '—') + '</span>' +
+          '<span><span class="contract-card-label">Status</span><span class="badge ' + statusBadge(ct.status) + '">' + esc(ct.status || '—') + '</span></span>' +
+          '<span><span class="contract-card-label">Datum</span>' + fmtDate(ct.datum_ondertekening) + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  var html =
+    '<button class="dossier-back" onclick="closeKlantDossier()">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="15 18 9 12 15 6"/></svg>' +
+      'Terug naar klanten' +
+    '</button>' +
+
+    '<div class="dossier-header">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+        '<div>' +
+          '<h2 class="dossier-name">' + esc(client.contact_person || '') + '</h2>' +
+          (client.company_name ? '<p class="dossier-company">' + esc(client.company_name) + '</p>' : '') +
+        '</div>' +
+        (userRole === 'admin' && partner ? '<span class="badge badge-blue" style="font-size:12px">' + esc(partner.naam) + '</span>' : '') +
+      '</div>' +
+      '<div class="dossier-info">' +
+        (volledigAdres ? '<span>' + esc(volledigAdres) + '</span>' : '') +
+        (client.phone ? '<span><a href="tel:' + esc(client.phone) + '">' + esc(client.phone) + '</a></span>' : '') +
+        (client.email ? '<span><a href="mailto:' + esc(client.email) + '">' + esc(client.email) + '</a></span>' : '') +
+      '</div>' +
+      (client.notes ? '<p style="font-size:13px;color:var(--grey);margin:8px 0 0"><em>' + esc(client.notes) + '</em></p>' : '') +
+      '<div class="dossier-actions">' +
+        '<button onclick="editKlant(\'' + client.id + '\')">Bewerken</button>' +
+        '<button class="btn-danger" onclick="deleteKlantFromDossier(\'' + client.id + '\')">Verwijderen</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="dossier-section">' +
+      '<h3 class="dossier-section-title">Contracten (' + contracts.length + ')</h3>' +
+      contractsHtml +
+    '</div>' +
+
+    '<div class="dossier-section">' +
+      '<h3 class="dossier-section-title">Onderhoudsbeurten</h3>' +
+      '<p class="placeholder-msg">Wordt beschikbaar zodra onderhoudsbeurten zijn ingepland.</p>' +
+    '</div>' +
+
+    '<div class="dossier-section">' +
+      '<h3 class="dossier-section-title">Interventies</h3>' +
+      '<p class="placeholder-msg">Geen openstaande interventies.</p>' +
+    '</div>';
+
+  document.getElementById('klanten-lijst').style.display = 'none';
+  var dossier = document.getElementById('klant-dossier');
+  dossier.innerHTML = html;
+  dossier.style.display = 'block';
+}
+
+function closeKlantDossier() {
+  document.getElementById('klant-dossier').style.display = 'none';
+  document.getElementById('klanten-lijst').style.display = 'block';
+}
+
+async function deleteKlantFromDossier(id) {
+  if (!id) return;
+  if (!confirm('Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden.')) return;
+  var { error } = await sb.from('clients').delete().eq('id', id);
+  if (error) {
+    alert('Fout bij verwijderen: ' + error.message);
+    return;
+  }
+  closeKlantDossier();
   await loadAllData();
 }
 
