@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flancco — Rapport-wizard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -199,6 +200,7 @@
           <h2>Rapport opgeslagen!</h2>
           <p id="success-ref">Referentie: —</p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <button class="btn btn-success" onclick="downloadPDF()">📄 Download PDF</button>
             <a href="planning.html" class="btn btn-primary">← Terug naar planning</a>
             <button class="btn btn-secondary" onclick="location.reload()">Nieuw rapport</button>
           </div>
@@ -218,6 +220,7 @@ var currentContract = null;
 var fotos = [];
 var interventieCount = 0;
 var wizardStep = 0;
+var lastSavedRef = '';
 var steps = ['checklist','fotos','opmerkingen','samenvatting','success'];
 
 function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -542,14 +545,152 @@ async function saveRapport() {
     // Update beurt status
     await sb.from('onderhoudsbeurten').update({ status: 'uitgevoerd', uitvoer_datum: datum, updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
     auditLog('onderhoudsbeurten', currentBeurt.id, 'status_wijziging', currentBeurt.status, 'uitgevoerd');
-    auditLog('rapporten', rapRes.data[0].id, 'aangemaakt', null, ref);
+    auditLog('rapporten', rapportRes.data[0].id, 'aangemaakt', null, ref);
 
+    lastSavedRef = ref;
     document.getElementById('success-ref').textContent = 'Referentie: ' + ref;
     wizardStep = 4; renderStep();
   } catch (err) {
     alert('Fout: ' + (err.message || err));
     btn.disabled = false; btn.textContent = '✓ Rapport opslaan';
   }
+}
+
+// ═══════════════════════════════
+// PDF GENERATIE
+// ═══════════════════════════════
+function downloadPDF() {
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF('p', 'mm', 'a4');
+  var pageW = 210, margin = 20, contentW = pageW - 2 * margin;
+  var y = 20;
+
+  function checkPage(needed) { if (y + needed > 280) { doc.addPage(); y = 20; } }
+
+  // Header
+  doc.setFillColor(26, 26, 46);
+  doc.rect(0, 0, 210, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('FLANCCO', margin, 14);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Onderhoudsrapport', margin, 22);
+  doc.setFontSize(10);
+  doc.text(lastSavedRef, pageW - margin, 14, { align: 'right' });
+  y = 38;
+
+  // Klantgegevens
+  doc.setTextColor(26, 26, 46);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Klantgegevens', margin, y); y += 7;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  var klant = currentContract || {};
+  var klantLines = [
+    'Naam: ' + (klant.klant_naam || '—'),
+    'Adres: ' + (klant.klant_adres || '') + ', ' + (klant.klant_postcode || '') + ' ' + (klant.klant_gemeente || ''),
+    'Tel: ' + (klant.klant_telefoon || '—') + '  |  Email: ' + (klant.klant_email || '—')
+  ];
+  klantLines.forEach(function(l) { doc.text(l, margin, y); y += 5; });
+  y += 3;
+
+  // Beurt info
+  doc.setFillColor(243, 244, 246);
+  doc.rect(margin, y - 2, contentW, 22, 'F');
+  doc.setTextColor(26, 26, 46);
+  doc.setFontSize(10);
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  doc.text('Sector: ' + (sectorLabels[currentBeurt.sector] || currentBeurt.sector), margin + 4, y + 5);
+  doc.text('Datum: ' + (currentBeurt.plan_datum || '—'), margin + 80, y + 5);
+  doc.text('Contract: ' + (klant.contract_nummer || '—'), margin + 4, y + 13);
+  y += 28;
+
+  // Checklist
+  doc.setTextColor(26, 26, 46);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Checklist', margin, y); y += 7;
+
+  var checkData = getChecklistData();
+  var items = CHECKLISTS[currentBeurt.sector] || [];
+  items.forEach(function(item) {
+    checkPage(8);
+    var val = checkData[item.key] || {};
+    var status = val.status || '—';
+    var color = status === 'ok' ? [39, 174, 96] : status === 'nok' ? [231, 76, 60] : [150, 150, 150];
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    doc.text(item.label, margin, y);
+    doc.setTextColor(color[0], color[1], color[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.text(status.toUpperCase(), margin + 130, y);
+    doc.setFont('helvetica', 'normal');
+    if (status === 'nok' && val.note) {
+      y += 4;
+      doc.setTextColor(180, 80, 60);
+      doc.setFontSize(8);
+      var noteLines = doc.splitTextToSize('→ ' + val.note, contentW - 10);
+      doc.text(noteLines, margin + 4, y);
+      y += noteLines.length * 3.5;
+    }
+    y += 5.5;
+  });
+  y += 3;
+
+  // Opmerkingen
+  var opmerkingen = document.getElementById('rapport-opmerkingen').value.trim();
+  if (opmerkingen) {
+    checkPage(20);
+    doc.setTextColor(26, 26, 46);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Opmerkingen', margin, y); y += 7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    var opmLines = doc.splitTextToSize(opmerkingen, contentW);
+    doc.text(opmLines, margin, y);
+    y += opmLines.length * 4 + 5;
+  }
+
+  // Interventies
+  var ints = getInterventies();
+  if (ints.length > 0) {
+    checkPage(20);
+    doc.setTextColor(26, 26, 46);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Interventies (' + ints.length + ')', margin, y); y += 7;
+    ints.forEach(function(iv, idx) {
+      checkPage(12);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text((idx + 1) + '. ' + iv.omschrijving, margin, y);
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.text('Ernst: ' + iv.ernst + '  |  Actie door: ' + iv.actie_door + '  |  Opgelost: ' + (iv.opgelost_ter_plaatse ? 'Ja' : 'Nee'), margin + 4, y);
+      y += 6;
+    });
+  }
+
+  // Footer
+  var pages = doc.internal.getNumberOfPages();
+  for (var p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7);
+    doc.setTextColor(160, 160, 160);
+    doc.text('Flancco BV — ' + lastSavedRef + ' — Pagina ' + p + '/' + pages, pageW / 2, 290, { align: 'center' });
+  }
+
+  doc.save(lastSavedRef + '.pdf');
 }
 
 async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
