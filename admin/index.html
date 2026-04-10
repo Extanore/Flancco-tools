@@ -120,6 +120,12 @@
   .btn-submit { background:var(--green); color:white; }
   .btn-submit:hover { opacity:0.9; }
 
+  /* ROLE VISIBILITY — default hidden, shown by JS */
+  .admin-only, .partner-only { display: none !important; }
+  body.role-admin .admin-only { display: revert !important; }
+  body.role-partner .partner-only { display: revert !important; }
+  /* Both roles see items without a role class */
+
   /* RESPONSIVE */
   @media (max-width: 768px) {
     .sidebar { width: 60px; }
@@ -147,8 +153,8 @@
 <!-- APP -->
 <div id="app" class="app">
   <!-- SIDEBAR -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo" id="sidebar-logo">
       <h2>FLANCC<span>O</span></h2>
       <small>Partner Platform</small>
     </div>
@@ -157,7 +163,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span>Dashboard</span>
     </a>
-    <a class="nav-item" onclick="showPage('partners')" data-page="partners">
+    <a class="nav-item admin-only" onclick="showPage('partners')" data-page="partners">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Partners</span>
     </a>
@@ -165,14 +171,19 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       <span>Contracten</span>
     </a>
-    <div class="nav-section">Beheer</div>
-    <a class="nav-item" onclick="showPage('pricing')" data-page="pricing">
+    <div class="nav-section admin-only">Beheer</div>
+    <a class="nav-item admin-only" onclick="showPage('pricing')" data-page="pricing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       <span>Prijsbeheer</span>
     </a>
-    <a class="nav-item" onclick="showPage('forecast')" data-page="forecast">
+    <a class="nav-item admin-only" onclick="showPage('forecast')" data-page="forecast">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>Forecast</span>
+    </a>
+    <div class="nav-section partner-only">Beheer</div>
+    <a class="nav-item partner-only" onclick="showPage('instellingen')" data-page="instellingen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Instellingen</span>
     </a>
   </nav>
 
@@ -181,7 +192,6 @@
     <div class="topbar">
       <h1 id="page-title">Dashboard</h1>
       <div class="topbar-user">
-        <button class="btn-save" onclick="openNewContract()" style="margin-right:12px;margin-top:0">+ Nieuw contract</button>
         <span id="user-email"></span>
         <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
       </div>
@@ -210,8 +220,9 @@
     <div class="page" id="page-contracten">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Alle klantcontracten</span>
-          <select id="filter-partner" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+          <span class="card-title" id="contracten-title">Alle klantcontracten</span>
+          <button class="btn-save admin-only" onclick="openNewContract()" style="margin:0;font-size:12px">+ Nieuw contract</button>
+          <select id="filter-partner" class="admin-only" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
             <option value="">Alle partners</option>
           </select>
         </div>
@@ -229,8 +240,86 @@
       <div class="pricing-grid" id="pricing-grid"></div>
     </div>
 
+    <!-- INSTELLINGEN PAGE (partner only) -->
+    <div class="page partner-only" id="page-instellingen">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Branding & weergave</span></div>
+        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Pas je huisstijl aan. Deze kleuren worden toegepast op je calculator en dit dashboard.</p>
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>Primaire kleur</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="set-kleur1" style="width:48px;height:36px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:2px">
+              <input type="text" id="set-kleur1-hex" placeholder="#098979" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px" oninput="document.getElementById('set-kleur1').value=this.value">
+            </div>
+          </div>
+          <div class="modal-field">
+            <label>Donkere kleur</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="set-kleur2" style="width:48px;height:36px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:2px">
+              <input type="text" id="set-kleur2-hex" placeholder="#066b5e" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px" oninput="document.getElementById('set-kleur2').value=this.value">
+            </div>
+          </div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>Bedrijfsnaam (zoals getoond op calculator)</label>
+            <input type="text" id="set-bedrijfsnaam">
+          </div>
+          <div class="modal-field">
+            <label>Contactpersoon</label>
+            <input type="text" id="set-contact">
+          </div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>E-mail</label>
+            <input type="email" id="set-email">
+          </div>
+          <div class="modal-field">
+            <label>Telefoon</label>
+            <input type="tel" id="set-telefoon">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Calculator instellingen</span></div>
+        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Je calculator-link: <a id="set-calc-link" href="#" target="_blank" style="color:var(--blue)"></a></p>
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>Gratis transport (km)</label>
+            <input type="number" id="set-transport-km" min="0">
+          </div>
+          <div class="modal-field">
+            <label>Marge op Flancco-forfait (%)</label>
+            <input type="number" id="set-marge" min="0" step="0.5" disabled style="background:#f3f4f6">
+            <small style="color:var(--grey);font-size:11px">Wordt bepaald door Flancco</small>
+          </div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>Planning fee (€ per installatie)</label>
+            <input type="number" id="set-planning" min="0" step="0.5" disabled style="background:#f3f4f6">
+            <small style="color:var(--grey);font-size:11px">Wordt bepaald door Flancco</small>
+          </div>
+          <div class="modal-field">
+            <label>Flancco inzage in klantdata</label>
+            <select id="set-inzage" disabled style="background:#f3f4f6">
+              <option value="true">Akkoord</option>
+              <option value="false">Niet akkoord</option>
+            </select>
+            <small style="color:var(--grey);font-size:11px">Vastgelegd in samenwerkingsovereenkomst</small>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-save" onclick="saveSettings()" style="margin-top:4px">Instellingen opslaan</button>
+      <span class="save-msg" id="settings-saved">Opgeslagen!</span>
+    </div>
+
     <!-- FORECAST PAGE -->
-    <div class="page" id="page-forecast">
+    <div class="page admin-only" id="page-forecast">
       <div class="stats" id="forecast-stats"></div>
       <div class="card">
         <div class="card-header"><span class="card-title">Maandelijkse omzetprognose (12 maanden)</span></div>
@@ -340,6 +429,8 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 let currentUser = null;
+let userRole = null;    // 'admin' or 'partner'
+let userPartner = null; // partner object if role=partner
 let partners = [];
 let allPricing = [];
 let allSupplementen = [];
@@ -352,10 +443,7 @@ async function checkAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     currentUser = session.user;
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('user-email').textContent = currentUser.email;
-    await loadAllData();
+    await initApp();
   }
 }
 
@@ -367,11 +455,112 @@ async function doLogin() {
     document.getElementById('login-error').textContent = 'Ongeldige inloggegevens';
   } else {
     currentUser = data.user;
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('user-email').textContent = currentUser.email;
-    await loadAllData();
+    await initApp();
   }
+}
+
+async function initApp() {
+  // Fetch user role
+  const { data: roleData } = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
+  if (!roleData) {
+    document.getElementById('login-error').textContent = 'Geen toegang. Neem contact op met Flancco.';
+    await sb.auth.signOut();
+    return;
+  }
+
+  userRole = roleData.role;
+  document.body.classList.add('role-' + userRole);
+
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-email').textContent = currentUser.email;
+
+  await loadAllData();
+
+  // If partner: apply branding and load settings
+  if (userRole === 'partner' && roleData.partner_id) {
+    userPartner = partners.find(p => p.id === roleData.partner_id);
+    if (userPartner) {
+      applyBranding(userPartner);
+      loadSettings(userPartner);
+    }
+    document.getElementById('contracten-title').textContent = 'Mijn contracten';
+  }
+}
+
+function applyBranding(p) {
+  const primary = p.kleur_primair || '#098979';
+  const dark = p.kleur_donker || '#066b5e';
+
+  // Sidebar
+  const sidebar = document.getElementById('sidebar');
+  sidebar.style.background = dark;
+
+  // Sidebar logo
+  const logo = document.getElementById('sidebar-logo');
+  logo.innerHTML = `<h2 style="color:white;font-size:18px">${p.bedrijfsnaam || p.naam}</h2><small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>`;
+
+  // Stat cards and accents
+  document.documentElement.style.setProperty('--navy', dark);
+  document.documentElement.style.setProperty('--navy-light', primary);
+
+  // Page title
+  document.getElementById('page-title').textContent = 'Dashboard — ' + p.naam;
+}
+
+function loadSettings(p) {
+  document.getElementById('set-kleur1').value = p.kleur_primair || '#098979';
+  document.getElementById('set-kleur1-hex').value = p.kleur_primair || '#098979';
+  document.getElementById('set-kleur2').value = p.kleur_donker || '#066b5e';
+  document.getElementById('set-kleur2-hex').value = p.kleur_donker || '#066b5e';
+  document.getElementById('set-bedrijfsnaam').value = p.bedrijfsnaam || '';
+  document.getElementById('set-contact').value = p.contactpersoon || '';
+  document.getElementById('set-email').value = p.email || '';
+  document.getElementById('set-telefoon').value = p.telefoon || '';
+  document.getElementById('set-transport-km').value = p.transport_gratis_km || 30;
+  document.getElementById('set-marge').value = p.marge_pct || 10;
+  document.getElementById('set-planning').value = p.planning_fee || 5;
+  document.getElementById('set-inzage').value = p.akkoord_flancco_inzage ? 'true' : 'false';
+
+  const calcLink = document.getElementById('set-calc-link');
+  const url = window.location.origin + window.location.pathname.replace('/admin/', '/' + p.slug + '/');
+  calcLink.href = url;
+  calcLink.textContent = url;
+
+  // Color picker sync
+  document.getElementById('set-kleur1').addEventListener('input', e => {
+    document.getElementById('set-kleur1-hex').value = e.target.value;
+  });
+  document.getElementById('set-kleur2').addEventListener('input', e => {
+    document.getElementById('set-kleur2-hex').value = e.target.value;
+  });
+}
+
+async function saveSettings() {
+  if (!userPartner) return;
+
+  const updates = {
+    kleur_primair: document.getElementById('set-kleur1-hex').value,
+    kleur_donker: document.getElementById('set-kleur2-hex').value,
+    bedrijfsnaam: document.getElementById('set-bedrijfsnaam').value,
+    contactpersoon: document.getElementById('set-contact').value,
+    email: document.getElementById('set-email').value,
+    telefoon: document.getElementById('set-telefoon').value
+  };
+
+  const { error } = await sb.from('partners').update(updates).eq('id', userPartner.id);
+  if (error) {
+    alert('Fout bij opslaan: ' + error.message);
+    return;
+  }
+
+  // Update local state & re-apply branding
+  Object.assign(userPartner, updates);
+  applyBranding(userPartner);
+
+  const msg = document.getElementById('settings-saved');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2500);
 }
 
 async function doLogout() {
@@ -413,28 +602,37 @@ function showPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${name}"]`).classList.add('active');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', pricing: 'Prijsbeheer', forecast: 'Forecast' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', pricing: 'Prijsbeheer', forecast: 'Forecast', instellingen: 'Instellingen' };
   document.getElementById('page-title').textContent = titles[name] || name;
 }
 
 // =============================================
 // DASHBOARD
 // =============================================
+function myContracten() {
+  if (userRole === 'partner' && userPartner) return allContracten.filter(c => c.partner_id === userPartner.id);
+  return allContracten;
+}
+
 function renderDashboard() {
+  const contracts = myContracten();
   const totalPartners = partners.length;
   const activePartners = partners.filter(p => p.contract_getekend).length;
-  const totalContracts = allContracten.length;
-  const totalRevenue = allContracten.reduce((sum, c) => sum + parseFloat(c.totaal_incl_btw || 0), 0);
-  const avgPanels = allContracten.length > 0 ? Math.round(allContracten.reduce((s, c) => s + (c.aantal_panelen || 0), 0) / allContracten.length) : 0;
+  const totalContracts = contracts.length;
+  const totalRevenue = contracts.reduce((sum, c) => sum + parseFloat(c.totaal_incl_btw || 0), 0);
+  const avgPanels = contracts.length > 0 ? Math.round(contracts.reduce((s, c) => s + (c.aantal_panelen || 0), 0) / contracts.length) : 0;
 
-  document.getElementById('stats-row').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Partners</div><div class="stat-value">${totalPartners}</div><div class="stat-sub">${activePartners} actief contract</div></div>
-    <div class="stat-card blue"><div class="stat-label">Klantcontracten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">totaal getekend</div></div>
-    <div class="stat-card green"><div class="stat-label">Omzet (eindklant)</div><div class="stat-value">€ ${Math.round(totalRevenue).toLocaleString('nl-BE')}</div><div class="stat-sub">totaal incl. btw</div></div>
-    <div class="stat-card orange"><div class="stat-label">Gem. panelen</div><div class="stat-value">${avgPanels}</div><div class="stat-sub">per contract</div></div>
-  `;
+  const statsHtml = userRole === 'admin'
+    ? `<div class="stat-card"><div class="stat-label">Partners</div><div class="stat-value">${totalPartners}</div><div class="stat-sub">${activePartners} actief contract</div></div>
+       <div class="stat-card blue"><div class="stat-label">Klantcontracten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">totaal getekend</div></div>
+       <div class="stat-card green"><div class="stat-label">Omzet (eindklant)</div><div class="stat-value">€ ${Math.round(totalRevenue).toLocaleString('nl-BE')}</div><div class="stat-sub">totaal incl. btw</div></div>
+       <div class="stat-card orange"><div class="stat-label">Gem. panelen</div><div class="stat-value">${avgPanels}</div><div class="stat-sub">per contract</div></div>`
+    : `<div class="stat-card blue"><div class="stat-label">Mijn klanten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">getekende contracten</div></div>
+       <div class="stat-card green"><div class="stat-label">Omzet</div><div class="stat-value">€ ${Math.round(totalRevenue).toLocaleString('nl-BE')}</div><div class="stat-sub">totaal incl. btw</div></div>
+       <div class="stat-card orange"><div class="stat-label">Gem. panelen</div><div class="stat-value">${avgPanels}</div><div class="stat-sub">per contract</div></div>`;
+  document.getElementById('stats-row').innerHTML = statsHtml;
 
-  const recent = allContracten.slice(0, 8);
+  const recent = contracts.slice(0, 8);
   const tbody = document.getElementById('recent-contracts');
   const noContracts = document.getElementById('no-contracts');
   if (recent.length === 0) {
@@ -506,9 +704,11 @@ function populateFilterDropdown() {
 }
 
 function renderContracten() {
-  const filter = document.getElementById('filter-partner').value;
-  let filtered = allContracten;
-  if (filter) filtered = filtered.filter(c => c.partner_id === filter);
+  let filtered = myContracten();
+  if (userRole === 'admin') {
+    const filter = document.getElementById('filter-partner').value;
+    if (filter) filtered = filtered.filter(c => c.partner_id === filter);
+  }
 
   const tbody = document.getElementById('all-contracts');
   const noEl = document.getElementById('no-all-contracts');
