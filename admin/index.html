@@ -1074,9 +1074,21 @@ function renderDashboard() {
        <div class="stat-card blue"><div class="stat-label">Klantcontracten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">totaal getekend</div></div>
        <div class="stat-card green"><div class="stat-label">Omzet (eindklant)</div><div class="stat-value">€ ${Math.round(totalRevenue).toLocaleString('nl-BE')}</div><div class="stat-sub">totaal incl. btw</div></div>
        <div class="stat-card orange"><div class="stat-label">Gem. panelen</div><div class="stat-value">${avgPanels}</div><div class="stat-sub">per contract</div></div>`
-    : `<div class="stat-card blue"><div class="stat-label">Mijn klanten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">getekende contracten</div></div>
-       <div class="stat-card green"><div class="stat-label">Omzet</div><div class="stat-value">€ ${Math.round(totalRevenue).toLocaleString('nl-BE')}</div><div class="stat-sub">totaal incl. btw</div></div>
-       <div class="stat-card orange"><div class="stat-label">Gem. panelen</div><div class="stat-value">${avgPanels}</div><div class="stat-sub">per contract</div></div>`;
+    : (function() {
+        // Partner verdienste-overzicht
+        var partnerMarge = userPartner ? parseFloat(userPartner.marge_pct || 0) : 0;
+        var partnerFee = userPartner ? parseFloat(userPartner.planning_fee || 0) : 0;
+        var brutoOmzet = totalRevenue;
+        // Marge = wat de partner verdient: totaal - (flancco deel)
+        // flancco deel per beurt = forfait_per_beurt / (1 + marge/100) - planning_fee doorrekening
+        // Vereenvoudigd: marge = totaal * (marge_pct / (100 + marge_pct))
+        var eigenMarge = partnerMarge > 0 ? Math.round(brutoOmzet * (partnerMarge / (100 + partnerMarge))) : 0;
+        var openInts = allInterventies.filter(function(i) { return i.status === 'open'; }).length;
+        return '<div class="stat-card blue"><div class="stat-label">Actieve contracten</div><div class="stat-value">' + totalContracts + '</div><div class="stat-sub">getekende contracten</div></div>' +
+          '<div class="stat-card green"><div class="stat-label">Bruto omzet</div><div class="stat-value">€ ' + Math.round(brutoOmzet).toLocaleString('nl-BE') + '</div><div class="stat-sub">totaal incl. btw</div></div>' +
+          '<div class="stat-card"><div class="stat-label">Mijn marge</div><div class="stat-value">€ ' + eigenMarge.toLocaleString('nl-BE') + '</div><div class="stat-sub">' + partnerMarge + '% van omzet</div></div>' +
+          '<div class="stat-card' + (openInts > 0 ? ' orange' : '') + '"><div class="stat-label">Open interventies</div><div class="stat-value">' + openInts + '</div><div class="stat-sub">' + (openInts === 0 ? 'alles up-to-date' : 'wacht op afhandeling') + '</div></div>';
+      })();
   document.getElementById('stats-row').innerHTML = statsHtml;
 
   const recent = contracts.slice(0, 8);
