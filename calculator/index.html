@@ -690,7 +690,7 @@ function buildStaffelTable() {
 function updateSupplementLabels() {
   const vervBedrag = getSupplement('vervuiling');
   if (vervBedrag > 0) {
-    document.getElementById('verv-label').textContent = '+ € ' + vervBedrag.toFixed(2).replace('.', ',') + ' per paneel';
+    var rv = round50(vervBedrag); document.getElementById('verv-label').textContent = '+ ' + fmt(rv).replace('€','€') + ' per paneel';
   }
 }
 
@@ -732,7 +732,7 @@ function calculate() {
   document.getElementById('val-forfait').textContent = fmt(f.amt * (1 + btwPct / 100));
 
   const lv = document.getElementById('line-vervuiling');
-  if (verv) { lv.classList.remove('hidden'); document.getElementById('label-vervuiling').textContent = pan + ' pan. × € ' + vervPP.toFixed(2).replace('.', ','); document.getElementById('val-vervuiling').textContent = fmt(vervC * (1 + btwPct / 100)); }
+  if (verv) { lv.classList.remove('hidden'); document.getElementById('label-vervuiling').textContent = pan + ' pan. × ' + fmt(vervPP); document.getElementById('val-vervuiling').textContent = fmt(vervC * (1 + btwPct / 100)); }
   else { lv.classList.add('hidden'); }
 
   const lt = document.getElementById('line-transport');
@@ -928,7 +928,7 @@ function generateContract() {
     </table>
     <table class="pricing-table" style="margin-top:16px">
       <tr><th>Bijkomende kosten</th><th>Tarief</th></tr>
-      ${vervBedrag > 0 ? '<tr><td>Hevige vervuiling of mosvorming</td><td>+ ' + fmtDec(vervBedrag) + ' / paneel</td></tr>' : ''}
+      ${vervBedrag > 0 ? '<tr><td>Hevige vervuiling of mosvorming</td><td>+ ' + fmt(vervBedrag) + ' / paneel</td></tr>' : ''}
       ${transBedrag > 0 ? '<tr><td>Verplaatsing boven ' + s.freeKm + ' km</td><td>+ ' + fmtDec(transBedrag) + ' / km</td></tr>' : ''}
       ${hoogteBedragIncl > 0 ? '<tr><td>Hoogtewerker (dakrand > 7,5 m)</td><td>+ ' + fmt(hoogteBedragIncl) + ' / installatie</td></tr>' : ''}
     </table>
@@ -936,7 +936,7 @@ function generateContract() {
     <div class="highlight-box" style="margin-top:20px">
       <p><strong>Uw berekening:</strong></p>
       <p>Forfait ${s.forfaitLabel}: ${fmtClean(s.forfaitExcl * btwMult)}</p>
-      ${s.vervC > 0 ? '<p>Vervuiling: ' + s.pan + ' × ' + fmtDec(s.vervPP * btwMult) + ' = ' + fmtClean(s.vervC * btwMult) + '</p>' : ''}
+      ${s.vervC > 0 ? '<p>Vervuiling: ' + s.pan + ' × ' + fmtClean(s.vervPP * btwMult) + ' = ' + fmtClean(s.vervC * btwMult) + '</p>' : ''}
       ${s.transC > 0 ? '<p>Verplaatsing: ' + s.extraKm + ' km × ' + fmtDec(s.transPKM * btwMult) + ' = ' + fmtClean(s.transC * btwMult) + '</p>' : ''}
       ${s.hoogC > 0 ? '<p>Hoogtewerker: ' + fmtClean(s.hoogteBedrag * btwMult) + '</p>' : ''}
       ${s.kortingBedrag > 0 ? '<p>Contractkorting (' + s.duur + ' jaar, -5%): - ' + fmtClean(s.kortingBedrag * btwMult) + '</p>' : ''}
