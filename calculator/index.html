@@ -231,6 +231,13 @@
   .summary-tip strong { color: #5C4B10; }
   .summary-tip svg { flex-shrink: 0; margin-top: 2px; }
 
+  /* BTW 6% verklaring */
+  .btw6-verklaring { margin-top: 12px; }
+  .btw6-box { background: #FFF8E7; border: 1px solid #F0DCA0; border-radius: var(--radius); padding: 20px 24px; font-size: 14px; line-height: 1.6; color: #5C4B10; }
+  .btw6-box strong { color: #3D3209; }
+  .btw6-box ul { margin: 8px 0 0; padding-left: 20px; }
+  .btw6-box li { margin-bottom: 4px; }
+
   /* POST SUBMIT */
   .post-submit { background: var(--primary-bg); border-radius: var(--radius); padding: 32px; text-align: center; }
   .post-submit h2 { font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
@@ -255,6 +262,17 @@
   }
 
   /* RESPONSIVE */
+  /* Mobile floating bottom bar */
+  .mobile-bar { display: none; }
+  @media (max-width: 768px) {
+    .mobile-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-dark, var(--primary)); color: #fff; padding: 12px 20px; align-items: center; justify-content: space-between; z-index: 100; box-shadow: 0 -2px 12px rgba(0,0,0,0.15); }
+    .mobile-bar-price { font-size: 20px; font-weight: 700; }
+    .mobile-bar-label { font-size: 11px; opacity: 0.8; }
+    .mobile-bar .btn { margin: 0; padding: 10px 20px; font-size: 14px; background: #fff; color: var(--primary-dark, var(--primary)); font-weight: 700; border-radius: 8px; }
+    .mobile-bar .btn:hover { opacity: 0.9; }
+    /* Ruimte onder content voor de bar */
+    #step-1 .container { padding-bottom: 90px; }
+  }
   @media (max-width: 520px) {
     .container { padding: 28px 16px 40px; }
     .card, .contract { padding: 24px 20px; }
@@ -385,8 +403,23 @@
 
       <div class="card-title" style="margin-top:24px">BTW-tarief</div>
       <div class="radio-group" id="btw-group">
-        <label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculate()"><div class="radio-text">21% BTW<small>Standaardtarief</small></div></label>
-        <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="calculate()"><div class="radio-text">6% BTW<small>Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small></div></label>
+        <label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculate();toggleBtwAttest()"><div class="radio-text">21% BTW<small>Standaardtarief</small></div></label>
+        <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="calculate();toggleBtwAttest()"><div class="radio-text">6% BTW<small>Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small></div></label>
+      </div>
+      <div id="btw6-verklaring" class="btw6-verklaring hidden">
+        <div class="btw6-box">
+          <strong>Verklaring op eer — verlaagd btw-tarief (6%)</strong>
+          <p>Om in aanmerking te komen voor het verlaagd btw-tarief van 6% moet de woning waar de werken uitgevoerd worden voldoen aan de volgende voorwaarden:</p>
+          <ul>
+            <li>De woning is <strong>ouder dan 10 jaar</strong> (eerste ingebruikname meer dan 10 jaar geleden)</li>
+            <li>De woning wordt <strong>hoofdzakelijk als priv&eacute;woning</strong> gebruikt</li>
+            <li>De werken worden rechtstreeks aan de <strong>eindverbruiker</strong> gefactureerd</li>
+          </ul>
+          <label class="check-row" style="margin-top:12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px">
+            <input type="checkbox" id="btw6-check" style="margin-top:3px;flex-shrink:0">
+            <span>Ik verklaar op eer dat het gebouw waar de werken uitgevoerd worden langer dan 10 jaar in gebruik is als priv&eacute;woning en dat ik de eindverbruiker ben. Ik neem kennis dat bij onjuiste verklaring het verschil in btw (15%) verhaald kan worden.</span>
+          </label>
+        </div>
       </div>
 
       <div class="card-title" style="margin-top:24px">Frequentie</div>
@@ -767,6 +800,8 @@ function calculate() {
   else { lk.classList.add('hidden'); }
 
   document.getElementById('total').textContent = fmtTotal(total);
+  var mobTotal = document.getElementById('mobile-total');
+  if (mobTotal) mobTotal.textContent = fmtTotal(total);
   document.getElementById('btw-note').textContent = 'Alle bedragen incl. ' + btwPct + '% btw';
 
   const lj = document.getElementById('line-jaar');
@@ -799,7 +834,15 @@ function checkPostcode() {
     const radio21 = document.querySelector('input[name="btw"][value="21"]');
     if (radio21) radio21.checked = true;
     calculate();
+    toggleBtwAttest();
   }
+}
+
+function toggleBtwAttest() {
+  const is6 = document.querySelector('input[name="btw"]:checked')?.value === '6';
+  const box = document.getElementById('btw6-verklaring');
+  if (is6) { box.classList.remove('hidden'); }
+  else { box.classList.add('hidden'); document.getElementById('btw6-check').checked = false; }
 }
 
 // ═══════════════════════════════════════════
@@ -808,6 +851,10 @@ function checkPostcode() {
 function goToStep(n) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('step-' + n).classList.add('active');
+
+  // Mobile bar: only visible on step 1
+  var mBar = document.getElementById('mobile-bar');
+  if (mBar) mBar.style.display = (String(n) === '1') ? '' : 'none';
 
   // Update step bar
   const steps = ['1', '2', '2b', '3'];
@@ -837,6 +884,13 @@ function goToSummary() {
   }
 
   if (!valid) { alert('Vul alle verplichte velden in (aangeduid met *).'); return; }
+
+  // Validate 6% BTW verklaring
+  const is6 = document.querySelector('input[name="btw"]:checked')?.value === '6';
+  if (is6 && !document.getElementById('btw6-check').checked) {
+    alert('U dient de verklaring op eer te bevestigen om het verlaagd btw-tarief van 6% te kunnen toepassen.');
+    return;
+  }
 
   // Build summary
   const s = calcState;
@@ -1029,7 +1083,18 @@ function generateContract() {
     <h2>Artikel 10 — Aansprakelijkheid</h2>
     <p>De Dienstverlener is verzekerd voor beroeps- en uitbatingsaansprakelijkheid. Niet aansprakelijk voor reeds bestaande schade of indirecte gevolgschade.</p>
 
-    <h2>Artikel 11 — Herroepingsrecht</h2>
+    ${s.btwPct === 6 ? `<h2>Artikel 11 — Attest verlaagd btw-tarief (6%)</h2>
+    <div style="border:1px solid #ccc;border-radius:8px;padding:16px 20px;margin-bottom:8px;background:#FAFAF5">
+      <p style="margin:0 0 8px"><strong>Verklaring op eer door de opdrachtgever</strong></p>
+      <p style="margin:0 0 4px">Ondergetekende, <strong>${naam}</strong>, verklaart op eer dat:</p>
+      <ul style="margin:6px 0;padding-left:20px">
+        <li>Het gebouw gelegen te <strong>${straat} ${huisnr}, ${pc} ${gem}</strong> langer dan 10 jaar in gebruik is als priv&eacute;woning</li>
+        <li>De werken rechtstreeks aan de eindverbruiker worden gefactureerd</li>
+        <li>De woning hoofdzakelijk voor priv&eacute;doeleinden wordt aangewend</li>
+      </ul>
+      <p style="margin:6px 0 0;font-size:12px;color:#666">Bij onjuiste verklaring is de opdrachtgever aansprakelijk voor het verschil tussen het verlaagd (6%) en het normaal (21%) btw-tarief, vermeerderd met eventuele boetes en interesten.</p>
+    </div>
+    <h2>Artikel 12 — Herroepingsrecht</h2>` : '<h2>Artikel 11 — Herroepingsrecht</h2>'}
     <p>De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU. Het herroepingsformulier wordt meegestuurd met de bevestigingsmail.</p>
 
     <h2>Ondertekening</h2>
@@ -1196,6 +1261,15 @@ async function submitContract() {
     const { data, error } = await sb.from('contracten').insert([payload]).select();
     if (error) throw error;
 
+    // Auto-generate onderhoudsbeurten
+    try {
+      const contractId = data[0].id;
+      const beurten = generateOnderhoudsbeurten(contractId, s);
+      if (beurten.length > 0) {
+        await sb.from('onderhoudsbeurten').insert(beurten);
+      }
+    } catch (beurtErr) { console.warn('Onderhoudsbeurten generatie mislukt:', beurtErr); }
+
     // Show success
     document.getElementById('submit-row').style.display = 'none';
     document.getElementById('download-hint').style.display = 'none';
@@ -1213,6 +1287,71 @@ async function submitContract() {
     btn.disabled = false;
     btn.textContent = '\u2713 Onderteken & verstuur';
   }
+}
+
+// ═══════════════════════════════════════════
+// AUTO-GENERATE ONDERHOUDSBEURTEN
+// ═══════════════════════════════════════════
+function generateOnderhoudsbeurten(contractId, s) {
+  // Seizoensvenster voor zonnepanelen: maart t/m oktober
+  const seizoenMaanden = [3, 4, 5, 6, 7, 8, 9, 10];
+
+  // Bepaal aantal beurten
+  var aantalJaren = s.duur === 0 ? 1 : s.duur; // eenmalig = 1 beurt
+  var beurtenPerJaar = s.freq; // 1 = jaarlijks, 2 = halfjaarlijks
+  var totaalBeurten = aantalJaren * beurtenPerJaar;
+
+  // Startdatum: eerste seizoensmaand na vandaag
+  var nu = new Date();
+  var startDatum = eersteSeizoensDatum(nu, seizoenMaanden);
+
+  var beurten = [];
+  for (var i = 0; i < totaalBeurten; i++) {
+    var dueDate;
+    if (beurtenPerJaar === 2) {
+      // Halfjaarlijks: 2 beurten per jaar, 6 maanden apart
+      var jarenVooruit = Math.floor(i / 2);
+      var halverwege = i % 2 === 1;
+      dueDate = new Date(startDatum);
+      dueDate.setFullYear(dueDate.getFullYear() + jarenVooruit);
+      if (halverwege) dueDate.setMonth(dueDate.getMonth() + 6);
+      // Corrigeer naar seizoensvenster
+      dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
+    } else {
+      // Jaarlijks
+      dueDate = new Date(startDatum);
+      dueDate.setFullYear(dueDate.getFullYear() + i);
+      dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
+    }
+
+    beurten.push({
+      contract_id: contractId,
+      sector: 'zonnepanelen',
+      volgnummer: i + 1,
+      due_date: formatDate(dueDate),
+      status: i === 0 ? 'in_te_plannen' : 'toekomstig'
+    });
+  }
+  return beurten;
+}
+
+function eersteSeizoensDatum(datum, maanden) {
+  var d = new Date(datum);
+  var m = d.getMonth() + 1; // 1-based
+  if (maanden.indexOf(m) !== -1) return d;
+  // Zoek eerste maand in seizoen na huidige maand
+  for (var i = 0; i < maanden.length; i++) {
+    if (maanden[i] > m) { d.setMonth(maanden[i] - 1); d.setDate(1); return d; }
+  }
+  // Volgende jaar, eerste seizoensmaand
+  d.setFullYear(d.getFullYear() + 1);
+  d.setMonth(maanden[0] - 1);
+  d.setDate(1);
+  return d;
+}
+
+function formatDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 // ═══════════════════════════════════════════
@@ -1261,5 +1400,15 @@ function toggleInfo(id) { document.getElementById(id).classList.toggle('open'); 
 // ═══════════════════════════════════════════
 init();
 </script>
+
+<!-- Mobile floating bottom bar (only visible on step 1, < 768px) -->
+<div class="mobile-bar" id="mobile-bar">
+  <div>
+    <div class="mobile-bar-label">Totaal per beurt</div>
+    <div class="mobile-bar-price" id="mobile-total"></div>
+  </div>
+  <button class="btn" onclick="goToStep(2)">Verder &rarr;</button>
+</div>
+
 </body>
 </html>
