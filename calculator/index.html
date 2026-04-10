@@ -680,9 +680,9 @@ function buildStaffelTable() {
   const marge = parseFloat(partner.marge_pct) / 100;
   const planFee = parseFloat(partner.planning_fee);
 
+  const btwPct = parseInt(document.querySelector('input[name="btw"]:checked').value);
   tbody.innerHTML = partnerPricing.map(pr => {
-    const clientPrice = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee);
-    const maxLabel = pr.staffel_max ? pr.staffel_max : '+';
+    const clientPrice = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * (1 + btwPct / 100);
     return '<tr data-min="' + pr.staffel_min + '" data-max="' + (pr.staffel_max || 9999) + '"><td>' + pr.label + '</td><td>' + fmt(clientPrice) + '</td></tr>';
   }).join('');
 }
@@ -694,8 +694,10 @@ function updateSupplementLabels() {
   }
 }
 
-function fmt(n) { return '€ ' + n.toFixed(2).replace('.', ',').replace(/,00$/, ''); }
-function fmtClean(n) { return '€\u00A0' + n.toFixed(2).replace('.', ',').replace(/,00$/, ''); }
+function round50(n) { return Math.round(n * 2) / 2; }
+function fmt(n) { var r = round50(n); return '€ ' + (r % 1 === 0 ? r : r.toFixed(2).replace('.',',')); }
+function fmtClean(n) { var r = round50(n); return '€\u00A0' + (r % 1 === 0 ? r : r.toFixed(2).replace('.',',')); }
+function fmtDec(n) { return '€ ' + n.toFixed(2).replace('.', ','); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function calculate() {
@@ -752,7 +754,8 @@ function calculate() {
   if (freq === 2) { lj.classList.remove('hidden'); document.getElementById('val-jaar').textContent = fmt(total * 2); }
   else { lj.classList.add('hidden'); }
 
-  // Staffel highlight
+  // Rebuild staffel table (updates with BTW changes) + highlight
+  buildStaffelTable();
   document.querySelectorAll('#staffel-body tr').forEach(r => {
     const mn = +r.dataset.min, mx = +r.dataset.max;
     r.classList.toggle('active', pan >= mn && pan <= mx);
@@ -925,16 +928,16 @@ function generateContract() {
     </table>
     <table class="pricing-table" style="margin-top:16px">
       <tr><th>Bijkomende kosten</th><th>Tarief</th></tr>
-      ${vervBedrag > 0 ? '<tr><td>Hevige vervuiling of mosvorming</td><td>+ ' + fmt(vervBedrag) + ' / paneel</td></tr>' : ''}
-      ${transBedrag > 0 ? '<tr><td>Verplaatsing boven ' + s.freeKm + ' km</td><td>+ ' + fmt(transBedrag) + ' / km</td></tr>' : ''}
+      ${vervBedrag > 0 ? '<tr><td>Hevige vervuiling of mosvorming</td><td>+ ' + fmtDec(vervBedrag) + ' / paneel</td></tr>' : ''}
+      ${transBedrag > 0 ? '<tr><td>Verplaatsing boven ' + s.freeKm + ' km</td><td>+ ' + fmtDec(transBedrag) + ' / km</td></tr>' : ''}
       ${hoogteBedragIncl > 0 ? '<tr><td>Hoogtewerker (dakrand > 7,5 m)</td><td>+ ' + fmt(hoogteBedragIncl) + ' / installatie</td></tr>' : ''}
     </table>
 
     <div class="highlight-box" style="margin-top:20px">
       <p><strong>Uw berekening:</strong></p>
       <p>Forfait ${s.forfaitLabel}: ${fmtClean(s.forfaitExcl * btwMult)}</p>
-      ${s.vervC > 0 ? '<p>Vervuiling: ' + s.pan + ' × ' + fmtClean(s.vervPP * btwMult) + ' = ' + fmtClean(s.vervC * btwMult) + '</p>' : ''}
-      ${s.transC > 0 ? '<p>Verplaatsing: ' + s.extraKm + ' km × ' + fmtClean(s.transPKM * btwMult) + ' = ' + fmtClean(s.transC * btwMult) + '</p>' : ''}
+      ${s.vervC > 0 ? '<p>Vervuiling: ' + s.pan + ' × ' + fmtDec(s.vervPP * btwMult) + ' = ' + fmtClean(s.vervC * btwMult) + '</p>' : ''}
+      ${s.transC > 0 ? '<p>Verplaatsing: ' + s.extraKm + ' km × ' + fmtDec(s.transPKM * btwMult) + ' = ' + fmtClean(s.transC * btwMult) + '</p>' : ''}
       ${s.hoogC > 0 ? '<p>Hoogtewerker: ' + fmtClean(s.hoogteBedrag * btwMult) + '</p>' : ''}
       ${s.kortingBedrag > 0 ? '<p>Contractkorting (' + s.duur + ' jaar, -5%): - ' + fmtClean(s.kortingBedrag * btwMult) + '</p>' : ''}
       <p style="font-weight:700;font-size:15px;margin-top:8px">Totaal per beurt: ${fmtClean(s.total)} incl. ${s.btwPct}% btw</p>
