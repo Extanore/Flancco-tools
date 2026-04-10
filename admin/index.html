@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flancco — Partner Platform</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --navy: #1A1A2E;
+    --navy-light: #2a2a4a;
+    --red: #E74C3C;
+    --green: #27AE60;
+    --blue: #3498DB;
+    --orange: #F39C12;
+    --grey: #6B7280;
+    --light: #F3F4F6;
+    --white: #FFFFFF;
+    --rule: #E5E7EB;
+    --radius: 10px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: #1f2937; }
+
+  /* LOGIN */
+  .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-card { background: var(--white); padding: 48px 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 380px; text-align: center; }
+  .login-card h1 { font-size: 22px; color: var(--navy); margin-bottom: 6px; }
+  .login-card p { font-size: 13px; color: var(--grey); margin-bottom: 28px; }
+  .login-card input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--rule); border-radius: 8px; font-size: 14px; margin-bottom: 12px; outline: none; }
+  .login-card input:focus { border-color: var(--navy); }
+  .login-card button { width: 100%; padding: 13px; background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .login-card button:hover { background: var(--navy-light); }
+  .login-error { color: var(--red); font-size: 12px; margin-top: 8px; }
+
+  /* LAYOUT */
+  .app { display: none; }
+  .sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: var(--navy); padding: 24px 0; overflow-y: auto; }
+  .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px; }
+  .sidebar-logo h2 { color: white; font-size: 18px; }
+  .sidebar-logo span { color: var(--red); }
+  .sidebar-logo small { color: rgba(255,255,255,0.5); font-size: 11px; display: block; margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,0.65); font-size: 13px; cursor: pointer; transition: 0.2s; text-decoration: none; }
+  .nav-item:hover, .nav-item.active { color: white; background: rgba(255,255,255,0.08); }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .nav-section { padding: 16px 20px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.3); }
+  .main { margin-left: 220px; padding: 32px; min-height: 100vh; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+  .topbar h1 { font-size: 22px; color: var(--navy); }
+  .topbar-user { display: flex; align-items: center; gap: 12px; }
+  .topbar-user span { font-size: 13px; color: var(--grey); }
+  .btn-logout { padding: 7px 14px; background: none; border: 1.5px solid var(--rule); border-radius: 6px; font-size: 12px; color: var(--grey); cursor: pointer; }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* CARDS */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: var(--white); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stat-label { font-size: 12px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--navy); }
+  .stat-sub { font-size: 12px; color: var(--grey); margin-top: 4px; }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.blue .stat-value { color: var(--blue); }
+  .stat-card.orange .stat-value { color: var(--orange); }
+
+  /* TABLES */
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 24px; margin-bottom: 20px; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--navy); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; color: var(--grey); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--light); }
+  td { padding: 12px; border-bottom: 1px solid var(--light); }
+  tr:hover td { background: #f9fafb; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-orange { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+
+  /* PAGE SECTIONS */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* FORECAST */
+  .forecast-chart { height: 240px; display: flex; align-items: flex-end; gap: 4px; padding: 16px 0; }
+  .forecast-bar { flex: 1; background: var(--navy); border-radius: 4px 4px 0 0; position: relative; min-width: 20px; transition: 0.3s; }
+  .forecast-bar:hover { opacity: 0.8; }
+  .forecast-bar .bar-label { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--grey); white-space: nowrap; }
+  .forecast-bar .bar-value { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: var(--navy); white-space: nowrap; }
+  .forecast-legend { display: flex; gap: 20px; margin-top: 32px; font-size: 12px; color: var(--grey); }
+  .forecast-legend span { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* PRICING EDIT */
+  .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .pricing-partner { background: var(--white); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .pricing-partner h3 { font-size: 15px; margin-bottom: 12px; color: var(--navy); }
+  .pricing-input { width: 90px; padding: 6px 10px; border: 1.5px solid var(--rule); border-radius: 6px; font-size: 13px; text-align: right; }
+  .pricing-input:focus { border-color: var(--blue); outline: none; }
+  .btn-save { padding: 8px 20px; background: var(--green); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+  .btn-save:hover { opacity: 0.9; }
+  .save-msg { font-size: 12px; color: var(--green); margin-left: 12px; display: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .sidebar-logo h2, .sidebar-logo small, .nav-item span, .nav-section { display: none; }
+    .nav-item { justify-content: center; padding: 14px; }
+    .main { margin-left: 60px; padding: 20px; }
+    .pricing-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login" class="login-wrap">
+  <div class="login-card">
+    <h1>FLANCC<span style="color:var(--red)">O</span></h1>
+    <p>Partner Platform — Inloggen</p>
+    <input type="email" id="login-email" placeholder="E-mailadres">
+    <input type="password" id="login-pass" placeholder="Wachtwoord">
+    <button onclick="doLogin()">Inloggen</button>
+    <div style="margin-top:12px;font-size:13px;color:var(--grey)">
+      <span id="toggle-register" style="cursor:pointer;text-decoration:underline" onclick="toggleRegister()">Eerste keer? Registreer hier</span>
+    </div>
+    <div id="register-fields" style="display:none;margin-top:12px">
+      <input type="password" id="register-pass2" placeholder="Bevestig wachtwoord" style="margin-top:8px">
+      <button onclick="doRegister()" style="margin-top:8px;background:var(--green)">Account aanmaken</button>
+    </div>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>FLANCC<span>O</span></h2>
+      <small>Partner Platform</small>
+    </div>
+    <div class="nav-section">Overzicht</div>
+    <a class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" onclick="showPage('partners')" data-page="partners">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Partners</span>
+    </a>
+    <a class="nav-item" onclick="showPage('contracten')" data-page="contracten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Contracten</span>
+    </a>
+    <div class="nav-section">Beheer</div>
+    <a class="nav-item" onclick="showPage('pricing')" data-page="pricing">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span>Prijsbeheer</span>
+    </a>
+    <a class="nav-item" onclick="showPage('forecast')" data-page="forecast">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Forecast</span>
+    </a>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="topbar">
+      <h1 id="page-title">Dashboard</h1>
+      <div class="topbar-user">
+        <span id="user-email"></span>
+        <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats" id="stats-row"></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recente contracten</span></div>
+        <table>
+          <thead><tr><th>Klant</th><th>Partner</th><th>Panelen</th><th>Bedrag</th><th>Datum</th><th>Status</th></tr></thead>
+          <tbody id="recent-contracts"></tbody>
+        </table>
+        <p id="no-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Nog geen contracten ontvangen.</p>
+      </div>
+    </div>
+
+    <!-- PARTNERS PAGE -->
+    <div class="page" id="page-partners">
+      <div class="stats" id="partner-stats"></div>
+      <div id="partner-cards"></div>
+    </div>
+
+    <!-- CONTRACTEN PAGE -->
+    <div class="page" id="page-contracten">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Alle klantcontracten</span>
+          <select id="filter-partner" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+            <option value="">Alle partners</option>
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>Klant</th><th>Partner</th><th>Panelen</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Datum</th><th>Status</th></tr></thead>
+          <tbody id="all-contracts"></tbody>
+        </table>
+        <p id="no-all-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen contracten gevonden.</p>
+      </div>
+    </div>
+
+    <!-- PRICING PAGE -->
+    <div class="page" id="page-pricing">
+      <p style="font-size:13px;color:var(--grey);margin-bottom:20px">Pas de Flancco-basisforfaits aan per partner. Eindklantprijzen worden automatisch berekend: (forfait × marge%) + planning → + btw.</p>
+      <div class="pricing-grid" id="pricing-grid"></div>
+    </div>
+
+    <!-- FORECAST PAGE -->
+    <div class="page" id="page-forecast">
+      <div class="stats" id="forecast-stats"></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Maandelijkse omzetprognose (12 maanden)</span></div>
+        <div class="forecast-chart" id="forecast-chart"></div>
+        <div class="forecast-legend">
+          <span><div class="legend-dot" style="background:var(--navy)"></div> Flancco omzet</span>
+          <span><div class="legend-dot" style="background:var(--blue)"></div> Partner omzet</span>
+          <span><div class="legend-dot" style="background:var(--green)"></div> Eindklant omzet</span>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><span class="card-title">Omzet per partner</span></div>
+        <table>
+          <thead><tr><th>Partner</th><th>Contracten</th><th>Jaarlijks</th><th>Halfjaarlijks</th><th>Gem. panelen</th><th>Flancco/jaar</th><th>Eindklant/jaar</th></tr></thead>
+          <tbody id="forecast-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// SUPABASE INIT
+// =============================================
+const SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+let partners = [];
+let allPricing = [];
+let allSupplementen = [];
+let allContracten = [];
+
+// =============================================
+// AUTH
+// =============================================
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-email').textContent = currentUser.email;
+    await loadAllData();
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    document.getElementById('login-error').textContent = 'Ongeldige inloggegevens';
+  } else {
+    currentUser = data.user;
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-email').textContent = currentUser.email;
+    await loadAllData();
+  }
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+function toggleRegister() {
+  const r = document.getElementById('register-fields');
+  r.style.display = r.style.display === 'none' ? 'block' : 'none';
+}
+
+async function doRegister() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  const pass2 = document.getElementById('register-pass2').value;
+  const errEl = document.getElementById('login-error');
+
+  if (!email || !pass) { errEl.textContent = 'Vul e-mail en wachtwoord in'; return; }
+  if (pass !== pass2) { errEl.textContent = 'Wachtwoorden komen niet overeen'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Wachtwoord moet minstens 6 tekens zijn'; return; }
+
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  if (error) {
+    errEl.textContent = 'Registratie mislukt: ' + error.message;
+  } else {
+    errEl.style.color = 'var(--green)';
+    if (data.session) {
+      // Auto-confirmed — admin role is set by database trigger
+      errEl.textContent = 'Account aangemaakt! U kunt nu inloggen.';
+    } else {
+      // Email confirmation required
+      errEl.textContent = 'Bevestigingsmail verstuurd naar ' + email + '. Klik op de link in de mail en log daarna in.';
+    }
+    document.getElementById('register-fields').style.display = 'none';
+  }
+}
+
+// Enter key support
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// =============================================
+// DATA LOADING
+// =============================================
+async function loadAllData() {
+  const [p, pr, s, c] = await Promise.all([
+    sb.from('partners').select('*').order('naam'),
+    sb.from('pricing').select('*').order('staffel_min'),
+    sb.from('supplementen').select('*'),
+    sb.from('contracten').select('*').order('created_at', { ascending: false })
+  ]);
+  partners = p.data || [];
+  allPricing = pr.data || [];
+  allSupplementen = s.data || [];
+  allContracten = c.data || [];
+
+  renderDashboard();
+  renderPartners();
+  populateFilterDropdown();
+  renderContracten();
+  renderPricing();
+  renderForecast();
+}
+
+// =============================================
+// NAVIGATION
+// =============================================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector(`.nav-item[data-page="${name}"]`).classList.add('active');
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', pricing: 'Prijsbeheer', forecast: 'Forecast' };
+  document.getElementById('page-title').textContent = titles[name] || name;
+}
+
+// =============================================
+// DASHBOARD
+// =============================================
+function renderDashboard() {
+  const totalPartners = partners.length;
+  const activePartners = partners.filter(p => p.contract_getekend).length;
+  const totalContracts = allContracten.length;
+  const totalRevenue = allContracten.reduce((sum, c) => sum + parseFloat(c.totaal_incl_btw || 0), 0);
+  const avgPanels = allContracten.length > 0 ? Math.round(allContracten.reduce((s, c) => s + (c.aantal_panelen || 0), 0) / allContracten.length) : 0;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Partners</div><div class="stat-value">${totalPartners}</div><div class="stat-sub">${activePartners} actief contract</div></div>
+    <div class="stat-card blue"><div class="stat-label">Klantcontracten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">totaal getekend</div></div>
+    <div class="stat-card green"><div class="stat-label">Omzet (eindklant)</div><div class="stat-value">€ ${Math.round(totalRevenue).toLocaleString('nl-BE')}</div><div class="stat-sub">totaal incl. btw</div></div>
+    <div class="stat-card orange"><div class="stat-label">Gem. panelen</div><div class="stat-value">${avgPanels}</div><div class="stat-sub">per contract</div></div>
+  `;
+
+  const recent = allContracten.slice(0, 8);
+  const tbody = document.getElementById('recent-contracts');
+  const noContracts = document.getElementById('no-contracts');
+  if (recent.length === 0) {
+    tbody.innerHTML = '';
+    noContracts.style.display = 'block';
+  } else {
+    noContracts.style.display = 'none';
+    tbody.innerHTML = recent.map(c => {
+      const partner = partners.find(p => p.id === c.partner_id);
+      return `<tr>
+        <td><strong>${c.klant_naam}</strong></td>
+        <td>${partner?.naam || '—'}</td>
+        <td>${c.aantal_panelen}</td>
+        <td>€ ${parseFloat(c.totaal_incl_btw).toFixed(2).replace('.', ',')}</td>
+        <td>${fmtDate(c.datum_ondertekening)}</td>
+        <td><span class="badge ${statusBadge(c.status)}">${c.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// =============================================
+// PARTNERS
+// =============================================
+function renderPartners() {
+  document.getElementById('partner-stats').innerHTML = partners.map(p => {
+    const contracts = allContracten.filter(c => c.partner_id === p.id);
+    const revenue = contracts.reduce((s, c) => s + parseFloat(c.totaal_incl_btw || 0), 0);
+    return `<div class="stat-card">
+      <div class="stat-label">${p.naam}</div>
+      <div class="stat-value">${contracts.length}</div>
+      <div class="stat-sub">contracten · € ${Math.round(revenue).toLocaleString('nl-BE')} omzet</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('partner-cards').innerHTML = partners.map(p => {
+    const contracts = allContracten.filter(c => c.partner_id === p.id);
+    const pricing = allPricing.filter(pr => pr.partner_id === p.id);
+    return `<div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title" style="display:flex;align-items:center;gap:10px">
+          <span style="width:12px;height:12px;border-radius:50%;background:${p.kleur_primair}"></span>
+          ${p.bedrijfsnaam}
+        </span>
+        <span class="badge ${p.contract_getekend ? 'badge-green' : 'badge-orange'}">${p.contract_getekend ? 'Contract getekend' : 'In afwachting'}</span>
+      </div>
+      <table>
+        <tr><td style="color:var(--grey);width:160px">Contactpersoon</td><td>${p.contactpersoon || '—'}</td></tr>
+        <tr><td style="color:var(--grey)">BTW-nummer</td><td>${p.btw_nummer || '—'}</td></tr>
+        <tr><td style="color:var(--grey)">Adres</td><td>${p.adres}, ${p.postcode} ${p.gemeente} (${p.land})</td></tr>
+        <tr><td style="color:var(--grey)">Transport gratis</td><td>${p.transport_gratis_km} km</td></tr>
+        <tr><td style="color:var(--grey)">Marge</td><td>${p.marge_pct}%</td></tr>
+        <tr><td style="color:var(--grey)">Planning fee</td><td>€ ${parseFloat(p.planning_fee).toFixed(2).replace('.',',')}</td></tr>
+        <tr><td style="color:var(--grey)">Klantcontracten</td><td><strong>${contracts.length}</strong></td></tr>
+        <tr><td style="color:var(--grey)">Flancco inzage</td><td><span class="badge ${p.akkoord_flancco_inzage ? 'badge-green' : 'badge-red'}">${p.akkoord_flancco_inzage ? 'Akkoord' : 'Nog niet'}</span></td></tr>
+        <tr><td style="color:var(--grey)">Calculator link</td><td><a href="../${p.slug}/" target="_blank" style="color:var(--blue)">/${p.slug}/</a></td></tr>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+// =============================================
+// CONTRACTEN
+// =============================================
+function populateFilterDropdown() {
+  const sel = document.getElementById('filter-partner');
+  sel.innerHTML = '<option value="">Alle partners</option>' +
+    partners.map(p => `<option value="${p.id}">${p.naam}</option>`).join('');
+}
+
+function renderContracten() {
+  const filter = document.getElementById('filter-partner').value;
+  let filtered = allContracten;
+  if (filter) filtered = filtered.filter(c => c.partner_id === filter);
+
+  const tbody = document.getElementById('all-contracts');
+  const noEl = document.getElementById('no-all-contracts');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    noEl.style.display = 'block';
+  } else {
+    noEl.style.display = 'none';
+    tbody.innerHTML = filtered.map(c => {
+      const partner = partners.find(p => p.id === c.partner_id);
+      return `<tr>
+        <td><strong>${c.klant_naam}</strong><br><small style="color:var(--grey)">${c.klant_gemeente || ''}</small></td>
+        <td>${partner?.naam || '—'}</td>
+        <td>${c.aantal_panelen}</td>
+        <td>${c.frequentie || '—'}</td>
+        <td>${c.contractduur || '—'}</td>
+        <td>€ ${parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',')}</td>
+        <td>${fmtDate(c.datum_ondertekening)}</td>
+        <td><span class="badge ${statusBadge(c.status)}">${c.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function loadContracten() { renderContracten(); }
+
+// =============================================
+// PRICING
+// =============================================
+function renderPricing() {
+  document.getElementById('pricing-grid').innerHTML = partners.map(p => {
+    const pricing = allPricing.filter(pr => pr.partner_id === p.id).sort((a,b) => a.staffel_min - b.staffel_min);
+    const marge = parseFloat(p.marge_pct) / 100;
+    const plan = parseFloat(p.planning_fee);
+    return `<div class="pricing-partner">
+      <h3 style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:${p.kleur_primair}"></span>${p.naam}</h3>
+      <table>
+        <thead><tr><th>Staffel</th><th>Flancco</th><th>→ Partner</th><th>→ Klant (21%)</th></tr></thead>
+        <tbody>
+          ${pricing.map(pr => {
+            const partnerPrice = parseFloat(pr.flancco_forfait) * (1 + marge) + plan;
+            const clientPrice = Math.round(partnerPrice * 1.21);
+            return `<tr>
+              <td>${pr.label}</td>
+              <td><input class="pricing-input" type="number" step="0.01" value="${parseFloat(pr.flancco_forfait).toFixed(2)}" data-id="${pr.id}" onchange="calcPriceRow(this, ${marge}, ${plan})"></td>
+              <td style="color:var(--grey)">€ ${partnerPrice.toFixed(2).replace('.',',')}</td>
+              <td><strong>€ ${clientPrice}</strong></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <button class="btn-save" onclick="savePricing('${p.id}', this)">Opslaan</button>
+      <span class="save-msg">Opgeslagen!</span>
+    </div>`;
+  }).join('');
+}
+
+function calcPriceRow(input, marge, plan) {
+  const row = input.closest('tr');
+  const val = parseFloat(input.value) || 0;
+  const partnerPrice = val * (1 + marge) + plan;
+  const clientPrice = Math.round(partnerPrice * 1.21);
+  row.cells[2].textContent = '€ ' + partnerPrice.toFixed(2).replace('.',',');
+  row.cells[3].innerHTML = '<strong>€ ' + clientPrice + '</strong>';
+}
+
+async function savePricing(partnerId, btn) {
+  const inputs = btn.closest('.pricing-partner').querySelectorAll('.pricing-input');
+  const updates = Array.from(inputs).map(inp => ({
+    id: inp.dataset.id,
+    flancco_forfait: parseFloat(inp.value)
+  }));
+
+  for (const u of updates) {
+    await sb.from('pricing').update({ flancco_forfait: u.flancco_forfait }).eq('id', u.id);
+  }
+
+  const msg = btn.nextElementSibling;
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2000);
+
+  // Reload
+  const { data } = await sb.from('pricing').select('*').order('staffel_min');
+  allPricing = data || [];
+}
+
+// =============================================
+// FORECAST
+// =============================================
+function renderForecast() {
+  // Calculate per partner
+  const partnerData = partners.map(p => {
+    const contracts = allContracten.filter(c => c.partner_id === p.id && c.status !== 'geannuleerd');
+    const jaarlijks = contracts.filter(c => c.frequentie === 'jaarlijks' || c.frequentie === '1x').length;
+    const halfjaarlijks = contracts.filter(c => c.frequentie === 'halfjaarlijks' || c.frequentie === '2x').length;
+    const avgPanels = contracts.length > 0 ? Math.round(contracts.reduce((s,c) => s + c.aantal_panelen, 0) / contracts.length) : 0;
+
+    // Revenue per year
+    const yearlyRevenue = contracts.reduce((sum, c) => {
+      const base = parseFloat(c.totaal_incl_btw || 0);
+      const freq = (c.frequentie === 'halfjaarlijks' || c.frequentie === '2x') ? 2 : 1;
+      return sum + (base * freq);
+    }, 0);
+
+    // Flancco share (reverse calculate)
+    const marge = parseFloat(p.marge_pct) / 100;
+    const flanccoShare = yearlyRevenue / 1.21 / (1 + marge);
+
+    return { partner: p, contracts: contracts.length, jaarlijks, halfjaarlijks, avgPanels, yearlyRevenue, flanccoShare };
+  });
+
+  const totalFlancco = partnerData.reduce((s, d) => s + d.flanccoShare, 0);
+  const totalClient = partnerData.reduce((s, d) => s + d.yearlyRevenue, 0);
+  const totalContracts = partnerData.reduce((s, d) => s + d.contracts, 0);
+
+  document.getElementById('forecast-stats').innerHTML = `
+    <div class="stat-card green"><div class="stat-label">Flancco omzet / jaar</div><div class="stat-value">€ ${Math.round(totalFlancco).toLocaleString('nl-BE')}</div><div class="stat-sub">excl. btw (geschat)</div></div>
+    <div class="stat-card blue"><div class="stat-label">Eindklant omzet / jaar</div><div class="stat-value">€ ${Math.round(totalClient).toLocaleString('nl-BE')}</div><div class="stat-sub">incl. btw</div></div>
+    <div class="stat-card"><div class="stat-label">Actieve contracten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">over ${partners.length} partners</div></div>
+    <div class="stat-card orange"><div class="stat-label">Gem. waarde / contract</div><div class="stat-value">€ ${totalContracts > 0 ? Math.round(totalClient/totalContracts) : 0}</div><div class="stat-sub">incl. btw per beurt</div></div>
+  `;
+
+  // Monthly chart (distribute yearly revenue over 12 months)
+  const months = ['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
+  // Solar cleaning is seasonal: peak Mar-Oct
+  const seasonality = [0.04, 0.06, 0.10, 0.12, 0.13, 0.13, 0.12, 0.11, 0.08, 0.06, 0.03, 0.02];
+  const maxVal = Math.max(...seasonality.map(s => s * totalClient));
+
+  document.getElementById('forecast-chart').innerHTML = months.map((m, i) => {
+    const val = seasonality[i] * totalClient;
+    const h = maxVal > 0 ? (val / maxVal * 200) : 0;
+    return `<div class="forecast-bar" style="height:${Math.max(h, 4)}px;background:var(--navy)">
+      <span class="bar-value">€ ${Math.round(val).toLocaleString('nl-BE')}</span>
+      <span class="bar-label">${m}</span>
+    </div>`;
+  }).join('');
+
+  // Table
+  document.getElementById('forecast-table').innerHTML = partnerData.map(d => `<tr>
+    <td><strong>${d.partner.naam}</strong></td>
+    <td>${d.contracts}</td>
+    <td>${d.jaarlijks}</td>
+    <td>${d.halfjaarlijks}</td>
+    <td>${d.avgPanels}</td>
+    <td>€ ${Math.round(d.flanccoShare).toLocaleString('nl-BE')}</td>
+    <td>€ ${Math.round(d.yearlyRevenue).toLocaleString('nl-BE')}</td>
+  </tr>`).join('') + `<tr style="font-weight:700;border-top:2px solid var(--navy)">
+    <td>Totaal</td>
+    <td>${totalContracts}</td>
+    <td>${partnerData.reduce((s,d) => s+d.jaarlijks, 0)}</td>
+    <td>${partnerData.reduce((s,d) => s+d.halfjaarlijks, 0)}</td>
+    <td>—</td>
+    <td>€ ${Math.round(totalFlancco).toLocaleString('nl-BE')}</td>
+    <td>€ ${Math.round(totalClient).toLocaleString('nl-BE')}</td>
+  </tr>`;
+}
+
+// =============================================
+// HELPERS
+// =============================================
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function statusBadge(s) {
+  const map = { getekend: 'badge-blue', actief: 'badge-green', uitgevoerd: 'badge-green', geannuleerd: 'badge-red' };
+  return map[s] || 'badge-blue';
+}
+
+// =============================================
+// INIT
+// =============================================
+checkAuth();
+</script>
+</body>
+</html>
