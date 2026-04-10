@@ -100,6 +100,26 @@
   .btn-save:hover { opacity: 0.9; }
   .save-msg { font-size: 12px; color: var(--green); margin-left: 12px; display: none; }
 
+  /* MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--white); border-radius:16px; padding:32px; width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.15); }
+  .modal h2 { font-size:18px; color:var(--navy); margin-bottom:20px; }
+  .modal-field { margin-bottom:14px; }
+  .modal-field label { display:block; font-size:13px; font-weight:500; color:#374151; margin-bottom:4px; }
+  .modal-field input, .modal-field select { width:100%; padding:10px 12px; border:1.5px solid var(--rule); border-radius:8px; font-size:14px; }
+  .modal-field input:focus, .modal-field select:focus { border-color:var(--navy); outline:none; }
+  .modal-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .modal-result { background:var(--light); border-radius:10px; padding:16px; margin:16px 0; }
+  .modal-result .res-line { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+  .modal-result .res-total { display:flex; justify-content:space-between; font-size:16px; font-weight:700; padding-top:8px; margin-top:8px; border-top:2px solid var(--rule); color:var(--navy); }
+  .modal-btns { display:flex; gap:12px; margin-top:20px; }
+  .modal-btns button { flex:1; padding:12px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; }
+  .btn-cancel { background:var(--light); color:var(--grey); }
+  .btn-cancel:hover { background:var(--rule); }
+  .btn-submit { background:var(--green); color:white; }
+  .btn-submit:hover { opacity:0.9; }
+
   /* RESPONSIVE */
   @media (max-width: 768px) {
     .sidebar { width: 60px; }
@@ -120,13 +140,6 @@
     <input type="email" id="login-email" placeholder="E-mailadres">
     <input type="password" id="login-pass" placeholder="Wachtwoord">
     <button onclick="doLogin()">Inloggen</button>
-    <div style="margin-top:12px;font-size:13px;color:var(--grey)">
-      <span id="toggle-register" style="cursor:pointer;text-decoration:underline" onclick="toggleRegister()">Eerste keer? Registreer hier</span>
-    </div>
-    <div id="register-fields" style="display:none;margin-top:12px">
-      <input type="password" id="register-pass2" placeholder="Bevestig wachtwoord" style="margin-top:8px">
-      <button onclick="doRegister()" style="margin-top:8px;background:var(--green)">Account aanmaken</button>
-    </div>
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
@@ -168,6 +181,7 @@
     <div class="topbar">
       <h1 id="page-title">Dashboard</h1>
       <div class="topbar-user">
+        <button class="btn-save" onclick="openNewContract()" style="margin-right:12px;margin-top:0">+ Nieuw contract</button>
         <span id="user-email"></span>
         <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
       </div>
@@ -238,6 +252,85 @@
   </div>
 </div>
 
+<!-- NEW CONTRACT MODAL -->
+<div class="modal-overlay" id="modal-contract">
+  <div class="modal">
+    <h2>Nieuw klantcontract</h2>
+    <div class="modal-field">
+      <label>Partner *</label>
+      <select id="nc-partner" onchange="ncCalc()"></select>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Klantnaam *</label><input id="nc-naam" placeholder="Jan Janssen of Bedrijf BV"></div>
+      <div class="modal-field"><label>Contactpersoon *</label><input id="nc-contact" placeholder="Naam"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Adres *</label><input id="nc-adres" placeholder="Straat + huisnr"></div>
+      <div class="modal-field"><label>Postcode + gemeente *</label><input id="nc-pcgem" placeholder="9000 Gent"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Telefoon *</label><input id="nc-tel" placeholder="+32 4..."></div>
+      <div class="modal-field"><label>E-mail *</label><input id="nc-email" type="email" placeholder="klant@voorbeeld.be"></div>
+    </div>
+    <div class="modal-field"><label>BTW-nummer</label><input id="nc-btw" placeholder="BE0123.456.789 (optioneel)"></div>
+
+    <hr style="border:none;border-top:1px solid var(--rule);margin:20px 0">
+    <h2 style="font-size:15px">Installatiegegevens</h2>
+
+    <div class="modal-row">
+      <div class="modal-field"><label>Aantal panelen *</label><input id="nc-panelen" type="number" min="1" value="15" oninput="ncCalc()"></div>
+      <div class="modal-field"><label>Afstand (km)</label><input id="nc-afstand" type="number" min="0" value="10" oninput="ncCalc()"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Daktype</label>
+        <select id="nc-daktype"><option value="hellend">Hellend</option><option value="plat">Plat</option></select>
+      </div>
+      <div class="modal-field">
+        <label>Dakhoogte</label>
+        <select id="nc-hoogte" onchange="ncCalc()"><option value="laag">&lt; 7,5 m</option><option value="hoog">&gt; 7,5 m (hoogtewerker)</option></select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Bereikbaarheid</label>
+        <select id="nc-bereik"><option>Goed bereikbaar</option><option>Moeilijk bereikbaar</option><option>Via steiger/ladder</option></select>
+      </div>
+      <div class="modal-field">
+        <label>Wateraansluiting</label>
+        <select id="nc-water"><option>Ja, nabij panelen</option><option>Ja, maar ver</option><option>Nee</option></select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Frequentie</label>
+        <select id="nc-freq" onchange="ncCalc()"><option value="jaarlijks">Jaarlijks (1×)</option><option value="halfjaarlijks">Halfjaarlijks (2×)</option></select>
+      </div>
+      <div class="modal-field">
+        <label>Contractduur</label>
+        <select id="nc-duur" onchange="ncCalc()"><option value="eenmalig">Eenmalig</option><option value="3 jaar">3 jaar (-5%)</option><option value="5 jaar">5 jaar (-5%)</option></select>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label><input type="checkbox" id="nc-verv" onchange="ncCalc()"> Hevige vervuiling / mosvorming</label>
+    </div>
+
+    <div class="modal-result" id="nc-result">
+      <div class="res-line"><span>Forfait</span><span id="ncr-forfait">—</span></div>
+      <div class="res-line" id="ncr-verv-row" style="display:none"><span id="ncr-verv-label">Vervuiling</span><span id="ncr-verv">—</span></div>
+      <div class="res-line" id="ncr-trans-row" style="display:none"><span id="ncr-trans-label">Transport</span><span id="ncr-trans">—</span></div>
+      <div class="res-line" id="ncr-hoogte-row" style="display:none"><span>Hoogtewerker</span><span id="ncr-hoogte">—</span></div>
+      <div class="res-line" id="ncr-korting-row" style="display:none"><span id="ncr-korting-label">Korting</span><span id="ncr-korting">—</span></div>
+      <div class="res-total"><span>Totaal incl. btw</span><span id="ncr-total">—</span></div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
+      <button class="btn-submit" onclick="saveNewContract()">Contract opslaan</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // =============================================
 // SUPABASE INIT
@@ -284,37 +377,6 @@ async function doLogin() {
 async function doLogout() {
   await sb.auth.signOut();
   location.reload();
-}
-
-function toggleRegister() {
-  const r = document.getElementById('register-fields');
-  r.style.display = r.style.display === 'none' ? 'block' : 'none';
-}
-
-async function doRegister() {
-  const email = document.getElementById('login-email').value;
-  const pass = document.getElementById('login-pass').value;
-  const pass2 = document.getElementById('register-pass2').value;
-  const errEl = document.getElementById('login-error');
-
-  if (!email || !pass) { errEl.textContent = 'Vul e-mail en wachtwoord in'; return; }
-  if (pass !== pass2) { errEl.textContent = 'Wachtwoorden komen niet overeen'; return; }
-  if (pass.length < 6) { errEl.textContent = 'Wachtwoord moet minstens 6 tekens zijn'; return; }
-
-  const { data, error } = await sb.auth.signUp({ email, password: pass });
-  if (error) {
-    errEl.textContent = 'Registratie mislukt: ' + error.message;
-  } else {
-    errEl.style.color = 'var(--green)';
-    if (data.session) {
-      // Auto-confirmed — admin role is set by database trigger
-      errEl.textContent = 'Account aangemaakt! U kunt nu inloggen.';
-    } else {
-      // Email confirmation required
-      errEl.textContent = 'Bevestigingsmail verstuurd naar ' + email + '. Klik op de link in de mail en log daarna in.';
-    }
-    document.getElementById('register-fields').style.display = 'none';
-  }
 }
 
 // Enter key support
@@ -615,6 +677,150 @@ function fmtDate(d) {
 function statusBadge(s) {
   const map = { getekend: 'badge-blue', actief: 'badge-green', uitgevoerd: 'badge-green', geannuleerd: 'badge-red' };
   return map[s] || 'badge-blue';
+}
+
+// =============================================
+// NEW CONTRACT MODAL
+// =============================================
+let ncState = {};
+
+function openNewContract() {
+  const sel = document.getElementById('nc-partner');
+  sel.innerHTML = '<option value="">— Kies partner —</option>' +
+    partners.map(p => `<option value="${p.id}">${p.naam}</option>`).join('') +
+    '<option value="flancco-direct">Flancco (directe klant)</option>';
+  document.getElementById('modal-contract').classList.add('open');
+  ncCalc();
+}
+
+function closeModal() {
+  document.getElementById('modal-contract').classList.remove('open');
+}
+
+function ncCalc() {
+  const partnerId = document.getElementById('nc-partner').value;
+  const pan = Math.max(1, parseInt(document.getElementById('nc-panelen').value) || 1);
+  const afst = Math.max(0, parseInt(document.getElementById('nc-afstand').value) || 0);
+  const verv = document.getElementById('nc-verv').checked;
+  const hoog = document.getElementById('nc-hoogte').value === 'hoog';
+  const duur = document.getElementById('nc-duur').value;
+  const korting = (duur === '3 jaar' || duur === '5 jaar') ? 0.05 : 0;
+
+  // Get partner config or use Flancco defaults
+  let partner = partners.find(p => p.id === partnerId);
+  let freeKm = partner ? parseInt(partner.transport_gratis_km) : 30;
+  let pricing = allPricing.filter(pr => pr.partner_id === partnerId).sort((a,b) => a.staffel_min - b.staffel_min);
+  let supps = allSupplementen.filter(s => s.partner_id === partnerId);
+
+  // Determine forfait from pricing table
+  let forfait = 0;
+  let forfaitLabel = '';
+  if (pricing.length > 0) {
+    for (const pr of pricing) {
+      if (pan >= pr.staffel_min && (pr.staffel_max === null || pan <= pr.staffel_max)) {
+        forfait = parseFloat(pr.flancco_forfait);
+        forfaitLabel = pr.label;
+        break;
+      }
+    }
+    if (forfait === 0 && pan > 40) {
+      const last = pricing[pricing.length - 1];
+      forfait = parseFloat(last.flancco_forfait) + (pan - 40) * 5.64;
+      forfaitLabel = '41+ panelen';
+    }
+    // Convert Flancco forfait to end-client price
+    const marge = partner ? parseFloat(partner.marge_pct) / 100 : 0.10;
+    const planFee = partner ? parseFloat(partner.planning_fee) : 5;
+    forfait = (forfait * (1 + marge) + planFee) * 1.21;
+  } else {
+    // Fallback: hardcoded tiers (for Flancco direct or unknown)
+    const tiers = [{min:1,max:14,f:126},{min:15,max:25,f:186},{min:26,max:30,f:246},{min:31,max:35,f:272},{min:36,max:40,f:296}];
+    for (const t of tiers) { if (pan >= t.min && pan <= t.max) { forfait = t.f; forfaitLabel = `${t.min}–${t.max} panelen`; break; } }
+    if (forfait === 0 && pan > 40) { forfait = 296 + (pan - 40) * 7.50; forfaitLabel = '41+ panelen'; }
+  }
+
+  // Supplements
+  const vervBedrag = verv ? pan * 2.50 : 0;
+  const extraKm = Math.max(0, afst - freeKm);
+  const transBedrag = extraKm > 0 ? extraKm * 1.25 : 0;
+  const hoogteBedrag = hoog ? 87 : 0;
+  const sub = forfait + vervBedrag + transBedrag + hoogteBedrag;
+  const kortingBedrag = sub * korting;
+  const total = sub - kortingBedrag;
+
+  // Update UI
+  document.getElementById('ncr-forfait').textContent = '€ ' + forfait.toFixed(2).replace('.',',');
+  const vr = document.getElementById('ncr-verv-row');
+  if (verv) { vr.style.display = 'flex'; document.getElementById('ncr-verv-label').textContent = pan + ' pan. × € 2,50'; document.getElementById('ncr-verv').textContent = '€ ' + vervBedrag.toFixed(2).replace('.',','); } else { vr.style.display = 'none'; }
+  const tr = document.getElementById('ncr-trans-row');
+  if (extraKm > 0) { tr.style.display = 'flex'; document.getElementById('ncr-trans-label').textContent = extraKm + ' km × € 1,25'; document.getElementById('ncr-trans').textContent = '€ ' + transBedrag.toFixed(2).replace('.',','); } else { tr.style.display = 'none'; }
+  const hr = document.getElementById('ncr-hoogte-row');
+  if (hoog) { hr.style.display = 'flex'; document.getElementById('ncr-hoogte').textContent = '€ 87'; } else { hr.style.display = 'none'; }
+  const kr = document.getElementById('ncr-korting-row');
+  if (korting > 0) { kr.style.display = 'flex'; document.getElementById('ncr-korting-label').textContent = 'Korting (' + duur + ', -5%)'; document.getElementById('ncr-korting').textContent = '- € ' + kortingBedrag.toFixed(2).replace('.',','); } else { kr.style.display = 'none'; }
+  document.getElementById('ncr-total').textContent = '€ ' + total.toFixed(2).replace('.',',');
+
+  ncState = { forfait, vervBedrag, transBedrag, hoogteBedrag, kortingBedrag, korting, total, pan, afst, freeKm };
+}
+
+async function saveNewContract() {
+  const partnerId = document.getElementById('nc-partner').value;
+  const naam = document.getElementById('nc-naam').value.trim();
+  const contact = document.getElementById('nc-contact').value.trim();
+  const adres = document.getElementById('nc-adres').value.trim();
+  const pcgem = document.getElementById('nc-pcgem').value.trim();
+  const tel = document.getElementById('nc-tel').value.trim();
+  const email = document.getElementById('nc-email').value.trim();
+
+  if (!partnerId || !naam || !contact || !adres || !pcgem || !tel || !email) {
+    alert('Vul alle verplichte velden in.');
+    return;
+  }
+
+  const pcParts = pcgem.split(' ');
+  const postcode = pcParts[0] || '';
+  const gemeente = pcParts.slice(1).join(' ') || '';
+  const flanccoPartner = partners.find(p => p.slug === 'flancco');
+  const realPartnerId = partnerId === 'flancco-direct' ? flanccoPartner?.id : partnerId;
+
+  const payload = {
+    partner_id: realPartnerId,
+    klant_naam: naam,
+    klant_adres: adres,
+    klant_postcode: postcode,
+    klant_gemeente: gemeente,
+    klant_btw: document.getElementById('nc-btw').value.trim() || null,
+    klant_contact: contact,
+    klant_telefoon: tel,
+    klant_email: email,
+    aantal_panelen: ncState.pan,
+    daktype: document.getElementById('nc-daktype').value,
+    dakhoogte: document.getElementById('nc-hoogte').value === 'hoog' ? '> 7,5 m' : '< 7,5 m',
+    bereikbaarheid: document.getElementById('nc-bereik').value,
+    wateraansluiting: document.getElementById('nc-water').value,
+    afstand_km: ncState.afst,
+    frequentie: document.getElementById('nc-freq').value,
+    contractduur: document.getElementById('nc-duur').value,
+    korting_pct: ncState.korting * 100,
+    forfait_bedrag: ncState.forfait,
+    supplement_vervuiling: ncState.vervBedrag,
+    supplement_transport: ncState.transBedrag,
+    supplement_hoogte: ncState.hoogteBedrag,
+    korting_bedrag: ncState.kortingBedrag,
+    totaal_incl_btw: ncState.total,
+    datum_ondertekening: new Date().toISOString().split('T')[0],
+    akkoord_voorwaarden: true,
+    status: 'actief'
+  };
+
+  const { data, error } = await sb.from('contracten').insert([payload]).select();
+  if (error) {
+    alert('Fout bij opslaan: ' + error.message);
+    return;
+  }
+
+  closeModal();
+  await loadAllData();
 }
 
 // =============================================
