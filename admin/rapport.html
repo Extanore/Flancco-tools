@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flancco — Rapport-wizard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --navy: #1A1A2E; --navy-light: #2a2a4a; --red: #E74C3C; --green: #27AE60;
+    --blue: #3498DB; --orange: #F39C12; --grey: #6B7280; --light: #F3F4F6;
+    --white: #FFFFFF; --rule: #E5E7EB; --radius: 10px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: #1f2937; }
+  .loading-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .loading-wrap p { font-size: 14px; color: var(--grey); }
+
+  .header { background: var(--navy); color: white; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header h1 span { color: var(--red); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header a, .header button { color: rgba(255,255,255,0.7); background: none; border: 1px solid rgba(255,255,255,0.2); padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; }
+  .header a:hover, .header button:hover { color: white; border-color: rgba(255,255,255,0.5); }
+
+  .wizard-wrap { max-width: 800px; margin: 32px auto; padding: 0 24px; }
+
+  .beurt-select { background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 24px; }
+  .beurt-select h2 { font-size: 16px; color: var(--navy); margin-bottom: 16px; }
+  .beurt-select select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--rule); border-radius: 8px; font-size: 14px; }
+  .beurt-info { margin-top: 16px; padding: 16px; background: var(--light); border-radius: 8px; font-size: 13px; line-height: 1.7; }
+  .beurt-info strong { color: var(--navy); }
+
+  .step-bar { display: flex; gap: 4px; margin-bottom: 24px; }
+  .step-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); transition: background 0.3s; }
+  .step-dot.done { background: var(--green); }
+  .step-dot.active { background: var(--navy); }
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .card { background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
+  .card h3 { font-size: 15px; color: var(--navy); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .checklist-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+  .checklist-item:last-child { border-bottom: none; }
+  .check-status { display: flex; gap: 4px; flex-shrink: 0; }
+  .check-btn { width: 32px; height: 32px; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--white); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+  .check-btn:hover { border-color: var(--navy); }
+  .check-btn.ok { background: #DEF7EC; border-color: var(--green); color: var(--green); }
+  .check-btn.nok { background: #FDE8E8; border-color: var(--red); color: var(--red); }
+  .check-btn.na { background: var(--light); border-color: var(--grey); color: var(--grey); font-size: 10px; }
+  .check-label { flex: 1; font-size: 13px; padding-top: 6px; }
+  .check-label small { display: block; color: var(--grey); margin-top: 2px; }
+  .check-note { width: 100%; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; font-size: 12px; font-family: inherit; resize: none; display: none; }
+  .check-note.visible { display: block; }
+
+  .foto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 12px; }
+  .foto-thumb { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--rule); }
+  .foto-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .foto-thumb .remove-foto { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .foto-upload-btn { aspect-ratio: 1; border: 2px dashed var(--rule); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: var(--grey); font-size: 12px; gap: 4px; }
+  .foto-upload-btn:hover { border-color: var(--navy); color: var(--navy); }
+  .foto-upload-btn svg { width: 24px; height: 24px; }
+
+  .textarea-full { width: 100%; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 80px; }
+  .textarea-full:focus { outline: none; border-color: var(--navy); }
+
+  .interventie-card { background: var(--light); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .interventie-card .row { display: flex; gap: 12px; margin-bottom: 8px; }
+  .interventie-card label { font-size: 12px; color: var(--grey); display: block; margin-bottom: 4px; }
+  .interventie-card input, .interventie-card select, .interventie-card textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; font-size: 13px; font-family: inherit; }
+  .interventie-card textarea { resize: vertical; min-height: 60px; }
+  .add-interventie { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1.5px dashed var(--rule); border-radius: 8px; background: none; cursor: pointer; font-size: 13px; color: var(--grey); }
+  .add-interventie:hover { border-color: var(--navy); color: var(--navy); }
+
+  .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { color: var(--grey); }
+  .summary-value { font-weight: 600; color: var(--navy); }
+  .summary-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-ok { background: #DEF7EC; color: var(--green); }
+  .badge-nok { background: #FDE8E8; color: var(--red); }
+  .badge-na { background: var(--light); color: var(--grey); }
+
+  .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-primary:hover { background: var(--navy-light); }
+  .btn-secondary { background: var(--white); color: var(--navy); border: 1.5px solid var(--rule); }
+  .btn-secondary:hover { border-color: var(--navy); }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover { opacity: 0.9; }
+  .wizard-nav { display: flex; justify-content: space-between; margin-top: 24px; }
+
+  .sector-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .sector-zonnepanelen { background: #F39C1220; color: #F39C12; }
+  .sector-warmtepomp { background: #E74C3C20; color: #E74C3C; }
+  .sector-ventilatie { background: #1A1A2E20; color: #1A1A2E; }
+  .sector-verwarming { background: #6B728020; color: #6B7280; }
+
+  .success-screen { text-align: center; padding: 60px 24px; }
+  .success-screen svg { width: 64px; height: 64px; color: var(--green); margin-bottom: 16px; }
+  .success-screen h2 { font-size: 20px; color: var(--navy); margin-bottom: 8px; }
+  .success-screen p { color: var(--grey); font-size: 14px; margin-bottom: 24px; }
+
+  @media (max-width: 600px) {
+    .wizard-wrap { margin: 16px auto; padding: 0 12px; }
+    .card { padding: 16px; }
+    .interventie-card .row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-wrap" id="loading"><p>Laden...</p></div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <h1>FLANCC<span>O</span> Rapport</h1>
+    <div class="header-right">
+      <a href="planning.html">← Planning</a>
+      <a href="/admin/">Dashboard</a>
+      <button onclick="doLogout()">Uitloggen</button>
+    </div>
+  </div>
+
+  <div class="wizard-wrap">
+    <div id="beurt-picker" class="beurt-select">
+      <h2>Selecteer onderhoudsbeurt</h2>
+      <select id="beurt-select" onchange="selectBeurt()">
+        <option value="">— Kies een onderhoudsbeurt —</option>
+      </select>
+      <div id="beurt-info-box" class="beurt-info" style="display:none"></div>
+    </div>
+
+    <div id="wizard" style="display:none">
+      <div class="step-bar" id="step-bar"></div>
+
+      <div class="step active" id="step-checklist">
+        <div class="card">
+          <h3 id="checklist-title">Checklist</h3>
+          <div id="checklist-items"></div>
+        </div>
+        <div class="wizard-nav"><span></span><button class="btn btn-primary" onclick="nextStep()">Verder →</button></div>
+      </div>
+
+      <div class="step" id="step-fotos">
+        <div class="card">
+          <h3>Foto's</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Voeg foto's toe van de installatie, uitgevoerd werk en eventuele problemen.</p>
+          <div class="foto-grid" id="foto-grid">
+            <label class="foto-upload-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>+ Foto</span>
+              <input type="file" accept="image/*" multiple style="display:none" onchange="handleFotos(event)">
+            </label>
+          </div>
+        </div>
+        <div class="wizard-nav">
+          <button class="btn btn-secondary" onclick="prevStep()">← Terug</button>
+          <button class="btn btn-primary" onclick="nextStep()">Verder →</button>
+        </div>
+      </div>
+
+      <div class="step" id="step-opmerkingen">
+        <div class="card">
+          <h3>Opmerkingen</h3>
+          <textarea class="textarea-full" id="rapport-opmerkingen" placeholder="Algemene opmerkingen over de installatie, status, bijzonderheden..."></textarea>
+        </div>
+        <div class="card">
+          <h3>Interventies / vaststellingen</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Registreer eventuele problemen die opvolging vereisen.</p>
+          <div id="interventies-list"></div>
+          <button class="add-interventie" onclick="addInterventie()">+ Interventie toevoegen</button>
+        </div>
+        <div class="wizard-nav">
+          <button class="btn btn-secondary" onclick="prevStep()">← Terug</button>
+          <button class="btn btn-primary" onclick="nextStep()">Verder →</button>
+        </div>
+      </div>
+
+      <div class="step" id="step-samenvatting">
+        <div class="card">
+          <h3>Samenvatting</h3>
+          <div id="summary-content"></div>
+        </div>
+        <div class="card" id="summary-interventies" style="display:none">
+          <h3>Interventies</h3>
+          <div id="summary-interventies-list"></div>
+        </div>
+        <div class="wizard-nav">
+          <button class="btn btn-secondary" onclick="prevStep()">← Terug</button>
+          <button class="btn btn-success" id="btn-save" onclick="saveRapport()">✓ Rapport opslaan</button>
+        </div>
+      </div>
+
+      <div class="step" id="step-success">
+        <div class="card success-screen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <h2>Rapport opgeslagen!</h2>
+          <p id="success-ref">Referentie: —</p>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <a href="planning.html" class="btn btn-primary">← Terug naar planning</a>
+            <button class="btn btn-secondary" onclick="location.reload()">Nieuw rapport</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0MTc2MDQsImV4cCI6MjA1ODk5MzYwNH0.u-LuuUAdUFApCbZJGIFbVHj2K8eee5ShJd3MsefZMjM';
+var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+var currentUser = null;
+var currentBeurt = null;
+var currentContract = null;
+var fotos = [];
+var interventieCount = 0;
+var wizardStep = 0;
+var steps = ['checklist','fotos','opmerkingen','samenvatting','success'];
+
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ═══════════════════════════════
+// CHECKLISTS PER SECTOR
+// ═══════════════════════════════
+var CHECKLISTS = {
+  zonnepanelen: [
+    { key: 'visuele_inspectie', label: 'Visuele inspectie panelen', hint: 'Barsten, verkleuring, hotspots, vuil' },
+    { key: 'reiniging', label: 'Reiniging met osmosewater', hint: 'Alle panelen gereinigd' },
+    { key: 'bevestiging', label: 'Bevestigingsmateriaal gecontroleerd', hint: 'Klemmen, rails, dakdoorvoeren' },
+    { key: 'bekabeling', label: 'Bekabeling & connectoren', hint: 'MC4 connectors, kabelgoten' },
+    { key: 'omvormer', label: 'Omvormer status', hint: 'Werking, foutmeldingen, ventilatie' },
+    { key: 'opbrengst', label: 'Opbrengst gecontroleerd', hint: 'Vergelijking verwachte waarden' },
+    { key: 'dakafwerking', label: 'Dakafwerking & waterdichtheid', hint: 'Geen lekkages, dakpannen intact' },
+    { key: 'vogelbescherming', label: 'Vogelbescherming/randafsluiting', hint: 'Gaas/clips indien voorzien' }
+  ],
+  warmtepomp: [
+    { key: 'filter_reiniging', label: 'Filters gereinigd/vervangen', hint: 'Luchtfilters binnenunit' },
+    { key: 'koudemiddel', label: 'Koudemiddeldruk gecontroleerd', hint: 'Manometercheck, lekdetectie' },
+    { key: 'binnenunit', label: 'Binnenunit inspectie', hint: 'Warmtewisselaar, condensafvoer, ventilator' },
+    { key: 'buitenunit', label: 'Buitenunit inspectie', hint: 'Lamellen, ventilator, ruimte rondom' },
+    { key: 'elektrisch', label: 'Elektrische aansluitingen', hint: 'Contacten, zekeringen, aarding' },
+    { key: 'thermostaat', label: 'Thermostaat & regeling', hint: 'Instellingen, tijdsprogramma' },
+    { key: 'cop_meting', label: 'COP/rendementsmeting', hint: 'Temperatuurverschil in/uit' },
+    { key: 'geluidscheck', label: 'Geluidscheck', hint: 'Trillingen of geluiden' }
+  ],
+  ventilatie: [
+    { key: 'filters', label: 'Filters vervangen', hint: 'G4/F7 filters, filterhouders schoon' },
+    { key: 'ventielen', label: 'Ventielen gereinigd', hint: 'Alle ventilatie- en afzuigventielen' },
+    { key: 'kanalen', label: 'Kanalen geinspecteerd', hint: 'Visueel of met camera' },
+    { key: 'warmtewisselaar', label: 'Warmtewisselaar gereinigd', hint: 'Alleen bij Systeem D' },
+    { key: 'debieten', label: 'Debieten gemeten & afgesteld', hint: 'Per ventiel, conform EPB-verslag' },
+    { key: 'condensafvoer', label: 'Condensafvoer gecontroleerd', hint: 'Sifon, afvoer vrij' },
+    { key: 'bypass', label: 'Bypass werking', hint: 'Zomer/winterstand correct' },
+    { key: 'geluidsniveau', label: 'Geluidsniveau', hint: 'Geen abnormale geluiden' }
+  ],
+  verwarming: [
+    { key: 'brander', label: 'Brander inspectie & reiniging', hint: 'Vlam, elektroden, ontstekingsblok' },
+    { key: 'warmtewisselaar', label: 'Warmtewisselaar gereinigd', hint: 'Roetvorming, corrosie' },
+    { key: 'rookgasanalyse', label: 'Rookgasanalyse uitgevoerd', hint: 'CO, CO2, rendement, trekproef' },
+    { key: 'rookgasafvoer', label: 'Rookgasafvoer gecontroleerd', hint: 'Schouw, aansluiting' },
+    { key: 'waterdruk', label: 'Waterdruk systeem', hint: 'Drukmeter, bijvullen indien nodig' },
+    { key: 'expansievat', label: 'Expansievat gecontroleerd', hint: 'Voordruk, werking' },
+    { key: 'veiligheidsklep', label: 'Veiligheidsklep', hint: 'Werking, geen lekkage' },
+    { key: 'thermostaat', label: 'Thermostaat & regeling', hint: 'Programmatie, kamerthermostaat' }
+  ]
+};
+
+// ═══════════════════════════════
+// AUTH
+// ═══════════════════════════════
+async function init() {
+  var session = (await sb.auth.getSession()).data.session;
+  if (!session) { window.location.href = '/admin/'; return; }
+  currentUser = session.user;
+
+  var roleRes = await sb.from('user_roles').select('role').eq('user_id', currentUser.id).single();
+  if (!roleRes.data || roleRes.data.role !== 'admin') { window.location.href = '/admin/'; return; }
+
+  var params = new URLSearchParams(window.location.search);
+  var beurtId = params.get('beurt');
+
+  var beurtenRes = await sb.from('onderhoudsbeurten')
+    .select('*, contracten(id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_telefoon, klant_email, sector, sector_details, partner_id, client_id)')
+    .in('status', ['ingepland', 'in_te_plannen'])
+    .order('plan_datum');
+
+  var beurten = beurtenRes.data || [];
+  var select = document.getElementById('beurt-select');
+  beurten.forEach(function(b) {
+    var c = b.contracten;
+    var opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = (b.plan_datum || b.due_date || '?') + ' — ' + (c ? c.klant_naam : '?') + ' — ' + b.sector;
+    select.appendChild(opt);
+  });
+  window._beurten = beurten;
+
+  if (beurtId) { select.value = beurtId; selectBeurt(); }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+function doLogout() { sb.auth.signOut().then(function() { window.location.href = '/admin/'; }); }
+
+// ═══════════════════════════════
+// BEURT SELECTIE
+// ═══════════════════════════════
+async function selectBeurt() {
+  var id = document.getElementById('beurt-select').value;
+  if (!id) { document.getElementById('beurt-info-box').style.display = 'none'; document.getElementById('wizard').style.display = 'none'; return; }
+
+  currentBeurt = window._beurten.find(function(b) { return b.id === id; });
+  if (!currentBeurt) return;
+  currentContract = currentBeurt.contracten;
+
+  var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  var info = document.getElementById('beurt-info-box');
+  info.innerHTML =
+    '<strong>' + esc(currentContract.klant_naam) + '</strong><br>' +
+    esc(currentContract.klant_adres || '') + ', ' + esc(currentContract.klant_postcode || '') + ' ' + esc(currentContract.klant_gemeente || '') + '<br>' +
+    'Sector: <span class="sector-badge sector-' + currentBeurt.sector + '">' + (sectorLabel[currentBeurt.sector] || currentBeurt.sector) + '</span>' +
+    ' — Beurt ' + currentBeurt.volgnummer +
+    (currentBeurt.plan_datum ? '<br>Gepland: ' + currentBeurt.plan_datum : '');
+  info.style.display = 'block';
+
+  wizardStep = 0;
+  initChecklist();
+  initStepBar();
+  renderStep();
+  fotos = [];
+  interventieCount = 0;
+  document.getElementById('interventies-list').innerHTML = '';
+  document.getElementById('rapport-opmerkingen').value = '';
+  document.getElementById('wizard').style.display = 'block';
+}
+
+// ═══════════════════════════════
+// STEPS
+// ═══════════════════════════════
+function initStepBar() {
+  var bar = document.getElementById('step-bar');
+  bar.innerHTML = '';
+  for (var i = 0; i < steps.length - 1; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'step-dot' + (i === 0 ? ' active' : '');
+    bar.appendChild(dot);
+  }
+}
+
+function renderStep() {
+  steps.forEach(function(s, i) { document.getElementById('step-' + s).classList.toggle('active', i === wizardStep); });
+  document.querySelectorAll('.step-dot').forEach(function(d, i) {
+    d.className = 'step-dot' + (i < wizardStep ? ' done' : '') + (i === wizardStep ? ' active' : '');
+  });
+  if (wizardStep === 3) renderSamenvatting();
+}
+
+function nextStep() { if (wizardStep < steps.length - 1) { wizardStep++; renderStep(); window.scrollTo(0, 0); } }
+function prevStep() { if (wizardStep > 0) { wizardStep--; renderStep(); window.scrollTo(0, 0); } }
+
+// ═══════════════════════════════
+// CHECKLIST
+// ═══════════════════════════════
+function initChecklist() {
+  var sector = currentBeurt.sector;
+  var items = CHECKLISTS[sector] || [];
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  document.getElementById('checklist-title').textContent = 'Checklist — ' + (sectorLabels[sector] || sector);
+
+  document.getElementById('checklist-items').innerHTML = items.map(function(item) {
+    return '<div class="checklist-item" data-key="' + item.key + '">' +
+      '<div class="check-status">' +
+        '<button class="check-btn" onclick="setCheck(this,\'ok\')" title="OK">&#10003;</button>' +
+        '<button class="check-btn" onclick="setCheck(this,\'nok\')" title="Niet OK">&#10007;</button>' +
+        '<button class="check-btn" onclick="setCheck(this,\'na\')" title="N.v.t.">—</button>' +
+      '</div>' +
+      '<div class="check-label">' + esc(item.label) + '<small>' + esc(item.hint) + '</small>' +
+        '<textarea class="check-note" placeholder="Opmerking bij dit punt..." rows="2"></textarea>' +
+      '</div></div>';
+  }).join('');
+}
+
+function setCheck(btn, value) {
+  var row = btn.closest('.checklist-item');
+  row.querySelectorAll('.check-btn').forEach(function(b) { b.className = 'check-btn'; });
+  btn.classList.add(value);
+  row.dataset.value = value;
+  var note = row.querySelector('.check-note');
+  if (value === 'nok') { note.classList.add('visible'); note.focus(); }
+  else { note.classList.remove('visible'); }
+}
+
+function getChecklistData() {
+  var data = {};
+  document.querySelectorAll('.checklist-item').forEach(function(row) {
+    data[row.dataset.key] = { status: row.dataset.value || null, note: row.querySelector('.check-note').value.trim() || null };
+  });
+  return data;
+}
+
+// ═══════════════════════════════
+// FOTO'S
+// ═══════════════════════════════
+function handleFotos(e) {
+  Array.from(e.target.files).forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(ev) { fotos.push({ file: file, preview: ev.target.result }); renderFotos(); };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function renderFotos() {
+  var grid = document.getElementById('foto-grid');
+  grid.innerHTML = fotos.map(function(f, i) {
+    return '<div class="foto-thumb"><img src="' + f.preview + '"><button class="remove-foto" onclick="removeFoto(' + i + ')">×</button></div>';
+  }).join('') +
+    '<label class="foto-upload-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handleFotos(event)"></label>';
+}
+
+function removeFoto(i) { fotos.splice(i, 1); renderFotos(); }
+
+// ═══════════════════════════════
+// INTERVENTIES
+// ═══════════════════════════════
+function addInterventie() {
+  interventieCount++;
+  var id = 'int-' + interventieCount;
+  document.getElementById('interventies-list').insertAdjacentHTML('beforeend',
+    '<div class="interventie-card" id="' + id + '">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+        '<strong style="font-size:13px">Interventie ' + interventieCount + '</strong>' +
+        '<button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px" onclick="this.closest(\'.interventie-card\').remove()">&times;</button>' +
+      '</div>' +
+      '<div class="row"><div style="flex:1"><label>Omschrijving *</label><textarea class="int-omschrijving" placeholder="Beschrijf het probleem..."></textarea></div></div>' +
+      '<div class="row">' +
+        '<div style="flex:1"><label>Ernst</label><select class="int-ernst"><option value="laag">Laag</option><option value="normaal" selected>Normaal</option><option value="urgent">Urgent</option></select></div>' +
+        '<div style="flex:1"><label>Actie door</label><select class="int-actie"><option value="flancco">Flancco</option><option value="partner">Partner</option></select></div>' +
+        '<div style="flex:1"><label>Opgelost ter plaatse?</label><select class="int-opgelost"><option value="false">Nee</option><option value="true">Ja</option></select></div>' +
+      '</div></div>');
+}
+
+function getInterventies() {
+  var list = [];
+  document.querySelectorAll('.interventie-card').forEach(function(card) {
+    var omschr = card.querySelector('.int-omschrijving').value.trim();
+    if (!omschr) return;
+    list.push({ omschrijving: omschr, ernst: card.querySelector('.int-ernst').value, actie_door: card.querySelector('.int-actie').value, opgelost_ter_plaatse: card.querySelector('.int-opgelost').value === 'true' });
+  });
+  return list;
+}
+
+// ═══════════════════════════════
+// SAMENVATTING
+// ═══════════════════════════════
+function renderSamenvatting() {
+  var chk = getChecklistData();
+  var ok = 0, nok = 0, na = 0, empty = 0;
+  Object.values(chk).forEach(function(v) { if (v.status === 'ok') ok++; else if (v.status === 'nok') nok++; else if (v.status === 'na') na++; else empty++; });
+
+  document.getElementById('summary-content').innerHTML =
+    '<div class="summary-row"><span class="summary-label">Klant</span><span class="summary-value">' + esc(currentContract.klant_naam) + '</span></div>' +
+    '<div class="summary-row"><span class="summary-label">Adres</span><span class="summary-value">' + esc((currentContract.klant_adres||'') + ', ' + (currentContract.klant_postcode||'') + ' ' + (currentContract.klant_gemeente||'')) + '</span></div>' +
+    '<div class="summary-row"><span class="summary-label">Sector</span><span class="summary-value"><span class="sector-badge sector-' + currentBeurt.sector + '">' + currentBeurt.sector + '</span></span></div>' +
+    '<div class="summary-row"><span class="summary-label">Datum</span><span class="summary-value">' + (currentBeurt.plan_datum || new Date().toISOString().split('T')[0]) + '</span></div>' +
+    '<div class="summary-row"><span class="summary-label">Checklist</span><span class="summary-value">' +
+      '<span class="summary-badge badge-ok">&#10003; ' + ok + '</span> ' +
+      (nok > 0 ? '<span class="summary-badge badge-nok">&#10007; ' + nok + '</span> ' : '') +
+      (na > 0 ? '<span class="summary-badge badge-na">— ' + na + '</span> ' : '') +
+      (empty > 0 ? '<span style="color:var(--orange);font-size:12px">(' + empty + ' open)</span>' : '') +
+    '</span></div>' +
+    '<div class="summary-row"><span class="summary-label">Foto\'s</span><span class="summary-value">' + fotos.length + '</span></div>' +
+    '<div class="summary-row"><span class="summary-label">Opmerkingen</span><span class="summary-value">' + (document.getElementById('rapport-opmerkingen').value.trim() ? 'Ja' : 'Geen') + '</span></div>';
+
+  var ints = getInterventies();
+  var intBlock = document.getElementById('summary-interventies');
+  if (ints.length > 0) {
+    intBlock.style.display = 'block';
+    var ernstColor = { laag: 'var(--blue)', normaal: 'var(--orange)', urgent: 'var(--red)' };
+    document.getElementById('summary-interventies-list').innerHTML = ints.map(function(iv) {
+      return '<div style="padding:8px 0;border-bottom:1px solid var(--rule);font-size:13px">' +
+        '<span style="color:' + (ernstColor[iv.ernst]||'var(--grey)') + ';font-weight:600">&#9679; ' + iv.ernst.toUpperCase() + '</span> — ' + esc(iv.omschrijving) +
+        (iv.opgelost_ter_plaatse ? ' <span style="color:var(--green);font-size:11px">(opgelost)</span>' : '') + '</div>';
+    }).join('');
+  } else { intBlock.style.display = 'none'; }
+}
+
+// ═══════════════════════════════
+// OPSLAAN
+// ═══════════════════════════════
+async function saveRapport() {
+  var btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = 'Opslaan...';
+
+  try {
+    var datum = currentBeurt.plan_datum || new Date().toISOString().split('T')[0];
+    var ref = 'RPT-' + datum.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+    // Upload foto's
+    var fotoUrls = [];
+    for (var i = 0; i < fotos.length; i++) {
+      var path = 'rapporten/' + ref + '/' + Date.now() + '_' + i + '.jpg';
+      var uploadRes = await sb.storage.from('handtekeningen').upload(path, fotos[i].file, { contentType: fotos[i].file.type });
+      if (!uploadRes.error) fotoUrls.push(SUPA_URL + '/storage/v1/object/public/handtekeningen/' + path);
+    }
+
+    var details = currentContract.sector_details || {};
+    var formule = null, systeem = null;
+    if (currentBeurt.sector === 'warmtepomp' && details.warmtepomp) formule = details.warmtepomp.formule || null;
+    if (currentBeurt.sector === 'ventilatie' && details.ventilatie) systeem = details.ventilatie.type || null;
+
+    var rapportRes = await sb.from('rapporten').insert([{
+      onderhoudsbeurt_id: currentBeurt.id,
+      contract_id: currentContract.id,
+      referentie: ref,
+      sector: currentBeurt.sector,
+      formule: formule,
+      systeem: systeem,
+      checklist_data: getChecklistData(),
+      foto_urls: fotoUrls,
+      opmerkingen: document.getElementById('rapport-opmerkingen').value.trim() || null,
+      technieker_id: currentBeurt.technieker_id,
+      datum_onderhoud: datum,
+      klant_snapshot: { naam: currentContract.klant_naam, adres: currentContract.klant_adres, postcode: currentContract.klant_postcode, gemeente: currentContract.klant_gemeente, telefoon: currentContract.klant_telefoon, email: currentContract.klant_email }
+    }]).select();
+    if (rapportRes.error) throw rapportRes.error;
+
+    // Interventies
+    var ints = getInterventies();
+    if (ints.length > 0) {
+      await sb.from('interventies').insert(ints.map(function(iv) {
+        return { contract_id: currentContract.id, onderhoudsbeurt_id: currentBeurt.id, rapport_id: rapportRes.data[0].id,
+          omschrijving: iv.omschrijving, ernst: iv.ernst, actie_door: iv.actie_door, opgelost_ter_plaatse: iv.opgelost_ter_plaatse,
+          status: iv.opgelost_ter_plaatse ? 'afgehandeld' : 'open', afhandel_datum: iv.opgelost_ter_plaatse ? datum : null };
+      }));
+    }
+
+    // Update beurt status
+    await sb.from('onderhoudsbeurten').update({ status: 'uitgevoerd', uitvoer_datum: datum, updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
+
+    document.getElementById('success-ref').textContent = 'Referentie: ' + ref;
+    wizardStep = 4; renderStep();
+  } catch (err) {
+    alert('Fout: ' + (err.message || err));
+    btn.disabled = false; btn.textContent = '✓ Rapport opslaan';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
