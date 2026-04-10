@@ -2395,14 +2395,14 @@ async function submitContract() {
 // ═══════════════════════════════════════════
 function generateOnderhoudsbeurten(contractId, sector, s) {
   var cfg = SECTORS[sector];
-  var seizoenMaanden = cfg ? cfg.seizoenMaanden : [3,4,5,6,7,8,9,10];
+  var seizoenMaanden = (cfg && cfg.seizoenMaanden) ? cfg.seizoenMaanden : null;
 
   var aantalJaren = s.duur === 0 ? 1 : s.duur;
   var beurtenPerJaar = s.freq;
   var totaalBeurten = aantalJaren * beurtenPerJaar;
 
   var nu = new Date();
-  var startDatum = eersteSeizoensDatum(nu, seizoenMaanden);
+  var startDatum = seizoenMaanden ? eersteSeizoensDatum(nu, seizoenMaanden) : new Date(nu.getFullYear(), nu.getMonth() + 1, 1);
 
   var beurten = [];
   for (var i = 0; i < totaalBeurten; i++) {
@@ -2413,11 +2413,11 @@ function generateOnderhoudsbeurten(contractId, sector, s) {
       dueDate = new Date(startDatum);
       dueDate.setFullYear(dueDate.getFullYear() + jarenVooruit);
       if (halverwege) dueDate.setMonth(dueDate.getMonth() + 6);
-      dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
+      if (seizoenMaanden) dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
     } else {
       dueDate = new Date(startDatum);
       dueDate.setFullYear(dueDate.getFullYear() + i);
-      dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
+      if (seizoenMaanden) dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
     }
 
     beurten.push({
