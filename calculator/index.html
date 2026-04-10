@@ -1270,6 +1270,19 @@ async function submitContract() {
       }
     } catch (beurtErr) { console.warn('Onderhoudsbeurten generatie mislukt:', beurtErr); }
 
+    // Send confirmation email (non-blocking)
+    try {
+      const contractId = data[0].id;
+      fetch(SUPA_URL + '/functions/v1/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_id: contractId })
+      }).then(function(r) { return r.json(); }).then(function(r) {
+        if (r.success) console.log('Bevestigingsmail verzonden:', r.id);
+        else console.warn('Email niet verzonden:', r.error);
+      }).catch(function(e) { console.warn('Email verzending mislukt:', e); });
+    } catch (mailErr) { console.warn('Email call mislukt:', mailErr); }
+
     // Show success
     document.getElementById('submit-row').style.display = 'none';
     document.getElementById('download-hint').style.display = 'none';
