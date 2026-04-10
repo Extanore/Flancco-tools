@@ -1138,6 +1138,7 @@ async function planBeurt(beurtId, techId, planDatum, startTijd) {
   beurt.status = 'ingepland';
   if (startTijd) beurt.start_tijd = startTijd;
 
+  auditLog('onderhoudsbeurten', beurtId, 'status_wijziging', 'in_te_plannen', 'ingepland');
   showToast(esc(info.naam) + ' ingepland');
   renderView();
   renderSidebar();
@@ -1165,6 +1166,7 @@ async function unplanBeurt(beurtId) {
   beurt.start_tijd = null;
   beurt.status = 'in_te_plannen';
 
+  auditLog('onderhoudsbeurten', beurtId, 'status_wijziging', 'ingepland', 'in_te_plannen');
   showToast('Beurt terug naar In te plannen');
   renderView();
   renderSidebar();
@@ -1216,6 +1218,7 @@ async function ctxMarkDone() {
   } else {
     beurt.status = 'uitgevoerd';
     beurt.uitvoer_datum = formatDateISO(new Date());
+    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_wijziging', 'ingepland', 'uitgevoerd');
     showToast('Beurt gemarkeerd als uitgevoerd');
     renderView();
   }
@@ -1238,6 +1241,7 @@ async function ctxCancel() {
     showToast('Fout: ' + result.error.message, 'error');
   } else {
     beurt.status = 'geannuleerd';
+    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_wijziging', beurt.status, 'geannuleerd');
     showToast('Beurt geannuleerd');
     renderView();
     renderSidebar();
@@ -1313,6 +1317,19 @@ function renderMonthView() {
 }
 
 // =============================================
+// AUDIT LOGGING
+async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
+  try {
+    var sess = await sb.auth.getSession();
+    var userId = (sess && sess.data && sess.data.session) ? sess.data.session.user.id : null;
+    await sb.from('audit_log').insert({
+      tabel: tabel, record_id: recordId, actie: actie,
+      oude_waarde: oudeWaarde || null, nieuwe_waarde: nieuweWaarde || null,
+      user_id: userId
+    });
+  } catch(e) { console.warn('Audit log failed:', e); }
+}
+
 // INIT
 // =============================================
 checkAuth();

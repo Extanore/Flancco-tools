@@ -1797,6 +1797,7 @@ async function deleteKlantFromDossier(id, gdpr) {
     var { error } = await sb.from('clients').delete().eq('id', id);
     if (error) throw error;
 
+    auditLog('clients', id, gdpr ? 'gdpr_verwijdering' : 'verwijderd', null, contractIds.length + ' contracten verwijderd');
     closeKlantDossier();
     await loadAllData();
     alert(gdpr ? 'Alle klantdata is volledig verwijderd (GDPR).' : 'Klant verwijderd.');
@@ -2151,6 +2152,9 @@ function closeInterventieModal() {
 async function saveInterventie() {
   var id = document.getElementById('int-edit-id').value;
   if (!id) return;
+  var oldIv = allInterventies.find(function(x) { return x.id === id; });
+  var oldStatus = oldIv ? oldIv.status : null;
+  var oldErnst = oldIv ? oldIv.ernst : null;
   var payload = {
     ernst: document.getElementById('int-ernst-edit').value,
     status: document.getElementById('int-status-edit').value,
@@ -2161,8 +2165,31 @@ async function saveInterventie() {
   };
   var res = await sb.from('interventies').update(payload).eq('id', id);
   if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (oldStatus !== payload.status) {
+    auditLog('interventies', id, 'status_wijziging', oldStatus, payload.status);
+  }
+  if (oldErnst !== payload.ernst) {
+    auditLog('interventies', id, 'ernst_wijziging', oldErnst, payload.ernst);
+  }
   closeInterventieModal();
   await loadAllData();
+}
+
+// =============================================
+// AUDIT LOGGING
+// =============================================
+async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
+  try {
+    var userId = currentUser ? currentUser.id : null;
+    await sb.from('audit_log').insert({
+      tabel: tabel,
+      record_id: recordId,
+      actie: actie,
+      oude_waarde: oudeWaarde || null,
+      nieuwe_waarde: nieuweWaarde || null,
+      user_id: userId
+    });
+  } catch(e) { console.warn('Audit log failed:', e); }
 }
 
 // =============================================

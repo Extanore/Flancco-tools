@@ -541,6 +541,8 @@ async function saveRapport() {
 
     // Update beurt status
     await sb.from('onderhoudsbeurten').update({ status: 'uitgevoerd', uitvoer_datum: datum, updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
+    auditLog('onderhoudsbeurten', currentBeurt.id, 'status_wijziging', currentBeurt.status, 'uitgevoerd');
+    auditLog('rapporten', rapRes.data[0].id, 'aangemaakt', null, ref);
 
     document.getElementById('success-ref').textContent = 'Referentie: ' + ref;
     wizardStep = 4; renderStep();
@@ -548,6 +550,18 @@ async function saveRapport() {
     alert('Fout: ' + (err.message || err));
     btn.disabled = false; btn.textContent = '✓ Rapport opslaan';
   }
+}
+
+async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
+  try {
+    var sess = await sb.auth.getSession();
+    var userId = (sess && sess.data && sess.data.session) ? sess.data.session.user.id : null;
+    await sb.from('audit_log').insert({
+      tabel: tabel, record_id: recordId, actie: actie,
+      oude_waarde: oudeWaarde || null, nieuwe_waarde: nieuweWaarde || null,
+      user_id: userId
+    });
+  } catch(e) { console.warn('Audit log failed:', e); }
 }
 
 init();
