@@ -120,11 +120,8 @@
   .btn-submit { background:var(--green); color:white; }
   .btn-submit:hover { opacity:0.9; }
 
-  /* ROLE VISIBILITY — default hidden, shown by JS */
-  .admin-only, .partner-only { display: none !important; }
-  body.role-admin .admin-only { display: revert !important; }
-  body.role-partner .partner-only { display: revert !important; }
-  /* Both roles see items without a role class */
+  /* ROLE VISIBILITY — elements are hidden by adding .role-hidden */
+  .role-hidden { display: none !important; }
 
   /* RESPONSIVE */
   @media (max-width: 768px) {
@@ -461,15 +458,19 @@ async function doLogin() {
 
 async function initApp() {
   // Fetch user role
-  const { data: roleData } = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
+  const { data: roleData, error: roleError } = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
+  if (roleError) console.error('Role query error:', roleError);
   if (!roleData) {
-    document.getElementById('login-error').textContent = 'Geen toegang. Neem contact op met Flancco.';
+    document.getElementById('login-error').textContent = 'Geen toegang. Neem contact op met Flancco.' + (roleError ? ' (' + roleError.message + ')' : '');
     await sb.auth.signOut();
     return;
   }
 
   userRole = roleData.role;
-  document.body.classList.add('role-' + userRole);
+
+  // Hide elements not meant for this role
+  const hideClass = userRole === 'admin' ? 'partner-only' : 'admin-only';
+  document.querySelectorAll('.' + hideClass).forEach(el => el.classList.add('role-hidden'));
 
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
