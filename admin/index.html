@@ -147,6 +147,10 @@
   .btn.btn-secondary:hover { background:var(--rule); }
   .btn.btn-danger { background:var(--red) !important; color:white; }
   .btn.btn-danger:hover { opacity:0.9; }
+  .alert-bar { padding:12px 16px; border-radius:8px; margin-bottom:12px; font-size:13px; display:flex; align-items:center; gap:10px; }
+  .alert-bar svg { width:18px; height:18px; flex-shrink:0; }
+  .alert-red { background:#FDE8E8; color:#B91C1C; border:1px solid #FECACA; }
+  .alert-orange { background:#FFF8E7; color:#92400E; border:1px solid #FDE68A; }
   .modal-buttons { display:flex; gap:12px; margin-top:20px; }
   .modal-buttons button { flex:1; padding:12px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; }
 
@@ -250,6 +254,7 @@
 
     <!-- DASHBOARD PAGE -->
     <div class="page active" id="page-dashboard">
+      <div id="dashboard-alerts" class="admin-only" style="display:none"></div>
       <div class="stats" id="stats-row"></div>
       <div class="card">
         <div class="card-header"><span class="card-title">Recente contracten</span></div>
@@ -1007,6 +1012,49 @@ function myContracten() {
 }
 
 function renderDashboard() {
+  // Verloopwaarschuwingen (alleen admin)
+  if (userRole === 'admin') {
+    var alerts = [];
+    var today = new Date();
+    var warn2m = new Date(today); warn2m.setMonth(warn2m.getMonth() + 2);
+    // Technieker certificaten
+    allTechSectoren.forEach(function(ts) {
+      if (!ts.certificaat_verloopt) return;
+      var d = new Date(ts.certificaat_verloopt);
+      var tech = allTechniekers.find(function(t) { return t.id === ts.technieker_id; });
+      var name = tech ? (tech.voornaam || '') + ' ' + tech.naam : '?';
+      if (d < today) alerts.push({ level: 'red', msg: 'Certificaat <strong>' + esc(ts.sector) + '</strong> van ' + esc(name) + ' is <strong>verlopen</strong> (' + ts.certificaat_verloopt + ')' });
+      else if (d < warn2m) alerts.push({ level: 'orange', msg: 'Certificaat <strong>' + esc(ts.sector) + '</strong> van ' + esc(name) + ' verloopt binnenkort (' + ts.certificaat_verloopt + ')' });
+    });
+    // Voertuig keuringen
+    allVoertuigen.forEach(function(v) {
+      if (v.keuring_verval) {
+        var kd = new Date(v.keuring_verval);
+        if (kd < today) alerts.push({ level: 'red', msg: 'Keuring <strong>' + esc(v.nummerplaat) + '</strong> (' + esc(v.merk + ' ' + v.model) + ') is <strong>verlopen</strong> (' + v.keuring_verval + ')' });
+        else if (kd < warn2m) alerts.push({ level: 'orange', msg: 'Keuring <strong>' + esc(v.nummerplaat) + '</strong> verloopt binnenkort (' + v.keuring_verval + ')' });
+      }
+      if (v.verzekering_verval) {
+        var vd = new Date(v.verzekering_verval);
+        if (vd < today) alerts.push({ level: 'red', msg: 'Verzekering <strong>' + esc(v.nummerplaat) + '</strong> is <strong>verlopen</strong> (' + v.verzekering_verval + ')' });
+        else if (vd < warn2m) alerts.push({ level: 'orange', msg: 'Verzekering <strong>' + esc(v.nummerplaat) + '</strong> verloopt binnenkort (' + v.verzekering_verval + ')' });
+      }
+    });
+    // Open interventies
+    var openInt = allInterventies.filter(function(i) { return i.status === 'open'; });
+    var urgentInt = openInt.filter(function(i) { return i.ernst === 'urgent'; });
+    if (urgentInt.length > 0) alerts.push({ level: 'red', msg: '<strong>' + urgentInt.length + ' urgente interventie' + (urgentInt.length > 1 ? 's' : '') + '</strong> vereisen onmiddellijke aandacht' });
+    else if (openInt.length > 0) alerts.push({ level: 'orange', msg: openInt.length + ' open interventie' + (openInt.length > 1 ? 's' : '') + ' wachten op afhandeling' });
+
+    var alertsDiv = document.getElementById('dashboard-alerts');
+    if (alerts.length > 0) {
+      var warnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+      alertsDiv.innerHTML = alerts.sort(function(a,b) { return a.level === 'red' ? -1 : 1; }).map(function(a) {
+        return '<div class="alert-bar alert-' + a.level + '">' + warnIcon + '<span>' + a.msg + '</span></div>';
+      }).join('');
+      alertsDiv.style.display = 'block';
+    } else { alertsDiv.style.display = 'none'; }
+  }
+
   const contracts = myContracten();
   const totalPartners = partners.length;
   const activePartners = partners.filter(p => p.contract_getekend).length;
@@ -1679,6 +1727,7 @@ function showKlantDossier(clientId) {
         '<button onclick="editKlant(\'' + client.id + '\')">Bewerken</button>' +
         '<button onclick="copyPortalLink(\'' + esc(client.portal_token) + '\')">Portaallink kopiëren</button>' +
         '<button class="btn-danger" onclick="deleteKlantFromDossier(\'' + client.id + '\')">Verwijderen</button>' +
+        '<button class="btn-danger" onclick="deleteKlantFromDossier(\'' + client.id + '\', true)" title="Verwijdert ALLE data inclusief contracten, rapporten, foto\'s (AVG/GDPR)">GDPR Verwijdering</button>' +
       '</div>' +
     '</div>' +
 
@@ -1717,16 +1766,43 @@ function copyPortalLink(token) {
   });
 }
 
-async function deleteKlantFromDossier(id) {
+async function deleteKlantFromDossier(id, gdpr) {
   if (!id) return;
-  if (!confirm('Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden.')) return;
-  var { error } = await sb.from('clients').delete().eq('id', id);
-  if (error) {
-    alert('Fout bij verwijderen: ' + error.message);
-    return;
+  var msg = gdpr
+    ? 'GDPR VERWIJDERING\n\nDit verwijdert ALLE data van deze klant:\n- Klantgegevens\n- Contracten + handtekeningen\n- Onderhoudsbeurten\n- Rapporten + foto\'s\n- Interventies\n\nDit kan NIET ongedaan worden. Doorgaan?'
+    : 'Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden.';
+  if (!confirm(msg)) return;
+
+  try {
+    // Get all contract IDs for this client
+    var contractRes = await sb.from('contracten').select('id').eq('client_id', id);
+    var contractIds = (contractRes.data || []).map(function(c) { return c.id; });
+
+    if (contractIds.length > 0) {
+      // Delete interventies
+      await sb.from('interventies').delete().in('contract_id', contractIds);
+      // Delete rapporten
+      await sb.from('rapporten').delete().in('contract_id', contractIds);
+      // Delete onderhoudsbeurten
+      await sb.from('onderhoudsbeurten').delete().in('contract_id', contractIds);
+      // Delete contract_regels
+      await sb.from('contract_regels').delete().in('contract_id', contractIds);
+      // Delete contracten
+      await sb.from('contracten').delete().in('id', contractIds);
+    }
+
+    // Delete client locations
+    await sb.from('client_locations').delete().eq('client_id', id);
+    // Delete client
+    var { error } = await sb.from('clients').delete().eq('id', id);
+    if (error) throw error;
+
+    closeKlantDossier();
+    await loadAllData();
+    alert(gdpr ? 'Alle klantdata is volledig verwijderd (GDPR).' : 'Klant verwijderd.');
+  } catch (err) {
+    alert('Fout bij verwijderen: ' + (err.message || err));
   }
-  closeKlantDossier();
-  await loadAllData();
 }
 
 // =============================================
