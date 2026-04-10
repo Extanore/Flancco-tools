@@ -992,6 +992,336 @@ var SECTORS = {
       if (result.moeilijkCost > 0) regels.push({ omschrijving: 'Moeilijk bereikbaar', bedrag: result.moeilijkCost, btw_pct: btwPct });
       return regels;
     }
+  },
+
+  // ────────── VENTILATIE ──────────
+  ventilatie: {
+    key: 'ventilatie',
+    label: 'Ventilatie onderhoud',
+    shortLabel: 'Ventilatie',
+    subtitle: 'Onderhoud &amp; reiniging van uw ventilatiesysteem (C of D)',
+    headerSubtitle: 'Professioneel ventilatie onderhoud',
+    icon: '<svg viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>',
+    seizoenMaanden: null,
+    seizoenLabel: 'heel het jaar',
+
+    usps: [
+      { icon: '<svg viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>', text: 'Gezonde<br>binnenlucht' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z"/></svg>', text: 'Lager<br>energieverbruik' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>', text: 'Conform<br>EPB-regelgeving' }
+    ],
+
+    renderInfoBlocks: function() {
+      return '<div class="info-block" id="info-waarom-vent">' +
+        '<div class="info-toggle" onclick="toggleInfo(\'info-waarom-vent\')">' +
+        '<div class="info-toggle-left"><div class="info-toggle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>' +
+        '<div><h3>Waarom uw ventilatiesysteem onderhouden?</h3><div class="info-teaser">Voorkom vuile filters, schimmel en hoge energiekosten</div></div></div>' +
+        '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
+        '<div class="info-content"><div class="info-body">' +
+        '<p>Uw ventilatiesysteem draait 24 uur per dag, 365 dagen per jaar. Filters raken verstopt met stof, pollen en fijnstof. Zonder onderhoud daalt de luchtkwaliteit in uw woning en stijgt het energieverbruik.</p>' +
+        '<div class="info-highlight"><p>Een vervuild ventilatiesysteem kan tot 30% meer energie verbruiken. Vuile filters en kanalen zijn bovendien een ideale voedingsbodem voor schimmel en bacteri\u00EBn.</p></div>' +
+        '<p>Regelmatig onderhoud is verplicht volgens de EPB-regelgeving en zorgt ervoor dat uw systeem de vereiste debieten blijft leveren.</p>' +
+        '</div></div></div>';
+    },
+
+    renderForm: function(pricing, supplements) {
+      return '<div class="card">' +
+        '<div class="card-title">Uw ventilatiesysteem</div>' +
+        '<div class="field"><label>Type systeem</label>' +
+        '<select id="vent-type" onchange="calculateAll()">' +
+        '<option value="C">Systeem C (mechanische afvoer)</option>' +
+        '<option value="D">Systeem D (mechanische aan- en afvoer met warmterecuperatie)</option>' +
+        '</select></div>' +
+        '<div class="field"><label>Aantal ventielen</label><input type="number" id="vent-ventielen" min="1" max="50" value="10" oninput="calculateAll()"></div>' +
+        '</div>' +
+        '<div class="card"><div class="card-title">Extra opties</div>' +
+        '<label class="toggle-group" for="vent-kanaal"><div class="toggle-label">Kanaalreiniging<small>Reiniging van de ventilatiekanalen per strekkende meter</small></div>' +
+        '<div class="switch"><input type="checkbox" id="vent-kanaal" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+        '<div id="vent-kanaal-meters" style="display:none;padding:8px 0 0 44px">' +
+        '<div class="field"><label>Aantal strekkende meter</label><input type="number" id="vent-lm" min="1" max="200" value="20" oninput="calculateAll()"></div>' +
+        '</div></div>';
+    },
+
+    readInputs: function() {
+      var kanaalChecked = document.getElementById('vent-kanaal').checked;
+      var meterEl = document.getElementById('vent-kanaal-meters');
+      if (meterEl) meterEl.style.display = kanaalChecked ? 'block' : 'none';
+      return {
+        systeem: document.getElementById('vent-type').value,
+        ventielen: Math.max(1, parseInt(document.getElementById('vent-ventielen').value) || 10),
+        kanaalreiniging: kanaalChecked,
+        lm: kanaalChecked ? Math.max(1, parseInt(document.getElementById('vent-lm').value) || 20) : 0
+      };
+    },
+
+    calculate: function(inputs, pricing, supplements, partner) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+
+      // Find tier: staffel_min 1 = Systeem C, 2 = Systeem D
+      var typeCode = inputs.systeem === 'C' ? 1 : 2;
+      var f = { amt: 0, lbl: 'Geen tarief' };
+      for (var i = 0; i < pricing.length; i++) {
+        var pr = pricing[i];
+        if (pr.staffel_min === typeCode) {
+          f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+          break;
+        }
+      }
+
+      var basePrice = f.amt;
+
+      // Extra ventielen (boven 10)
+      var extraVent = Math.max(0, inputs.ventielen - 10);
+      var ventSup = getSectorSupplement('ventilatie', 'extra_ventiel') * (1 + marge);
+      var ventCost = extraVent * ventSup;
+
+      // Kanaalreiniging
+      var kanaalSup = getSectorSupplement('ventilatie', 'kanaalreiniging') * (1 + marge);
+      var kanaalCost = inputs.kanaalreiniging ? inputs.lm * kanaalSup : 0;
+
+      var subtotalExcl = basePrice + ventCost + kanaalCost;
+
+      var lines = [{ label: 'Ventilatie onderhoud Systeem ' + inputs.systeem + ' (tot 10 ventielen)', amount: basePrice }];
+      if (ventCost > 0) lines.push({ label: 'Extra ventielen (' + extraVent + '\u00D7 ' + fmt(ventSup) + ')', amount: ventCost });
+      if (kanaalCost > 0) lines.push({ label: 'Kanaalreiniging (' + inputs.lm + ' lm \u00D7 ' + fmt(kanaalSup) + ')', amount: kanaalCost });
+
+      return { lines: lines, subtotalExcl: subtotalExcl, basePrice: basePrice, ventCost: ventCost, kanaalCost: kanaalCost, ventSup: ventSup, kanaalSup: kanaalSup, forfaitLabel: f.lbl };
+    },
+
+    renderStaffelTable: function(pricing, partner, btwPct) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var currentType = document.getElementById('vent-type').value;
+      var typeCode = currentType === 'C' ? 1 : 2;
+      var rows = pricing.map(function(pr) {
+        var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * (1 + btwPct / 100);
+        var cls = pr.staffel_min === typeCode ? ' class="active"' : '';
+        return '<tr' + cls + '><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
+      }).join('');
+      return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Ventilatie</div>' +
+        '<table class="staffel-table"><thead><tr><th>Systeem</th><th>Forfait</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>' +
+        '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Basisforfait inclusief tot 10 ventielen.</p></div>';
+    },
+
+    renderCustomerFields: function() { return ''; },
+
+    summaryBenefits: function() {
+      var chk = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="var(--primary)" opacity="0.12"/><path d="M6 10.5l2.5 2.5 5.5-5.5" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      return '<div class="summary-benefit">' + chk + '<span>Reiniging of vervanging van alle filters</span></div>' +
+        '<div class="summary-benefit">' + chk + '<span>Controle ventielen, debieten en warmterecuperatie</span></div>' +
+        '<div class="summary-benefit">' + chk + '<span>Conform EPB-regelgeving</span></div>' +
+        '<div class="summary-benefit">' + chk + '<span>Digitaal rapport met bevindingen en aanbevelingen</span></div>';
+    },
+
+    summaryDescription: function(inputs) {
+      var desc = 'Systeem ' + inputs.systeem + ' \u2014 ' + inputs.ventielen + ' ventielen';
+      if (inputs.kanaalreiniging) desc += ' + kanaalreiniging (' + inputs.lm + ' lm)';
+      return desc;
+    },
+
+    contractArticleVoorwerp: function(inputs) {
+      return '<li>het periodiek onderhoud van het ventilatiesysteem (Systeem ' + inputs.systeem + ');</li>' +
+        '<li>reiniging of vervanging van filters;</li>' +
+        '<li>controle en afstelling van debieten per ventiel;</li>' +
+        (inputs.systeem === 'D' ? '<li>reiniging warmtewisselaar en controle bypass;</li>' : '') +
+        (inputs.kanaalreiniging ? '<li>reiniging ventilatiekanalen (' + inputs.lm + ' strekkende meter);</li>' : '') +
+        '<li>een digitaal interventierapport na elke beurt.</li>';
+    },
+
+    contractArticleInstallatie: function(inputs) {
+      return '<h2>Installatiegegevens &mdash; Ventilatie</h2>' +
+        '<div class="data-row"><span class="data-label">Type systeem</span><span class="data-value">Systeem ' + inputs.systeem + '</span></div>' +
+        '<div class="data-row"><span class="data-label">Aantal ventielen</span><span class="data-value">' + inputs.ventielen + '</span></div>' +
+        (inputs.kanaalreiniging ? '<div class="data-row"><span class="data-label">Kanaalreiniging</span><span class="data-value">' + inputs.lm + ' strekkende meter</span></div>' : '');
+    },
+
+    contractPricingTable: function(pricing, partner, btwPct, inputs) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var btwMult = 1 + btwPct / 100;
+      var typeCode = inputs.systeem === 'C' ? 1 : 2;
+      var rows = pricing.map(function(pr) {
+        var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * btwMult;
+        var cls = pr.staffel_min === typeCode ? ' class="active-row"' : '';
+        return '<tr' + cls + '><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
+      }).join('');
+      return '<table class="pricing-table"><tr><th>Systeem</th><th>Forfait</th></tr>' + rows + '</table>';
+    },
+
+    contractSupplementsTable: function(result, btwMult) {
+      var rows = '';
+      if (result.ventSup > 0) rows += '<tr><td>Extra ventiel (boven 10)</td><td>+ ' + fmt(result.ventSup * btwMult) + ' / stuk</td></tr>';
+      if (result.kanaalSup > 0) rows += '<tr><td>Kanaalreiniging</td><td>+ ' + fmt(result.kanaalSup * btwMult) + ' / lm</td></tr>';
+      return rows;
+    },
+
+    getContractPayload: function(inputs, result) {
+      return {
+        sector_details: {
+          systeem: inputs.systeem,
+          ventielen: inputs.ventielen,
+          kanaalreiniging: inputs.kanaalreiniging,
+          lm: inputs.lm
+        }
+      };
+    },
+
+    getContractRegels: function(inputs, result, btwPct) {
+      var regels = [{ omschrijving: 'Ventilatie onderhoud Systeem ' + inputs.systeem + ' (' + inputs.ventielen + ' ventielen)', bedrag: result.basePrice, btw_pct: btwPct }];
+      if (result.ventCost > 0) regels.push({ omschrijving: 'Extra ventielen (' + (inputs.ventielen - 10) + ' stuks)', bedrag: result.ventCost, btw_pct: btwPct });
+      if (result.kanaalCost > 0) regels.push({ omschrijving: 'Kanaalreiniging (' + inputs.lm + ' lm)', bedrag: result.kanaalCost, btw_pct: btwPct });
+      return regels;
+    }
+  },
+
+  // ────────── VERWARMING ──────────
+  verwarming: {
+    key: 'verwarming',
+    label: 'Verwarming onderhoud',
+    shortLabel: 'Verwarming',
+    subtitle: 'Ketelonderhoud inclusief rookgasanalyse',
+    headerSubtitle: 'Professioneel ketelonderhoud',
+    icon: '<svg viewBox="0 0 24 24"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
+    seizoenMaanden: [8,9,10],
+    seizoenLabel: 'augustus\u2013oktober (voor stookseizoen)',
+
+    usps: [
+      { icon: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>', text: 'Wettelijk<br>verplicht' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z"/></svg>', text: 'Lager<br>verbruik' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>', text: 'Veilige<br>verbranding' }
+    ],
+
+    renderInfoBlocks: function() {
+      return '<div class="info-block" id="info-waarom-verw">' +
+        '<div class="info-toggle" onclick="toggleInfo(\'info-waarom-verw\')">' +
+        '<div class="info-toggle-left"><div class="info-toggle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>' +
+        '<div><h3>Waarom uw verwarmingsketel onderhouden?</h3><div class="info-teaser">Wettelijk verplicht \u00E9n goed voor uw portemonnee</div></div></div>' +
+        '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
+        '<div class="info-content"><div class="info-body">' +
+        '<p>In Vlaanderen is tweejaarlijks ketelonderhoud wettelijk verplicht. Bij een controle moet u een geldig verbrandingsattest kunnen voorleggen.</p>' +
+        '<div class="info-highlight"><p>Een onderhouden ketel verbruikt tot 5% minder brandstof en stoot minder schadelijke gassen uit. Bovendien verkleint u het risico op CO-vergiftiging.</p></div>' +
+        '<p>De rookgasanalyse is inbegrepen bij elk onderhoud. U ontvangt een verbrandingsattest dat geldig is voor 2 jaar.</p>' +
+        '</div></div></div>';
+    },
+
+    renderForm: function(pricing, supplements) {
+      var hasPricing = pricing.some(function(p) { return parseFloat(p.flancco_forfait) > 0; });
+      if (!hasPricing) {
+        return '<div class="card" style="text-align:center;padding:40px 24px">' +
+          '<p style="color:var(--grey);font-size:14px">Prijzen voor verwarming worden binnenkort beschikbaar gesteld.</p>' +
+          '<p style="color:var(--grey);font-size:12px;margin-top:8px">Neem contact op voor een offerte op maat.</p></div>';
+      }
+      return '<div class="card">' +
+        '<div class="card-title">Uw verwarmingsinstallatie</div>' +
+        '<div class="field"><label>Type ketel</label>' +
+        '<select id="verw-type" onchange="calculateAll()">' +
+        '<option value="gas">Gasketel</option>' +
+        '<option value="mazout">Mazoutketel</option>' +
+        '<option value="condensatie">Condensatieketel</option>' +
+        '</select></div>' +
+        '<p style="font-size:12px;color:var(--grey);margin:4px 0 0">Rookgasanalyse en verbrandingsattest inbegrepen.</p>' +
+        '</div>';
+    },
+
+    readInputs: function() {
+      var el = document.getElementById('verw-type');
+      return {
+        ketelType: el ? el.value : 'gas'
+      };
+    },
+
+    calculate: function(inputs, pricing, supplements, partner) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+
+      // Find tier: 1=gas, 2=mazout, 3=condensatie
+      var typeCode = inputs.ketelType === 'gas' ? 1 : inputs.ketelType === 'mazout' ? 2 : 3;
+      var f = { amt: 0, lbl: 'Geen tarief' };
+      for (var i = 0; i < pricing.length; i++) {
+        var pr = pricing[i];
+        if (pr.staffel_min === typeCode) {
+          f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+          break;
+        }
+      }
+
+      var basePrice = f.amt;
+      var lines = [{ label: 'Ketelonderhoud (' + inputs.ketelType + ') incl. rookgasanalyse', amount: basePrice }];
+
+      return { lines: lines, subtotalExcl: basePrice, basePrice: basePrice, forfaitLabel: f.lbl };
+    },
+
+    renderStaffelTable: function(pricing, partner, btwPct) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var hasPricing = pricing.some(function(p) { return parseFloat(p.flancco_forfait) > 0; });
+      if (!hasPricing) return '';
+      var currentType = document.getElementById('verw-type') ? document.getElementById('verw-type').value : 'gas';
+      var typeCode = currentType === 'gas' ? 1 : currentType === 'mazout' ? 2 : 3;
+      var rows = pricing.map(function(pr) {
+        var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * (1 + btwPct / 100);
+        var cls = pr.staffel_min === typeCode ? ' class="active"' : '';
+        return '<tr' + cls + '><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
+      }).join('');
+      return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Verwarming</div>' +
+        '<table class="staffel-table"><thead><tr><th>Keteltype</th><th>Forfait</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>' +
+        '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Inclusief rookgasanalyse en verbrandingsattest.</p></div>';
+    },
+
+    renderCustomerFields: function() { return ''; },
+
+    summaryBenefits: function() {
+      var chk = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="var(--primary)" opacity="0.12"/><path d="M6 10.5l2.5 2.5 5.5-5.5" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      return '<div class="summary-benefit">' + chk + '<span>Volledige reiniging en afstelling van de ketel</span></div>' +
+        '<div class="summary-benefit">' + chk + '<span>Rookgasanalyse en verbrandingsattest inbegrepen</span></div>' +
+        '<div class="summary-benefit">' + chk + '<span>Controle op veilige verbranding (CO-meting)</span></div>' +
+        '<div class="summary-benefit">' + chk + '<span>Digitaal rapport met bevindingen en aanbevelingen</span></div>';
+    },
+
+    summaryDescription: function(inputs) {
+      var typeTxt = inputs.ketelType === 'gas' ? 'Gasketel' : inputs.ketelType === 'mazout' ? 'Mazoutketel' : 'Condensatieketel';
+      return typeTxt + ' onderhoud incl. rookgasanalyse';
+    },
+
+    contractArticleVoorwerp: function(inputs) {
+      return '<li>het periodiek onderhoud van de verwarmingsketel;</li>' +
+        '<li>reiniging ketellichaam, brander en warmtewisselaar;</li>' +
+        '<li>rookgasanalyse met afgifte van het wettelijk verbrandingsattest;</li>' +
+        '<li>een digitaal interventierapport na elke beurt.</li>';
+    },
+
+    contractArticleInstallatie: function(inputs) {
+      var typeTxt = inputs.ketelType === 'gas' ? 'Gasketel' : inputs.ketelType === 'mazout' ? 'Mazoutketel' : 'Condensatieketel';
+      return '<h2>Installatiegegevens &mdash; Verwarming</h2>' +
+        '<div class="data-row"><span class="data-label">Type ketel</span><span class="data-value">' + typeTxt + '</span></div>' +
+        '<div class="data-row"><span class="data-label">Rookgasanalyse</span><span class="data-value">Inbegrepen</span></div>';
+    },
+
+    contractPricingTable: function(pricing, partner, btwPct, inputs) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var btwMult = 1 + btwPct / 100;
+      var typeCode = inputs.ketelType === 'gas' ? 1 : inputs.ketelType === 'mazout' ? 2 : 3;
+      var rows = pricing.map(function(pr) {
+        var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * btwMult;
+        var cls = pr.staffel_min === typeCode ? ' class="active-row"' : '';
+        return '<tr' + cls + '><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
+      }).join('');
+      return '<table class="pricing-table"><tr><th>Keteltype</th><th>Forfait</th></tr>' + rows + '</table>';
+    },
+
+    contractSupplementsTable: function(result, btwMult) { return ''; },
+
+    getContractPayload: function(inputs, result) {
+      return { sector_details: { ketelType: inputs.ketelType } };
+    },
+
+    getContractRegels: function(inputs, result, btwPct) {
+      return [{ omschrijving: 'Ketelonderhoud (' + inputs.ketelType + ') incl. rookgasanalyse', bedrag: result.basePrice, btw_pct: btwPct }];
+    }
   }
 };
 
