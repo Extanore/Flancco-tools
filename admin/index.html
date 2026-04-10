@@ -2136,15 +2136,27 @@ function renderInterventies() {
   var ernstColors = { urgent: 'var(--red)', normaal: 'var(--orange)', laag: 'var(--blue)' };
   var statusLabels = { open: 'Open', ingepland: 'Ingepland', afgehandeld: 'Afgehandeld' };
   var statusColors = { open: 'var(--red)', ingepland: 'var(--orange)', afgehandeld: 'var(--green)' };
+  var now = new Date();
   tbody.innerHTML = filtered.map(function(iv) {
     var klant = iv.contracten ? esc(iv.contracten.klant_naam) : '—';
     var datum = iv.created_at ? iv.created_at.split('T')[0] : '—';
+    // Escalatie: dagen open + kleurcode
+    var dagenOpen = '';
+    var escalatieTag = '';
+    if (iv.status === 'open' && iv.created_at) {
+      var created = new Date(iv.created_at);
+      var days = Math.floor((now - created) / 86400000);
+      var escColor = days >= 14 ? '#991B1B' : days >= 7 ? 'var(--red)' : days >= 3 ? 'var(--orange)' : 'var(--grey)';
+      var escLabel = days >= 14 ? 'ZWAAR OVERTIJD' : days >= 7 ? 'ESCALATIE' : days >= 3 ? 'Herinnering' : '';
+      dagenOpen = '<span style="font-size:11px;color:' + escColor + '">' + days + 'd</span>';
+      if (escLabel) escalatieTag = ' <span style="font-size:10px;font-weight:700;color:' + escColor + ';background:' + escColor + '15;padding:1px 5px;border-radius:3px">' + escLabel + '</span>';
+    }
     return '<tr style="cursor:pointer" onclick="openInterventieModal(\'' + iv.id + '\')">' +
       '<td>' + datum + '</td>' +
       '<td>' + klant + '</td>' +
-      '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(iv.omschrijving) + '</td>' +
+      '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(iv.omschrijving) + escalatieTag + '</td>' +
       '<td><span style="color:' + (ernstColors[iv.ernst] || 'var(--grey)') + ';font-weight:600;font-size:12px">● ' + (iv.ernst || '—').toUpperCase() + '</span></td>' +
-      '<td>' + esc(iv.actie_door || '—') + '</td>' +
+      '<td>' + esc(iv.actie_door || '—') + ' ' + dagenOpen + '</td>' +
       '<td><span style="color:' + (statusColors[iv.status] || 'var(--grey)') + ';font-weight:600;font-size:12px">● ' + (statusLabels[iv.status] || iv.status) + '</span></td>' +
       '</tr>';
   }).join('');
