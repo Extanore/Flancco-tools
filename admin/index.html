@@ -246,6 +246,13 @@
   <div class="main">
     <div class="topbar">
       <h1 id="page-title">Dashboard</h1>
+      <div style="position:relative;flex:1;max-width:400px;margin:0 24px">
+        <input type="text" id="global-search" placeholder="Zoek klant, contract, partner..." autocomplete="off"
+          style="width:100%;padding:8px 14px 8px 36px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);"
+          oninput="globalSearch(this.value)" onfocus="globalSearch(this.value)" onblur="setTimeout(function(){document.getElementById('search-results').style.display='none'},200)">
+        <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.4" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <div id="search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--white);border:1px solid var(--rule);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:360px;overflow-y:auto;z-index:999;margin-top:4px"></div>
+      </div>
       <div class="topbar-user">
         <span id="user-email"></span>
         <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
@@ -2173,6 +2180,65 @@ async function saveInterventie() {
   }
   closeInterventieModal();
   await loadAllData();
+}
+
+// =============================================
+// UNIVERSELE ZOEKBALK
+// =============================================
+function globalSearch(q) {
+  var box = document.getElementById('search-results');
+  if (!q || q.length < 2) { box.style.display = 'none'; return; }
+  var term = q.toLowerCase();
+  var results = [];
+
+  // Zoek klanten
+  (allClients || []).forEach(function(c) {
+    var haystack = ((c.naam || '') + ' ' + (c.bedrijf || '') + ' ' + (c.gemeente || '') + ' ' + (c.email || '') + ' ' + (c.telefoon || '')).toLowerCase();
+    if (haystack.indexOf(term) !== -1) {
+      results.push({ type: 'Klant', label: esc(c.naam) + (c.bedrijf ? ' — ' + esc(c.bedrijf) : ''), sub: esc(c.gemeente || ''), action: "showKlantDossier('" + c.id + "')" });
+    }
+  });
+
+  // Zoek contracten
+  (allContracten || []).forEach(function(c) {
+    var haystack = ((c.klant_naam || '') + ' ' + (c.contract_nummer || '') + ' ' + (c.klant_gemeente || '') + ' ' + (c.sector || '')).toLowerCase();
+    if (haystack.indexOf(term) !== -1) {
+      results.push({ type: 'Contract', label: esc(c.contract_nummer || c.id.slice(0, 8)) + ' — ' + esc(c.klant_naam), sub: esc(c.sector || 'zonnepanelen'), action: c.client_id ? "showKlantDossier('" + c.client_id + "')" : '' });
+    }
+  });
+
+  // Zoek partners (admin only)
+  if (userRole === 'admin') {
+    (allPartners || []).forEach(function(p) {
+      if ((p.naam || '').toLowerCase().indexOf(term) !== -1) {
+        results.push({ type: 'Partner', label: esc(p.naam), sub: esc(p.slug || ''), action: "showPage('partners')" });
+      }
+    });
+  }
+
+  if (results.length === 0) {
+    box.innerHTML = '<div style="padding:16px;color:var(--grey);font-size:13px">Geen resultaten voor "' + esc(q) + '"</div>';
+  } else {
+    var grouped = {};
+    results.slice(0, 15).forEach(function(r) {
+      if (!grouped[r.type]) grouped[r.type] = [];
+      grouped[r.type].push(r);
+    });
+    var html = '';
+    Object.keys(grouped).forEach(function(type) {
+      html += '<div style="padding:6px 14px;font-size:11px;color:var(--grey);font-weight:600;text-transform:uppercase;background:var(--light)">' + type + '</div>';
+      grouped[type].forEach(function(r) {
+        var clickCode = r.action ? r.action + ';' : '';
+        clickCode += "document.getElementById('search-results').style.display='none';document.getElementById('global-search').value='';";
+        html += '<div style="padding:8px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--light)" onmousedown="' + clickCode + '"';
+        html += '><strong>' + r.label + '</strong>';
+        if (r.sub) html += ' <span style="color:var(--grey);font-size:12px">' + r.sub + '</span>';
+        html += '</div>';
+      });
+    });
+    box.innerHTML = html;
+  }
+  box.style.display = 'block';
 }
 
 // =============================================
