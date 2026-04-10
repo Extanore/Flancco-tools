@@ -835,9 +835,9 @@ var SECTORS = {
         '<div class="card-title">Uw warmtepompsysteem</div>' +
         '<div class="field"><label>Type warmtepomp</label>' +
         '<select id="wp-type" onchange="calculateAll()">' +
-        '<option value="lucht-lucht">Lucht-lucht (airco / split)</option>' +
-        '<option value="lucht-water">Lucht-water (monobloc / split)</option>' +
-        '<option value="geothermie">Geothermie (bodem-water)</option>' +
+        '<option value="lucht-lucht">Airconditioning (lucht-lucht)</option>' +
+        '<option value="lucht-water">Vloerverwarming (lucht-water)</option>' +
+        '<option value="geothermie">Vloerverwarming met geothermie (bodem-water)</option>' +
         '</select></div>' +
         '<div class="field-row">' +
         '<div class="field"><label>Aantal binnenunits</label><input type="number" id="wp-binnenunits" min="1" max="10" value="1" oninput="calculateAll()"></div>' +
@@ -930,7 +930,7 @@ var SECTORS = {
 
     summaryDescription: function(inputs) {
       var formuleTxt = inputs.formule === 'basic' ? 'basic' : 'all-in';
-      var typeTxt = inputs.wpType === 'lucht-lucht' ? 'lucht-lucht' : inputs.wpType === 'lucht-water' ? 'lucht-water' : 'geothermie';
+      var typeTxt = inputs.wpType === 'lucht-lucht' ? 'airconditioning' : inputs.wpType === 'lucht-water' ? 'vloerverwarming' : 'vloerverwarming (geothermie)';
       return inputs.binnenunits + ' binnenunit(s) ' + typeTxt + ' &mdash; ' + formuleTxt + ' onderhoud';
     },
 
@@ -943,7 +943,7 @@ var SECTORS = {
     },
 
     contractArticleInstallatie: function(inputs) {
-      var typeTxt = inputs.wpType === 'lucht-lucht' ? 'Lucht-lucht (airco/split)' : inputs.wpType === 'lucht-water' ? 'Lucht-water' : 'Geothermie (bodem-water)';
+      var typeTxt = inputs.wpType === 'lucht-lucht' ? 'Airconditioning (lucht-lucht)' : inputs.wpType === 'lucht-water' ? 'Vloerverwarming (lucht-water)' : 'Vloerverwarming met geothermie (bodem-water)';
       var formuleTxt = inputs.formule === 'basic' ? 'Basic' : 'All-in';
       return '<h2>Installatiegegevens &mdash; Warmtepomp</h2>' +
         '<div class="data-row"><span class="data-label">Type warmtepomp</span><span class="data-value">' + typeTxt + '</span></div>' +
