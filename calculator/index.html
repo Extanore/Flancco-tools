@@ -593,6 +593,7 @@ var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 // ═══════════════════════════════════════════
 var partner = null;
 var partnerSectors = [];       // ['zonnepanelen', 'warmtepomp']
+var partnerSectorConfig = {};  // { warmtepomp: { formule: 'basic' }, ... }
 var allPricing = {};           // { zonnepanelen: [...], warmtepomp: [...] }
 var allSupplements = {};       // { zonnepanelen: [...], warmtepomp: [...] }
 var selectedSectors = [];      // currently selected sectors
@@ -823,6 +824,7 @@ var SECTORS = {
         '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
         '<div class="info-content"><div class="info-body">' +
         '<p>Een warmtepomp zonder onderhoud verliest tot 30% aan effici\u00EBntie door vervuilde filters, warmtewisselaars en condensafvoer. Regelmatig onderhoud houdt uw systeem op piekprestaties.</p>' +
+        '<p>In vochtige omgevingen vormen zich al snel schimmels en bacteri\u00EBn in uw binnenunit. Professioneel onderhoud verwijdert deze opbouw en zorgt voor een gezonder binnenklimaat \u2014 essentieel als u dagelijks de lucht inademt die door uw toestel stroomt.</p>' +
         '<div class="info-highlight"><p>Regelmatig onderhoud verlengt de levensduur van uw warmtepomp met gemiddeld 5\u201310 jaar en voorkomt dure herstellingen.</p></div>' +
         '<p>Bij sommige merken en types is periodiek onderhoud vereist om de fabrieksgarantie te behouden. Bewaar steeds uw onderhoudsrapporten.</p>' +
         '</div></div></div>';
@@ -837,11 +839,6 @@ var SECTORS = {
         '<option value="lucht-water">Lucht-water (monobloc / split)</option>' +
         '<option value="geothermie">Geothermie (bodem-water)</option>' +
         '</select></div>' +
-        '<div class="field"><label>Onderhoudsformule</label>' +
-        '<div class="radio-group">' +
-        '<label class="radio-option"><input type="radio" name="wp-formule" value="basic" checked onchange="calculateAll()"><div class="radio-text">Basic<small>Reiniging binnen- en buitenunit, visuele controle, rapportage</small></div></label>' +
-        '<label class="radio-option"><input type="radio" name="wp-formule" value="allin" onchange="calculateAll()"><div class="radio-text">All-in<small>Basic + desinfectie, drukmeting, elektrische controle</small></div></label>' +
-        '</div></div>' +
         '<div class="field-row">' +
         '<div class="field"><label>Aantal binnenunits</label><input type="number" id="wp-binnenunits" min="1" max="10" value="1" oninput="calculateAll()"></div>' +
         '<div class="field"><label>Aantal buitenunits</label><input type="number" id="wp-buitenunits" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
@@ -852,9 +849,10 @@ var SECTORS = {
     },
 
     readInputs: function() {
+      var cfg = partnerSectorConfig.warmtepomp || {};
       return {
         wpType: document.getElementById('wp-type').value,
-        formule: document.querySelector('input[name="wp-formule"]:checked').value,
+        formule: cfg.formule || 'basic',
         binnenunits: Math.max(1, parseInt(document.getElementById('wp-binnenunits').value) || 1),
         buitenunits: Math.max(1, parseInt(document.getElementById('wp-buitenunits').value) || 1),
         moeilijk: document.getElementById('wp-moeilijk').checked
@@ -903,7 +901,8 @@ var SECTORS = {
       var marge = parseFloat(partner.marge_pct) / 100;
       var planFee = parseFloat(partner.planning_fee);
       var units = parseInt(document.getElementById('wp-binnenunits').value) || 1;
-      var isAllin = document.querySelector('input[name="wp-formule"]:checked').value === 'allin';
+      var cfg = partnerSectorConfig.warmtepomp || {};
+      var isAllin = cfg.formule === 'allin';
       var mult = isAllin ? 1.65 : 1;
       var rows = pricing.map(function(pr) {
         var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * mult * (1 + btwPct / 100);
@@ -939,7 +938,7 @@ var SECTORS = {
       var formuleTxt = inputs.formule === 'basic' ? 'basic' : 'all-in';
       return '<li>het periodiek onderhoud van het warmtepompsysteem (' + formuleTxt + ' formule);</li>' +
         '<li>reiniging van binnen- en buitenunit(s), filters en warmtewisselaar;</li>' +
-        (inputs.formule === 'allin' ? '<li>desinfectie, drukmeting en elektrische controle;</li>' : '') +
+        (inputs.formule === 'allin' ? '<li>desinfectie en elektrische controle;</li>' : '') +
         '<li>een digitaal interventierapport na elke beurt.</li>';
     },
 
@@ -1026,8 +1025,9 @@ async function init() {
     partner = pRes.data;
 
     // Fetch active sectors for this partner
-    var secRes = await sb.from('partner_sectors').select('sector').eq('partner_id', partner.id).eq('actief', true);
+    var secRes = await sb.from('partner_sectors').select('sector, formule').eq('partner_id', partner.id).eq('actief', true);
     partnerSectors = (secRes.data || []).map(function(s) { return s.sector; });
+    (secRes.data || []).forEach(function(s) { partnerSectorConfig[s.sector] = { formule: s.formule || null }; });
     if (partnerSectors.length === 0) { showError('Er zijn geen actieve diensten beschikbaar voor deze partner.'); return; }
 
     // Fetch pricing + supplements for ALL active sectors in parallel
