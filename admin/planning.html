@@ -198,7 +198,12 @@
   }
   .appt-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); z-index: 5; }
   .appt-card:active { cursor: grabbing; transform: scale(0.97); box-shadow: var(--shadow-lg); }
-  .appt-card .appt-sector { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1px; }
+  .appt-card .appt-sector-icon { position:absolute; top:7px; right:9px; font-size:12px; opacity:0.7; }
+.appt-card .appt-time { font-size:11px; font-weight:600; color:#374151; margin-top:1px; }
+.appt-card .appt-duur { font-weight:400; color:var(--grey); margin-left:4px; }
+.appt-card .appt-install { font-size:9px; color:var(--grey); margin-top:2px; font-style:italic; }
+.appt-card .appt-extra-label { font-size:9px; color:var(--grey); margin-top:3px; padding-top:3px; border-top:1px solid rgba(0,0,0,0.06); }
+.appt-card .appt-sector { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1px; }
   .appt-card .appt-klant { font-weight: 700; color: var(--navy); white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
   .appt-card .appt-meta { font-size: 10px; color: var(--grey); margin-top: 2px; }
@@ -1359,17 +1364,21 @@ function renderWeekView() {
           var info = getClientInfo(b);
           var hoofdTech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
           var hoofdNaam = hoofdTech ? (hoofdTech.voornaam + ' ' + hoofdTech.naam) : '';
+          var dStartTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
+          var dEndTime = dStartTime && b.duur_minuten ? calcEndTime(dStartTime, b.duur_minuten) : '';
+          var dTimeStr = dStartTime ? (dStartTime + (dEndTime ? '-' + dEndTime : '')) : '';
+          var dDuurStr = b.duur_minuten ? formatDuration(b.duur_minuten) : '';
           html += '<div class="appt-card ' + getSectorClass(info.sector) + '" ' +
             'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
-            'style="cursor:pointer" ' +
+            'style="cursor:pointer;position:relative" ' +
             'title="Duo-beurt met ' + esc(hoofdNaam) + '">' +
-            '<div class="appt-sector">' + getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</div>' +
             '<div class="appt-klant">' + esc(info.naam) + '</div>' +
-            '<div class="appt-meta">' + esc(info.postcode) + ' ' + esc(info.gemeente) +
-            (b.duur_minuten ? ' \u00B7 ' + b.duur_minuten + 'min' : '') + '</div>' +
-            (b.status === 'ingepland' ? '<span class="appt-badge" style="background:#DBEAFE;color:#1E40AF;">Ingepland</span>' : '') +
-            '<div style="display:flex;align-items:center;gap:4px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.06);font-size:10px;color:var(--grey)">' +
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+            '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
+            (dTimeStr ? '<div class="appt-time">' + dTimeStr + (dDuurStr ? '<span class="appt-duur">· ' + dDuurStr + '</span>' : '') + '</div>' : '') +
+            '<div class="appt-meta">' + esc(info.gemeente) + '</div>' +
+            (b.status === 'uitgevoerd' ? '<span class="appt-badge" style="background:#DCFCE7;color:#166534;">\u2713 Uitgevoerd</span>' : '') +
+            '<div class="appt-extra-label">' +
+            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ' +
             'Duo met ' + esc(hoofdNaam) + '</div>' +
             '</div>';
         });
@@ -1388,28 +1397,77 @@ function renderWeekView() {
   document.getElementById('grid-area').innerHTML = html;
 }
 
+function calcEndTime(startTime, minutes) {
+  if (!startTime || !minutes) return '';
+  var parts = startTime.split(':');
+  var h = parseInt(parts[0]), m = parseInt(parts[1] || 0);
+  m += parseInt(minutes);
+  h += Math.floor(m / 60);
+  m = m % 60;
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+
+function formatDuration(minutes) {
+  if (!minutes) return '';
+  var h = Math.floor(minutes / 60);
+  var m = minutes % 60;
+  if (h && m) return h + 'u' + (m < 10 ? '0' : '') + m;
+  if (h) return h + 'u';
+  return m + 'min';
+}
+
+function getInstallationSummary(beurt) {
+  var contract = allContracten.find(function(c) { return c.id === beurt.contract_id; });
+  if (!contract) return '';
+  var sector = beurt.sector || contract.sector || '';
+  var sectoren = contract.sectoren;
+  if (typeof sectoren === 'string') try { sectoren = JSON.parse(sectoren); } catch(e) { sectoren = null; }
+  if (Array.isArray(sectoren)) {
+    var secData = sectoren.find(function(s) { return (s.sector || s) === sector; });
+    if (secData && secData.configs && secData.configs[0]) {
+      var cfg = secData.configs[0];
+      if (sector === 'zonnepanelen') return (cfg.pan || contract.aantal_panelen || 0) + ' panelen';
+      if (sector === 'warmtepomp' && cfg.formule) return (cfg.binnenunits || 1) + ' binnenunit(s), ' + (cfg.formule === 'basic' ? 'basic' : 'all-in');
+      if (sector === 'airco') return (cfg.binnenunits || 1) + ' binnenunit(s)';
+      if (sector === 'ventilatie') return cfg.systeem ? 'Systeem ' + cfg.systeem.toUpperCase() : '';
+      if (sector === 'warmtepomp') return cfg.type || '';
+      if (sector === 'verwarming') return cfg.keteltype ? cfg.keteltype + 'ketel' : '';
+    }
+  }
+  if (sector === 'zonnepanelen' && contract.aantal_panelen) return contract.aantal_panelen + ' panelen';
+  return '';
+}
+
 function renderApptCard(b, info) {
   var extraHtml = '';
   if (b.extra_technieker_ids && b.extra_technieker_ids.length > 0) {
-    extraHtml = '<div class="appt-extra-techs">';
+    var extraNames = [];
     b.extra_technieker_ids.forEach(function(tid) {
       var et = allTechniekers.find(function(t) { return t.id === tid; });
-      if (et) extraHtml += '<span class="extra-tech-badge" title="' + esc(et.voornaam + ' ' + et.naam) + '">' + esc(getTechInitials(et)) + '</span>';
+      if (et) extraNames.push(et.voornaam + ' ' + et.naam);
     });
-    extraHtml += '</div>';
+    if (extraNames.length) {
+      extraHtml = '<div class="appt-extra-label">+ ' + esc(extraNames.join(', ')) + '</div>';
+    }
   }
+  var startTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
+  var endTime = startTime && b.duur_minuten ? calcEndTime(startTime, b.duur_minuten) : '';
+  var timeStr = startTime ? (startTime + (endTime ? '-' + endTime : '')) : '';
+  var duurStr = b.duur_minuten ? formatDuration(b.duur_minuten) : '';
+  var installStr = getInstallationSummary(b);
+
   return '<div class="appt-card ' + getSectorClass(info.sector) + '" ' +
     'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')" ' +
     'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
     'oncontextmenu="onCardContext(event, \'' + b.id + '\')" ' +
-    'style="cursor:pointer" ' +
+    'style="cursor:pointer;position:relative" ' +
     'title="' + esc(info.naam) + ' - ' + esc(info.sector) + '">' +
-    '<div class="appt-sector">' + getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</div>' +
     '<div class="appt-klant">' + esc(info.naam) + '</div>' +
-    '<div class="appt-meta">' + esc(info.postcode) + ' ' + esc(info.gemeente) +
-    (b.duur_minuten ? ' \u00B7 ' + b.duur_minuten + 'min' : '') + '</div>' +
+    '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
+    (timeStr ? '<div class="appt-time">' + timeStr + (duurStr ? '<span class="appt-duur">· ' + duurStr + '</span>' : '') + '</div>' : '') +
+    '<div class="appt-meta">' + esc(info.gemeente) + '</div>' +
+    (installStr ? '<div class="appt-install">' + esc(installStr) + '</div>' : '') +
     (b.status === 'uitgevoerd' ? '<span class="appt-badge" style="background:#DCFCE7;color:#166534;">\u2713 Uitgevoerd</span>' : '') +
-    (b.status === 'ingepland' ? '<span class="appt-badge" style="background:#DBEAFE;color:#1E40AF;">Ingepland</span>' : '') +
     extraHtml +
     '</div>';
 }
