@@ -223,13 +223,16 @@
   td:hover .quick-add-btn { opacity: 0.5; }
   .quick-add-btn:hover { opacity: 1 !important; border-color: var(--navy); color: var(--navy); background: var(--navy)08; }
   .quick-add-btn:hover svg { transform: rotate(90deg); }
-  /* Centered when cell is empty */
+  /* Centered when cell is empty — wrapper handles centering */
+  .quick-add-empty-wrap {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%; min-height: 60px;
+  }
   .quick-add-center {
     opacity: 0; width: 32px; height: 32px; border-radius: 10px;
     background: none; color: var(--grey); border: 1.5px dashed var(--rule);
     cursor: pointer; transition: all 0.2s var(--ease);
     display: flex; align-items: center; justify-content: center;
-    margin: auto;
   }
   td:hover .quick-add-center { opacity: 0.4; }
   .quick-add-center:hover { opacity: 1 !important; border-color: var(--navy); color: var(--navy); background: var(--navy)08; }
@@ -1275,7 +1278,8 @@ function renderWeekView() {
         // C4: Quick-add button — centered if empty, below tasks if filled
         var qaIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
         var hasTasks = beurten.length > 0 || ghostBeurten.length > 0;
-        html += '<button class="' + (hasTasks ? 'quick-add-btn' : 'quick-add-center') + '" onclick="event.stopPropagation();quickAdd(\'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')" title="Taak toevoegen">' + qaIcon + '</button>';
+        var qaBtn = '<button class="' + (hasTasks ? 'quick-add-btn' : 'quick-add-center') + '" onclick="event.stopPropagation();quickAdd(\'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')" title="Taak toevoegen">' + qaIcon + '</button>';
+        html += hasTasks ? qaBtn : '<div class="quick-add-empty-wrap">' + qaBtn + '</div>';
         html += '</td>';
       }
     }
