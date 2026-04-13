@@ -963,6 +963,9 @@ async function initApp() {
     // Partners maken altijd contracten voor eindklanten — verberg de "Partner" optie
     var partnerTypeCard = document.querySelector('.type-card[data-type="partner"]');
     if (partnerTypeCard) partnerTypeCard.style.display = 'none';
+    // Op maat is alleen voor admin
+    var opmaatCard = document.querySelector('.type-card[data-type="opmaat"]');
+    if (opmaatCard) opmaatCard.style.display = 'none';
   }
 
   // Set default start date to today
@@ -1052,6 +1055,11 @@ function selectType(field, el) {
   parent.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   wizState[field] = el.dataset.type;
+  // Op maat: redirect naar aparte calculator pagina
+  if (field === 'contractType' && el.dataset.type === 'opmaat') {
+    window.location.href = 'opmaat-calculator.html';
+    return;
+  }
 }
 
 // =============================================

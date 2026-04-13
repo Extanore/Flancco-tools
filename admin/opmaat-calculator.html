@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flancco — Op Maat Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --navy: #1A1A2E;
+  --navy-light: #2D2D44;
+  --blue: #3B82F6;
+  --green: #059669;
+  --green-bg: #ECFDF5;
+  --red: #DC2626;
+  --red-bg: #FEF2F2;
+  --orange: #D97706;
+  --orange-bg: #FFFBEB;
+  --grey: #6B7280;
+  --rule: #E5E7EB;
+  --light: #F9FAFB;
+  --white: #FFFFFF;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--light); color:#1f2937; line-height:1.5; }
+
+/* TOPBAR */
+.topbar { background:var(--navy); color:white; padding:0 24px; height:56px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+.topbar a { color:rgba(255,255,255,0.6); text-decoration:none; font-size:13px; display:flex; align-items:center; gap:6px; transition:color 0.2s; }
+.topbar a:hover { color:white; }
+.topbar h1 { font-size:15px; font-weight:700; flex:1; }
+.topbar .status-badge { font-size:11px; padding:3px 10px; border-radius:12px; font-weight:600; }
+
+/* LAYOUT */
+.layout { display:flex; min-height:calc(100vh - 56px); }
+.sidebar-nav { width:220px; background:var(--white); border-right:1px solid var(--rule); padding:16px 0; flex-shrink:0; position:sticky; top:56px; height:calc(100vh - 56px); overflow-y:auto; }
+.sidebar-nav a { display:flex; align-items:center; gap:10px; padding:10px 20px; font-size:13px; color:var(--grey); text-decoration:none; font-weight:500; transition:all 0.15s; border-left:3px solid transparent; }
+.sidebar-nav a:hover { background:var(--light); color:#1f2937; }
+.sidebar-nav a.active { color:var(--navy); font-weight:600; background:var(--light); border-left-color:var(--navy); }
+.sidebar-nav .nav-section { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--grey); padding:20px 20px 6px; }
+.sidebar-nav .nav-section:first-child { padding-top:8px; }
+
+.main { flex:1; padding:24px; max-width:1200px; overflow-x:hidden; }
+
+/* CARDS */
+.card { background:var(--white); border:1px solid var(--rule); border-radius:var(--radius); padding:20px; margin-bottom:16px; box-shadow:var(--shadow); }
+.card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.card-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--navy); }
+
+/* FORMS */
+label { font-size:12px; font-weight:600; color:var(--grey); display:block; margin-bottom:4px; }
+input, select, textarea { width:100%; padding:8px 12px; border:1.5px solid var(--rule); border-radius:8px; font-size:13px; font-family:inherit; color:#1f2937; transition:border-color 0.2s; }
+input:focus, select:focus, textarea:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+input[type="number"] { -moz-appearance:textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; }
+
+/* BUTTONS */
+.btn { padding:8px 16px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s; font-family:inherit; }
+.btn-primary { background:var(--navy); color:white; }
+.btn-primary:hover { background:var(--navy-light); }
+.btn-success { background:var(--green); color:white; }
+.btn-danger { background:var(--red); color:white; }
+.btn-outline { background:white; border:1.5px solid var(--rule); color:#374151; }
+.btn-outline:hover { border-color:var(--navy); color:var(--navy); }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-icon { width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1.5px solid var(--rule); background:white; cursor:pointer; color:var(--grey); transition:all 0.15s; }
+.btn-icon:hover { border-color:var(--navy); color:var(--navy); }
+
+/* PAGES */
+.page { display:none; }
+.page.active { display:block; }
+
+/* KPI STRIP */
+.kpi-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:20px; }
+.kpi-card { background:var(--white); border:1px solid var(--rule); border-radius:var(--radius); padding:14px 16px; text-align:center; }
+.kpi-label { font-size:11px; color:var(--grey); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.kpi-value { font-size:22px; font-weight:700; margin-top:2px; }
+.kpi-sub { font-size:11px; color:var(--grey); margin-top:2px; }
+
+/* UNIT CARDS */
+.unit-card { border:1px solid var(--rule); border-radius:var(--radius); margin-bottom:12px; overflow:hidden; transition:box-shadow 0.2s; }
+.unit-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.unit-header { display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; user-select:none; }
+.unit-header .unit-icon { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.unit-header .unit-info { flex:1; min-width:0; }
+.unit-header .unit-name { font-size:14px; font-weight:600; }
+.unit-header .unit-sub { font-size:12px; color:var(--grey); }
+.unit-header .unit-price { text-align:right; }
+.unit-header .unit-price-val { font-size:16px; font-weight:700; }
+.unit-header .unit-price-sub { font-size:11px; color:var(--grey); }
+.unit-detail { display:none; padding:16px; border-top:1px solid var(--rule); background:var(--light); }
+
+/* MARGE INDICATORS */
+.marge-green { color:var(--green); }
+.marge-orange { color:var(--orange); }
+.marge-red { color:var(--red); }
+.marge-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+.marge-badge.green { background:var(--green-bg); color:var(--green); }
+.marge-badge.orange { background:var(--orange-bg); color:var(--orange); }
+.marge-badge.red { background:var(--red-bg); color:var(--red); }
+
+/* GRID HELPERS */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.grid-4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; }
+
+/* TABLE */
+.data-table { width:100%; border-collapse:collapse; font-size:13px; }
+.data-table th { background:var(--light); padding:8px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--grey); font-weight:600; border-bottom:2px solid var(--rule); }
+.data-table td { padding:8px 12px; border-bottom:1px solid var(--rule); }
+.data-table tr:hover td { background:var(--light); }
+.data-table .text-right { text-align:right; }
+
+/* FLOATING PRICE PANEL */
+.price-panel { position:sticky; bottom:0; background:var(--white); border-top:2px solid var(--navy); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:24px; z-index:50; box-shadow:0 -4px 16px rgba(0,0,0,0.08); }
+.price-panel .pp-item { text-align:center; }
+.price-panel .pp-label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--grey); font-weight:600; }
+.price-panel .pp-value { font-size:18px; font-weight:700; }
+.price-panel .pp-value.total { font-size:22px; color:var(--navy); }
+
+/* COMPARISON TABLE */
+.compare-table { width:100%; border-collapse:collapse; }
+.compare-table th { padding:12px 16px; background:var(--navy); color:white; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+.compare-table td { padding:12px 16px; border-bottom:1px solid var(--rule); font-size:14px; }
+.compare-table .highlight { background:var(--navy); color:white; font-weight:700; border-radius:0; }
+.compare-table .best { background:var(--green-bg); }
+
+/* DRAWER (parameters) */
+.drawer-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; }
+.drawer-overlay.open { display:block; }
+.drawer { position:fixed; top:0; right:-480px; width:480px; height:100vh; background:var(--white); z-index:201; transition:right 0.3s; overflow-y:auto; box-shadow:-4px 0 24px rgba(0,0,0,0.15); }
+.drawer.open { right:0; }
+.drawer-header { display:flex; align-items:center; justify-content:space-between; padding:20px; border-bottom:1px solid var(--rule); position:sticky; top:0; background:var(--white); z-index:1; }
+.drawer-body { padding:20px; }
+.drawer-section { margin-bottom:24px; }
+.drawer-section-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--navy); margin-bottom:12px; padding-bottom:6px; border-bottom:2px solid var(--rule); }
+
+/* TOAST */
+.toast { position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:10px; color:#fff; font-size:13px; font-weight:600; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.15); transition:opacity 0.3s; }
+
+/* TEMPLATES */
+.template-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; }
+.template-card { border:1.5px solid var(--rule); border-radius:var(--radius); padding:14px; cursor:pointer; transition:all 0.2s; text-align:center; }
+.template-card:hover { border-color:var(--navy); box-shadow:var(--shadow); }
+.template-card .tc-icon { font-size:28px; margin-bottom:6px; }
+.template-card .tc-name { font-size:13px; font-weight:600; }
+.template-card .tc-desc { font-size:11px; color:var(--grey); margin-top:2px; }
+
+/* TAB NAV */
+.tab-nav { display:flex; gap:0; border-bottom:2px solid var(--rule); margin-bottom:20px; }
+.tab-btn { padding:10px 20px; font-size:13px; font-weight:600; color:var(--grey); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.2s; font-family:inherit; }
+.tab-btn.active { color:var(--navy); border-bottom-color:var(--navy); }
+.tab-btn:hover { color:#374151; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+@media (max-width: 768px) {
+  .layout { flex-direction:column; }
+  .sidebar-nav { width:100%; height:auto; position:static; display:flex; overflow-x:auto; padding:0; border-right:none; border-bottom:1px solid var(--rule); }
+  .sidebar-nav a { white-space:nowrap; border-left:none; border-bottom:3px solid transparent; }
+  .sidebar-nav a.active { border-bottom-color:var(--navy); border-left-color:transparent; }
+  .sidebar-nav .nav-section { display:none; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns:1fr; }
+  .price-panel { flex-wrap:wrap; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="index.html?page=admin-instellingen" id="back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    Terug
+  </a>
+  <h1 id="project-title">Nieuw project</h1>
+  <span class="status-badge" id="project-status" style="background:rgba(255,255,255,0.15)">Concept</span>
+  <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white" onclick="saveProject()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    Opslaan
+  </button>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR NAV -->
+  <nav class="sidebar-nav">
+    <div class="nav-section">Project</div>
+    <a href="#" class="active" data-page="overzicht" onclick="showPage('overzicht')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overzicht
+    </a>
+    <a href="#" data-page="prijsberekening" onclick="showPage('prijsberekening')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Prijsberekening
+    </a>
+    <a href="#" data-page="jaarcontract" onclick="showPage('jaarcontract')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Jaarcontract
+    </a>
+    <div class="nav-section">Export</div>
+    <a href="#" data-page="export" onclick="showPage('export')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      PDF / Export
+    </a>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- ═══════════════════════════════════ -->
+    <!-- OVERZICHT PAGE -->
+    <!-- ═══════════════════════════════════ -->
+    <div class="page active" id="page-overzicht">
+      <!-- Project details -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Projectgegevens</span>
+        </div>
+        <div class="grid-3">
+          <div>
+            <label>Projectnaam *</label>
+            <input type="text" id="proj-name" placeholder="Kantoor Janssen" onchange="onProjectChange()">
+          </div>
+          <div>
+            <label>Referentie</label>
+            <input type="text" id="proj-ref" placeholder="OFF-2026-001" onchange="onProjectChange()">
+          </div>
+          <div>
+            <label>Datum</label>
+            <input type="date" id="proj-date" onchange="onProjectChange()">
+          </div>
+        </div>
+        <div class="grid-4" style="margin-top:12px">
+          <div>
+            <label>Straat + nr</label>
+            <input type="text" id="proj-street" placeholder="Kerkstraat 12" onchange="onProjectChange()">
+          </div>
+          <div>
+            <label>Postcode</label>
+            <input type="text" id="proj-postcode" placeholder="9000" onchange="onProjectChange()">
+          </div>
+          <div>
+            <label>Gemeente</label>
+            <input type="text" id="proj-municipality" placeholder="Gent" onchange="onProjectChange()">
+          </div>
+          <div>
+            <label>Klant / Bedrijf</label>
+            <input type="text" id="proj-client" placeholder="Janssen NV" onchange="onProjectChange()">
+          </div>
+        </div>
+        <div class="grid-3" style="margin-top:12px">
+          <div>
+            <label>Partner</label>
+            <select id="proj-partner" onchange="onProjectChange()">
+              <option value="">— Flancco Direct —</option>
+            </select>
+          </div>
+          <div>
+            <label>BTW-tarief</label>
+            <select id="proj-btw" onchange="onParamChange()">
+              <option value="21">21%</option>
+              <option value="6">6% (renovatie)</option>
+            </select>
+          </div>
+          <div>
+            <label>Totaalkorting</label>
+            <div style="display:flex;gap:6px">
+              <input type="number" id="proj-discount" value="0" min="0" style="flex:1" onchange="onProjectChange()">
+              <select id="proj-discount-type" style="width:70px" onchange="onProjectChange()">
+                <option value="pct">%</option>
+                <option value="fixed">€</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unit templates -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Unit toevoegen</span>
+          <button class="btn btn-outline btn-sm" onclick="addBlankUnit()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Blanco unit
+          </button>
+        </div>
+        <div class="template-grid" id="template-grid">
+          <div class="template-card" onclick="addUnitFromTemplate('c_system')">
+            <div class="tc-icon">🌀</div>
+            <div class="tc-name">Ventilatie C</div>
+            <div class="tc-desc">Mechanische afzuiging</div>
+          </div>
+          <div class="template-card" onclick="addUnitFromTemplate('d_system')">
+            <div class="tc-icon">🔄</div>
+            <div class="tc-name">Ventilatie D</div>
+            <div class="tc-desc">Balansventilatie (WTW)</div>
+          </div>
+          <div class="template-card" onclick="addUnitFromTemplate('wp_lucht_lucht')">
+            <div class="tc-icon">❄️</div>
+            <div class="tc-name">Airco / Lucht-lucht</div>
+            <div class="tc-desc">Warmtepomp lucht-lucht</div>
+          </div>
+          <div class="template-card" onclick="addUnitFromTemplate('wp_lucht_water')">
+            <div class="tc-icon">💧</div>
+            <div class="tc-name">Lucht-water WP</div>
+            <div class="tc-desc">Warmtepomp lucht-water</div>
+          </div>
+          <div class="template-card" onclick="addUnitFromTemplate('wp_bodem')">
+            <div class="tc-icon">🌍</div>
+            <div class="tc-name">Bodem WP</div>
+            <div class="tc-desc">Warmtepomp bodem-water</div>
+          </div>
+          <div class="template-card" onclick="addUnitFromTemplate('wp_hybride')">
+            <div class="tc-icon">⚡</div>
+            <div class="tc-name">Hybride WP</div>
+            <div class="tc-desc">Hybride warmtepomp</div>
+          </div>
+          <div class="template-card" onclick="addUnitFromTemplate('pv')">
+            <div class="tc-icon">☀️</div>
+            <div class="tc-name">Zonnepanelen</div>
+            <div class="tc-desc">PV-installatie</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Units list -->
+      <div id="units-list"></div>
+
+      <!-- Extra works -->
+      <div class="card" id="extra-works-card">
+        <div class="card-header">
+          <span class="card-title">Extra werken (eenmalig)</span>
+          <button class="btn btn-outline btn-sm" onclick="addExtraWork()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Toevoegen
+          </button>
+        </div>
+        <div id="extra-works-list"></div>
+        <p id="no-extra" style="color:var(--grey);font-size:13px;padding:8px 0">Nog geen extra werken toegevoegd.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <!-- PRIJSBEREKENING PAGE -->
+    <!-- ═══════════════════════════════════ -->
+    <div class="page" id="page-prijsberekening">
+      <div class="kpi-strip" id="kpi-strip"></div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Prijsoverzicht per unit</span>
+          <button class="btn btn-outline btn-sm" onclick="openParamsDrawer()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            Parameters
+          </button>
+        </div>
+        <div id="pricing-table-container"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <!-- JAARCONTRACT PAGE -->
+    <!-- ═══════════════════════════════════ -->
+    <div class="page" id="page-jaarcontract">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Jaarcontract vergelijking</span>
+        </div>
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="switchContractTab('vergelijking', this)">Vergelijking 1/3/5 jaar</button>
+          <button class="tab-btn" onclick="switchContractTab('detail', this)">Detail per unit</button>
+          <button class="tab-btn" onclick="switchContractTab('partner', this)">Partner scenario</button>
+        </div>
+        <div class="tab-content active" id="tab-vergelijking">
+          <div id="comparison-table"></div>
+        </div>
+        <div class="tab-content" id="tab-detail">
+          <div id="contract-detail-table"></div>
+        </div>
+        <div class="tab-content" id="tab-partner">
+          <div id="partner-scenario-form"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <!-- EXPORT PAGE -->
+    <!-- ═══════════════════════════════════ -->
+    <div class="page" id="page-export">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">PDF / Export</span>
+        </div>
+        <div class="grid-2">
+          <div class="template-card" onclick="exportPDF('intern')">
+            <div class="tc-icon">📊</div>
+            <div class="tc-name">Intern rapport</div>
+            <div class="tc-desc">Met kosten, marges en parameters</div>
+          </div>
+          <div class="template-card" onclick="exportPDF('extern')">
+            <div class="tc-icon">📄</div>
+            <div class="tc-name">Extern rapport (klant)</div>
+            <div class="tc-desc">Verkoopprijzen, scope en voorwaarden</div>
+          </div>
+          <div class="template-card" onclick="exportPDF('contract_intern')">
+            <div class="tc-icon">📋</div>
+            <div class="tc-name">Intern jaarcontract</div>
+            <div class="tc-desc">Kost/verkoop/marge per unit per jaar</div>
+          </div>
+          <div class="template-card" onclick="exportPDF('contract_extern')">
+            <div class="tc-icon">📝</div>
+            <div class="tc-name">Extern jaarcontract (klant)</div>
+            <div class="tc-desc">Maandbedrag, scope, voorwaarden</div>
+          </div>
+          <div class="template-card" onclick="exportPDF('partner')" id="export-partner-card" style="display:none">
+            <div class="tc-icon">🤝</div>
+            <div class="tc-name">Partner PDF</div>
+            <div class="tc-desc">Partner-branding met meerprijs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- FLOATING PRICE PANEL -->
+<div class="price-panel" id="price-panel">
+  <div class="pp-item">
+    <div class="pp-label">Kostprijs</div>
+    <div class="pp-value" id="pp-cost">€ 0</div>
+  </div>
+  <div class="pp-item">
+    <div class="pp-label">Verkoopprijs</div>
+    <div class="pp-value" id="pp-sell">€ 0</div>
+  </div>
+  <div class="pp-item">
+    <div class="pp-label">Marge</div>
+    <div class="pp-value" id="pp-margin">0%</div>
+  </div>
+  <div class="pp-item">
+    <div class="pp-label">Korting</div>
+    <div class="pp-value" id="pp-discount">€ 0</div>
+  </div>
+  <div class="pp-item">
+    <div class="pp-label">Totaal excl. BTW</div>
+    <div class="pp-value pp-value total" id="pp-total-excl">€ 0</div>
+  </div>
+  <div class="pp-item">
+    <div class="pp-label">Totaal incl. BTW</div>
+    <div class="pp-value pp-value total" id="pp-total-incl">€ 0</div>
+  </div>
+</div>
+
+<!-- PARAMETERS DRAWER -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeParamsDrawer()"></div>
+<div class="drawer" id="params-drawer">
+  <div class="drawer-header">
+    <span class="card-title">Parameters</span>
+    <button class="btn-icon" onclick="closeParamsDrawer()">&times;</button>
+  </div>
+  <div class="drawer-body" id="params-body"></div>
+</div>
+
+<script>
+// =============================================
+// SUPABASE INIT
+// =============================================
+const SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// =============================================
+// STATE
+// =============================================
+var currentProject = null;
+var params = {};
+var units = [];
+var unitTasks = {};     // { unitId: [tasks] }
+var extraWorks = [];
+var partners = [];
+var partnerInternal = null;
+var partnerExport = null;
+var projectId = null;
+var isDirty = false;
+
+// Default params
+var DEFAULT_PARAMS = {
+  btw_pct: 21, cost_rate: 40, sell_rate: 56, material_margin: 25,
+  distance: 0, km_rate: 0.90, travel_mode: 'per_ronde',
+  standard_price_c: 250, standard_price_d: 300, gevelrooster_prijs: 20,
+  airco_allin_base: 140, airco_allin_extra_inner: 40, airco_allin_extra_inner3: 30,
+  airco_allin_four_way: 15, airco_allin_extra_outer: 15,
+  airco_basic_base: 100, airco_basic_extra_inner: 30, airco_basic_extra_inner3: 22.5,
+  airco_basic_four_way: 0, airco_basic_extra_outer: 5,
+  pv_basis: 50, pv_per_paneel: 4, pv_per_omvormer: 25, pv_per_string: 0,
+  wp_basis: 120, wp_bodem_toeslag: 35,
+  jaarcontract_scenario: 'direct', include_extra_in_contract: false,
+  contract_duration: 1, contract_discount_1: 0, contract_discount_3: 5, contract_discount_5: 10
+};
+
+// Scope lists (from rapport generator)
+var SCOPE = {
+  c_system: {
+    internal: ['Ventielen verwijderd en gereinigd', 'Toestel geopend en gereinigd', 'Motor gereinigd', 'Nazicht elektronische onderdelen', 'Werkzone opgeruimd'],
+    external: ['Reiniging van alle ventielen', 'Professionele reiniging afzuigunit', 'Controle motor en elektronische onderdelen', 'Onderhoudsrapport met foto\'s', 'Transport en verplaatsing']
+  },
+  d_system: {
+    internal: ['Ventielen verwijderd en gereinigd', 'Toestel geopend en gereinigd', 'Motor gereinigd', 'Warmtewisselaar gereinigd', 'Condensafvoer nagekeken', 'Nazicht elektronische onderdelen', 'Filters gecontroleerd/vervangen', 'Luchtdebietmeting per ventiel', 'Werkzone opgeruimd'],
+    external: ['Vervanging filters (≤€50/stuk inbegrepen)', 'Reiniging warmtewisselaar', 'Controle bypass en condensafvoer', 'Reiniging alle ventielen en kanalen', 'Luchtdebietmeting', 'Onderhoudsrapport met foto\'s', 'Transport en verplaatsing']
+  },
+  airco_allin: {
+    internal: ['Reiniging filters, lamellen en lekbak', 'Uitwendige reiniging binnenunit', 'Uitwendige reiniging buitenunit', 'Covers verwijderd en teruggeplaatst', 'Dieptereiniging batterij/condensor', 'Reiniging ventilatorschoepen', 'Reiniging binnenzijde units', 'Meting uitblaastemperatuur vóór/ná onderhoud', 'Inspectie verdamper, condensor, ventilator', 'Inspectie elektrische aansluitingen'],
+    external: ['Volledige demontage en dieptereiniging binnenunit(s)', 'Chemische reiniging verdamper', 'Spoelen condensor buitenunit', 'Koudemiddeldruk meting', 'Test alle standen (koelen/verwarmen/ventilatie)', 'Temperatuurverschil meting', 'Onderhoudsrapport met foto\'s']
+  },
+  airco_basic: {
+    internal: ['Reiniging filters, lamellen en lekbak', 'Uitwendige reiniging binnenunit', 'Uitwendige reiniging buitenunit', 'Meting uitblaastemperatuur vóór/ná onderhoud'],
+    external: ['Reiniging en desinfectie filters', 'Visuele inspectie binnenunit(s)', 'Reiniging buitenunit', 'Controle condensafvoer', 'Werkingscontrole alle standen', 'Onderhoudsrapport']
+  },
+  wp_lucht_water: {
+    internal: ['Koelmiddeldruk controle', 'Lekcontrole', 'Buitenunit reinigen', 'Filter vervangen', 'Expansievat controle', 'Veiligheidsklep test', 'Waterdruk controle', 'Elektrische aansluitingen', 'COP-meting', 'Vorstbeveiliging controle'],
+    external: ['Controle koelmiddeldruk en lektest', 'Reiniging buitenunit', 'Vervanging filter(s)', 'Controle expansievat en veiligheidsklep', 'COP-meting en energierapport', 'Controle vorstbeveiliging', 'Onderhoudsrapport met foto\'s']
+  },
+  wp_bodem: {
+    internal: ['Koelmiddeldruk controle', 'Lekcontrole', 'Filter vervangen', 'Expansievat controle', 'Glycolconcentratie meten', 'Bronpomp controleren', 'Druk grondlus meten', 'Elektrische aansluitingen', 'COP-meting'],
+    external: ['Controle koelmiddeldruk en lektest', 'Vervanging filter(s)', 'Controle glycolconcentratie', 'Controle bronpomp en grondlus', 'COP-meting en energierapport', 'Onderhoudsrapport met foto\'s']
+  },
+  wp_hybride: {
+    internal: ['Koelmiddeldruk controle', 'Lekcontrole', 'Buitenunit reinigen', 'Filter vervangen', 'Ketelcontrole (hybride)', 'Elektrische aansluitingen', 'COP-meting'],
+    external: ['Controle koelmiddeldruk en lektest', 'Reiniging buitenunit', 'Vervanging filter(s)', 'Controle hybride ketelkoppeling', 'COP-meting en energierapport', 'Onderhoudsrapport met foto\'s']
+  },
+  pv: {
+    internal: ['Reiniging met osmosewater', 'Visuele controle panelen op schade/verkleuring', 'Controle bevestigingsstructuur', 'Controle bekabeling en connectoren', 'Controle omvormer + foutlog', 'Controle dakdoorvoeren'],
+    external: ['Reiniging met gedemineraliseerd water (streeploos)', 'Visuele inspectie (hotspots/microcracks)', 'Controle montagesysteem', 'Inspectie omvormer en foutlog', 'Controle bekabeling en connectoren', 'Opbrengstrapport']
+  }
+};
+
+// System type labels
+var SYSTEM_LABELS = {
+  c_system: 'Ventilatie C', d_system: 'Ventilatie D',
+  warmtepomp: 'Warmtepomp', pv: 'Zonnepanelen', other: 'Overig'
+};
+var WP_TYPE_LABELS = {
+  lucht_lucht: 'Lucht-lucht (airco)', lucht_water: 'Lucht-water',
+  bodem: 'Bodem-water', hybride: 'Hybride'
+};
+var FREQ_LABELS = {
+  '3-monthly': '3-maandelijks (4x)', '6-monthly': '6-maandelijks (2x)',
+  'yearly': 'Jaarlijks (1x)', 'one-time': 'Eenmalig', 'on-demand': 'Op aanvraag (1x)'
+};
+var FREQ_COUNTS = { '3-monthly': 4, '6-monthly': 2, 'yearly': 1, 'one-time': 0, 'on-demand': 1 };
+
+// =============================================
+// AUTH CHECK
+// =============================================
+async function checkAuth() {
+  var { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'index.html'; return; }
+  var { data: role } = await sb.from('user_roles').select('role').eq('user_id', session.user.id).single();
+  if (!role || role.role !== 'admin') { window.location.href = 'index.html'; return; }
+  await loadPartners();
+  loadFromURL();
+}
+
+// =============================================
+// UTILS
+// =============================================
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function fmt(n) { return '€ ' + parseFloat(n || 0).toFixed(2).replace('.', ','); }
+function fmtRound(n) { return '€ ' + Math.round(n || 0).toLocaleString('nl-BE'); }
+function pct(n) { return parseFloat(n || 0).toFixed(1).replace('.', ',') + '%'; }
+function p(key) { return parseFloat(params[key] !== undefined ? params[key] : DEFAULT_PARAMS[key]) || 0; }
+
+function showToast(msg, type) {
+  var existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  var el = document.createElement('div');
+  el.className = 'toast';
+  el.style.background = type === 'error' ? '#EF4444' : '#059669';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 300); }, 3000);
+}
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.sidebar-nav a').forEach(function(a) {
+    a.classList.toggle('active', a.dataset.page === page);
+  });
+  if (page === 'prijsberekening') renderPricing();
+  if (page === 'jaarcontract') renderContract();
+}
+
+// =============================================
+// LOAD DATA
+// =============================================
+async function loadPartners() {
+  var { data } = await sb.from('partners').select('id, naam, bedrijfsnaam, slug');
+  partners = data || [];
+  var sel = document.getElementById('proj-partner');
+  partners.forEach(function(p) {
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.bedrijfsnaam || p.naam;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadFromURL() {
+  var urlParams = new URLSearchParams(window.location.search);
+  projectId = urlParams.get('id');
+  if (projectId) {
+    await loadProject(projectId);
+  } else {
+    // New project — set defaults
+    params = Object.assign({}, DEFAULT_PARAMS);
+    document.getElementById('proj-date').value = new Date().toISOString().split('T')[0];
+    renderUnits();
+    recalcAll();
+  }
+}
+
+async function loadProject(id) {
+  var { data: proj, error } = await sb.from('opmaat_projects').select('*').eq('id', id).single();
+  if (error || !proj) { showToast('Project niet gevonden', 'error'); return; }
+  currentProject = proj;
+
+  // Fill form
+  document.getElementById('proj-name').value = proj.name || '';
+  document.getElementById('proj-ref').value = proj.reference || '';
+  document.getElementById('proj-date').value = proj.project_date || '';
+  document.getElementById('proj-street').value = (proj.street || '') + (proj.house_number ? ' ' + proj.house_number : '');
+  document.getElementById('proj-postcode').value = proj.postcode || '';
+  document.getElementById('proj-municipality').value = proj.municipality || '';
+  document.getElementById('proj-client').value = proj.client || '';
+  document.getElementById('proj-partner').value = proj.partner_id || '';
+  document.getElementById('proj-discount').value = proj.total_discount_value || 0;
+  document.getElementById('proj-discount-type').value = proj.total_discount_type || 'pct';
+  document.getElementById('project-title').textContent = proj.name || 'Project';
+
+  // Load params
+  var { data: pp } = await sb.from('opmaat_project_params').select('*').eq('project_id', id).single();
+  params = pp || Object.assign({}, DEFAULT_PARAMS);
+  document.getElementById('proj-btw').value = params.btw_pct || 21;
+
+  // Load units
+  var { data: u } = await sb.from('opmaat_units').select('*').eq('project_id', id).order('sort_order');
+  units = u || [];
+
+  // Load tasks per unit
+  var unitIds = units.map(function(u) { return u.id; });
+  if (unitIds.length) {
+    var { data: tasks } = await sb.from('opmaat_unit_tasks').select('*').in('unit_id', unitIds).order('sort_order');
+    unitTasks = {};
+    (tasks || []).forEach(function(t) {
+      if (!unitTasks[t.unit_id]) unitTasks[t.unit_id] = [];
+      unitTasks[t.unit_id].push(t);
+    });
+  }
+
+  // Load extra works
+  var { data: ew } = await sb.from('opmaat_extra_works').select('*').eq('project_id', id).order('sort_order');
+  extraWorks = ew || [];
+
+  // Load partner data
+  var { data: pi } = await sb.from('opmaat_partner_internal').select('*').eq('project_id', id).single();
+  partnerInternal = pi;
+  var { data: pe } = await sb.from('opmaat_partner_export').select('*').eq('project_id', id).single();
+  partnerExport = pe;
+
+  renderUnits();
+  renderExtraWorks();
+  recalcAll();
+}
+
+// =============================================
+// SAVE PROJECT
+// =============================================
+async function saveProject() {
+  var streetFull = document.getElementById('proj-street').value.trim();
+  var streetParts = streetFull.match(/^(.+?)\s+(\d+.*)$/) || [null, streetFull, ''];
+
+  var projData = {
+    name: document.getElementById('proj-name').value.trim(),
+    reference: document.getElementById('proj-ref').value.trim(),
+    project_date: document.getElementById('proj-date').value || null,
+    street: streetParts[1] || '',
+    house_number: streetParts[2] || '',
+    postcode: document.getElementById('proj-postcode').value.trim(),
+    municipality: document.getElementById('proj-municipality').value.trim(),
+    client: document.getElementById('proj-client').value.trim(),
+    partner_id: document.getElementById('proj-partner').value || null,
+    total_discount_type: document.getElementById('proj-discount-type').value,
+    total_discount_value: parseFloat(document.getElementById('proj-discount').value) || 0,
+    updated_at: new Date().toISOString()
+  };
+
+  if (!projData.name) { showToast('Projectnaam is verplicht', 'error'); return; }
+
+  try {
+    if (projectId) {
+      // Update
+      await sb.from('opmaat_projects').update(projData).eq('id', projectId);
+    } else {
+      // Create
+      var { data: { session } } = await sb.auth.getSession();
+      projData.user_id = session.user.id;
+      var { data, error } = await sb.from('opmaat_projects').insert(projData).select().single();
+      if (error) throw error;
+      projectId = data.id;
+      currentProject = data;
+      // Create default params
+      params.project_id = projectId;
+      await sb.from('opmaat_project_params').insert(params);
+      // Update URL
+      history.replaceState(null, '', '?id=' + projectId);
+    }
+
+    // Save params
+    if (projectId && params.project_id) {
+      await sb.from('opmaat_project_params').update(params).eq('project_id', projectId);
+    }
+
+    // Save units
+    for (var i = 0; i < units.length; i++) {
+      var u = units[i];
+      u.project_id = projectId;
+      u.sort_order = i;
+      if (u._isNew) {
+        delete u._isNew;
+        var { data: saved } = await sb.from('opmaat_units').insert(u).select().single();
+        if (saved) {
+          var oldId = u.id;
+          units[i] = saved;
+          // Move tasks
+          if (unitTasks[oldId]) {
+            unitTasks[saved.id] = unitTasks[oldId];
+            delete unitTasks[oldId];
+            for (var t = 0; t < unitTasks[saved.id].length; t++) {
+              var task = unitTasks[saved.id][t];
+              task.unit_id = saved.id;
+              if (task._isNew) {
+                delete task._isNew;
+                var { data: st } = await sb.from('opmaat_unit_tasks').insert(task).select().single();
+                if (st) unitTasks[saved.id][t] = st;
+              }
+            }
+          }
+        }
+      } else {
+        await sb.from('opmaat_units').update(u).eq('id', u.id);
+        // Save tasks
+        var tasks = unitTasks[u.id] || [];
+        for (var t = 0; t < tasks.length; t++) {
+          var task = tasks[t];
+          task.unit_id = u.id;
+          task.sort_order = t;
+          if (task._isNew) {
+            delete task._isNew;
+            var { data: st } = await sb.from('opmaat_unit_tasks').insert(task).select().single();
+            if (st) tasks[t] = st;
+          } else {
+            await sb.from('opmaat_unit_tasks').update(task).eq('id', task.id);
+          }
+        }
+      }
+    }
+
+    // Save extra works
+    for (var i = 0; i < extraWorks.length; i++) {
+      var ew = extraWorks[i];
+      ew.project_id = projectId;
+      ew.sort_order = i;
+      if (ew._isNew) {
+        delete ew._isNew;
+        delete ew.material_cost; // generated column
+        var { data: saved } = await sb.from('opmaat_extra_works').insert(ew).select().single();
+        if (saved) extraWorks[i] = saved;
+      } else {
+        var upd = Object.assign({}, ew);
+        delete upd.material_cost; // generated column
+        await sb.from('opmaat_extra_works').update(upd).eq('id', ew.id);
+      }
+    }
+
+    // Save partner internal
+    if (partnerInternal && projectId) {
+      partnerInternal.project_id = projectId;
+      if (partnerInternal.id) {
+        await sb.from('opmaat_partner_internal').update(partnerInternal).eq('id', partnerInternal.id);
+      } else {
+        var { data: piSaved } = await sb.from('opmaat_partner_internal').upsert(partnerInternal, { onConflict: 'project_id' }).select().single();
+        if (piSaved) partnerInternal = piSaved;
+      }
+    }
+
+    document.getElementById('project-title').textContent = projData.name;
+    isDirty = false;
+    showToast('Project opgeslagen');
+  } catch (err) {
+    showToast('Fout: ' + (err.message || err), 'error');
+  }
+}
+
+// =============================================
+// PRICING CALCULATIONS
+// =============================================
+function calcUnitPrice(u) {
+  var systemType = u.system_type;
+  var stdPrice = 0;
+
+  // Standard price based on system type
+  if (systemType === 'c_system') {
+    stdPrice = u.standard_price != null ? u.standard_price : p('standard_price_c');
+  } else if (systemType === 'd_system') {
+    stdPrice = u.standard_price != null ? u.standard_price : p('standard_price_d');
+  } else if (systemType === 'warmtepomp') {
+    if (u.wp_type === 'lucht_lucht') {
+      // Airco pricing
+      var formule = u.airco_formule || 'none';
+      var innerUnits = u.airco_inner_units || 1;
+      var outerUnits = u.airco_outer_units || 0;
+      var fourWay = u.airco_four_way || 0;
+      if (formule === 'allin') {
+        stdPrice = p('airco_allin_base');
+        if (innerUnits > 1) stdPrice += p('airco_allin_extra_inner');
+        if (innerUnits > 2) stdPrice += (innerUnits - 2) * p('airco_allin_extra_inner3');
+        stdPrice += fourWay * p('airco_allin_four_way');
+        stdPrice += outerUnits * p('airco_allin_extra_outer');
+      } else if (formule === 'basic') {
+        stdPrice = p('airco_basic_base');
+        if (innerUnits > 1) stdPrice += p('airco_basic_extra_inner');
+        if (innerUnits > 2) stdPrice += (innerUnits - 2) * p('airco_basic_extra_inner3');
+        stdPrice += fourWay * p('airco_basic_four_way');
+        stdPrice += outerUnits * p('airco_basic_extra_outer');
+      } else {
+        // No base package — per-unit only
+        stdPrice = 0;
+        // Use all-in rates without base
+        if (innerUnits >= 1) stdPrice += p('airco_allin_extra_inner') * innerUnits;
+        stdPrice += fourWay * p('airco_allin_four_way');
+        stdPrice += outerUnits * p('airco_allin_extra_outer');
+      }
+    } else if (u.wp_type === 'bodem') {
+      stdPrice = p('wp_basis') + p('wp_bodem_toeslag');
+    } else {
+      // lucht_water, hybride
+      stdPrice = p('wp_basis');
+    }
+    if (u.standard_price != null) stdPrice = u.standard_price;
+  } else if (systemType === 'pv') {
+    stdPrice = p('pv_basis') + (u.pv_aantal_panelen || 0) * p('pv_per_paneel')
+             + (u.pv_aantal_omvormers || 0) * p('pv_per_omvormer')
+             + (u.pv_aantal_strings || 0) * p('pv_per_string');
+    if (u.standard_price != null) stdPrice = u.standard_price;
+  } else {
+    stdPrice = u.standard_price || 0;
+  }
+
+  // Filters
+  var filterQty = u.filter_qty || 0;
+  var filterPrice = u.filter_price || 0;
+  var filterCost = filterQty * filterPrice;
+  var filterSell = filterCost * (1 + p('material_margin') / 100);
+
+  // Hours
+  var estHours = u.estimated_hours || 0;
+  var extraHours = u.extra_hours || 0;
+  var hoursCost = estHours * p('cost_rate');
+  var hoursSell = extraHours * p('sell_rate');
+
+  // Task lines
+  var tasksCost = 0, tasksSell = 0;
+  var tasks = unitTasks[u.id] || [];
+  tasks.forEach(function(t) {
+    var mc = parseFloat(t.material_cost) || 0;
+    var th = parseFloat(t.hours) || 0;
+    tasksCost += mc + th * p('cost_rate');
+    tasksSell += mc * (1 + p('material_margin') / 100) + th * p('sell_rate');
+  });
+
+  // Gevelroosters
+  var gevelCost = (u.gevelroosters_qty || 0) * p('gevelrooster_prijs');
+  var gevelSell = gevelCost; // no markup
+
+  // Travel (per unit mode)
+  var travelCost = 0;
+  if (p('travel_mode') === 'per_unit' || params.travel_mode === 'per_unit') {
+    travelCost = p('distance') * p('km_rate');
+  }
+
+  // Totals
+  var sellPrice = stdPrice + filterSell + hoursSell + tasksSell + gevelSell + travelCost;
+  var costPrice = filterCost + hoursCost + tasksCost + gevelCost + travelCost;
+
+  // Discount
+  var discount = 0;
+  if (u.discount_type === 'pct') {
+    discount = sellPrice * (u.discount_value || 0) / 100;
+  } else {
+    discount = u.discount_value || 0;
+  }
+  sellPrice -= discount;
+
+  var margin = sellPrice > 0 ? ((sellPrice - costPrice) / sellPrice * 100) : 0;
+
+  return {
+    stdPrice: stdPrice, filterCost: filterCost, filterSell: filterSell,
+    hoursCost: hoursCost, hoursSell: hoursSell,
+    tasksCost: tasksCost, tasksSell: tasksSell,
+    gevelCost: gevelCost, gevelSell: gevelSell,
+    travelCost: travelCost, discount: discount,
+    sellPrice: sellPrice, costPrice: costPrice, margin: margin
+  };
+}
+
+function calcExtraWorkPrice(ew) {
+  var mc = (ew.material_qty || 1) * (ew.material_unit_cost || 0);
+  var h = ew.hours || 0;
+  var cost = mc + h * p('cost_rate');
+  var sell = mc * (1 + p('material_margin') / 100) + h * p('sell_rate');
+  var margin = sell > 0 ? ((sell - cost) / sell * 100) : 0;
+  return { cost: cost, sell: sell, margin: margin, materialCost: mc };
+}
+
+function recalcAll() {
+  var totalCost = 0, totalSell = 0;
+
+  units.forEach(function(u) {
+    var pr = calcUnitPrice(u);
+    u._calc = pr;
+    totalCost += pr.costPrice;
+    totalSell += pr.sellPrice;
+  });
+
+  extraWorks.forEach(function(ew) {
+    var pr = calcExtraWorkPrice(ew);
+    ew._calc = pr;
+    totalCost += pr.cost;
+    totalSell += pr.sell;
+  });
+
+  // Travel (per ronde)
+  var travelRonde = 0;
+  if (params.travel_mode !== 'per_unit') {
+    travelRonde = p('distance') * p('km_rate');
+    totalCost += travelRonde;
+    totalSell += travelRonde;
+  }
+
+  // Project discount (on units only, not extra works)
+  var unitSellTotal = units.reduce(function(s, u) { return s + (u._calc ? u._calc.sellPrice : 0); }, 0);
+  var discType = document.getElementById('proj-discount-type').value;
+  var discVal = parseFloat(document.getElementById('proj-discount').value) || 0;
+  var projectDiscount = 0;
+  if (discType === 'pct') {
+    projectDiscount = unitSellTotal * discVal / 100;
+  } else {
+    projectDiscount = discVal;
+  }
+  totalSell -= projectDiscount;
+
+  var totalMargin = totalSell > 0 ? ((totalSell - totalCost) / totalSell * 100) : 0;
+  var btwPct = parseFloat(params.btw_pct || 21);
+  var totalIncl = totalSell * (1 + btwPct / 100);
+
+  // Update floating panel
+  document.getElementById('pp-cost').textContent = fmtRound(totalCost);
+  document.getElementById('pp-sell').textContent = fmtRound(totalSell);
+  var margeEl = document.getElementById('pp-margin');
+  margeEl.textContent = pct(totalMargin);
+  margeEl.className = 'pp-value ' + margeClass(totalMargin);
+  document.getElementById('pp-discount').textContent = fmtRound(projectDiscount);
+  document.getElementById('pp-total-excl').textContent = fmtRound(totalSell);
+  document.getElementById('pp-total-incl').textContent = fmtRound(totalIncl);
+}
+
+function margeClass(m) {
+  if (m < 15) return 'marge-red';
+  if (m < 25) return 'marge-orange';
+  return 'marge-green';
+}
+
+function margeBadge(m) {
+  var cls = m < 15 ? 'red' : m < 25 ? 'orange' : 'green';
+  return '<span class="marge-badge ' + cls + '">' + pct(m) + '</span>';
+}
+
+// =============================================
+// UNIT TEMPLATES
+// =============================================
+function addUnitFromTemplate(template) {
+  var u = {
+    id: 'new_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    _isNew: true,
+    project_id: projectId,
+    sort_order: units.length,
+    name: '', location: '', brand: '', model: '',
+    notes: '', standard_price: null,
+    estimated_hours: 0, extra_hours: 0,
+    discount_type: 'pct', discount_value: 0,
+    filter_qty: 0, filter_price: 0,
+    filter_changes_per_year: 1,
+    ventielen_qty: 0, gevelroosters_qty: 0,
+    frequency: 'yearly', status: 'pending',
+    airco_formule: 'none', airco_inner_units: 1,
+    airco_outer_units: 0, airco_four_way: 0,
+    pv_aantal_panelen: 0, pv_aantal_omvormers: 0,
+    pv_aantal_strings: 0, pv_daktype: 'hellend',
+    wp_type: null, wp_vermogen: null
+  };
+
+  switch (template) {
+    case 'c_system':
+      u.name = 'Ventilatie C-systeem';
+      u.type = 'ventilation'; u.system_type = 'c_system';
+      u.estimated_hours = 2;
+      break;
+    case 'd_system':
+      u.name = 'Ventilatie D-systeem (WTW)';
+      u.type = 'ventilation'; u.system_type = 'd_system';
+      u.estimated_hours = 2.5;
+      u.filter_qty = 2; u.filter_price = 25;
+      break;
+    case 'wp_lucht_lucht':
+      u.name = 'Airco / Lucht-lucht warmtepomp';
+      u.type = 'warmtepomp'; u.system_type = 'warmtepomp';
+      u.wp_type = 'lucht_lucht'; u.airco_formule = 'allin';
+      u.estimated_hours = 1.5;
+      break;
+    case 'wp_lucht_water':
+      u.name = 'Lucht-water warmtepomp';
+      u.type = 'warmtepomp'; u.system_type = 'warmtepomp';
+      u.wp_type = 'lucht_water'; u.estimated_hours = 2;
+      u.filter_qty = 1; u.filter_price = 15;
+      break;
+    case 'wp_bodem':
+      u.name = 'Bodem-water warmtepomp';
+      u.type = 'warmtepomp'; u.system_type = 'warmtepomp';
+      u.wp_type = 'bodem'; u.estimated_hours = 2.5;
+      u.filter_qty = 1; u.filter_price = 15;
+      break;
+    case 'wp_hybride':
+      u.name = 'Hybride warmtepomp';
+      u.type = 'warmtepomp'; u.system_type = 'warmtepomp';
+      u.wp_type = 'hybride'; u.estimated_hours = 2;
+      u.filter_qty = 1; u.filter_price = 15;
+      break;
+    case 'pv':
+      u.name = 'Zonnepanelen';
+      u.type = 'pv'; u.system_type = 'pv';
+      u.pv_aantal_panelen = 20; u.pv_aantal_omvormers = 1;
+      u.estimated_hours = 1.5;
+      u.frequency = 'yearly';
+      break;
+  }
+
+  units.push(u);
+  unitTasks[u.id] = [];
+  renderUnits();
+  recalcAll();
+  isDirty = true;
+  showToast(u.name + ' toegevoegd');
+}
+
+function addBlankUnit() {
+  addUnitFromTemplate('c_system');
+}
+
+// =============================================
+// RENDER UNITS
+// =============================================
+function renderUnits() {
+  var container = document.getElementById('units-list');
+  if (!units.length) {
+    container.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--grey)"><p>Nog geen units. Kies een template hierboven om te beginnen.</p></div>';
+    return;
+  }
+
+  container.innerHTML = units.map(function(u, idx) {
+    var pr = calcUnitPrice(u);
+    u._calc = pr;
+    var sysIcon = { c_system: '🌀', d_system: '🔄', warmtepomp: '❄️', pv: '☀️', other: '⚙️' };
+    var icon = sysIcon[u.system_type] || '⚙️';
+    if (u.system_type === 'warmtepomp') {
+      icon = u.wp_type === 'lucht_lucht' ? '❄️' : u.wp_type === 'bodem' ? '🌍' : u.wp_type === 'hybride' ? '⚡' : '💧';
+    }
+
+    var sysLabel = SYSTEM_LABELS[u.system_type] || 'Overig';
+    if (u.wp_type) sysLabel = WP_TYPE_LABELS[u.wp_type] || sysLabel;
+
+    var html = '<div class="unit-card" id="unit-' + u.id + '">';
+    html += '<div class="unit-header" onclick="toggleUnitDetail(\'' + u.id + '\')">';
+    html += '<div class="unit-icon" style="background:' + (u.system_type === 'pv' ? '#FEF3C7' : u.system_type === 'warmtepomp' ? '#DBEAFE' : '#EDE9FE') + '">' + icon + '</div>';
+    html += '<div class="unit-info"><div class="unit-name">' + esc(u.name || 'Naamloos') + '</div>';
+    html += '<div class="unit-sub">' + sysLabel + ' · ' + FREQ_LABELS[u.frequency || 'yearly'] + (u.location ? ' · ' + esc(u.location) : '') + '</div></div>';
+    html += '<div class="unit-price"><div class="unit-price-val">' + fmt(pr.sellPrice) + '</div>';
+    html += '<div class="unit-price-sub">kost ' + fmt(pr.costPrice) + ' · ' + margeBadge(pr.margin) + '</div></div>';
+    html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--grey)" stroke-width="2" style="flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>';
+    html += '</div>';
+
+    // Detail panel
+    html += '<div class="unit-detail" id="unit-detail-' + u.id + '">';
+    html += renderUnitForm(u, idx);
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+function renderUnitForm(u, idx) {
+  var html = '<div class="grid-3" style="margin-bottom:12px">';
+  html += '<div><label>Naam</label><input value="' + esc(u.name) + '" onchange="updateUnit(\'' + u.id + '\',\'name\',this.value)"></div>';
+  html += '<div><label>Locatie</label><input value="' + esc(u.location || '') + '" onchange="updateUnit(\'' + u.id + '\',\'location\',this.value)"></div>';
+  html += '<div><label>Frequentie</label><select onchange="updateUnit(\'' + u.id + '\',\'frequency\',this.value)">';
+  Object.keys(FREQ_LABELS).forEach(function(f) {
+    html += '<option value="' + f + '"' + (u.frequency === f ? ' selected' : '') + '>' + FREQ_LABELS[f] + '</option>';
+  });
+  html += '</select></div></div>';
+
+  html += '<div class="grid-4" style="margin-bottom:12px">';
+  html += '<div><label>Merk</label><input value="' + esc(u.brand || '') + '" onchange="updateUnit(\'' + u.id + '\',\'brand\',this.value)"></div>';
+  html += '<div><label>Model</label><input value="' + esc(u.model || '') + '" onchange="updateUnit(\'' + u.id + '\',\'model\',this.value)"></div>';
+  html += '<div><label>Geschatte uren (kost)</label><input type="number" value="' + (u.estimated_hours || 0) + '" step="0.5" min="0" onchange="updateUnit(\'' + u.id + '\',\'estimated_hours\',this.value)"></div>';
+  html += '<div><label>Extra uren (verkoop)</label><input type="number" value="' + (u.extra_hours || 0) + '" step="0.5" min="0" onchange="updateUnit(\'' + u.id + '\',\'extra_hours\',this.value)"></div>';
+  html += '</div>';
+
+  // System-specific fields
+  if (u.system_type === 'warmtepomp' && u.wp_type === 'lucht_lucht') {
+    html += '<div class="grid-4" style="margin-bottom:12px;padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--rule)">';
+    html += '<div><label>Formule</label><select onchange="updateUnit(\'' + u.id + '\',\'airco_formule\',this.value)">';
+    ['allin', 'basic', 'none'].forEach(function(f) {
+      html += '<option value="' + f + '"' + (u.airco_formule === f ? ' selected' : '') + '>' + (f === 'allin' ? 'All-in' : f === 'basic' ? 'Basic' : 'Geen basispakket') + '</option>';
+    });
+    html += '</select></div>';
+    html += '<div><label>Binnenunits</label><input type="number" value="' + (u.airco_inner_units || 1) + '" min="1" onchange="updateUnit(\'' + u.id + '\',\'airco_inner_units\',this.value)"></div>';
+    html += '<div><label>Buitenunits (extra)</label><input type="number" value="' + (u.airco_outer_units || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'airco_outer_units\',this.value)"></div>';
+    html += '<div><label>4-weg cassettes</label><input type="number" value="' + (u.airco_four_way || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'airco_four_way\',this.value)"></div>';
+    html += '</div>';
+  }
+
+  if (u.system_type === 'pv') {
+    html += '<div class="grid-4" style="margin-bottom:12px;padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--rule)">';
+    html += '<div><label>Panelen</label><input type="number" value="' + (u.pv_aantal_panelen || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'pv_aantal_panelen\',this.value)"></div>';
+    html += '<div><label>Omvormers</label><input type="number" value="' + (u.pv_aantal_omvormers || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'pv_aantal_omvormers\',this.value)"></div>';
+    html += '<div><label>Strings</label><input type="number" value="' + (u.pv_aantal_strings || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'pv_aantal_strings\',this.value)"></div>';
+    html += '<div><label>Daktype</label><select onchange="updateUnit(\'' + u.id + '\',\'pv_daktype\',this.value)">';
+    ['hellend', 'plat', 'gevel'].forEach(function(d) {
+      html += '<option value="' + d + '"' + (u.pv_daktype === d ? ' selected' : '') + '>' + d.charAt(0).toUpperCase() + d.slice(1) + '</option>';
+    });
+    html += '</select></div></div>';
+  }
+
+  // Filters (not for C-system and PV)
+  if (u.system_type !== 'c_system' && u.system_type !== 'pv') {
+    html += '<div class="grid-4" style="margin-bottom:12px">';
+    html += '<div><label>Filters (aantal)</label><input type="number" value="' + (u.filter_qty || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'filter_qty\',this.value)"></div>';
+    html += '<div><label>Filterprijs (€/stuk)</label><input type="number" value="' + (u.filter_price || 0) + '" min="0" step="0.5" onchange="updateUnit(\'' + u.id + '\',\'filter_price\',this.value)"></div>';
+    html += '<div><label>Filtervervangingen/jaar</label><input type="number" value="' + (u.filter_changes_per_year || 1) + '" min="1" onchange="updateUnit(\'' + u.id + '\',\'filter_changes_per_year\',this.value)"></div>';
+    html += '<div></div>';
+    html += '</div>';
+  }
+
+  // Ventilatie extras
+  if (u.system_type === 'c_system' || u.system_type === 'd_system') {
+    html += '<div class="grid-4" style="margin-bottom:12px">';
+    html += '<div><label>Ventielen</label><input type="number" value="' + (u.ventielen_qty || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'ventielen_qty\',this.value)"></div>';
+    html += '<div><label>Gevelroosters</label><input type="number" value="' + (u.gevelroosters_qty || 0) + '" min="0" onchange="updateUnit(\'' + u.id + '\',\'gevelroosters_qty\',this.value)"></div>';
+    html += '<div><label>Standaardprijs override (€)</label><input type="number" value="' + (u.standard_price != null ? u.standard_price : '') + '" placeholder="Automatisch" min="0" onchange="updateUnit(\'' + u.id + '\',\'standard_price\',this.value)"></div>';
+    html += '<div></div></div>';
+  }
+
+  // Korting
+  html += '<div class="grid-4" style="margin-bottom:12px">';
+  html += '<div><label>Korting</label><div style="display:flex;gap:4px"><input type="number" value="' + (u.discount_value || 0) + '" min="0" style="flex:1" onchange="updateUnit(\'' + u.id + '\',\'discount_value\',this.value)">';
+  html += '<select style="width:60px" onchange="updateUnit(\'' + u.id + '\',\'discount_type\',this.value)">';
+  html += '<option value="pct"' + (u.discount_type === 'pct' ? ' selected' : '') + '>%</option>';
+  html += '<option value="fixed"' + (u.discount_type === 'fixed' ? ' selected' : '') + '>€</option>';
+  html += '</select></div></div>';
+  html += '<div><label>Notities</label><input value="' + esc(u.notes || '') + '" onchange="updateUnit(\'' + u.id + '\',\'notes\',this.value)"></div>';
+  html += '<div></div>';
+  html += '<div style="display:flex;gap:6px;align-items:end">';
+  html += '<button class="btn btn-outline btn-sm" onclick="duplicateUnit(\'' + u.id + '\')">Dupliceer</button>';
+  html += '<button class="btn btn-sm" style="background:var(--red);color:white" onclick="removeUnit(\'' + u.id + '\')">Verwijder</button>';
+  html += '</div></div>';
+
+  // Notities
+  return html;
+}
+
+function toggleUnitDetail(unitId) {
+  var el = document.getElementById('unit-detail-' + unitId);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateUnit(unitId, field, value) {
+  var u = units.find(function(x) { return x.id === unitId; });
+  if (!u) return;
+  var numFields = ['estimated_hours', 'extra_hours', 'filter_qty', 'filter_price', 'filter_changes_per_year',
+    'ventielen_qty', 'gevelroosters_qty', 'discount_value', 'airco_inner_units', 'airco_outer_units',
+    'airco_four_way', 'pv_aantal_panelen', 'pv_aantal_omvormers', 'pv_aantal_strings', 'wp_vermogen'];
+  if (field === 'standard_price') {
+    u[field] = value === '' ? null : parseFloat(value);
+  } else if (numFields.indexOf(field) !== -1) {
+    u[field] = parseFloat(value) || 0;
+  } else {
+    u[field] = value;
+  }
+  isDirty = true;
+  renderUnits();
+  recalcAll();
+}
+
+function duplicateUnit(unitId) {
+  var u = units.find(function(x) { return x.id === unitId; });
+  if (!u) return;
+  var copy = Object.assign({}, u);
+  copy.id = 'new_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  copy._isNew = true;
+  copy.name = (copy.name || '') + ' (kopie)';
+  copy.sort_order = units.length;
+  units.push(copy);
+  unitTasks[copy.id] = (unitTasks[u.id] || []).map(function(t) {
+    return Object.assign({}, t, { id: 'new_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), _isNew: true });
+  });
+  renderUnits();
+  recalcAll();
+  isDirty = true;
+  showToast('Unit gedupliceerd');
+}
+
+function removeUnit(unitId) {
+  if (!confirm('Unit verwijderen?')) return;
+  units = units.filter(function(x) { return x.id !== unitId; });
+  delete unitTasks[unitId];
+  if (unitId.indexOf('new_') === -1) {
+    sb.from('opmaat_units').delete().eq('id', unitId);
+  }
+  renderUnits();
+  recalcAll();
+  isDirty = true;
+}
+
+// =============================================
+// EXTRA WORKS
+// =============================================
+function addExtraWork() {
+  var ew = {
+    id: 'new_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    _isNew: true, project_id: projectId, sort_order: extraWorks.length,
+    description: '', location: '', notes: '', type: 'one-time',
+    material_qty: 1, material_unit_cost: 0, hours: 0
+  };
+  extraWorks.push(ew);
+  renderExtraWorks();
+  recalcAll();
+  isDirty = true;
+}
+
+function renderExtraWorks() {
+  var container = document.getElementById('extra-works-list');
+  var noExtra = document.getElementById('no-extra');
+  if (!extraWorks.length) {
+    container.innerHTML = '';
+    noExtra.style.display = '';
+    return;
+  }
+  noExtra.style.display = 'none';
+  container.innerHTML = extraWorks.map(function(ew, idx) {
+    var pr = calcExtraWorkPrice(ew);
+    ew._calc = pr;
+    return '<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule)">' +
+      '<input value="' + esc(ew.description) + '" placeholder="Omschrijving" style="flex:2" onchange="updateExtraWork(' + idx + ',\'description\',this.value)">' +
+      '<input type="number" value="' + (ew.material_qty || 1) + '" min="1" style="width:50px" title="Aantal" onchange="updateExtraWork(' + idx + ',\'material_qty\',this.value)">' +
+      '<input type="number" value="' + (ew.material_unit_cost || 0) + '" min="0" step="0.5" style="width:70px" placeholder="€/stuk" title="Stukprijs" onchange="updateExtraWork(' + idx + ',\'material_unit_cost\',this.value)">' +
+      '<input type="number" value="' + (ew.hours || 0) + '" min="0" step="0.5" style="width:60px" placeholder="Uren" title="Uren" onchange="updateExtraWork(' + idx + ',\'hours\',this.value)">' +
+      '<span style="width:80px;text-align:right;font-weight:600;font-size:13px">' + fmt(pr.sell) + '</span>' +
+      '<span style="width:50px;text-align:right">' + margeBadge(pr.margin) + '</span>' +
+      '<button class="btn-icon btn-sm" onclick="removeExtraWork(' + idx + ')" title="Verwijderen" style="color:var(--red)">&times;</button>' +
+    '</div>';
+  }).join('');
+}
+
+function updateExtraWork(idx, field, value) {
+  var ew = extraWorks[idx];
+  if (!ew) return;
+  if (['material_qty', 'material_unit_cost', 'hours'].indexOf(field) !== -1) {
+    ew[field] = parseFloat(value) || 0;
+  } else {
+    ew[field] = value;
+  }
+  isDirty = true;
+  renderExtraWorks();
+  recalcAll();
+}
+
+function removeExtraWork(idx) {
+  var ew = extraWorks[idx];
+  if (ew && ew.id && ew.id.indexOf('new_') === -1) {
+    sb.from('opmaat_extra_works').delete().eq('id', ew.id);
+  }
+  extraWorks.splice(idx, 1);
+  renderExtraWorks();
+  recalcAll();
+  isDirty = true;
+}
+
+// =============================================
+// PRICING PAGE
+// =============================================
+function renderPricing() {
+  recalcAll();
+
+  // KPI strip
+  var totalCost = 0, totalSell = 0;
+  units.forEach(function(u) { totalCost += u._calc.costPrice; totalSell += u._calc.sellPrice; });
+  extraWorks.forEach(function(ew) { totalCost += ew._calc.cost; totalSell += ew._calc.sell; });
+  if (params.travel_mode !== 'per_unit') { var tr = p('distance') * p('km_rate'); totalCost += tr; totalSell += tr; }
+
+  var discType = document.getElementById('proj-discount-type').value;
+  var discVal = parseFloat(document.getElementById('proj-discount').value) || 0;
+  var unitSell = units.reduce(function(s, u) { return s + u._calc.sellPrice; }, 0);
+  var disc = discType === 'pct' ? unitSell * discVal / 100 : discVal;
+  totalSell -= disc;
+  var margin = totalSell > 0 ? ((totalSell - totalCost) / totalSell * 100) : 0;
+  var btwPct = parseFloat(params.btw_pct || 21);
+
+  document.getElementById('kpi-strip').innerHTML =
+    '<div class="kpi-card"><div class="kpi-label">Kostprijs</div><div class="kpi-value">' + fmtRound(totalCost) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Verkoopprijs</div><div class="kpi-value">' + fmtRound(totalSell) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Marge</div><div class="kpi-value ' + margeClass(margin) + '">' + pct(margin) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Korting</div><div class="kpi-value">' + fmtRound(disc) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Totaal excl.</div><div class="kpi-value">' + fmtRound(totalSell) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-label">Totaal incl. ' + btwPct + '%</div><div class="kpi-value" style="color:var(--navy)">' + fmtRound(totalSell * (1 + btwPct / 100)) + '</div></div>';
+
+  // Pricing table
+  var html = '<table class="data-table"><tr><th>Unit</th><th>Type</th><th>Std. prijs</th><th>Filters</th><th>Uren</th><th>Taken</th><th class="text-right">Kostprijs</th><th class="text-right">Verkoopprijs</th><th class="text-right">Marge</th></tr>';
+  units.forEach(function(u) {
+    var pr = u._calc;
+    var sysLabel = SYSTEM_LABELS[u.system_type] || 'Overig';
+    if (u.wp_type) sysLabel = WP_TYPE_LABELS[u.wp_type] || sysLabel;
+    html += '<tr><td><strong>' + esc(u.name) + '</strong></td><td>' + sysLabel + '</td>';
+    html += '<td>' + fmt(pr.stdPrice) + '</td>';
+    html += '<td>' + (pr.filterSell > 0 ? fmt(pr.filterSell) : '—') + '</td>';
+    html += '<td>' + (pr.hoursSell > 0 ? fmt(pr.hoursSell) : '—') + '</td>';
+    html += '<td>' + (pr.tasksSell > 0 ? fmt(pr.tasksSell) : '—') + '</td>';
+    html += '<td class="text-right">' + fmt(pr.costPrice) + '</td>';
+    html += '<td class="text-right"><strong>' + fmt(pr.sellPrice) + '</strong></td>';
+    html += '<td class="text-right">' + margeBadge(pr.margin) + '</td></tr>';
+  });
+
+  if (extraWorks.length) {
+    html += '<tr><td colspan="9" style="font-weight:600;background:var(--light);padding-top:12px">Extra werken</td></tr>';
+    extraWorks.forEach(function(ew) {
+      var pr = ew._calc;
+      html += '<tr><td>' + esc(ew.description || 'Naamloos') + '</td><td>Eenmalig</td><td>—</td><td>—</td><td>—</td><td>—</td>';
+      html += '<td class="text-right">' + fmt(pr.cost) + '</td><td class="text-right"><strong>' + fmt(pr.sell) + '</strong></td>';
+      html += '<td class="text-right">' + margeBadge(pr.margin) + '</td></tr>';
+    });
+  }
+  html += '</table>';
+  document.getElementById('pricing-table-container').innerHTML = html;
+}
+
+// =============================================
+// JAARCONTRACT
+// =============================================
+function renderContract() {
+  renderComparison();
+}
+
+function switchContractTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'vergelijking') renderComparison();
+  if (tab === 'detail') renderContractDetail();
+  if (tab === 'partner') renderPartnerForm();
+}
+
+function renderComparison() {
+  recalcAll();
+  var btwPct = parseFloat(params.btw_pct || 21);
+  var btwMult = 1 + btwPct / 100;
+
+  // Calculate yearly totals
+  var yearCost = 0, yearSell = 0;
+  units.forEach(function(u) {
+    if (u.frequency === 'one-time') return;
+    var pr = u._calc;
+    var freq = FREQ_COUNTS[u.frequency] || 1;
+    var filterFreq = u.filter_changes_per_year || 1;
+    var nonFilterSell = pr.sellPrice - pr.filterSell;
+    var nonFilterCost = pr.costPrice - pr.filterCost;
+    yearSell += nonFilterSell * freq + pr.filterSell * filterFreq;
+    yearCost += nonFilterCost * freq + pr.filterCost * filterFreq;
+  });
+
+  // Travel per ronde
+  if (params.travel_mode !== 'per_unit') {
+    var travel = p('distance') * p('km_rate');
+    // Assume 1 visit per ronde for all recurring units
+    var maxFreq = Math.max.apply(null, units.filter(function(u) { return u.frequency !== 'one-time'; }).map(function(u) { return FREQ_COUNTS[u.frequency] || 1; }).concat([1]));
+    yearCost += travel * maxFreq;
+    yearSell += travel * maxFreq;
+  }
+
+  var discounts = [p('contract_discount_1'), p('contract_discount_3'), p('contract_discount_5')];
+  var durations = [1, 3, 5];
+
+  var html = '<table class="compare-table"><tr><th></th><th>1 jaar</th><th>3 jaar</th><th>5 jaar</th></tr>';
+
+  html += '<tr><td style="font-weight:600">Korting</td>';
+  durations.forEach(function(d, i) { html += '<td>' + discounts[i] + '%</td>'; });
+  html += '</tr>';
+
+  html += '<tr><td style="font-weight:600">Jaarprijs excl. BTW</td>';
+  durations.forEach(function(d, i) {
+    var price = yearSell * (1 - discounts[i] / 100);
+    html += '<td><strong>' + fmtRound(price) + '</strong></td>';
+  });
+  html += '</tr>';
+
+  html += '<tr><td style="font-weight:600">Jaarprijs incl. BTW</td>';
+  durations.forEach(function(d, i) {
+    var price = yearSell * (1 - discounts[i] / 100) * btwMult;
+    html += '<td><strong>' + fmtRound(price) + '</strong></td>';
+  });
+  html += '</tr>';
+
+  html += '<tr><td style="font-weight:600">Maandbedrag incl. BTW</td>';
+  durations.forEach(function(d, i) {
+    var price = yearSell * (1 - discounts[i] / 100) * btwMult / 12;
+    html += '<td style="font-size:18px;font-weight:700;color:var(--navy)">' + fmtRound(price) + '/maand</td>';
+  });
+  html += '</tr>';
+
+  html += '<tr><td style="font-weight:600">Totale contractwaarde</td>';
+  durations.forEach(function(d, i) {
+    var price = yearSell * (1 - discounts[i] / 100) * btwMult * d;
+    html += '<td>' + fmtRound(price) + '</td>';
+  });
+  html += '</tr>';
+
+  html += '<tr><td style="font-weight:600">Marge/jaar</td>';
+  durations.forEach(function(d, i) {
+    var sell = yearSell * (1 - discounts[i] / 100);
+    var margin = sell > 0 ? ((sell - yearCost) / sell * 100) : 0;
+    html += '<td>' + margeBadge(margin) + '</td>';
+  });
+  html += '</tr>';
+
+  // One-time units
+  var oneTimeUnits = units.filter(function(u) { return u.frequency === 'one-time'; });
+  if (oneTimeUnits.length) {
+    html += '<tr><td colspan="4" style="font-weight:600;background:var(--light);padding-top:12px">Eenmalige interventies (apart)</td></tr>';
+    oneTimeUnits.forEach(function(u) {
+      html += '<tr><td>' + esc(u.name) + '</td><td colspan="3">' + fmt(u._calc.sellPrice) + ' excl. BTW</td></tr>';
+    });
+  }
+
+  html += '</table>';
+  document.getElementById('comparison-table').innerHTML = html;
+}
+
+function renderContractDetail() {
+  recalcAll();
+  var btwPct = parseFloat(params.btw_pct || 21);
+  var btwMult = 1 + btwPct / 100;
+  var discounts = [p('contract_discount_1'), p('contract_discount_3'), p('contract_discount_5')];
+  var durations = [1, 3, 5];
+
+  var recurringUnits = units.filter(function(u) { return u.frequency !== 'one-time'; });
+  if (!recurringUnits.length) {
+    document.getElementById('contract-detail-table').innerHTML = '<p style="color:var(--grey);font-size:13px">Voeg eerst terugkerende units toe om het detail te zien.</p>';
+    return;
+  }
+
+  var html = '';
+
+  // Per-unit breakdown for each duration
+  durations.forEach(function(dur, di) {
+    var disc = discounts[di];
+    html += '<div class="card" style="margin-bottom:16px">';
+    html += '<div class="card-header"><span class="card-title">Jaarcontract ' + dur + ' jaar' + (disc > 0 ? ' (-' + disc + '%)' : '') + '</span></div>';
+    html += '<table class="data-table"><tr><th>Unit</th><th>Type</th><th>Frequentie</th><th class="text-right">Per beurt</th><th class="text-right">Beurten/jaar</th><th class="text-right">Jaar excl.</th><th class="text-right">Jaar incl.</th><th class="text-right">Marge</th></tr>';
+
+    var yearTotal = 0, yearCost = 0;
+    recurringUnits.forEach(function(u) {
+      var pr = u._calc;
+      var freq = FREQ_COUNTS[u.frequency] || 1;
+      var filterFreq = u.filter_changes_per_year || 1;
+      var nonFilterSell = pr.sellPrice - pr.filterSell;
+      var nonFilterCost = pr.costPrice - pr.filterCost;
+      var unitYearSell = nonFilterSell * freq + pr.filterSell * filterFreq;
+      var unitYearCost = nonFilterCost * freq + pr.filterCost * filterFreq;
+      var discSell = unitYearSell * (1 - disc / 100);
+      yearTotal += discSell;
+      yearCost += unitYearCost;
+      var margin = discSell > 0 ? ((discSell - unitYearCost) / discSell * 100) : 0;
+
+      var sysLabel = SYSTEM_LABELS[u.system_type] || 'Overig';
+      if (u.wp_type) sysLabel = WP_TYPE_LABELS[u.wp_type] || sysLabel;
+
+      html += '<tr>';
+      html += '<td><strong>' + esc(u.name) + '</strong></td>';
+      html += '<td>' + sysLabel + '</td>';
+      html += '<td>' + FREQ_LABELS[u.frequency || 'yearly'] + '</td>';
+      html += '<td class="text-right">' + fmt(pr.sellPrice) + '</td>';
+      html += '<td class="text-right">' + freq + '×' + (pr.filterSell > 0 && filterFreq !== freq ? ' (filters: ' + filterFreq + '×)' : '') + '</td>';
+      html += '<td class="text-right">' + fmt(discSell) + '</td>';
+      html += '<td class="text-right">' + fmt(discSell * btwMult) + '</td>';
+      html += '<td class="text-right">' + margeBadge(margin) + '</td>';
+      html += '</tr>';
+    });
+
+    // Travel
+    if (params.travel_mode !== 'per_unit') {
+      var travel = p('distance') * p('km_rate');
+      var maxFreq = Math.max.apply(null, recurringUnits.map(function(u) { return FREQ_COUNTS[u.frequency] || 1; }).concat([1]));
+      var travelYear = travel * maxFreq;
+      yearTotal += travelYear;
+      yearCost += travelYear;
+      html += '<tr style="color:var(--grey)"><td>Verplaatsing</td><td></td><td>' + maxFreq + '× p/j</td><td class="text-right">' + fmt(travel) + '</td><td class="text-right">' + maxFreq + '×</td><td class="text-right">' + fmt(travelYear) + '</td><td class="text-right">' + fmt(travelYear * btwMult) + '</td><td></td></tr>';
+    }
+
+    var totalMargin = yearTotal > 0 ? ((yearTotal - yearCost) / yearTotal * 100) : 0;
+    html += '<tr style="background:var(--light);font-weight:700"><td>Totaal per jaar</td><td></td><td></td><td></td><td></td>';
+    html += '<td class="text-right">' + fmt(yearTotal) + '</td>';
+    html += '<td class="text-right">' + fmt(yearTotal * btwMult) + '</td>';
+    html += '<td class="text-right">' + margeBadge(totalMargin) + '</td></tr>';
+
+    html += '<tr style="background:var(--navy);color:white;font-weight:700"><td>Maandbedrag</td><td></td><td></td><td></td><td></td>';
+    html += '<td class="text-right" style="color:white">' + fmt(yearTotal / 12) + '</td>';
+    html += '<td class="text-right" style="color:white;font-size:16px">' + fmt(yearTotal * btwMult / 12) + '/mnd</td>';
+    html += '<td></td></tr>';
+
+    html += '</table>';
+
+    // Contract total over full duration
+    html += '<div style="margin-top:12px;padding:12px;background:var(--light);border-radius:8px;display:flex;justify-content:space-between;font-size:13px">';
+    html += '<span>Totale contractwaarde (' + dur + ' jaar):</span>';
+    html += '<strong>' + fmtRound(yearTotal * btwMult * dur) + ' incl. BTW</strong>';
+    html += '</div>';
+
+    html += '</div>';
+  });
+
+  document.getElementById('contract-detail-table').innerHTML = html;
+}
+
+function renderPartnerForm() {
+  var html = '<div class="card">';
+  html += '<div class="card-header"><span class="card-title">Partner scenario</span></div>';
+
+  // Scenario selection
+  html += '<div style="margin-bottom:16px">';
+  html += '<label>Scenario</label>';
+  html += '<div class="grid-3" style="margin-top:8px">';
+
+  var scenarios = [
+    { id: 'direct', label: 'Direct', desc: 'Flancco → eindklant', icon: '🏠' },
+    { id: 'partner_flancco', label: 'Partner-Flancco', desc: 'Flancco onderhoud, partner factureert', icon: '🤝' },
+    { id: 'partner_doorverkoop', label: 'Partner doorverkoop', desc: 'Partner als tussenpersoon', icon: '🔄' }
+  ];
+
+  var currentScenario = params.jaarcontract_scenario || 'direct';
+  scenarios.forEach(function(s) {
+    var sel = currentScenario === s.id ? 'border-color:var(--navy);background:var(--light)' : '';
+    html += '<div style="border:1.5px solid var(--rule);border-radius:var(--radius);padding:14px;cursor:pointer;text-align:center;transition:all 0.2s;' + sel + '" onclick="setPartnerScenario(\'' + s.id + '\')">';
+    html += '<div style="font-size:24px;margin-bottom:4px">' + s.icon + '</div>';
+    html += '<div style="font-size:13px;font-weight:600">' + s.label + '</div>';
+    html += '<div style="font-size:11px;color:var(--grey)">' + s.desc + '</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  if (currentScenario === 'direct') {
+    html += '<p style="color:var(--grey);font-size:13px">Bij direct scenario factureert Flancco rechtstreeks aan de eindklant. Geen partner-marge van toepassing.</p>';
+  } else {
+    // Partner selection & margin
+    var selectedPartner = document.getElementById('proj-partner').value;
+    var partner = partners.find(function(pp) { return pp.id === selectedPartner; });
+    var partnerMarge = partnerInternal ? (partnerInternal.partner_margin_pct || 15) : 15;
+    var partnerFee = partnerInternal ? (partnerInternal.planning_fee || 25) : 25;
+
+    html += '<div class="grid-3" style="margin-bottom:16px">';
+    html += '<div><label>Partner marge (%)</label><input type="number" value="' + partnerMarge + '" min="0" max="50" step="1" onchange="updatePartnerInternal(\'partner_margin_pct\', this.value)"></div>';
+    html += '<div><label>Planning fee (€/beurt)</label><input type="number" value="' + partnerFee + '" min="0" step="5" onchange="updatePartnerInternal(\'planning_fee\', this.value)"></div>';
+    html += '<div></div>';
+    html += '</div>';
+
+    // Partner pricing overview
+    recalcAll();
+    var btwPct = parseFloat(params.btw_pct || 21);
+    var btwMult = 1 + btwPct / 100;
+
+    html += '<table class="data-table"><tr><th>Unit</th><th class="text-right">Flancco prijs</th><th class="text-right">Partner marge</th><th class="text-right">Planning fee</th><th class="text-right">Eindklant excl.</th><th class="text-right">Eindklant incl.</th></tr>';
+
+    var totalFlancco = 0, totalEindklant = 0;
+    units.filter(function(u) { return u.frequency !== 'one-time'; }).forEach(function(u) {
+      var pr = u._calc;
+      var partnerPrice = pr.sellPrice * (1 + partnerMarge / 100) + partnerFee;
+      totalFlancco += pr.sellPrice;
+      totalEindklant += partnerPrice;
+      html += '<tr><td>' + esc(u.name) + '</td>';
+      html += '<td class="text-right">' + fmt(pr.sellPrice) + '</td>';
+      html += '<td class="text-right">' + fmt(pr.sellPrice * partnerMarge / 100) + '</td>';
+      html += '<td class="text-right">' + fmt(partnerFee) + '</td>';
+      html += '<td class="text-right"><strong>' + fmt(partnerPrice) + '</strong></td>';
+      html += '<td class="text-right">' + fmt(partnerPrice * btwMult) + '</td></tr>';
+    });
+
+    html += '<tr style="background:var(--light);font-weight:700"><td>Totaal per beurt</td>';
+    html += '<td class="text-right">' + fmt(totalFlancco) + '</td>';
+    html += '<td class="text-right">' + fmt(totalFlancco * partnerMarge / 100) + '</td>';
+    html += '<td class="text-right">' + fmt(partnerFee * units.filter(function(u) { return u.frequency !== 'one-time'; }).length) + '</td>';
+    html += '<td class="text-right"><strong>' + fmt(totalEindklant) + '</strong></td>';
+    html += '<td class="text-right">' + fmt(totalEindklant * btwMult) + '</td></tr>';
+    html += '</table>';
+
+    if (currentScenario === 'partner_doorverkoop') {
+      html += '<div style="margin-top:12px;padding:12px;background:var(--orange-bg);border-radius:8px;font-size:12px;color:var(--orange)">';
+      html += '<strong>Let op:</strong> Bij doorverkoop factureert de partner aan de eindklant. Flancco factureert aan de partner tegen de Flancco-prijs.';
+      html += '</div>';
+    }
+  }
+
+  html += '</div>';
+  document.getElementById('partner-scenario-form').innerHTML = html;
+}
+
+function setPartnerScenario(scenario) {
+  params.jaarcontract_scenario = scenario;
+  isDirty = true;
+  renderPartnerForm();
+}
+
+function updatePartnerInternal(field, value) {
+  if (!partnerInternal) {
+    partnerInternal = { project_id: projectId, partner_margin_pct: 15, planning_fee: 25 };
+  }
+  partnerInternal[field] = parseFloat(value) || 0;
+  isDirty = true;
+  renderPartnerForm();
+}
+
+// =============================================
+// PARAMETERS DRAWER
+// =============================================
+function openParamsDrawer() {
+  renderParamsForm();
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('params-drawer').classList.add('open');
+}
+
+function closeParamsDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('params-drawer').classList.remove('open');
+}
+
+function renderParamsForm() {
+  var sections = [
+    { title: 'Algemeen', fields: [
+      { key: 'btw_pct', label: 'BTW %', step: 1 },
+      { key: 'cost_rate', label: 'Uurtarief kost (€)', step: 1 },
+      { key: 'sell_rate', label: 'Uurtarief verkoop (€)', step: 1 },
+      { key: 'material_margin', label: 'Marge materiaal (%)', step: 1 }
+    ]},
+    { title: 'Verplaatsing', fields: [
+      { key: 'distance', label: 'Afstand heen-retour (km)', step: 1 },
+      { key: 'km_rate', label: 'Km-vergoeding (€)', step: 0.05 },
+      { key: 'travel_mode', label: 'Modus', type: 'select', options: { per_ronde: 'Per interventieronde', per_unit: 'Per unit' } }
+    ]},
+    { title: 'Ventilatie', fields: [
+      { key: 'standard_price_c', label: 'C-systeem (€)', step: 5 },
+      { key: 'standard_price_d', label: 'D-systeem (€)', step: 5 },
+      { key: 'gevelrooster_prijs', label: 'Gevelrooster (€/stuk)', step: 1 }
+    ]},
+    { title: 'Airco All-in', fields: [
+      { key: 'airco_allin_base', label: 'Basispakket (€)', step: 5 },
+      { key: 'airco_allin_extra_inner', label: 'Extra binnenunit (€)', step: 5 },
+      { key: 'airco_allin_extra_inner3', label: 'Vanaf 3e binnenunit (€)', step: 5 },
+      { key: 'airco_allin_four_way', label: '4-weg cassette (€)', step: 5 },
+      { key: 'airco_allin_extra_outer', label: 'Extra buitenunit (€)', step: 5 }
+    ]},
+    { title: 'Airco Basic', fields: [
+      { key: 'airco_basic_base', label: 'Basispakket (€)', step: 5 },
+      { key: 'airco_basic_extra_inner', label: 'Extra binnenunit (€)', step: 5 },
+      { key: 'airco_basic_extra_inner3', label: 'Vanaf 3e binnenunit (€)', step: 5 },
+      { key: 'airco_basic_four_way', label: '4-weg cassette (€)', step: 5 },
+      { key: 'airco_basic_extra_outer', label: 'Extra buitenunit (€)', step: 5 }
+    ]},
+    { title: 'Zonnepanelen', fields: [
+      { key: 'pv_basis', label: 'Basisprijs bezoek (€)', step: 5 },
+      { key: 'pv_per_paneel', label: 'Per paneel (€)', step: 0.5 },
+      { key: 'pv_per_omvormer', label: 'Per omvormer (€)', step: 5 },
+      { key: 'pv_per_string', label: 'Per string (€)', step: 1 }
+    ]},
+    { title: 'Warmtepomp', fields: [
+      { key: 'wp_basis', label: 'Basisprijs (€)', step: 5 },
+      { key: 'wp_bodem_toeslag', label: 'Bodem-toeslag (€)', step: 5 }
+    ]},
+    { title: 'Contractkortingen', fields: [
+      { key: 'contract_discount_1', label: 'Korting 1 jaar (%)', step: 1 },
+      { key: 'contract_discount_3', label: 'Korting 3 jaar (%)', step: 1 },
+      { key: 'contract_discount_5', label: 'Korting 5 jaar (%)', step: 1 }
+    ]}
+  ];
+
+  var html = sections.map(function(sec) {
+    var fieldsHtml = sec.fields.map(function(f) {
+      var val = params[f.key] !== undefined ? params[f.key] : DEFAULT_PARAMS[f.key];
+      if (f.type === 'select') {
+        var opts = Object.keys(f.options).map(function(k) {
+          return '<option value="' + k + '"' + (val === k ? ' selected' : '') + '>' + f.options[k] + '</option>';
+        }).join('');
+        return '<div><label>' + f.label + '</label><select onchange="updateParam(\'' + f.key + '\',this.value)">' + opts + '</select></div>';
+      }
+      return '<div><label>' + f.label + '</label><input type="number" value="' + val + '" step="' + (f.step || 1) + '" onchange="updateParam(\'' + f.key + '\',this.value)"></div>';
+    }).join('');
+    return '<div class="drawer-section"><div class="drawer-section-title">' + sec.title + '</div><div class="grid-2">' + fieldsHtml + '</div></div>';
+  }).join('');
+
+  document.getElementById('params-body').innerHTML = html;
+}
+
+function updateParam(key, value) {
+  if (key === 'travel_mode' || key === 'jaarcontract_scenario') {
+    params[key] = value;
+  } else {
+    params[key] = parseFloat(value) || 0;
+  }
+  if (key === 'btw_pct') document.getElementById('proj-btw').value = value;
+  isDirty = true;
+  renderUnits();
+  recalcAll();
+}
+
+function onProjectChange() {
+  isDirty = true;
+  // Show/hide partner export card
+  var partnerCard = document.getElementById('export-partner-card');
+  if (partnerCard) partnerCard.style.display = document.getElementById('proj-partner').value ? '' : 'none';
+}
+function onParamChange() {
+  params.btw_pct = parseFloat(document.getElementById('proj-btw').value) || 21;
+  isDirty = true;
+  recalcAll();
+}
+
+// =============================================
+// PDF EXPORTS
+// =============================================
+function exportPDF(type) {
+  recalcAll();
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF('p', 'mm', 'a4');
+  var W = 210, M = 15, CW = W - 2 * M;
+  var y = 20;
+  var navy = [26, 26, 46];
+  var grey = [107, 114, 128];
+  var green = [5, 150, 105];
+  var red = [220, 38, 38];
+  var btwPct = parseFloat(params.btw_pct || 21);
+  var btwMult = 1 + btwPct / 100;
+  var projName = document.getElementById('proj-name').value || 'Project';
+  var projRef = document.getElementById('proj-ref').value || '';
+  var projDate = document.getElementById('proj-date').value || '';
+  var projClient = document.getElementById('proj-client').value || '';
+  var projStreet = document.getElementById('proj-street').value || '';
+  var projPostcode = document.getElementById('proj-postcode').value || '';
+  var projMunicipality = document.getElementById('proj-municipality').value || '';
+
+  function fmtP(n) { return '€ ' + parseFloat(n || 0).toFixed(2).replace('.', ','); }
+  function fmtR(n) { return '€ ' + Math.round(n || 0).toLocaleString('nl-BE'); }
+  function pctP(n) { return parseFloat(n || 0).toFixed(1).replace('.', ',') + '%'; }
+  function checkPage(needed) { if (y + needed > 275) { doc.addPage(); y = 20; } }
+
+  function drawHeader(title, subtitle) {
+    doc.setFillColor.apply(doc, navy);
+    doc.rect(0, 0, W, 32, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('FLANCCO', M, 14);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    doc.text(title, M, 22);
+    if (subtitle) { doc.setFontSize(8); doc.text(subtitle, M, 28); }
+    doc.setFontSize(9);
+    doc.text(projDate || new Date().toLocaleDateString('nl-BE'), W - M, 14, { align: 'right' });
+    if (projRef) doc.text('Ref: ' + projRef, W - M, 22, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    y = 40;
+  }
+
+  function drawProjectInfo() {
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Projectgegevens', M, y); y += 6;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    if (projClient) { doc.text('Klant: ' + projClient, M, y); y += 5; }
+    if (projStreet) { doc.text('Adres: ' + projStreet + ', ' + projPostcode + ' ' + projMunicipality, M, y); y += 5; }
+    y += 4;
+  }
+
+  function drawTableHeader(cols) {
+    doc.setFillColor(245, 247, 250);
+    doc.rect(M, y - 4, CW, 7, 'F');
+    doc.setFontSize(7);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor.apply(doc, grey);
+    cols.forEach(function(c) {
+      doc.text(c.label.toUpperCase(), c.x, y, c.align ? { align: c.align } : undefined);
+    });
+    doc.setTextColor(0, 0, 0);
+    y += 6;
+  }
+
+  function drawLine() {
+    doc.setDrawColor(229, 231, 235);
+    doc.line(M, y, W - M, y);
+    y += 1;
+  }
+
+  // ---- INTERN RAPPORT ----
+  if (type === 'intern') {
+    drawHeader('Intern rapport — Op Maat', projName);
+    drawProjectInfo();
+
+    // Unit breakdown
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.text('Prijsoverzicht per unit', M, y); y += 8;
+
+    units.forEach(function(u) {
+      checkPage(30);
+      var pr = u._calc;
+      var sysLabel = SYSTEM_LABELS[u.system_type] || 'Overig';
+      if (u.wp_type) sysLabel = WP_TYPE_LABELS[u.wp_type] || sysLabel;
+
+      doc.setFontSize(9); doc.setFont(undefined, 'bold');
+      doc.text(u.name + ' (' + sysLabel + ')', M, y);
+      var mColor = pr.margin < 15 ? red : pr.margin < 25 ? [217, 119, 6] : green;
+      doc.setTextColor.apply(doc, mColor);
+      doc.text(pctP(pr.margin) + ' marge', W - M, y, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+      y += 5;
+
+      doc.setFont(undefined, 'normal'); doc.setFontSize(8);
+      var details = [
+        ['Standaardprijs', fmtP(pr.stdPrice)],
+        ['Filters (kost/verkoop)', fmtP(pr.filterCost) + ' / ' + fmtP(pr.filterSell)],
+        ['Uren (kost/verkoop)', fmtP(pr.hoursCost) + ' / ' + fmtP(pr.hoursSell)],
+        ['Taken', fmtP(pr.tasksCost) + ' / ' + fmtP(pr.tasksSell)]
+      ];
+      if (pr.gevelSell > 0) details.push(['Gevelroosters', fmtP(pr.gevelSell)]);
+      if (pr.discount > 0) details.push(['Korting', '- ' + fmtP(pr.discount)]);
+
+      details.forEach(function(d) {
+        doc.setTextColor.apply(doc, grey);
+        doc.text(d[0], M + 4, y);
+        doc.setTextColor(0, 0, 0);
+        doc.text(d[1], M + 80, y);
+        y += 4;
+      });
+
+      doc.setFont(undefined, 'bold');
+      doc.text('Kostprijs: ' + fmtP(pr.costPrice) + '  |  Verkoopprijs: ' + fmtP(pr.sellPrice), M + 4, y);
+      y += 8;
+      drawLine(); y += 3;
+    });
+
+    // Extra works
+    if (extraWorks.length) {
+      checkPage(20);
+      doc.setFontSize(10); doc.setFont(undefined, 'bold');
+      doc.text('Extra werken', M, y); y += 6;
+      doc.setFontSize(8); doc.setFont(undefined, 'normal');
+      extraWorks.forEach(function(ew) {
+        var pr = ew._calc;
+        doc.text(ew.description || 'Naamloos', M + 4, y);
+        doc.text(fmtP(pr.sell) + ' (kost: ' + fmtP(pr.cost) + ', marge: ' + pctP(pr.margin) + ')', W - M, y, { align: 'right' });
+        y += 5;
+      });
+      y += 4;
+    }
+
+    // Totals
+    checkPage(20);
+    var totalCost = 0, totalSell = 0;
+    units.forEach(function(u) { totalCost += u._calc.costPrice; totalSell += u._calc.sellPrice; });
+    extraWorks.forEach(function(ew) { totalCost += ew._calc.cost; totalSell += ew._calc.sell; });
+    var totalMargin = totalSell > 0 ? ((totalSell - totalCost) / totalSell * 100) : 0;
+
+    doc.setFillColor.apply(doc, navy);
+    doc.rect(M, y, CW, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.text('TOTAAL', M + 4, y + 8);
+    doc.text('Kost: ' + fmtR(totalCost) + '  |  Verkoop: ' + fmtR(totalSell) + '  |  Marge: ' + pctP(totalMargin), W - M - 4, y + 8, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+  }
+
+  // ---- EXTERN RAPPORT (KLANT) ----
+  else if (type === 'extern') {
+    drawHeader('Offerte onderhoud op maat', projName);
+    drawProjectInfo();
+
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.text('Overzicht onderhoudstaken', M, y); y += 8;
+
+    units.forEach(function(u) {
+      checkPage(40);
+      var pr = u._calc;
+      var sysLabel = SYSTEM_LABELS[u.system_type] || 'Overig';
+      if (u.wp_type) sysLabel = WP_TYPE_LABELS[u.wp_type] || sysLabel;
+
+      doc.setFontSize(10); doc.setFont(undefined, 'bold');
+      doc.text(u.name, M, y);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor.apply(doc, grey);
+      doc.text(sysLabel + ' · ' + FREQ_LABELS[u.frequency || 'yearly'], M, y + 4);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10); doc.setFont(undefined, 'bold');
+      doc.text(fmtP(pr.sellPrice) + ' excl. BTW', W - M, y, { align: 'right' });
+      y += 10;
+
+      // Scope
+      var scopeKey = u.system_type;
+      if (u.system_type === 'warmtepomp' && u.wp_type === 'lucht_lucht') {
+        scopeKey = u.airco_formule === 'basic' ? 'airco_basic' : 'airco_allin';
+      } else if (u.system_type === 'warmtepomp') {
+        scopeKey = 'warmtepomp';
+      }
+      var scopeList = SCOPE[scopeKey] ? SCOPE[scopeKey].external : null;
+      if (scopeList) {
+        doc.setFontSize(8); doc.setFont(undefined, 'normal');
+        scopeList.forEach(function(item) {
+          checkPage(5);
+          doc.text('•  ' + item, M + 4, y);
+          y += 4;
+        });
+      }
+      y += 4;
+      drawLine(); y += 4;
+    });
+
+    // Totals
+    checkPage(25);
+    var totalSell = units.reduce(function(s, u) { return s + u._calc.sellPrice; }, 0);
+    doc.setFillColor(245, 247, 250);
+    doc.rect(M, y, CW, 16, 'F');
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.text('Totaal excl. BTW', M + 4, y + 7);
+    doc.text(fmtR(totalSell), W - M - 4, y + 7, { align: 'right' });
+    doc.setFontSize(9); doc.setFont(undefined, 'normal');
+    doc.text('Totaal incl. ' + btwPct + '% BTW: ' + fmtR(totalSell * btwMult), W - M - 4, y + 13, { align: 'right' });
+    y += 22;
+
+    // BTW note
+    if (btwPct === 6) {
+      checkPage(10);
+      doc.setFontSize(7); doc.setTextColor.apply(doc, grey);
+      doc.text('* Verlaagd BTW-tarief van 6% geldt voor renovatiewerken aan woningen ouder dan 10 jaar.', M, y);
+      doc.setTextColor(0, 0, 0);
+    }
+  }
+
+  // ---- INTERN JAARCONTRACT ----
+  else if (type === 'contract_intern') {
+    drawHeader('Intern jaarcontract — Op Maat', projName);
+    drawProjectInfo();
+
+    var discounts = [p('contract_discount_1'), p('contract_discount_3'), p('contract_discount_5')];
+    var durations = [1, 3, 5];
+    var recurringUnits = units.filter(function(u) { return u.frequency !== 'one-time'; });
+
+    durations.forEach(function(dur, di) {
+      checkPage(40);
+      var disc = discounts[di];
+      doc.setFontSize(10); doc.setFont(undefined, 'bold');
+      doc.text('Jaarcontract ' + dur + ' jaar' + (disc > 0 ? ' (-' + disc + '%)' : ''), M, y); y += 7;
+
+      var yearCost = 0, yearSell = 0;
+      doc.setFontSize(8); doc.setFont(undefined, 'normal');
+
+      recurringUnits.forEach(function(u) {
+        checkPage(6);
+        var pr = u._calc;
+        var freq = FREQ_COUNTS[u.frequency] || 1;
+        var filterFreq = u.filter_changes_per_year || 1;
+        var unitYearSell = (pr.sellPrice - pr.filterSell) * freq + pr.filterSell * filterFreq;
+        var unitYearCost = (pr.costPrice - pr.filterCost) * freq + pr.filterCost * filterFreq;
+        var discSell = unitYearSell * (1 - disc / 100);
+        yearSell += discSell;
+        yearCost += unitYearCost;
+        var margin = discSell > 0 ? ((discSell - unitYearCost) / discSell * 100) : 0;
+        var mColor = margin < 15 ? red : margin < 25 ? [217, 119, 6] : green;
+
+        doc.text(u.name + ' (' + freq + '×/j)', M + 2, y);
+        doc.text(fmtP(discSell) + '/jaar', M + 100, y);
+        doc.setTextColor.apply(doc, mColor);
+        doc.text(pctP(margin), W - M, y, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+        y += 5;
+      });
+
+      // Travel
+      if (params.travel_mode !== 'per_unit') {
+        var travel = p('distance') * p('km_rate');
+        var maxFreq = Math.max.apply(null, recurringUnits.map(function(u) { return FREQ_COUNTS[u.frequency] || 1; }).concat([1]));
+        var travelYear = travel * maxFreq;
+        yearSell += travelYear; yearCost += travelYear;
+        doc.setTextColor.apply(doc, grey);
+        doc.text('Verplaatsing (' + maxFreq + '×)', M + 2, y);
+        doc.text(fmtP(travelYear) + '/jaar', M + 100, y);
+        doc.setTextColor(0, 0, 0);
+        y += 5;
+      }
+
+      var totalMargin = yearSell > 0 ? ((yearSell - yearCost) / yearSell * 100) : 0;
+      doc.setFont(undefined, 'bold');
+      doc.text('Totaal: ' + fmtR(yearSell) + '/jaar  |  ' + fmtR(yearSell * btwMult / 12) + '/mnd incl. BTW  |  Marge: ' + pctP(totalMargin), M + 2, y);
+      y += 10;
+      drawLine(); y += 4;
+    });
+  }
+
+  // ---- EXTERN JAARCONTRACT (KLANT) ----
+  else if (type === 'contract_extern') {
+    drawHeader('Jaarcontract onderhoud', projName);
+    drawProjectInfo();
+
+    var discounts = [p('contract_discount_1'), p('contract_discount_3'), p('contract_discount_5')];
+    var durations = [1, 3, 5];
+    var recurringUnits = units.filter(function(u) { return u.frequency !== 'one-time'; });
+
+    // Scope per unit
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.text('Inbegrepen onderhoudstaken', M, y); y += 8;
+
+    recurringUnits.forEach(function(u) {
+      checkPage(30);
+      var sysLabel = SYSTEM_LABELS[u.system_type] || 'Overig';
+      if (u.wp_type) sysLabel = WP_TYPE_LABELS[u.wp_type] || sysLabel;
+      doc.setFontSize(9); doc.setFont(undefined, 'bold');
+      doc.text(u.name + ' — ' + FREQ_LABELS[u.frequency || 'yearly'], M, y); y += 5;
+
+      var scopeKey = u.system_type;
+      if (u.system_type === 'warmtepomp' && u.wp_type === 'lucht_lucht') {
+        scopeKey = u.airco_formule === 'basic' ? 'airco_basic' : 'airco_allin';
+      } else if (u.system_type === 'warmtepomp') scopeKey = 'warmtepomp';
+
+      var scopeList = SCOPE[scopeKey] ? SCOPE[scopeKey].external : null;
+      if (scopeList) {
+        doc.setFontSize(8); doc.setFont(undefined, 'normal');
+        scopeList.forEach(function(item) {
+          checkPage(5);
+          doc.text('•  ' + item, M + 4, y); y += 4;
+        });
+      }
+      y += 3;
+    });
+
+    drawLine(); y += 6;
+
+    // Pricing comparison
+    checkPage(50);
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.text('Tariefoverzicht', M, y); y += 8;
+
+    var yearSell = 0;
+    recurringUnits.forEach(function(u) {
+      var pr = u._calc;
+      var freq = FREQ_COUNTS[u.frequency] || 1;
+      var filterFreq = u.filter_changes_per_year || 1;
+      yearSell += (pr.sellPrice - pr.filterSell) * freq + pr.filterSell * filterFreq;
+    });
+    if (params.travel_mode !== 'per_unit') {
+      var maxFreq = Math.max.apply(null, recurringUnits.map(function(u) { return FREQ_COUNTS[u.frequency] || 1; }).concat([1]));
+      yearSell += p('distance') * p('km_rate') * maxFreq;
+    }
+
+    // Table header
+    doc.setFillColor.apply(doc, navy);
+    doc.rect(M, y, CW, 8, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont(undefined, 'bold');
+    doc.text('LOOPTIJD', M + 4, y + 5.5);
+    doc.text('KORTING', M + 50, y + 5.5);
+    doc.text('PER JAAR', M + 85, y + 5.5);
+    doc.text('PER MAAND', M + 120, y + 5.5);
+    doc.text('TOTAAL', W - M - 4, y + 5.5, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    y += 11;
+
+    durations.forEach(function(dur, di) {
+      var disc = discounts[di];
+      var price = yearSell * (1 - disc / 100);
+      var best = di === 2; // 5-year = best value
+
+      if (best) { doc.setFillColor(236, 253, 245); doc.rect(M, y - 4, CW, 8, 'F'); }
+
+      doc.setFontSize(9); doc.setFont(undefined, best ? 'bold' : 'normal');
+      doc.text(dur + ' jaar', M + 4, y);
+      doc.text(disc > 0 ? disc + '%' : '—', M + 50, y);
+      doc.text(fmtR(price) + ' excl.', M + 85, y);
+      doc.setFont(undefined, 'bold');
+      doc.text(fmtR(price * btwMult / 12) + ' incl.', M + 120, y);
+      doc.setFont(undefined, 'normal');
+      doc.text(fmtR(price * btwMult * dur), W - M - 4, y, { align: 'right' });
+      y += 8;
+    });
+
+    y += 6;
+    if (btwPct === 6) {
+      doc.setFontSize(7); doc.setTextColor.apply(doc, grey);
+      doc.text('* Verlaagd BTW-tarief van 6% is van toepassing (renovatie woning > 10 jaar).', M, y);
+      doc.setTextColor(0, 0, 0);
+    }
+  }
+
+  // ---- PARTNER PDF ----
+  else if (type === 'partner') {
+    var partnerMarge = partnerInternal ? (partnerInternal.partner_margin_pct || 15) : 15;
+    var partnerFee = partnerInternal ? (partnerInternal.planning_fee || 25) : 25;
+    var selectedPartner = document.getElementById('proj-partner').value;
+    var partner = partners.find(function(pp) { return pp.id === selectedPartner; });
+    var partnerName = partner ? (partner.bedrijfsnaam || partner.naam) : 'Partner';
+
+    drawHeader('Partner rapport — ' + partnerName, projName);
+    drawProjectInfo();
+
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.text('Prijsoverzicht met partner-marge (' + partnerMarge + '% + € ' + partnerFee + '/beurt)', M, y); y += 8;
+
+    var totalFlancco = 0, totalPartner = 0;
+    doc.setFontSize(8);
+
+    units.filter(function(u) { return u.frequency !== 'one-time'; }).forEach(function(u) {
+      checkPage(6);
+      var pr = u._calc;
+      var partnerPrice = pr.sellPrice * (1 + partnerMarge / 100) + partnerFee;
+      totalFlancco += pr.sellPrice;
+      totalPartner += partnerPrice;
+
+      doc.setFont(undefined, 'normal');
+      doc.text(u.name, M + 2, y);
+      doc.text('Flancco: ' + fmtP(pr.sellPrice), M + 80, y);
+      doc.setFont(undefined, 'bold');
+      doc.text('Eindklant: ' + fmtP(partnerPrice) + ' (' + fmtP(partnerPrice * btwMult) + ' incl.)', W - M, y, { align: 'right' });
+      y += 5;
+    });
+
+    y += 4;
+    doc.setFillColor.apply(doc, navy);
+    doc.rect(M, y, CW, 10, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(9); doc.setFont(undefined, 'bold');
+    doc.text('TOTAAL  —  Flancco: ' + fmtR(totalFlancco) + '  |  Eindklant: ' + fmtR(totalPartner) + ' excl. (' + fmtR(totalPartner * btwMult) + ' incl.)', M + 4, y + 7);
+    doc.setTextColor(0, 0, 0);
+  }
+
+  // Footer
+  var pageCount = doc.internal.getNumberOfPages();
+  for (var i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7); doc.setTextColor.apply(doc, grey);
+    doc.text('Flancco BV — Op Maat Calculator  |  ' + projName + (projRef ? ' (' + projRef + ')' : ''), M, 290);
+    doc.text('Pagina ' + i + '/' + pageCount, W - M, 290, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+  }
+
+  var filename = 'Flancco_' + type + '_' + (projRef || projName).replace(/\s+/g, '_') + '.pdf';
+  doc.save(filename);
+  showToast('PDF gedownload: ' + filename);
+}
+
+// =============================================
+// INIT
+// =============================================
+checkAuth();
+</script>
+</body>
+</html>
