@@ -624,6 +624,22 @@
         <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Beheer partners, wijs sectoren toe en stel machtigingen in.</p>
         <div id="admin-partner-list"></div>
       </div>
+      <!-- Checklist-templates beheer -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+          <span class="card-title">Checklist-items per sector</span>
+        </div>
+        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Beheer de checklist-items die techniekers invullen bij het opmaken van een rapport. Items worden in deze volgorde getoond.</p>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="checklist-sector-tabs"></div>
+        <div id="checklist-items-container"></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button onclick="addChecklistItem()" style="padding:8px 16px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Item toevoegen
+          </button>
+          <button onclick="saveChecklistTemplate()" style="padding:8px 16px;background:var(--green);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Opslaan</button>
+        </div>
+      </div>
     </div>
 
     <!-- NIEUWE PARTNER MODAL -->
@@ -1597,6 +1613,122 @@ async function saveSettings() {
   setTimeout(() => msg.style.display = 'none', 2500);
 }
 
+// =============================================
+// CHECKLIST TEMPLATE MANAGEMENT (Fase 6G)
+// =============================================
+var checklistSectors = ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'];
+var activeChecklistSector = 'zonnepanelen';
+var checklistTemplateData = {};
+
+function initChecklistTabs() {
+  var container = document.getElementById('checklist-sector-tabs');
+  if (!container) return;
+  container.innerHTML = checklistSectors.map(function(s) {
+    return '<button onclick="switchChecklistSector(\'' + s + '\')" id="cl-tab-' + s + '" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--rule);background:white;color:var(--text-secondary);transition:all 0.15s ease">' + s.charAt(0).toUpperCase() + s.slice(1) + '</button>';
+  }).join('');
+  switchChecklistSector('zonnepanelen');
+}
+
+async function switchChecklistSector(sector) {
+  activeChecklistSector = sector;
+  // Update tab styling
+  checklistSectors.forEach(function(s) {
+    var tab = document.getElementById('cl-tab-' + s);
+    if (!tab) return;
+    if (s === sector) {
+      tab.style.background = 'var(--navy)';
+      tab.style.color = 'white';
+      tab.style.borderColor = 'var(--navy)';
+    } else {
+      tab.style.background = 'white';
+      tab.style.color = 'var(--text-secondary)';
+      tab.style.borderColor = 'var(--rule)';
+    }
+  });
+  // Load from cache or DB
+  if (!checklistTemplateData[sector]) {
+    var res = await sb.from('checklist_templates').select('*').eq('sector', sector).single();
+    if (res.data && res.data.items) {
+      checklistTemplateData[sector] = { id: res.data.id, items: res.data.items };
+    } else {
+      checklistTemplateData[sector] = { id: null, items: [] };
+    }
+  }
+  renderChecklistItems();
+}
+
+function renderChecklistItems() {
+  var container = document.getElementById('checklist-items-container');
+  var items = checklistTemplateData[activeChecklistSector] ? checklistTemplateData[activeChecklistSector].items : [];
+  if (items.length === 0) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--text-muted);font-style:italic">Geen checklist-items voor deze sector. Voeg items toe of ze worden uit de standaard-template geladen.</p>';
+    return;
+  }
+  container.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + items.map(function(item, idx) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-card);border:var(--border-light);border-radius:var(--radius-sm);box-shadow:var(--shadow-sm)">' +
+      '<span style="color:var(--text-muted);font-size:12px;font-weight:700;min-width:24px">' + (idx + 1) + '</span>' +
+      '<input type="text" value="' + esc(item.key || '') + '" onchange="updateChecklistItem(' + idx + ',\'key\',this.value)" placeholder="key" style="width:120px;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-size:12px;font-family:monospace">' +
+      '<input type="text" value="' + esc(item.label || '') + '" onchange="updateChecklistItem(' + idx + ',\'label\',this.value)" placeholder="Label" style="flex:1;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-size:13px">' +
+      '<input type="text" value="' + esc(item.hint || '') + '" onchange="updateChecklistItem(' + idx + ',\'hint\',this.value)" placeholder="Hint (optioneel)" style="flex:1;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-size:12px;color:var(--text-secondary)">' +
+      '<button onclick="moveChecklistItem(' + idx + ',-1)" title="Omhoog" style="padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:white;cursor:pointer;font-size:14px"' + (idx === 0 ? ' disabled style="opacity:0.3;padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:white;cursor:default;font-size:14px"' : '') + '>' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg></button>' +
+      '<button onclick="moveChecklistItem(' + idx + ',1)" title="Omlaag" style="padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:white;cursor:pointer;font-size:14px"' + (idx === items.length - 1 ? ' disabled style="opacity:0.3;padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:white;cursor:default;font-size:14px"' : '') + '>' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>' +
+      '<button onclick="removeChecklistItem(' + idx + ')" title="Verwijderen" style="padding:4px 6px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;color:#DC2626">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function addChecklistItem() {
+  if (!checklistTemplateData[activeChecklistSector]) {
+    checklistTemplateData[activeChecklistSector] = { id: null, items: [] };
+  }
+  var items = checklistTemplateData[activeChecklistSector].items;
+  var num = items.length + 1;
+  items.push({ key: 'item_' + num, label: '', hint: '' });
+  renderChecklistItems();
+}
+
+function removeChecklistItem(idx) {
+  checklistTemplateData[activeChecklistSector].items.splice(idx, 1);
+  renderChecklistItems();
+}
+
+function updateChecklistItem(idx, field, value) {
+  checklistTemplateData[activeChecklistSector].items[idx][field] = value;
+}
+
+function moveChecklistItem(idx, direction) {
+  var items = checklistTemplateData[activeChecklistSector].items;
+  var newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= items.length) return;
+  var temp = items[idx];
+  items[idx] = items[newIdx];
+  items[newIdx] = temp;
+  renderChecklistItems();
+}
+
+async function saveChecklistTemplate() {
+  var data = checklistTemplateData[activeChecklistSector];
+  if (!data) return;
+  var items = data.items.filter(function(i) { return i.label && i.label.trim(); });
+  // Add order to items
+  items = items.map(function(item, idx) {
+    return { key: item.key || ('item_' + (idx + 1)), label: item.label, hint: item.hint || '', order: idx };
+  });
+  if (data.id) {
+    var res = await sb.from('checklist_templates').update({ items: items, updated_at: new Date().toISOString() }).eq('id', data.id);
+    if (res.error) { alert('Fout: ' + res.error.message); return; }
+  } else {
+    var res = await sb.from('checklist_templates').insert({ sector: activeChecklistSector, items: items });
+    if (res.error) { alert('Fout: ' + res.error.message); return; }
+    if (res.data && res.data[0]) data.id = res.data[0].id;
+  }
+  data.items = items;
+  alert('Checklist voor ' + activeChecklistSector + ' opgeslagen!');
+}
+
 async function doLogout() {
   await sb.auth.signOut();
   location.reload();
@@ -1685,6 +1817,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Techniekers', wagenpark: 'Wagenpark', interventies: 'Interventies', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen' };
   document.getElementById('page-title').textContent = titles[name] || name;
+  if (name === 'admin-instellingen') initChecklistTabs();
 }
 
 // =============================================
