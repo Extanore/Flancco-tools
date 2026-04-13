@@ -32,6 +32,10 @@
   .beurt-info { margin-top: 16px; padding: 16px; background: var(--light); border-radius: 8px; font-size: 13px; line-height: 1.7; }
   .beurt-info strong { color: var(--navy); }
 
+  .installatie-select { margin-top: 12px; padding: 12px 16px; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; }
+  .installatie-select label { font-size: 12px; color: var(--grey); display: block; margin-bottom: 6px; }
+  .installatie-select select { width: 100%; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; font-size: 13px; }
+
   .step-bar { display: flex; gap: 4px; margin-bottom: 24px; }
   .step-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); transition: background 0.3s; }
   .step-dot.done { background: var(--green); }
@@ -74,6 +78,19 @@
   .add-interventie { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1.5px dashed var(--rule); border-radius: 8px; background: none; cursor: pointer; font-size: 13px; color: var(--grey); }
   .add-interventie:hover { border-color: var(--navy); color: var(--navy); }
 
+  /* Uren & materiaal tabel */
+  .uren-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .uren-table th { text-align: left; font-size: 11px; color: var(--grey); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 8px; border-bottom: 2px solid var(--rule); }
+  .uren-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .uren-table input, .uren-table select { width: 100%; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; font-size: 12px; font-family: inherit; }
+  .uren-table input[type="number"] { width: 80px; }
+  .uren-table input[type="date"] { width: 130px; }
+  .uren-table input[type="time"] { width: 100px; }
+  .uren-table .remove-row { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px; }
+  .uren-add { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1.5px dashed var(--rule); border-radius: 6px; background: none; cursor: pointer; font-size: 12px; color: var(--grey); margin-top: 8px; }
+  .uren-add:hover { border-color: var(--navy); color: var(--navy); }
+  .uren-totaal { text-align: right; font-size: 13px; font-weight: 600; color: var(--navy); padding: 8px 0; margin-top: 4px; }
+
   .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
   .summary-row:last-child { border-bottom: none; }
   .summary-label { color: var(--grey); }
@@ -97,16 +114,24 @@
   .sector-warmtepomp { background: #E74C3C20; color: #E74C3C; }
   .sector-ventilatie { background: #1A1A2E20; color: #1A1A2E; }
   .sector-verwarming { background: #6B728020; color: #6B7280; }
+  .sector-airco { background: #0891B220; color: #0891B2; }
+  .sector-ic { background: #05966920; color: #059669; }
+  .sector-klussen { background: #D9770620; color: #D97706; }
 
   .success-screen { text-align: center; padding: 60px 24px; }
   .success-screen svg { width: 64px; height: 64px; color: var(--green); margin-bottom: 16px; }
   .success-screen h2 { font-size: 20px; color: var(--navy); margin-bottom: 8px; }
   .success-screen p { color: var(--grey); font-size: 14px; margin-bottom: 24px; }
 
+  .prijs-veld { display: none; }
+  .prijs-veld.visible { display: block; }
+
   @media (max-width: 600px) {
     .wizard-wrap { margin: 16px auto; padding: 0 12px; }
     .card { padding: 16px; }
     .interventie-card .row { flex-direction: column; }
+    .uren-table { font-size: 11px; }
+    .uren-table input, .uren-table select { font-size: 11px; }
   }
 </style>
 </head>
@@ -131,6 +156,10 @@
         <option value="">— Kies een onderhoudsbeurt —</option>
       </select>
       <div id="beurt-info-box" class="beurt-info" style="display:none"></div>
+      <div id="installatie-picker" class="installatie-select" style="display:none">
+        <label>Gekoppelde installatie</label>
+        <select id="installatie-select"></select>
+      </div>
     </div>
 
     <div id="wizard" style="display:none">
@@ -162,6 +191,33 @@
         </div>
       </div>
 
+      <div class="step" id="step-uren">
+        <div class="card">
+          <h3>Gewerkte uren</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Registreer de gewerkte uren per technieker.</p>
+          <table class="uren-table" id="uren-table">
+            <thead><tr><th>Technieker</th><th>Datum</th><th>Start</th><th>Eind</th><th>Uren</th><th>Uurtarief</th><th>Km</th><th></th></tr></thead>
+            <tbody id="uren-body"></tbody>
+          </table>
+          <div class="uren-totaal" id="uren-totaal"></div>
+          <button class="uren-add" onclick="addUrenRij()">+ Uur toevoegen</button>
+        </div>
+        <div class="card">
+          <h3>Materialen</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Registreer gebruikte materialen.</p>
+          <table class="uren-table" id="materiaal-table">
+            <thead><tr><th>Omschrijving</th><th>Aantal</th><th>Stukprijs</th><th>Leverancier</th><th></th></tr></thead>
+            <tbody id="materiaal-body"></tbody>
+          </table>
+          <div class="uren-totaal" id="materiaal-totaal"></div>
+          <button class="uren-add" onclick="addMateriaalRij()">+ Materiaal toevoegen</button>
+        </div>
+        <div class="wizard-nav">
+          <button class="btn btn-secondary" onclick="prevStep()">← Terug</button>
+          <button class="btn btn-primary" onclick="nextStep()">Verder →</button>
+        </div>
+      </div>
+
       <div class="step" id="step-opmerkingen">
         <div class="card">
           <h3>Opmerkingen</h3>
@@ -184,13 +240,17 @@
           <h3>Samenvatting</h3>
           <div id="summary-content"></div>
         </div>
+        <div class="card" id="summary-uren" style="display:none">
+          <h3>Uren & materiaal</h3>
+          <div id="summary-uren-content"></div>
+        </div>
         <div class="card" id="summary-interventies" style="display:none">
           <h3>Interventies</h3>
           <div id="summary-interventies-list"></div>
         </div>
         <div class="wizard-nav">
           <button class="btn btn-secondary" onclick="prevStep()">← Terug</button>
-          <button class="btn btn-success" id="btn-save" onclick="saveRapport()">✓ Rapport opslaan</button>
+          <button class="btn btn-success" id="btn-save" onclick="saveRapport()">Rapport opslaan</button>
         </div>
       </div>
 
@@ -200,7 +260,7 @@
           <h2>Rapport opgeslagen!</h2>
           <p id="success-ref">Referentie: —</p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-            <button class="btn btn-success" onclick="downloadPDF()">📄 Download PDF</button>
+            <button class="btn btn-success" onclick="downloadPDF()">Download PDF</button>
             <a href="planning.html" class="btn btn-primary">← Terug naar planning</a>
             <button class="btn btn-secondary" onclick="location.reload()">Nieuw rapport</button>
           </div>
@@ -217,16 +277,20 @@ var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 var currentUser = null;
 var currentBeurt = null;
 var currentContract = null;
+var currentInstallaties = [];
 var fotos = [];
 var interventieCount = 0;
+var urenCount = 0;
+var materiaalCount = 0;
 var wizardStep = 0;
 var lastSavedRef = '';
-var steps = ['checklist','fotos','opmerkingen','samenvatting','success'];
+var lastSavedRapportId = '';
+var steps = ['checklist','fotos','uren','opmerkingen','samenvatting','success'];
 
 function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 // ═══════════════════════════════
-// CHECKLISTS PER SECTOR
+// CHECKLISTS PER SECTOR (fallback)
 // ═══════════════════════════════
 var CHECKLISTS = {
   zonnepanelen: [
@@ -268,8 +332,41 @@ var CHECKLISTS = {
     { key: 'expansievat', label: 'Expansievat gecontroleerd', hint: 'Voordruk, werking' },
     { key: 'veiligheidsklep', label: 'Veiligheidsklep', hint: 'Werking, geen lekkage' },
     { key: 'thermostaat', label: 'Thermostaat & regeling', hint: 'Programmatie, kamerthermostaat' }
+  ],
+  airco: [
+    { key: 'filter_reiniging', label: 'Filters gereinigd/vervangen', hint: 'Binnenunit filters' },
+    { key: 'koudemiddel', label: 'Koudemiddeldruk gecontroleerd', hint: 'Manometercheck, lekdetectie' },
+    { key: 'binnenunit', label: 'Binnenunit inspectie', hint: 'Warmtewisselaar, condensafvoer, ventilator' },
+    { key: 'buitenunit', label: 'Buitenunit inspectie', hint: 'Lamellen, ventilator, ruimte rondom' },
+    { key: 'elektrisch', label: 'Elektrische aansluitingen', hint: 'Contacten, zekeringen, aarding' },
+    { key: 'thermostaat', label: 'Thermostaat & afstandsbediening', hint: 'Instellingen, modi' },
+    { key: 'condensafvoer', label: 'Condensafvoer', hint: 'Afvoer vrij, geen lekkage' },
+    { key: 'geluidscheck', label: 'Geluidscheck', hint: 'Trillingen of abnormale geluiden' }
+  ],
+  ic: [
+    { key: 'oppervlakte', label: 'Oppervlakte gereinigd', hint: 'Alle aangewezen zones' },
+    { key: 'apparatuur', label: 'Apparatuur gecontroleerd', hint: 'Droogijsmachine, compressor' },
+    { key: 'resultaat', label: 'Reinigingsresultaat', hint: 'Visuele beoordeling na reiniging' },
+    { key: 'veiligheid', label: 'Veiligheidsmaatregelen', hint: 'PBM, ventilatie, afzetting' },
+    { key: 'afval', label: 'Afvalbeheer', hint: 'Residu opgeruimd, afvoer correct' },
+    { key: 'schade', label: 'Schade-inspectie', hint: 'Geen schade aan oppervlak/omgeving' },
+    { key: 'documentatie', label: 'Documentatie', hint: 'Voor/na foto\'s, verbruik droogijs' },
+    { key: 'oplevering', label: 'Oplevering met klant', hint: 'Goedkeuring resultaat' }
+  ],
+  klussen: [
+    { key: 'opdracht', label: 'Opdracht besproken', hint: 'Scope bevestigd met klant' },
+    { key: 'materiaal', label: 'Materiaal gecontroleerd', hint: 'Alle benodigdheden aanwezig' },
+    { key: 'uitvoering', label: 'Uitvoering werk', hint: 'Volgens afspraak uitgevoerd' },
+    { key: 'kwaliteit', label: 'Kwaliteitscontrole', hint: 'Afwerking, netheid' },
+    { key: 'veiligheid', label: 'Veiligheidsmaatregelen', hint: 'PBM, werkzone veilig' },
+    { key: 'opruimen', label: 'Werkzone opgeruimd', hint: 'Schoon achtergelaten' },
+    { key: 'extra_werk', label: 'Extra werk vastgesteld', hint: 'Bijkomende werken nodig?' },
+    { key: 'oplevering', label: 'Oplevering met klant', hint: 'Goedkeuring resultaat' }
   ]
 };
+
+// Active checklist items (may be overridden from DB)
+var activeChecklistItems = [];
 
 // ═══════════════════════════════
 // AUTH
@@ -293,9 +390,10 @@ async function init() {
   var params = new URLSearchParams(window.location.search);
   var beurtId = params.get('beurt');
 
+  // Load beurten: ingepland, in_te_plannen EN uitgevoerd (voor rapportage-tab flow)
   var beurtenRes = await sb.from('onderhoudsbeurten')
     .select('*, contracten(id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_telefoon, klant_email, sector, sector_details, partner_id, client_id)')
-    .in('status', ['ingepland', 'in_te_plannen'])
+    .in('status', ['ingepland', 'in_te_plannen', 'uitgevoerd'])
     .order('plan_datum');
 
   var beurten = beurtenRes.data || [];
@@ -304,7 +402,8 @@ async function init() {
     var c = b.contracten;
     var opt = document.createElement('option');
     opt.value = b.id;
-    opt.textContent = (b.plan_datum || b.due_date || '?') + ' — ' + (c ? c.klant_naam : '?') + ' — ' + b.sector;
+    var statusTag = b.status === 'uitgevoerd' ? ' [rapport nodig]' : '';
+    opt.textContent = (b.plan_datum || b.due_date || '?') + ' — ' + (c ? c.klant_naam : '?') + ' — ' + b.sector + statusTag;
     select.appendChild(opt);
   });
   window._beurten = beurten;
@@ -322,13 +421,13 @@ function doLogout() { sb.auth.signOut().then(function() { window.location.href =
 // ═══════════════════════════════
 async function selectBeurt() {
   var id = document.getElementById('beurt-select').value;
-  if (!id) { document.getElementById('beurt-info-box').style.display = 'none'; document.getElementById('wizard').style.display = 'none'; return; }
+  if (!id) { document.getElementById('beurt-info-box').style.display = 'none'; document.getElementById('wizard').style.display = 'none'; document.getElementById('installatie-picker').style.display = 'none'; return; }
 
   currentBeurt = window._beurten.find(function(b) { return b.id === id; });
   if (!currentBeurt) return;
   currentContract = currentBeurt.contracten;
 
-  var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var info = document.getElementById('beurt-info-box');
   info.innerHTML =
     '<strong>' + esc(currentContract.klant_naam) + '</strong><br>' +
@@ -338,15 +437,83 @@ async function selectBeurt() {
     (currentBeurt.plan_datum ? '<br>Gepland: ' + currentBeurt.plan_datum : '');
   info.style.display = 'block';
 
+  // Load installaties for this client + load checklist from DB
+  await Promise.all([loadInstallaties(), loadChecklistFromDB()]);
+
   wizardStep = 0;
   initChecklist();
   initStepBar();
   renderStep();
   fotos = [];
   interventieCount = 0;
+  urenCount = 0;
+  materiaalCount = 0;
   document.getElementById('interventies-list').innerHTML = '';
+  document.getElementById('uren-body').innerHTML = '';
+  document.getElementById('materiaal-body').innerHTML = '';
+  document.getElementById('uren-totaal').textContent = '';
+  document.getElementById('materiaal-totaal').textContent = '';
   document.getElementById('rapport-opmerkingen').value = '';
   document.getElementById('wizard').style.display = 'block';
+
+  // Pre-add one uren row
+  addUrenRij();
+}
+
+// ═══════════════════════════════
+// INSTALLATIE LADEN
+// ═══════════════════════════════
+async function loadInstallaties() {
+  var picker = document.getElementById('installatie-picker');
+  var select = document.getElementById('installatie-select');
+  currentInstallaties = [];
+
+  if (!currentContract || !currentContract.client_id) { picker.style.display = 'none'; return; }
+
+  var res = await sb.from('klant_installaties').select('*').eq('client_id', currentContract.client_id);
+  var all = res.data || [];
+
+  // Filter by sector
+  var sectorMatch = all.filter(function(inst) { return inst.installation_type === currentBeurt.sector; });
+  currentInstallaties = sectorMatch;
+
+  if (sectorMatch.length === 0) {
+    picker.style.display = 'none';
+    return;
+  }
+
+  select.innerHTML = '<option value="">— Geen installatie gekoppeld —</option>';
+  sectorMatch.forEach(function(inst) {
+    var opt = document.createElement('option');
+    opt.value = inst.id;
+    var label = (inst.brand || '') + ' ' + (inst.model || '');
+    if (inst.installation_date) label += ' (' + inst.installation_date + ')';
+    if (!label.trim()) label = inst.installation_type;
+    opt.textContent = label.trim();
+    select.appendChild(opt);
+  });
+
+  // Auto-select if only one
+  if (sectorMatch.length === 1) select.value = sectorMatch[0].id;
+
+  picker.style.display = 'block';
+}
+
+// ═══════════════════════════════
+// CHECKLIST LADEN UIT DB
+// ═══════════════════════════════
+async function loadChecklistFromDB() {
+  try {
+    var res = await sb.from('checklist_templates').select('*').eq('sector', currentBeurt.sector).single();
+    if (res.data && res.data.items && res.data.items.length > 0) {
+      activeChecklistItems = res.data.items.map(function(item) {
+        return { key: item.key, label: item.label, hint: item.hint || '' };
+      });
+      return;
+    }
+  } catch(e) {}
+  // Fallback to hardcoded
+  activeChecklistItems = CHECKLISTS[currentBeurt.sector] || [];
 }
 
 // ═══════════════════════════════
@@ -367,7 +534,7 @@ function renderStep() {
   document.querySelectorAll('.step-dot').forEach(function(d, i) {
     d.className = 'step-dot' + (i < wizardStep ? ' done' : '') + (i === wizardStep ? ' active' : '');
   });
-  if (wizardStep === 3) renderSamenvatting();
+  if (wizardStep === 4) renderSamenvatting();
 }
 
 function nextStep() { if (wizardStep < steps.length - 1) { wizardStep++; renderStep(); window.scrollTo(0, 0); } }
@@ -378,8 +545,8 @@ function prevStep() { if (wizardStep > 0) { wizardStep--; renderStep(); window.s
 // ═══════════════════════════════
 function initChecklist() {
   var sector = currentBeurt.sector;
-  var items = CHECKLISTS[sector] || [];
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var items = activeChecklistItems.length > 0 ? activeChecklistItems : (CHECKLISTS[sector] || []);
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   document.getElementById('checklist-title').textContent = 'Checklist — ' + (sectorLabels[sector] || sector);
 
   document.getElementById('checklist-items').innerHTML = items.map(function(item) {
@@ -389,7 +556,7 @@ function initChecklist() {
         '<button class="check-btn" onclick="setCheck(this,\'nok\')" title="Niet OK">&#10007;</button>' +
         '<button class="check-btn" onclick="setCheck(this,\'na\')" title="N.v.t.">—</button>' +
       '</div>' +
-      '<div class="check-label">' + esc(item.label) + '<small>' + esc(item.hint) + '</small>' +
+      '<div class="check-label">' + esc(item.label) + '<small>' + esc(item.hint || '') + '</small>' +
         '<textarea class="check-note" placeholder="Opmerking bij dit punt..." rows="2"></textarea>' +
       '</div></div>';
   }).join('');
@@ -428,12 +595,127 @@ function handleFotos(e) {
 function renderFotos() {
   var grid = document.getElementById('foto-grid');
   grid.innerHTML = fotos.map(function(f, i) {
-    return '<div class="foto-thumb"><img src="' + f.preview + '"><button class="remove-foto" onclick="removeFoto(' + i + ')">×</button></div>';
+    return '<div class="foto-thumb"><img src="' + f.preview + '"><button class="remove-foto" onclick="removeFoto(' + i + ')">x</button></div>';
   }).join('') +
     '<label class="foto-upload-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handleFotos(event)"></label>';
 }
 
 function removeFoto(i) { fotos.splice(i, 1); renderFotos(); }
+
+// ═══════════════════════════════
+// UREN & MATERIAAL
+// ═══════════════════════════════
+function addUrenRij() {
+  urenCount++;
+  var datum = currentBeurt.plan_datum || new Date().toISOString().split('T')[0];
+  document.getElementById('uren-body').insertAdjacentHTML('beforeend',
+    '<tr id="uren-' + urenCount + '">' +
+      '<td><input type="text" class="uur-tech" placeholder="Naam"></td>' +
+      '<td><input type="date" class="uur-datum" value="' + datum + '"></td>' +
+      '<td><input type="time" class="uur-start" value="08:00"></td>' +
+      '<td><input type="time" class="uur-eind" value="12:00" onchange="berekenUren(this)"></td>' +
+      '<td><input type="number" class="uur-uren" step="0.25" value="4" min="0" onchange="updateUrenTotaal()"></td>' +
+      '<td><input type="number" class="uur-tarief" step="0.01" placeholder="0.00" onchange="updateUrenTotaal()"></td>' +
+      '<td><input type="number" class="uur-km" step="1" placeholder="0" min="0"></td>' +
+      '<td><button class="remove-row" onclick="removeUrenRij(' + urenCount + ')">&times;</button></td>' +
+    '</tr>');
+  updateUrenTotaal();
+}
+
+function removeUrenRij(id) {
+  var row = document.getElementById('uren-' + id);
+  if (row) row.remove();
+  updateUrenTotaal();
+}
+
+function berekenUren(endInput) {
+  var row = endInput.closest('tr');
+  var start = row.querySelector('.uur-start').value;
+  var end = row.querySelector('.uur-eind').value;
+  if (start && end) {
+    var s = start.split(':'), e = end.split(':');
+    var diff = (parseInt(e[0]) * 60 + parseInt(e[1])) - (parseInt(s[0]) * 60 + parseInt(s[1]));
+    if (diff > 0) row.querySelector('.uur-uren').value = (diff / 60).toFixed(2);
+  }
+  updateUrenTotaal();
+}
+
+function updateUrenTotaal() {
+  var totaal = 0;
+  document.querySelectorAll('#uren-body tr').forEach(function(row) {
+    var uren = parseFloat(row.querySelector('.uur-uren').value) || 0;
+    var tarief = parseFloat(row.querySelector('.uur-tarief').value) || 0;
+    totaal += uren * tarief;
+  });
+  var el = document.getElementById('uren-totaal');
+  if (totaal > 0) el.textContent = 'Totaal uren: \u20AC ' + totaal.toFixed(2);
+  else el.textContent = '';
+}
+
+function addMateriaalRij() {
+  materiaalCount++;
+  document.getElementById('materiaal-body').insertAdjacentHTML('beforeend',
+    '<tr id="mat-' + materiaalCount + '">' +
+      '<td><input type="text" class="mat-naam" placeholder="Omschrijving"></td>' +
+      '<td><input type="number" class="mat-aantal" value="1" min="1" onchange="updateMateriaalTotaal()"></td>' +
+      '<td><input type="number" class="mat-prijs" step="0.01" placeholder="0.00" onchange="updateMateriaalTotaal()"></td>' +
+      '<td><input type="text" class="mat-leverancier" placeholder="Leverancier"></td>' +
+      '<td><button class="remove-row" onclick="removeMateriaalRij(' + materiaalCount + ')">&times;</button></td>' +
+    '</tr>');
+  updateMateriaalTotaal();
+}
+
+function removeMateriaalRij(id) {
+  var row = document.getElementById('mat-' + id);
+  if (row) row.remove();
+  updateMateriaalTotaal();
+}
+
+function updateMateriaalTotaal() {
+  var totaal = 0;
+  document.querySelectorAll('#materiaal-body tr').forEach(function(row) {
+    var aantal = parseFloat(row.querySelector('.mat-aantal').value) || 0;
+    var prijs = parseFloat(row.querySelector('.mat-prijs').value) || 0;
+    totaal += aantal * prijs;
+  });
+  var el = document.getElementById('materiaal-totaal');
+  if (totaal > 0) el.textContent = 'Totaal materiaal: \u20AC ' + totaal.toFixed(2);
+  else el.textContent = '';
+}
+
+function getUrenData() {
+  var list = [];
+  document.querySelectorAll('#uren-body tr').forEach(function(row) {
+    var tech = row.querySelector('.uur-tech').value.trim();
+    var uren = parseFloat(row.querySelector('.uur-uren').value) || 0;
+    if (!tech && uren === 0) return;
+    list.push({
+      technieker: tech,
+      datum: row.querySelector('.uur-datum').value,
+      start: row.querySelector('.uur-start').value,
+      eind: row.querySelector('.uur-eind').value,
+      uren: uren,
+      uurtarief: parseFloat(row.querySelector('.uur-tarief').value) || 0,
+      km: parseFloat(row.querySelector('.uur-km').value) || 0
+    });
+  });
+  return list;
+}
+
+function getMateriaalData() {
+  var list = [];
+  document.querySelectorAll('#materiaal-body tr').forEach(function(row) {
+    var naam = row.querySelector('.mat-naam').value.trim();
+    if (!naam) return;
+    list.push({
+      naam: naam,
+      aantal: parseFloat(row.querySelector('.mat-aantal').value) || 1,
+      stukprijs: parseFloat(row.querySelector('.mat-prijs').value) || 0,
+      leverancier: row.querySelector('.mat-leverancier').value.trim()
+    });
+  });
+  return list;
+}
 
 // ═══════════════════════════════
 // INTERVENTIES
@@ -450,9 +732,21 @@ function addInterventie() {
       '<div class="row"><div style="flex:1"><label>Omschrijving *</label><textarea class="int-omschrijving" placeholder="Beschrijf het probleem..."></textarea></div></div>' +
       '<div class="row">' +
         '<div style="flex:1"><label>Ernst</label><select class="int-ernst"><option value="laag">Laag</option><option value="normaal" selected>Normaal</option><option value="urgent">Urgent</option></select></div>' +
-        '<div style="flex:1"><label>Actie door</label><select class="int-actie"><option value="flancco">Flancco</option><option value="partner">Partner</option></select></div>' +
+        '<div style="flex:1"><label>Type</label><select class="int-type" onchange="togglePrijsVeld(this)"><option value="doorspelen">Doorspelen naar partner</option><option value="aanvraag">Interventieaanvraag</option></select></div>' +
         '<div style="flex:1"><label>Opgelost ter plaatse?</label><select class="int-opgelost"><option value="false">Nee</option><option value="true">Ja</option></select></div>' +
-      '</div></div>');
+      '</div>' +
+      '<div class="row">' +
+        '<div style="flex:1" class="prijs-veld"><label>Prijsvoorstel (bij aanvraag)</label><input type="number" class="int-prijs" step="0.01" placeholder="0.00"></div>' +
+        '<div style="flex:1"><label>Actie door</label><select class="int-actie"><option value="flancco">Flancco</option><option value="partner">Partner</option></select></div>' +
+      '</div>' +
+    '</div>');
+}
+
+function togglePrijsVeld(select) {
+  var card = select.closest('.interventie-card');
+  var prijsVeld = card.querySelector('.prijs-veld');
+  if (select.value === 'aanvraag') prijsVeld.classList.add('visible');
+  else prijsVeld.classList.remove('visible');
 }
 
 function getInterventies() {
@@ -460,7 +754,15 @@ function getInterventies() {
   document.querySelectorAll('.interventie-card').forEach(function(card) {
     var omschr = card.querySelector('.int-omschrijving').value.trim();
     if (!omschr) return;
-    list.push({ omschrijving: omschr, ernst: card.querySelector('.int-ernst').value, actie_door: card.querySelector('.int-actie').value, opgelost_ter_plaatse: card.querySelector('.int-opgelost').value === 'true' });
+    var type = card.querySelector('.int-type').value;
+    list.push({
+      omschrijving: omschr,
+      ernst: card.querySelector('.int-ernst').value,
+      type: type,
+      actie_door: card.querySelector('.int-actie').value,
+      opgelost_ter_plaatse: card.querySelector('.int-opgelost').value === 'true',
+      prijs_voorstel: type === 'aanvraag' ? (parseFloat(card.querySelector('.int-prijs').value) || null) : null
+    });
   });
   return list;
 }
@@ -473,10 +775,18 @@ function renderSamenvatting() {
   var ok = 0, nok = 0, na = 0, empty = 0;
   Object.values(chk).forEach(function(v) { if (v.status === 'ok') ok++; else if (v.status === 'nok') nok++; else if (v.status === 'na') na++; else empty++; });
 
+  var installatieLabel = '—';
+  var instSelect = document.getElementById('installatie-select');
+  if (instSelect && instSelect.value) {
+    var opt = instSelect.options[instSelect.selectedIndex];
+    installatieLabel = opt ? opt.textContent : instSelect.value;
+  }
+
   document.getElementById('summary-content').innerHTML =
     '<div class="summary-row"><span class="summary-label">Klant</span><span class="summary-value">' + esc(currentContract.klant_naam) + '</span></div>' +
     '<div class="summary-row"><span class="summary-label">Adres</span><span class="summary-value">' + esc((currentContract.klant_adres||'') + ', ' + (currentContract.klant_postcode||'') + ' ' + (currentContract.klant_gemeente||'')) + '</span></div>' +
     '<div class="summary-row"><span class="summary-label">Sector</span><span class="summary-value"><span class="sector-badge sector-' + currentBeurt.sector + '">' + currentBeurt.sector + '</span></span></div>' +
+    '<div class="summary-row"><span class="summary-label">Installatie</span><span class="summary-value">' + esc(installatieLabel) + '</span></div>' +
     '<div class="summary-row"><span class="summary-label">Datum</span><span class="summary-value">' + (currentBeurt.plan_datum || new Date().toISOString().split('T')[0]) + '</span></div>' +
     '<div class="summary-row"><span class="summary-label">Checklist</span><span class="summary-value">' +
       '<span class="summary-badge badge-ok">&#10003; ' + ok + '</span> ' +
@@ -487,14 +797,40 @@ function renderSamenvatting() {
     '<div class="summary-row"><span class="summary-label">Foto\'s</span><span class="summary-value">' + fotos.length + '</span></div>' +
     '<div class="summary-row"><span class="summary-label">Opmerkingen</span><span class="summary-value">' + (document.getElementById('rapport-opmerkingen').value.trim() ? 'Ja' : 'Geen') + '</span></div>';
 
+  // Uren & materiaal samenvatting
+  var uren = getUrenData();
+  var materiaal = getMateriaalData();
+  var urenBlock = document.getElementById('summary-uren');
+  if (uren.length > 0 || materiaal.length > 0) {
+    urenBlock.style.display = 'block';
+    var html = '';
+    if (uren.length > 0) {
+      var totUren = 0, totUrenKost = 0, totKm = 0;
+      uren.forEach(function(u) { totUren += u.uren; totUrenKost += u.uren * u.uurtarief; totKm += u.km; });
+      html += '<div class="summary-row"><span class="summary-label">Gewerkte uren</span><span class="summary-value">' + totUren.toFixed(1) + ' uur' + (totUrenKost > 0 ? ' (\u20AC ' + totUrenKost.toFixed(2) + ')' : '') + '</span></div>';
+      if (totKm > 0) html += '<div class="summary-row"><span class="summary-label">Kilometers</span><span class="summary-value">' + totKm + ' km</span></div>';
+    }
+    if (materiaal.length > 0) {
+      var totMat = 0;
+      materiaal.forEach(function(m) { totMat += m.aantal * m.stukprijs; });
+      html += '<div class="summary-row"><span class="summary-label">Materialen</span><span class="summary-value">' + materiaal.length + ' item(s)' + (totMat > 0 ? ' (\u20AC ' + totMat.toFixed(2) + ')' : '') + '</span></div>';
+    }
+    document.getElementById('summary-uren-content').innerHTML = html;
+  } else { urenBlock.style.display = 'none'; }
+
+  // Interventies
   var ints = getInterventies();
   var intBlock = document.getElementById('summary-interventies');
   if (ints.length > 0) {
     intBlock.style.display = 'block';
     var ernstColor = { laag: 'var(--blue)', normaal: 'var(--orange)', urgent: 'var(--red)' };
+    var typeLabel = { doorspelen: 'Doorspelen', aanvraag: 'Aanvraag' };
     document.getElementById('summary-interventies-list').innerHTML = ints.map(function(iv) {
       return '<div style="padding:8px 0;border-bottom:1px solid var(--rule);font-size:13px">' +
-        '<span style="color:' + (ernstColor[iv.ernst]||'var(--grey)') + ';font-weight:600">&#9679; ' + iv.ernst.toUpperCase() + '</span> — ' + esc(iv.omschrijving) +
+        '<span style="color:' + (ernstColor[iv.ernst]||'var(--grey)') + ';font-weight:600">&#9679; ' + iv.ernst.toUpperCase() + '</span>' +
+        ' <span style="font-size:11px;color:var(--grey)">(' + (typeLabel[iv.type]||iv.type) + ')</span>' +
+        ' — ' + esc(iv.omschrijving) +
+        (iv.prijs_voorstel ? ' <span style="color:var(--navy);font-size:11px">[\u20AC ' + iv.prijs_voorstel.toFixed(2) + ']</span>' : '') +
         (iv.opgelost_ter_plaatse ? ' <span style="color:var(--green);font-size:11px">(opgelost)</span>' : '') + '</div>';
     }).join('');
   } else { intBlock.style.display = 'none'; }
@@ -504,11 +840,10 @@ function renderSamenvatting() {
 // OPSLAAN
 // ═══════════════════════════════
 async function saveRapport() {
-  // Validate checklist — at least one item must be checked
   var checkData = getChecklistData();
   var hasChecked = Object.values(checkData).some(function(item) { return item.status !== null; });
   if (!hasChecked) {
-    alert('Vul minstens één checklist-item in voordat je het rapport opslaat.');
+    alert('Vul minstens een checklist-item in voordat je het rapport opslaat.');
     return;
   }
 
@@ -532,6 +867,13 @@ async function saveRapport() {
     if (currentBeurt.sector === 'warmtepomp' && details.warmtepomp) formule = details.warmtepomp.formule || null;
     if (currentBeurt.sector === 'ventilatie' && details.ventilatie) systeem = details.ventilatie.type || null;
 
+    // Selected installatie
+    var installatieId = document.getElementById('installatie-select').value || null;
+
+    // Uren & materiaal
+    var urenData = getUrenData();
+    var materiaalData = getMateriaalData();
+
     var rapportRes = await sb.from('rapporten').insert([{
       onderhoudsbeurt_id: currentBeurt.id,
       contract_id: currentContract.id,
@@ -539,45 +881,89 @@ async function saveRapport() {
       sector: currentBeurt.sector,
       formule: formule,
       systeem: systeem,
-      checklist_data: getChecklistData(),
+      checklist_data: checkData,
       foto_urls: fotoUrls,
       opmerkingen: document.getElementById('rapport-opmerkingen').value.trim() || null,
       technieker_id: currentBeurt.technieker_id,
       datum_onderhoud: datum,
-      klant_snapshot: { naam: currentContract.klant_naam, adres: currentContract.klant_adres, postcode: currentContract.klant_postcode, gemeente: currentContract.klant_gemeente, telefoon: currentContract.klant_telefoon, email: currentContract.klant_email }
+      klant_snapshot: { naam: currentContract.klant_naam, adres: currentContract.klant_adres, postcode: currentContract.klant_postcode, gemeente: currentContract.klant_gemeente, telefoon: currentContract.klant_telefoon, email: currentContract.klant_email },
+      installatie_id: installatieId,
+      uren_data: urenData.length > 0 ? urenData : null,
+      materiaal_data: materiaalData.length > 0 ? materiaalData : null
     }]).select();
     if (rapportRes.error) throw rapportRes.error;
 
-    // Interventies
+    var rapportId = rapportRes.data[0].id;
+    lastSavedRapportId = rapportId;
+
+    // Interventies — extended with type, prijs_voorstel, doorgespeeld_naar_partner_id
     var ints = getInterventies();
     if (ints.length > 0) {
       await sb.from('interventies').insert(ints.map(function(iv) {
-        return { contract_id: currentContract.id, onderhoudsbeurt_id: currentBeurt.id, rapport_id: rapportRes.data[0].id,
-          omschrijving: iv.omschrijving, ernst: iv.ernst, actie_door: iv.actie_door, opgelost_ter_plaatse: iv.opgelost_ter_plaatse,
-          status: iv.opgelost_ter_plaatse ? 'afgehandeld' : 'open', afhandel_datum: iv.opgelost_ter_plaatse ? datum : null };
+        return {
+          contract_id: currentContract.id,
+          onderhoudsbeurt_id: currentBeurt.id,
+          rapport_id: rapportId,
+          installatie_id: installatieId,
+          omschrijving: iv.omschrijving,
+          ernst: iv.ernst,
+          type: iv.type,
+          actie_door: iv.actie_door,
+          opgelost_ter_plaatse: iv.opgelost_ter_plaatse,
+          status: iv.opgelost_ter_plaatse ? 'afgehandeld' : 'open',
+          afhandel_datum: iv.opgelost_ter_plaatse ? datum : null,
+          prijs_voorstel: iv.prijs_voorstel,
+          doorgespeeld_naar_partner_id: currentContract.partner_id,
+          partner_goedkeuring: iv.type === 'aanvraag' ? 'pending' : null
+        };
       }));
     }
 
-    // Update beurt status
-    await sb.from('onderhoudsbeurten').update({ status: 'uitgevoerd', uitvoer_datum: datum, updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
-    auditLog('onderhoudsbeurten', currentBeurt.id, 'status_wijziging', currentBeurt.status, 'uitgevoerd');
-    auditLog('rapporten', rapportRes.data[0].id, 'aangemaakt', null, ref);
+    // Generate PDF and upload to Storage
+    var pdfBlob = generatePDFBlob();
+    if (pdfBlob) {
+      var pdfPath = 'rapporten/' + ref + '.pdf';
+      var pdfUpload = await sb.storage.from('handtekeningen').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' });
+      if (!pdfUpload.error) {
+        var pdfUrl = sb.storage.from('handtekeningen').getPublicUrl(pdfPath).data.publicUrl;
+        await sb.from('rapporten').update({ pdf_url: pdfUrl }).eq('id', rapportId);
+      }
+    }
+
+    // Update beurt status to 'afgewerkt'
+    await sb.from('onderhoudsbeurten').update({ status: 'afgewerkt', uitvoer_datum: datum, updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
+    auditLog('onderhoudsbeurten', currentBeurt.id, 'status_wijziging', currentBeurt.status, 'afgewerkt');
+    auditLog('rapporten', rapportId, 'aangemaakt', null, ref);
 
     lastSavedRef = ref;
     document.getElementById('success-ref').textContent = 'Referentie: ' + ref;
-    wizardStep = 4; renderStep();
+    wizardStep = 5; renderStep();
   } catch (err) {
     alert('Fout: ' + (err.message || err));
-    btn.disabled = false; btn.textContent = '✓ Rapport opslaan';
+    btn.disabled = false; btn.textContent = 'Rapport opslaan';
   }
 }
 
 // ═══════════════════════════════
 // PDF GENERATIE
 // ═══════════════════════════════
+function generatePDFBlob() {
+  try {
+    var { jsPDF } = window.jspdf;
+    var doc = new jsPDF('p', 'mm', 'a4');
+    buildPDF(doc);
+    return doc.output('blob');
+  } catch(e) { console.warn('PDF generation failed:', e); return null; }
+}
+
 function downloadPDF() {
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF('p', 'mm', 'a4');
+  buildPDF(doc);
+  doc.save(lastSavedRef + '.pdf');
+}
+
+function buildPDF(doc) {
   var pageW = 210, margin = 20, contentW = pageW - 2 * margin;
   var y = 20;
 
@@ -607,9 +993,9 @@ function downloadPDF() {
   doc.setTextColor(60, 60, 60);
   var klant = currentContract || {};
   var klantLines = [
-    'Naam: ' + (klant.klant_naam || '—'),
+    'Naam: ' + (klant.klant_naam || '\u2014'),
     'Adres: ' + (klant.klant_adres || '') + ', ' + (klant.klant_postcode || '') + ' ' + (klant.klant_gemeente || ''),
-    'Tel: ' + (klant.klant_telefoon || '—') + '  |  Email: ' + (klant.klant_email || '—')
+    'Tel: ' + (klant.klant_telefoon || '\u2014') + '  |  Email: ' + (klant.klant_email || '\u2014')
   ];
   klantLines.forEach(function(l) { doc.text(l, margin, y); y += 5; });
   y += 3;
@@ -619,10 +1005,17 @@ function downloadPDF() {
   doc.rect(margin, y - 2, contentW, 22, 'F');
   doc.setTextColor(26, 26, 46);
   doc.setFontSize(10);
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   doc.text('Sector: ' + (sectorLabels[currentBeurt.sector] || currentBeurt.sector), margin + 4, y + 5);
-  doc.text('Datum: ' + (currentBeurt.plan_datum || '—'), margin + 80, y + 5);
-  doc.text('Contract: ' + (klant.contract_nummer || '—'), margin + 4, y + 13);
+  doc.text('Datum: ' + (currentBeurt.plan_datum || '\u2014'), margin + 80, y + 5);
+  doc.text('Contract: ' + (klant.contract_nummer || '\u2014'), margin + 4, y + 13);
+
+  // Installatie info
+  var instSelect = document.getElementById('installatie-select');
+  if (instSelect && instSelect.value) {
+    var instLabel = instSelect.options[instSelect.selectedIndex].textContent;
+    doc.text('Installatie: ' + instLabel, margin + 80, y + 13);
+  }
   y += 28;
 
   // Checklist
@@ -632,11 +1025,11 @@ function downloadPDF() {
   doc.text('Checklist', margin, y); y += 7;
 
   var checkData = getChecklistData();
-  var items = CHECKLISTS[currentBeurt.sector] || [];
+  var items = activeChecklistItems.length > 0 ? activeChecklistItems : (CHECKLISTS[currentBeurt.sector] || []);
   items.forEach(function(item) {
     checkPage(8);
     var val = checkData[item.key] || {};
-    var status = val.status || '—';
+    var status = val.status || '\u2014';
     var color = status === 'ok' ? [39, 174, 96] : status === 'nok' ? [231, 76, 60] : [150, 150, 150];
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -650,13 +1043,76 @@ function downloadPDF() {
       y += 4;
       doc.setTextColor(180, 80, 60);
       doc.setFontSize(8);
-      var noteLines = doc.splitTextToSize('→ ' + val.note, contentW - 10);
+      var noteLines = doc.splitTextToSize('\u2192 ' + val.note, contentW - 10);
       doc.text(noteLines, margin + 4, y);
       y += noteLines.length * 3.5;
     }
     y += 5.5;
   });
   y += 3;
+
+  // Uren & materiaal
+  var uren = getUrenData();
+  var materiaal = getMateriaalData();
+  if (uren.length > 0 || materiaal.length > 0) {
+    checkPage(20);
+    doc.setTextColor(26, 26, 46);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Uren & materiaal', margin, y); y += 7;
+
+    if (uren.length > 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text('Technieker', margin, y);
+      doc.text('Datum', margin + 45, y);
+      doc.text('Uren', margin + 80, y);
+      doc.text('Tarief', margin + 100, y);
+      doc.text('Km', margin + 125, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      var totUren = 0, totKost = 0;
+      uren.forEach(function(u) {
+        checkPage(6);
+        doc.text(u.technieker || '\u2014', margin, y);
+        doc.text(u.datum || '', margin + 45, y);
+        doc.text(u.uren.toFixed(1), margin + 80, y);
+        doc.text(u.uurtarief > 0 ? '\u20AC ' + u.uurtarief.toFixed(2) : '', margin + 100, y);
+        doc.text(u.km > 0 ? u.km + ' km' : '', margin + 125, y);
+        totUren += u.uren;
+        totKost += u.uren * u.uurtarief;
+        y += 4.5;
+      });
+      doc.setFont('helvetica', 'bold');
+      doc.text('Totaal: ' + totUren.toFixed(1) + ' uur' + (totKost > 0 ? ' / \u20AC ' + totKost.toFixed(2) : ''), margin, y);
+      y += 6;
+    }
+
+    if (materiaal.length > 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text('Materiaal', margin, y);
+      doc.text('Aantal', margin + 80, y);
+      doc.text('Prijs', margin + 100, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      var totMat = 0;
+      materiaal.forEach(function(m) {
+        checkPage(6);
+        doc.text(m.naam, margin, y);
+        doc.text(String(m.aantal), margin + 80, y);
+        doc.text(m.stukprijs > 0 ? '\u20AC ' + m.stukprijs.toFixed(2) : '', margin + 100, y);
+        totMat += m.aantal * m.stukprijs;
+        y += 4.5;
+      });
+      doc.setFont('helvetica', 'bold');
+      doc.text('Totaal materiaal: \u20AC ' + totMat.toFixed(2), margin, y);
+      y += 6;
+    }
+    y += 3;
+  }
 
   // Opmerkingen
   var opmerkingen = document.getElementById('rapport-opmerkingen').value.trim();
@@ -692,7 +1148,10 @@ function downloadPDF() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
-      doc.text('Ernst: ' + iv.ernst + '  |  Actie door: ' + iv.actie_door + '  |  Opgelost: ' + (iv.opgelost_ter_plaatse ? 'Ja' : 'Nee'), margin + 4, y);
+      var typeLabel = iv.type === 'aanvraag' ? 'Aanvraag' : 'Doorspelen';
+      var meta = 'Ernst: ' + iv.ernst + '  |  Type: ' + typeLabel + '  |  Actie: ' + iv.actie_door + '  |  Opgelost: ' + (iv.opgelost_ter_plaatse ? 'Ja' : 'Nee');
+      if (iv.prijs_voorstel) meta += '  |  Prijs: \u20AC ' + iv.prijs_voorstel.toFixed(2);
+      doc.text(meta, margin + 4, y);
       y += 6;
     });
   }
@@ -703,10 +1162,8 @@ function downloadPDF() {
     doc.setPage(p);
     doc.setFontSize(7);
     doc.setTextColor(160, 160, 160);
-    doc.text('Flancco BV — ' + lastSavedRef + ' — Pagina ' + p + '/' + pages, pageW / 2, 290, { align: 'center' });
+    doc.text('Flancco BV \u2014 ' + lastSavedRef + ' \u2014 Pagina ' + p + '/' + pages, pageW / 2, 290, { align: 'center' });
   }
-
-  doc.save(lastSavedRef + '.pdf');
 }
 
 async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {

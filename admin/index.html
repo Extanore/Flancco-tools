@@ -63,6 +63,16 @@
   .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
   .nav-item.nav-sub { padding-left: 36px; font-size: 12px; opacity: 0.8; }
   .nav-item.nav-sub svg { width: 15px; height: 15px; }
+  .nav-badge { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: var(--red); color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+  .chat-msg { padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; font-size: 13px; line-height: 1.5; max-width: 85%; }
+  .chat-msg.self { background: #EFF6FF; border: 1px solid #BFDBFE; margin-left: auto; }
+  .chat-msg.other { background: var(--light); border: 1px solid var(--rule); }
+  .chat-msg .chat-meta { font-size: 11px; color: var(--grey); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .chat-msg .chat-meta strong { color: var(--navy); }
+  .chat-msg .chat-attachments { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .chat-msg .chat-attachments a { font-size: 11px; color: var(--blue); text-decoration: none; padding: 2px 8px; background: white; border: 1px solid var(--rule); border-radius: 4px; }
+  .chat-msg .chat-attachments img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--rule); }
+  .chat-empty { text-align: center; color: var(--grey); font-size: 13px; padding: 24px 0; }
   .nav-section { padding: 16px 20px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.3); }
   .main { margin-left: 220px; padding: 32px; min-height: 100vh; }
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
@@ -326,9 +336,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Planning</span>
     </a>
-    <a class="nav-item nav-sub admin-only" onclick="showPage('interventies')" data-page="interventies">
+    <a class="nav-item nav-sub admin-only" onclick="showPage('interventies')" data-page="interventies" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <span>Interventies</span>
+      <span class="nav-badge" id="admin-int-badge" style="display:none"></span>
+    </a>
+    <a class="nav-item nav-sub admin-only" onclick="showPage('rapporten')" data-page="rapporten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Rapporten</span>
     </a>
     <a class="nav-item admin-only" onclick="showPage('techniekers')" data-page="techniekers">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
@@ -374,6 +389,11 @@
     <a class="nav-item partner-only" onclick="showPage('klanten')" data-page="klanten">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Klanten</span>
+    </a>
+    <a class="nav-item partner-only" onclick="showPage('interventies')" data-page="interventies" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Interventies</span>
+      <span class="nav-badge" id="partner-int-badge" style="display:none"></span>
     </a>
     <a class="nav-item partner-only" id="nav-partner-facturatie" style="display:none" onclick="showPage('facturatie')" data-page="facturatie">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
@@ -452,12 +472,15 @@
             <select id="filter-klant-partner" class="admin-only" onchange="renderKlanten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
               <option value="">Alle partners</option>
             </select>
+            <button class="btn-save admin-only" onclick="openBulkShareModal()" style="margin:0;font-size:12px;background:var(--blue)">Deel geselecteerde</button>
+            <button class="btn-save admin-only" onclick="openCsvImportModal()" style="margin:0;font-size:12px;background:var(--orange)">CSV import</button>
             <button class="btn-save" onclick="exportKlantenExcel()" style="margin:0;font-size:12px;background:var(--blue);display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
             <button class="btn-save" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
           </div>
         </div>
         <table>
           <thead><tr>
+            <th class="admin-only" style="width:30px"><input type="checkbox" onchange="document.querySelectorAll('.klant-checkbox').forEach(function(cb){cb.checked=this.checked}.bind(this))"></th>
             <th>Naam / Bedrijf</th>
             <th class="admin-only">Partner</th>
             <th>Email</th>
@@ -784,7 +807,43 @@
       </div>
     </div>
 
-    <div class="page admin-only" id="page-interventies">
+    <div class="page admin-only" id="page-rapporten">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <input type="text" id="rpt-search" placeholder="Zoek op klant, referentie..." oninput="renderRapportenPage()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:240px">
+            <select id="rpt-sector-filter" onchange="renderRapportenPage()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+              <option value="">Alle sectoren</option>
+              <option value="zonnepanelen">Zonnepanelen</option>
+              <option value="warmtepomp">Warmtepomp</option>
+              <option value="ventilatie">Ventilatie</option>
+              <option value="verwarming">Verwarming</option>
+              <option value="airco">Airco</option>
+              <option value="ic">Industrial Cleaning</option>
+              <option value="klussen">Klussen</option>
+            </select>
+          </div>
+          <span id="rpt-count" style="font-size:12px;color:var(--grey)"></span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Referentie</th>
+              <th>Datum</th>
+              <th>Klant</th>
+              <th>Sector</th>
+              <th>Checklist</th>
+              <th>PDF</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rpt-tbody"></tbody>
+        </table>
+        <p id="no-rapporten" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen rapporten gevonden.</p>
+      </div>
+    </div>
+
+    <div class="page" id="page-interventies">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
           <div style="display:flex;gap:12px;align-items:center">
@@ -809,9 +868,10 @@
               <th>Datum</th>
               <th>Klant</th>
               <th>Omschrijving</th>
+              <th>Type</th>
               <th>Ernst</th>
-              <th>Actie door</th>
               <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="int-tbody"></tbody>
@@ -824,26 +884,75 @@
 
 <!-- INTERVENTIE DETAIL MODAL -->
 <div class="modal-overlay" id="modal-interventie">
-  <div class="modal" style="max-width:550px">
+  <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto">
     <h2 id="int-modal-title">Interventie</h2>
     <input type="hidden" id="int-edit-id">
-    <div class="modal-field"><label>Omschrijving</label><textarea id="int-omschrijving" rows="3" style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical" readonly></textarea></div>
-    <div class="modal-row">
-      <div class="modal-field"><label>Ernst</label>
-        <select id="int-ernst-edit"><option value="laag">Laag</option><option value="normaal">Normaal</option><option value="urgent">Urgent</option></select>
-      </div>
-      <div class="modal-field"><label>Status</label>
-        <select id="int-status-edit"><option value="open">Open</option><option value="ingepland">Ingepland</option><option value="afgehandeld">Afgehandeld</option></select>
+
+    <!-- Info block -->
+    <div style="background:var(--light);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.7">
+      <div id="int-detail-info"></div>
+    </div>
+
+    <!-- Partner goedkeuring block (only for type=aanvraag, partner view) -->
+    <div id="int-goedkeuring-block" style="display:none;background:#FEF9E7;border:1px solid #F59E0B;border-radius:8px;padding:14px;margin-bottom:16px">
+      <strong style="font-size:13px;color:#92400E">Interventieaanvraag — goedkeuring vereist</strong>
+      <p style="font-size:12px;color:#92400E;margin:6px 0" id="int-prijs-info"></p>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-success" style="font-size:12px;padding:6px 16px" onclick="goedkeurInterventie()">Goedkeuren</button>
+        <button class="btn btn-secondary" style="font-size:12px;padding:6px 16px;color:var(--red);border-color:var(--red)" onclick="afwijsInterventie()">Afwijzen</button>
       </div>
     </div>
-    <div class="modal-row">
-      <div class="modal-field"><label>Plan datum</label><input id="int-plan-datum" type="date"></div>
-      <div class="modal-field"><label>Afhandel datum</label><input id="int-afhandel-datum" type="date"></div>
+
+    <!-- Admin edit fields -->
+    <div id="int-admin-fields">
+      <div class="modal-field"><label>Omschrijving</label><textarea id="int-omschrijving" rows="3" style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical" readonly></textarea></div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Ernst</label>
+          <select id="int-ernst-edit"><option value="laag">Laag</option><option value="normaal">Normaal</option><option value="urgent">Urgent</option></select>
+        </div>
+        <div class="modal-field"><label>Status</label>
+          <select id="int-status-edit"><option value="open">Open</option><option value="ingepland">Ingepland</option><option value="afgehandeld">Afgehandeld</option></select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Plan datum</label><input id="int-plan-datum" type="date"></div>
+        <div class="modal-field"><label>Afhandel datum</label><input id="int-afhandel-datum" type="date"></div>
+      </div>
+      <div class="modal-field"><label>Afhandel notitie</label><textarea id="int-afhandel-notitie" rows="2" style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical" placeholder="Hoe is de interventie afgehandeld?"></textarea></div>
     </div>
-    <div class="modal-field"><label>Afhandel notitie</label><textarea id="int-afhandel-notitie" rows="2" style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical" placeholder="Hoe is de interventie afgehandeld?"></textarea></div>
-    <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeInterventieModal()">Annuleren</button>
-      <button class="btn" onclick="saveInterventie()">Opslaan</button>
+
+    <!-- Chat / berichten -->
+    <div style="border-top:1px solid var(--rule);margin-top:16px;padding-top:16px">
+      <h3 style="font-size:14px;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px">Berichten</h3>
+      <div id="int-chat-timeline" style="max-height:300px;overflow-y:auto;margin-bottom:12px;padding-right:4px"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <textarea id="int-chat-input" rows="2" placeholder="Typ een bericht..." style="flex:1;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:none"></textarea>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="cursor:pointer;padding:8px;border:1.5px solid var(--rule);border-radius:8px;display:flex;align-items:center;justify-content:center" title="Bijlage toevoegen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            <input type="file" multiple style="display:none" id="int-chat-files" onchange="updateChatFileCount()">
+          </label>
+          <button class="btn btn-primary" style="padding:8px 12px;font-size:12px" onclick="sendInterventieBericht()">Verstuur</button>
+        </div>
+      </div>
+      <div id="int-chat-file-info" style="font-size:11px;color:var(--grey);margin-top:4px"></div>
+    </div>
+
+    <div class="modal-buttons" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeInterventieModal()">Sluiten</button>
+      <button class="btn" id="int-save-btn" onclick="saveInterventie()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- RAPPORT DETAIL MODAL -->
+<div class="modal-overlay" id="modal-rapport-detail">
+  <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto">
+    <h2 id="rapport-detail-title">Rapport</h2>
+    <div id="rapport-detail-content"></div>
+    <div class="modal-buttons" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-rapport-detail').classList.remove('open')">Sluiten</button>
+      <a id="rapport-detail-pdf" href="#" target="_blank" class="btn" style="display:none;text-decoration:none">Download PDF</a>
     </div>
   </div>
 </div>
@@ -1301,6 +1410,7 @@ let allTechniekers = [];
 let allTechSectoren = [];
 let allVoertuigen = [];
 let allInterventies = [];
+let allRapporten = [];
 
 // =============================================
 // AUTH
@@ -1499,7 +1609,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c, cl, tech, techSec, voert, intv] = await Promise.all([
+  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('staffel_min'),
     sb.from('supplementen').select('*'),
@@ -1508,7 +1618,8 @@ async function loadAllData() {
     sb.from('techniekers').select('*').order('naam'),
     sb.from('technieker_sectoren').select('*'),
     sb.from('voertuigen').select('*').order('nummerplaat'),
-    sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)').order('created_at', { ascending: false })
+    sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector, partner_id)').order('created_at', { ascending: false }),
+    sb.from('rapporten').select('*').order('datum_onderhoud', { ascending: false })
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
@@ -1519,6 +1630,7 @@ async function loadAllData() {
   allTechSectoren = techSec.data || [];
   allVoertuigen = voert.data || [];
   allInterventies = intv.data || [];
+  allRapporten = rpt.data || [];
 
   renderDashboard();
   renderPartners();
@@ -1531,6 +1643,13 @@ async function loadAllData() {
   renderTechniekers();
   renderWagenpark();
   renderInterventies();
+  renderRapportenPage();
+  // Load delingen for partner view
+  if (userRole === 'partner' && userPartner) {
+    var delRes = await sb.from('klant_delingen').select('*').eq('gedeeld_met_partner_id', userPartner.id).eq('status', 'actief');
+    window._partnerDelingen = delRes.data || [];
+    renderKlanten(); // Re-render with shared clients
+  }
   await loadPartnerPermissions();
   await loadFacturatie();
 
@@ -3408,9 +3527,14 @@ function populateKlantFilterDropdown() {
 function renderKlanten() {
   var list = allClients.slice();
 
-  // Role-based filtering
+  // Role-based filtering (partners see own clients + shared clients)
   if (userRole === 'partner' && userPartner) {
-    list = list.filter(function(c) { return c.partner_id === userPartner.id; });
+    var sharedClientIds = (window._partnerDelingen || []).filter(function(d) { return d.gedeeld_met_partner_id === userPartner.id && d.status === 'actief'; }).map(function(d) { return d.client_id; });
+    list = list.filter(function(c) {
+      if (c.partner_id === userPartner.id) return true;
+      if (sharedClientIds.indexOf(c.id) >= 0) { c._shared = true; return true; }
+      return false;
+    });
   } else if (userRole === 'admin') {
     var pf = document.getElementById('filter-klant-partner').value;
     if (pf) list = list.filter(function(c) { return c.partner_id === pf; });
@@ -3437,8 +3561,10 @@ function renderKlanten() {
     tbody.innerHTML = list.map(function(c) {
       var partner = partners.find(function(p) { return p.id === c.partner_id; });
       var contractCount = allContracten.filter(function(ct) { return ct.client_id === c.id; }).length;
-      return '<tr style="cursor:pointer" onclick="showKlantDossier(\'' + c.id + '\')">' +
-        '<td><strong>' + esc(c.contact_person || '') + '</strong>' +
+      var isShared = c._shared ? ' <span style="font-size:10px;color:var(--blue);font-weight:600;background:#EFF6FF;padding:1px 6px;border-radius:3px">Gedeeld</span>' : '';
+      return '<tr style="cursor:pointer">' +
+        (userRole === 'admin' ? '<td onclick="event.stopPropagation()"><input type="checkbox" class="klant-checkbox" value="' + c.id + '"></td>' : '') +
+        '<td onclick="showKlantDossier(\'' + c.id + '\')"><strong>' + esc(c.contact_person || '') + '</strong>' + isShared +
           (c.company_name ? '<br><small style="color:var(--grey)">' + esc(c.company_name) + '</small>' : '') + '</td>' +
         '<td class="admin-only">' + (partner ? esc(partner.naam) : '—') + '</td>' +
         '<td>' + esc(c.email || '') + '</td>' +
@@ -3630,14 +3756,19 @@ async function loadDossierData(clientId) {
   ];
   if (contractIds.length > 0) {
     promises.push(sb.from('onderhoudsbeurten').select('*').in('contract_id', contractIds).order('plan_datum', { ascending: false }));
+    promises.push(sb.from('rapporten').select('*').in('contract_id', contractIds).order('datum_onderhoud', { ascending: false }));
   } else {
     promises.push(Promise.resolve({ data: [] }));
+    promises.push(Promise.resolve({ data: [] }));
   }
+  promises.push(sb.from('klant_delingen').select('*').eq('client_id', clientId));
   var results = await Promise.all(promises);
   return {
     installaties: results[0].data || [],
     locations: results[1].data || [],
-    beurten: results[2].data || []
+    beurten: results[2].data || [],
+    rapporten: results[3].data || [],
+    delingen: results[4].data || []
   };
 }
 
@@ -3781,7 +3912,38 @@ function renderDossierOverzicht(client, contracts) {
   }
   locHtml += '</div>';
 
-  panel.innerHTML = statsHtml + locHtml;
+  // Sharing section (admin only)
+  var shareHtml = '';
+  if (userRole === 'admin') {
+    var delingen = data.delingen || [];
+    shareHtml = '<div class="dossier-section" style="box-shadow:var(--shadow-sm);margin-top:16px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+        '<h3 class="dossier-section-title" style="margin:0">Gedeeld met partners (' + delingen.length + ')</h3>' +
+        '<button class="btn-action" onclick="openShareKlantModal(\'' + client.id + '\')" title="Deel met partner" style="font-size:16px;width:28px;height:28px">+</button>' +
+      '</div>';
+    if (delingen.length === 0) {
+      shareHtml += '<p class="placeholder-msg">Nog niet gedeeld met andere partners.</p>';
+    } else {
+      shareHtml += '<div class="location-list">' + delingen.map(function(d) {
+        var p = partners.find(function(pp) { return pp.id === d.gedeeld_met_partner_id; });
+        var pNaam = p ? p.naam : 'Onbekend';
+        var permLabel = { read_only: 'Alleen lezen', create_workorders: 'Werkbonnen maken', full: 'Volledig' };
+        var statusColor = d.status === 'actief' ? 'var(--green)' : d.status === 'ingetrokken' ? 'var(--red)' : 'var(--orange)';
+        return '<div class="location-card">' +
+          '<div class="location-card-info">' +
+            '<span class="location-card-label">' + esc(pNaam) + ' <span style="font-size:10px;color:' + statusColor + ';font-weight:600">' + esc(d.status) + '</span></span>' +
+            '<div class="location-card-address">' + (permLabel[d.permission] || d.permission) + '</div>' +
+          '</div>' +
+          '<div class="location-card-actions">' +
+            (d.status !== 'ingetrokken' ? '<button class="btn-action btn-action-red" onclick="intrekkenDeling(\'' + d.id + '\',\'' + client.id + '\')" title="Intrekken">&times;</button>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+    shareHtml += '</div>';
+  }
+
+  panel.innerHTML = statsHtml + locHtml + shareHtml;
 }
 
 function renderDossierInstallaties(clientId) {
@@ -3878,6 +4040,8 @@ function renderDossierHistoriek(clientId) {
     return;
   }
 
+  var rapporten = currentDossierData.rapporten || [];
+
   var itemsHtml = visibleBeurten.map(function(b) {
     var contract = allContracten.find(function(c) { return c.id === b.contract_id; });
     var tech = (typeof allTechniekers !== 'undefined' ? allTechniekers : []).find(function(t) { return t.id === b.technieker_id; });
@@ -3885,6 +4049,17 @@ function renderDossierHistoriek(clientId) {
     var sector = b.sector || (contract ? contract.sector : '—');
     var sLabel = allSectorLabels[sector] || sector;
     var dotClass = (b.status === 'afgewerkt' || b.status === 'uitgevoerd') ? 'afgewerkt' : b.status === 'ingepland' ? 'ingepland' : 'geannuleerd';
+
+    // Find linked rapport
+    var rapport = rapporten.find(function(r) { return r.onderhoudsbeurt_id === b.id; });
+    var rapportLink = '';
+    if (rapport) {
+      rapportLink = '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
+        '<span style="font-size:11px;color:var(--text-secondary)">' + esc(rapport.referentie) + '</span>' +
+        '<button class="btn btn-secondary" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();showRapportDetail(\'' + rapport.id + '\')">Bekijk rapport</button>' +
+        (rapport.pdf_url ? '<a href="' + rapport.pdf_url + '" target="_blank" class="btn btn-secondary" style="font-size:11px;padding:3px 10px;text-decoration:none" onclick="event.stopPropagation()">Download PDF</a>' : '') +
+      '</div>';
+    }
 
     return '<div class="historiek-item">' +
       '<div class="historiek-dot ' + dotClass + '"></div>' +
@@ -3894,6 +4069,7 @@ function renderDossierHistoriek(clientId) {
         '<div class="historiek-meta">Technieker: ' + esc(techNaam) +
           (b.totaal_uren ? ' &middot; ' + b.totaal_uren + ' uur' : '') +
           (b.notities ? ' &middot; ' + esc(b.notities.substring(0, 80)) : '') + '</div>' +
+        rapportLink +
       '</div>' +
     '</div>';
   }).join('');
@@ -3913,14 +4089,22 @@ function renderDossierInterventies(clientId) {
     return;
   }
 
+  var typeLabels = { doorspelen: 'Doorspelen', aanvraag: 'Aanvraag' };
   var html = clientInterventies.map(function(iv) {
     var ernstBadge = iv.ernst === 'urgent' ? 'badge-red' : iv.ernst === 'normaal' ? 'badge-orange' : 'badge-blue';
     var statusBdg = iv.status === 'open' ? 'badge-orange' : iv.status === 'afgehandeld' ? 'badge-green' : 'badge-grey';
-    return '<div class="contract-card" style="box-shadow:var(--shadow-sm)">' +
+    var gkTag = '';
+    if (iv.type === 'aanvraag' && iv.partner_goedkeuring) {
+      var gkBadge = iv.partner_goedkeuring === 'goedgekeurd' ? 'badge-green' : iv.partner_goedkeuring === 'afgewezen' ? 'badge-red' : 'badge-orange';
+      gkTag = '<span><span class="contract-card-label">Goedkeuring</span><span class="badge ' + gkBadge + '">' + esc(iv.partner_goedkeuring) + '</span></span>';
+    }
+    return '<div class="contract-card" style="box-shadow:var(--shadow-sm);cursor:pointer" onclick="openInterventieModal(\'' + iv.id + '\')">' +
       '<div class="contract-card-row">' +
         '<span><span class="contract-card-label">Omschrijving</span>' + esc(iv.omschrijving || '—') + '</span>' +
+        '<span><span class="contract-card-label">Type</span>' + (typeLabels[iv.type] || 'Doorspelen') + '</span>' +
         '<span><span class="contract-card-label">Ernst</span><span class="badge ' + ernstBadge + '">' + esc(iv.ernst) + '</span></span>' +
         '<span><span class="contract-card-label">Status</span><span class="badge ' + statusBdg + '">' + esc(iv.status) + '</span></span>' +
+        gkTag +
         '<span><span class="contract-card-label">Datum</span>' + fmtDate(iv.created_at) + '</span>' +
       '</div>' +
     '</div>';
@@ -3929,9 +4113,347 @@ function renderDossierInterventies(clientId) {
   panel.innerHTML = html;
 }
 
+async function showRapportDetail(rapportId) {
+  var rapport = null;
+  // Try from dossier data first
+  if (currentDossierData && currentDossierData.rapporten) {
+    rapport = currentDossierData.rapporten.find(function(r) { return r.id === rapportId; });
+  }
+  // Fallback: fetch from DB
+  if (!rapport) {
+    var res = await sb.from('rapporten').select('*').eq('id', rapportId).single();
+    if (res.error || !res.data) { alert('Rapport niet gevonden'); return; }
+    rapport = res.data;
+  }
+
+  document.getElementById('rapport-detail-title').textContent = 'Rapport ' + (rapport.referentie || '');
+
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var snap = rapport.klant_snapshot || {};
+
+  var html = '';
+
+  // Klant info
+  html += '<div style="background:var(--light);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.7">';
+  html += '<strong>Klant:</strong> ' + esc(snap.naam || '—') + '<br>';
+  html += '<strong>Adres:</strong> ' + esc((snap.adres || '') + ', ' + (snap.postcode || '') + ' ' + (snap.gemeente || '')) + '<br>';
+  html += '<strong>Sector:</strong> ' + (sectorLabels[rapport.sector] || rapport.sector || '—') + '<br>';
+  html += '<strong>Datum:</strong> ' + (rapport.datum_onderhoud || '—');
+  html += '</div>';
+
+  // Checklist
+  if (rapport.checklist_data) {
+    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Checklist</h3>';
+    html += '<div style="margin-bottom:16px">';
+    var chk = rapport.checklist_data;
+    Object.keys(chk).forEach(function(key) {
+      var item = chk[key];
+      var statusIcon = item.status === 'ok' ? '<span style="color:#27AE60;font-weight:600">OK</span>' :
+                       item.status === 'nok' ? '<span style="color:#E74C3C;font-weight:600">NOK</span>' :
+                       item.status === 'na' ? '<span style="color:#6B7280">N.v.t.</span>' : '<span style="color:#9CA3AF">—</span>';
+      html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px">';
+      html += '<span>' + esc(key.replace(/_/g, ' ')) + '</span>' + statusIcon;
+      html += '</div>';
+      if (item.status === 'nok' && item.note) {
+        html += '<div style="font-size:12px;color:#E74C3C;padding:2px 0 6px 12px">&rarr; ' + esc(item.note) + '</div>';
+      }
+    });
+    html += '</div>';
+  }
+
+  // Uren & materiaal
+  if (rapport.uren_data && rapport.uren_data.length > 0) {
+    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Gewerkte uren</h3>';
+    html += '<div style="margin-bottom:16px;font-size:13px">';
+    var totUren = 0;
+    rapport.uren_data.forEach(function(u) {
+      html += '<div style="padding:4px 0;border-bottom:1px solid var(--rule)">' + esc(u.technieker || '—') + ' — ' + (u.datum || '') + ' — ' + u.uren + ' uur' + (u.km > 0 ? ' — ' + u.km + ' km' : '') + '</div>';
+      totUren += (u.uren || 0);
+    });
+    html += '<div style="font-weight:600;padding-top:4px">Totaal: ' + totUren.toFixed(1) + ' uur</div>';
+    html += '</div>';
+  }
+  if (rapport.materiaal_data && rapport.materiaal_data.length > 0) {
+    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Materialen</h3>';
+    html += '<div style="margin-bottom:16px;font-size:13px">';
+    rapport.materiaal_data.forEach(function(m) {
+      html += '<div style="padding:4px 0;border-bottom:1px solid var(--rule)">' + esc(m.naam) + ' — ' + m.aantal + 'x' + (m.stukprijs > 0 ? ' @ &euro; ' + m.stukprijs.toFixed(2) : '') + '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Opmerkingen
+  if (rapport.opmerkingen) {
+    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Opmerkingen</h3>';
+    html += '<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;white-space:pre-wrap">' + esc(rapport.opmerkingen) + '</p>';
+  }
+
+  // Foto's
+  if (rapport.foto_urls && rapport.foto_urls.length > 0) {
+    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Foto\'s (' + rapport.foto_urls.length + ')</h3>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:16px">';
+    rapport.foto_urls.forEach(function(url) {
+      html += '<a href="' + url + '" target="_blank"><img src="' + url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--rule)"></a>';
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('rapport-detail-content').innerHTML = html;
+
+  // PDF link
+  var pdfBtn = document.getElementById('rapport-detail-pdf');
+  if (rapport.pdf_url) {
+    pdfBtn.href = rapport.pdf_url;
+    pdfBtn.style.display = '';
+  } else {
+    pdfBtn.style.display = 'none';
+  }
+
+  document.getElementById('modal-rapport-detail').classList.add('open');
+}
+
 function closeKlantDossier() {
   document.getElementById('klant-dossier').style.display = 'none';
   document.getElementById('klanten-lijst').style.display = 'block';
+}
+
+// =============================================
+// PARTNER SHARING
+// =============================================
+function openShareKlantModal(clientId) {
+  var opts = partners.filter(function(p) {
+    // Exclude partners already shared with (active or uitgenodigd)
+    var existing = (currentDossierData.delingen || []).filter(function(d) { return d.status !== 'ingetrokken'; }).map(function(d) { return d.gedeeld_met_partner_id; });
+    return existing.indexOf(p.id) < 0;
+  });
+  if (opts.length === 0) { alert('Alle partners hebben al toegang tot deze klant.'); return; }
+  var html = '<div class="modal-field"><label>Partner *</label><select id="share-partner">' +
+    opts.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('') + '</select></div>' +
+    '<div class="modal-field"><label>Rechten</label><select id="share-permission">' +
+      '<option value="read_only">Alleen lezen</option><option value="create_workorders">Werkbonnen maken</option><option value="full">Volledig</option></select></div>';
+  // Use a simple confirm approach with innerHTML injection
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.id = 'modal-share-klant';
+  overlay.innerHTML = '<div class="modal" style="max-width:400px"><h2>Klant delen</h2>' + html +
+    '<div class="modal-buttons"><button class="btn btn-secondary" onclick="document.getElementById(\'modal-share-klant\').remove()">Annuleren</button>' +
+    '<button class="btn" onclick="saveShareKlant(\'' + clientId + '\')">Delen</button></div></div>';
+  document.body.appendChild(overlay);
+}
+
+async function saveShareKlant(clientId) {
+  var partnerId = document.getElementById('share-partner').value;
+  var permission = document.getElementById('share-permission').value;
+  // Find the client's own partner_id
+  var client = allClients.find(function(c) { return c.id === clientId; });
+  var ownerPartnerId = client ? client.partner_id : null;
+
+  var res = await sb.from('klant_delingen').insert({
+    client_id: clientId,
+    partner_id: ownerPartnerId,
+    gedeeld_met_partner_id: partnerId,
+    permission: permission,
+    status: 'actief'
+  });
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  document.getElementById('modal-share-klant').remove();
+  // Reload dossier data
+  currentDossierData = await loadDossierData(clientId);
+  var client2 = allClients.find(function(c) { return c.id === clientId; });
+  var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
+  renderDossierOverzicht(client2, contracts);
+}
+
+async function intrekkenDeling(delingId, clientId) {
+  if (!confirm('Deling intrekken? De partner verliest toegang tot deze klant.')) return;
+  var res = await sb.from('klant_delingen').update({ status: 'ingetrokken' }).eq('id', delingId);
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  currentDossierData = await loadDossierData(clientId);
+  var client = allClients.find(function(c) { return c.id === clientId; });
+  var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
+  renderDossierOverzicht(client, contracts);
+}
+
+// Bulk sharing from klanten page
+function openBulkShareModal() {
+  var checkboxes = document.querySelectorAll('.klant-checkbox:checked');
+  var clientIds = Array.from(checkboxes).map(function(cb) { return cb.value; });
+  if (clientIds.length === 0) { alert('Selecteer eerst klanten om te delen.'); return; }
+
+  var html = '<div class="modal-field"><label>Partner *</label><select id="bulk-share-partner">' +
+    partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('') + '</select></div>' +
+    '<div class="modal-field"><label>Rechten</label><select id="bulk-share-permission">' +
+      '<option value="read_only">Alleen lezen</option><option value="create_workorders">Werkbonnen maken</option><option value="full">Volledig</option></select></div>' +
+    '<p style="font-size:13px;color:var(--grey);margin-top:8px">' + clientIds.length + ' klant(en) geselecteerd</p>';
+
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.id = 'modal-bulk-share';
+  overlay.innerHTML = '<div class="modal" style="max-width:400px"><h2>Bulk delen</h2>' + html +
+    '<div class="modal-buttons"><button class="btn btn-secondary" onclick="document.getElementById(\'modal-bulk-share\').remove()">Annuleren</button>' +
+    '<button class="btn" onclick="saveBulkShare()">Delen</button></div></div>';
+  overlay.dataset.clientIds = JSON.stringify(clientIds);
+  document.body.appendChild(overlay);
+}
+
+async function saveBulkShare() {
+  var modal = document.getElementById('modal-bulk-share');
+  var clientIds = JSON.parse(modal.dataset.clientIds);
+  var partnerId = document.getElementById('bulk-share-partner').value;
+  var permission = document.getElementById('bulk-share-permission').value;
+
+  var inserts = clientIds.map(function(cid) {
+    var client = allClients.find(function(c) { return c.id === cid; });
+    return {
+      client_id: cid,
+      partner_id: client ? client.partner_id : null,
+      gedeeld_met_partner_id: partnerId,
+      permission: permission,
+      status: 'actief'
+    };
+  });
+
+  var res = await sb.from('klant_delingen').upsert(inserts, { onConflict: 'client_id,gedeeld_met_partner_id', ignoreDuplicates: true });
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  modal.remove();
+  alert(clientIds.length + ' klant(en) gedeeld.');
+  // Uncheck all
+  document.querySelectorAll('.klant-checkbox:checked').forEach(function(cb) { cb.checked = false; });
+}
+
+// =============================================
+// CSV IMPORT
+// =============================================
+function openCsvImportModal() {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.id = 'modal-csv-import';
+  overlay.innerHTML = '<div class="modal" style="max-width:800px;max-height:90vh;overflow-y:auto">' +
+    '<h2>CSV Import — Klantgegevens</h2>' +
+    '<p style="font-size:13px;color:var(--grey);margin-bottom:12px">Upload een CSV-bestand (puntkomma-gescheiden) met klantgegevens.<br>' +
+    'Format: <code style="font-size:11px;background:var(--light);padding:2px 6px;border-radius:3px">Voornaam;Achternaam;Bedrijf;Email;Telefoon;Straat;Nr;Postcode;Gemeente;Land;Notities</code></p>' +
+    '<div class="modal-field"><label>Partner toewijzen</label><select id="csv-partner">' +
+      partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="modal-field"><label>CSV bestand</label><input type="file" id="csv-file" accept=".csv,.txt" onchange="parseCsvPreview()"></div>' +
+    '<div id="csv-preview" style="margin-top:12px"></div>' +
+    '<div class="modal-buttons" style="margin-top:16px">' +
+      '<button class="btn btn-secondary" onclick="document.getElementById(\'modal-csv-import\').remove()">Annuleren</button>' +
+      '<button class="btn" id="csv-import-btn" onclick="executeCsvImport()" style="display:none">Importeren</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+
+var _csvRows = [];
+
+function parseCsvPreview() {
+  var file = document.getElementById('csv-file').files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result;
+    var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
+    if (lines.length === 0) { document.getElementById('csv-preview').innerHTML = '<p style="color:var(--red)">Leeg bestand</p>'; return; }
+
+    // Detect separator
+    var sep = lines[0].indexOf(';') >= 0 ? ';' : ',';
+
+    // Check if first line is header
+    var firstFields = lines[0].split(sep);
+    var isHeader = firstFields.some(function(f) { return /voornaam|achternaam|email|naam/i.test(f); });
+    var startIdx = isHeader ? 1 : 0;
+
+    _csvRows = [];
+    var errors = 0;
+    for (var i = startIdx; i < lines.length; i++) {
+      var fields = lines[i].split(sep).map(function(f) { return f.trim().replace(/^["']|["']$/g, ''); });
+      var row = {
+        voornaam: fields[0] || '',
+        achternaam: fields[1] || '',
+        bedrijf: fields[2] || '',
+        email: fields[3] || '',
+        telefoon: fields[4] || '',
+        straat: fields[5] || '',
+        nr: fields[6] || '',
+        postcode: fields[7] || '',
+        gemeente: fields[8] || '',
+        land: fields[9] || 'BE',
+        notities: fields[10] || '',
+        valid: true,
+        error: ''
+      };
+      // Validation
+      if (!row.voornaam && !row.achternaam) { row.valid = false; row.error = 'Naam ontbreekt'; errors++; }
+      _csvRows.push(row);
+    }
+
+    var html = '<p style="font-size:13px;margin-bottom:8px"><strong>' + _csvRows.length + '</strong> rij(en) gevonden' +
+      (errors > 0 ? ', <span style="color:var(--red)">' + errors + ' fouten</span>' : ', <span style="color:var(--green)">alles OK</span>') + '</p>';
+    html += '<div style="max-height:300px;overflow:auto"><table style="width:100%;font-size:12px"><thead><tr>' +
+      '<th></th><th>Voornaam</th><th>Achternaam</th><th>Bedrijf</th><th>Email</th><th>Telefoon</th><th>Gemeente</th>' +
+      '</tr></thead><tbody>';
+    _csvRows.forEach(function(r, idx) {
+      var color = r.valid ? '' : 'background:#FDE8E8';
+      html += '<tr style="' + color + '">' +
+        '<td>' + (r.valid ? '<span style="color:var(--green)">&#10003;</span>' : '<span style="color:var(--red)" title="' + esc(r.error) + '">&#10007;</span>') + '</td>' +
+        '<td>' + esc(r.voornaam) + '</td><td>' + esc(r.achternaam) + '</td><td>' + esc(r.bedrijf) + '</td>' +
+        '<td>' + esc(r.email) + '</td><td>' + esc(r.telefoon) + '</td><td>' + esc(r.gemeente) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('csv-preview').innerHTML = html;
+
+    var validCount = _csvRows.filter(function(r) { return r.valid; }).length;
+    document.getElementById('csv-import-btn').style.display = validCount > 0 ? '' : 'none';
+  };
+  reader.readAsText(file);
+}
+
+async function executeCsvImport() {
+  var partnerId = document.getElementById('csv-partner').value;
+  var validRows = _csvRows.filter(function(r) { return r.valid; });
+  if (validRows.length === 0) return;
+
+  var btn = document.getElementById('csv-import-btn');
+  btn.disabled = true; btn.textContent = 'Importeren...';
+
+  var inserted = 0;
+  for (var i = 0; i < validRows.length; i++) {
+    var r = validRows[i];
+    var contactPerson = (r.voornaam + ' ' + r.achternaam).trim();
+    var res = await sb.from('clients').insert({
+      partner_id: partnerId,
+      contact_person: contactPerson,
+      company_name: r.bedrijf || null,
+      email: r.email || null,
+      phone: r.telefoon || null,
+      street: r.straat || null,
+      house_number: r.nr || null,
+      postal_code: r.postcode || null,
+      city: r.gemeente || null,
+      country: r.land || 'BE',
+      notes: r.notities || null
+    });
+    if (!res.error) {
+      inserted++;
+      // Auto-create location
+      if (res.data && res.data[0] && (r.straat || r.gemeente)) {
+        await sb.from('client_locations').insert({
+          client_id: res.data[0].id,
+          label: 'Hoofdadres',
+          street: r.straat || null,
+          house_number: r.nr || null,
+          postal_code: r.postcode || null,
+          city: r.gemeente || null,
+          country: r.land || 'BE',
+          is_primary: true
+        });
+      }
+    }
+  }
+
+  document.getElementById('modal-csv-import').remove();
+  alert(inserted + ' van ' + validRows.length + ' klant(en) geimporteerd.');
+  await loadAllData();
 }
 
 function copyPortalLink(token) {
@@ -4863,12 +5385,19 @@ async function deleteVoertuig() {
 // =============================================
 // INTERVENTIES
 // =============================================
+function myInterventies() {
+  if (userRole === 'admin') return allInterventies;
+  if (userPartner) return allInterventies.filter(function(iv) { return iv.doorgespeeld_naar_partner_id === userPartner.id; });
+  return [];
+}
+
 function renderInterventies() {
   var search = (document.getElementById('int-search').value || '').toLowerCase();
   var statusF = document.getElementById('int-status-filter').value;
   var ernstF = document.getElementById('int-ernst-filter').value;
   var tbody = document.getElementById('int-tbody');
-  var filtered = allInterventies.filter(function(iv) {
+  var base = myInterventies();
+  var filtered = base.filter(function(iv) {
     if (statusF && iv.status !== statusF) return false;
     if (ernstF && iv.ernst !== ernstF) return false;
     if (search) {
@@ -4878,54 +5407,129 @@ function renderInterventies() {
     return true;
   });
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--grey);padding:40px">Geen interventies gevonden</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--grey);padding:40px">Geen interventies gevonden</td></tr>';
     return;
   }
   var ernstColors = { urgent: 'var(--red)', normaal: 'var(--orange)', laag: 'var(--blue)' };
   var statusLabels = { open: 'Open', ingepland: 'Ingepland', afgehandeld: 'Afgehandeld' };
   var statusColors = { open: 'var(--red)', ingepland: 'var(--orange)', afgehandeld: 'var(--green)' };
+  var typeLabels = { doorspelen: 'Doorspelen', aanvraag: 'Aanvraag' };
   var now = new Date();
   tbody.innerHTML = filtered.map(function(iv) {
     var klant = iv.contracten ? esc(iv.contracten.klant_naam) : '—';
     var datum = iv.created_at ? iv.created_at.split('T')[0] : '—';
-    // Escalatie: dagen open + kleurcode
-    var dagenOpen = '';
     var escalatieTag = '';
     if (iv.status === 'open' && iv.created_at) {
       var created = new Date(iv.created_at);
       var days = Math.floor((now - created) / 86400000);
       var escColor = days >= 14 ? '#991B1B' : days >= 7 ? 'var(--red)' : days >= 3 ? 'var(--orange)' : 'var(--grey)';
       var escLabel = days >= 14 ? 'ZWAAR OVERTIJD' : days >= 7 ? 'ESCALATIE' : days >= 3 ? 'Herinnering' : '';
-      dagenOpen = '<span style="font-size:11px;color:' + escColor + '">' + days + 'd</span>';
       if (escLabel) escalatieTag = ' <span style="font-size:10px;font-weight:700;color:' + escColor + ';background:' + escColor + '15;padding:1px 5px;border-radius:3px">' + escLabel + '</span>';
+    }
+    // Goedkeuring badge for aanvraag type
+    var goedkeuringTag = '';
+    if (iv.type === 'aanvraag' && iv.partner_goedkeuring) {
+      var gkColors = { pending: '#F59E0B', goedgekeurd: 'var(--green)', afgewezen: 'var(--red)' };
+      var gkLabels = { pending: 'Wacht goedkeuring', goedgekeurd: 'Goedgekeurd', afgewezen: 'Afgewezen' };
+      goedkeuringTag = ' <span style="font-size:10px;color:' + (gkColors[iv.partner_goedkeuring] || 'var(--grey)') + '">' + (gkLabels[iv.partner_goedkeuring] || '') + '</span>';
     }
     return '<tr style="cursor:pointer" onclick="openInterventieModal(\'' + iv.id + '\')">' +
       '<td>' + datum + '</td>' +
       '<td>' + klant + '</td>' +
-      '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(iv.omschrijving) + escalatieTag + '</td>' +
-      '<td><span style="color:' + (ernstColors[iv.ernst] || 'var(--grey)') + ';font-weight:600;font-size:12px">● ' + (iv.ernst || '—').toUpperCase() + '</span></td>' +
-      '<td>' + esc(iv.actie_door || '—') + ' ' + dagenOpen + '</td>' +
-      '<td><span style="color:' + (statusColors[iv.status] || 'var(--grey)') + ';font-weight:600;font-size:12px">● ' + (statusLabels[iv.status] || iv.status) + '</span></td>' +
+      '<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(iv.omschrijving) + escalatieTag + '</td>' +
+      '<td><span style="font-size:12px;color:var(--grey)">' + (typeLabels[iv.type] || iv.type || 'Doorspelen') + '</span>' + goedkeuringTag + '</td>' +
+      '<td><span style="color:' + (ernstColors[iv.ernst] || 'var(--grey)') + ';font-weight:600;font-size:12px">' + (iv.ernst || '—').toUpperCase() + '</span></td>' +
+      '<td><span style="color:' + (statusColors[iv.status] || 'var(--grey)') + ';font-weight:600;font-size:12px">' + (statusLabels[iv.status] || iv.status) + '</span></td>' +
+      '<td style="font-size:11px;color:var(--blue)">Details →</td>' +
       '</tr>';
   }).join('');
+  updateInterventieBadges();
 }
 
-function openInterventieModal(id) {
+function updateInterventieBadges() {
+  // Admin badge: open interventies count
+  var adminBadge = document.getElementById('admin-int-badge');
+  if (adminBadge) {
+    var openCount = allInterventies.filter(function(iv) { return iv.status === 'open'; }).length;
+    if (openCount > 0) { adminBadge.textContent = openCount; adminBadge.style.display = 'flex'; }
+    else { adminBadge.style.display = 'none'; }
+  }
+  // Partner badge: open interventies for this partner + unread
+  var partnerBadge = document.getElementById('partner-int-badge');
+  if (partnerBadge && userPartner) {
+    var partnerOpen = allInterventies.filter(function(iv) {
+      return iv.doorgespeeld_naar_partner_id === userPartner.id && iv.status === 'open' && !iv.partner_notificatie_gelezen;
+    }).length;
+    if (partnerOpen > 0) { partnerBadge.textContent = partnerOpen; partnerBadge.style.display = 'flex'; }
+    else { partnerBadge.style.display = 'none'; }
+  }
+}
+
+async function openInterventieModal(id) {
   var iv = allInterventies.find(function(x) { return x.id === id; });
   if (!iv) return;
   document.getElementById('int-edit-id').value = iv.id;
   document.getElementById('int-modal-title').textContent = 'Interventie — ' + (iv.contracten ? iv.contracten.klant_naam : '');
-  document.getElementById('int-omschrijving').value = iv.omschrijving || '';
-  document.getElementById('int-ernst-edit').value = iv.ernst || 'normaal';
-  document.getElementById('int-status-edit').value = iv.status || 'open';
-  document.getElementById('int-plan-datum').value = iv.plan_datum || '';
-  document.getElementById('int-afhandel-datum').value = iv.afhandel_datum || '';
-  document.getElementById('int-afhandel-notitie').value = iv.afhandel_notitie || '';
+
+  // Info block
+  var typeLabels = { doorspelen: 'Doorspelen naar partner', aanvraag: 'Interventieaanvraag' };
+  var ernstColors = { urgent: 'var(--red)', normaal: 'var(--orange)', laag: 'var(--blue)' };
+  var info = '<strong>Klant:</strong> ' + esc(iv.contracten ? iv.contracten.klant_naam : '—') + '<br>';
+  info += '<strong>Sector:</strong> ' + esc(iv.contracten ? iv.contracten.sector : '—') + '<br>';
+  info += '<strong>Type:</strong> ' + (typeLabels[iv.type] || 'Doorspelen') + '<br>';
+  info += '<strong>Ernst:</strong> <span style="color:' + (ernstColors[iv.ernst] || 'var(--grey)') + ';font-weight:600">' + (iv.ernst || '—').toUpperCase() + '</span><br>';
+  info += '<strong>Datum:</strong> ' + (iv.created_at ? iv.created_at.split('T')[0] : '—');
+  if (iv.rapport_id) info += '<br><strong>Rapport:</strong> <a href="rapport.html" style="color:var(--blue)">Bekijk rapport</a>';
+  if (iv.prijs_voorstel) info += '<br><strong>Prijsvoorstel:</strong> &euro; ' + parseFloat(iv.prijs_voorstel).toFixed(2);
+  document.getElementById('int-detail-info').innerHTML = info;
+
+  // Goedkeuring block (partner view + type=aanvraag + pending)
+  var gkBlock = document.getElementById('int-goedkeuring-block');
+  if (userRole === 'partner' && iv.type === 'aanvraag' && iv.partner_goedkeuring === 'pending') {
+    gkBlock.style.display = 'block';
+    document.getElementById('int-prijs-info').textContent = iv.prijs_voorstel ? 'Voorgestelde prijs: \u20AC ' + parseFloat(iv.prijs_voorstel).toFixed(2) : 'Geen prijsvoorstel opgegeven';
+  } else {
+    gkBlock.style.display = 'none';
+  }
+
+  // Admin fields visibility
+  var adminFields = document.getElementById('int-admin-fields');
+  var saveBtn = document.getElementById('int-save-btn');
+  if (userRole === 'admin') {
+    adminFields.style.display = 'block';
+    saveBtn.style.display = '';
+    document.getElementById('int-omschrijving').value = iv.omschrijving || '';
+    document.getElementById('int-ernst-edit').value = iv.ernst || 'normaal';
+    document.getElementById('int-status-edit').value = iv.status || 'open';
+    document.getElementById('int-plan-datum').value = iv.plan_datum || '';
+    document.getElementById('int-afhandel-datum').value = iv.afhandel_datum || '';
+    document.getElementById('int-afhandel-notitie').value = iv.afhandel_notitie || '';
+  } else {
+    adminFields.style.display = 'none';
+    saveBtn.style.display = 'none';
+  }
+
+  // Mark partner notificatie as gelezen
+  if (userRole === 'partner' && !iv.partner_notificatie_gelezen) {
+    sb.from('interventies').update({ partner_notificatie_gelezen: true }).eq('id', iv.id).then(function() {
+      iv.partner_notificatie_gelezen = true;
+      updateInterventieBadges();
+    });
+  }
+
   document.getElementById('modal-interventie').classList.add('open');
+
+  // Load chat
+  await loadInterventieChat(iv.id);
 }
 
 function closeInterventieModal() {
   document.getElementById('modal-interventie').classList.remove('open');
+  document.getElementById('int-chat-timeline').innerHTML = '';
+  document.getElementById('int-chat-input').value = '';
+  document.getElementById('int-chat-file-info').textContent = '';
+  var fileInput = document.getElementById('int-chat-files');
+  if (fileInput) fileInput.value = '';
 }
 
 async function saveInterventie() {
@@ -4952,6 +5556,211 @@ async function saveInterventie() {
   }
   closeInterventieModal();
   await loadAllData();
+}
+
+// =============================================
+// INTERVENTIE GOEDKEURING (partner)
+// =============================================
+async function goedkeurInterventie() {
+  var id = document.getElementById('int-edit-id').value;
+  if (!id) return;
+  var res = await sb.from('interventies').update({ partner_goedkeuring: 'goedgekeurd', updated_at: new Date().toISOString() }).eq('id', id);
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  auditLog('interventies', id, 'partner_goedkeuring', 'pending', 'goedgekeurd');
+  closeInterventieModal();
+  await loadAllData();
+}
+
+async function afwijsInterventie() {
+  var reden = prompt('Reden van afwijzing (optioneel):');
+  if (reden === null) return;
+  var id = document.getElementById('int-edit-id').value;
+  if (!id) return;
+  var payload = { partner_goedkeuring: 'afgewezen', updated_at: new Date().toISOString() };
+  if (reden) payload.afhandel_notitie = 'Afgewezen door partner: ' + reden;
+  var res = await sb.from('interventies').update(payload).eq('id', id);
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  auditLog('interventies', id, 'partner_goedkeuring', 'pending', 'afgewezen');
+  closeInterventieModal();
+  await loadAllData();
+}
+
+// =============================================
+// INTERVENTIE CHAT / BERICHTEN
+// =============================================
+async function loadInterventieChat(interventieId) {
+  var timeline = document.getElementById('int-chat-timeline');
+  timeline.innerHTML = '<p class="chat-empty">Laden...</p>';
+
+  var res = await sb.from('interventie_berichten')
+    .select('*')
+    .eq('interventie_id', interventieId)
+    .order('created_at', { ascending: true });
+
+  var berichten = res.data || [];
+
+  if (berichten.length === 0) {
+    timeline.innerHTML = '<p class="chat-empty">Nog geen berichten. Start het gesprek hieronder.</p>';
+  } else {
+    var sess = await sb.auth.getSession();
+    var myUserId = sess.data.session ? sess.data.session.user.id : null;
+
+    timeline.innerHTML = berichten.map(function(msg) {
+      var isSelf = msg.user_id === myUserId;
+      var time = msg.created_at ? new Date(msg.created_at).toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      var senderLabel = isSelf ? 'Jij' : (msg.sender_name || 'Andere partij');
+
+      var html = '<div class="chat-msg ' + (isSelf ? 'self' : 'other') + '">';
+      html += '<div class="chat-meta"><strong>' + esc(senderLabel) + '</strong><span>' + time + '</span></div>';
+      html += '<div>' + esc(msg.bericht).replace(/\n/g, '<br>') + '</div>';
+
+      if (msg.bijlage_urls && msg.bijlage_urls.length > 0) {
+        html += '<div class="chat-attachments">';
+        msg.bijlage_urls.forEach(function(url) {
+          if (/\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
+            html += '<a href="' + url + '" target="_blank"><img src="' + url + '" alt="Bijlage"></a>';
+          } else {
+            var fname = url.split('/').pop();
+            html += '<a href="' + url + '" target="_blank">' + esc(fname) + '</a>';
+          }
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+      return html;
+    }).join('');
+
+    // Scroll to bottom
+    timeline.scrollTop = timeline.scrollHeight;
+
+    // Mark as gelezen
+    markBerichtenGelezen(interventieId, berichten, myUserId);
+  }
+}
+
+async function markBerichtenGelezen(interventieId, berichten, myUserId) {
+  if (!myUserId) return;
+  var unread = berichten.filter(function(msg) {
+    return msg.user_id !== myUserId && (!msg.gelezen_door || !msg.gelezen_door.includes(myUserId));
+  });
+  for (var i = 0; i < unread.length; i++) {
+    var newGelezen = (unread[i].gelezen_door || []).concat([myUserId]);
+    await sb.from('interventie_berichten').update({ gelezen_door: newGelezen }).eq('id', unread[i].id);
+  }
+}
+
+function updateChatFileCount() {
+  var input = document.getElementById('int-chat-files');
+  var info = document.getElementById('int-chat-file-info');
+  if (input.files.length > 0) {
+    info.textContent = input.files.length + ' bestand(en) geselecteerd';
+  } else {
+    info.textContent = '';
+  }
+}
+
+async function sendInterventieBericht() {
+  var id = document.getElementById('int-edit-id').value;
+  if (!id) return;
+  var text = document.getElementById('int-chat-input').value.trim();
+  var fileInput = document.getElementById('int-chat-files');
+  var files = fileInput.files;
+
+  if (!text && files.length === 0) { alert('Typ een bericht of voeg een bijlage toe.'); return; }
+
+  var sess = await sb.auth.getSession();
+  var myUserId = sess.data.session ? sess.data.session.user.id : null;
+  if (!myUserId) { alert('Niet ingelogd'); return; }
+
+  // Upload bijlagen
+  var bijlageUrls = [];
+  for (var i = 0; i < files.length; i++) {
+    var path = 'interventies/' + id + '/' + Date.now() + '_' + files[i].name;
+    var up = await sb.storage.from('handtekeningen').upload(path, files[i], { contentType: files[i].type });
+    if (!up.error) {
+      bijlageUrls.push(sb.storage.from('handtekeningen').getPublicUrl(path).data.publicUrl);
+    }
+  }
+
+  // Determine sender name
+  var senderName = userRole === 'admin' ? 'Flancco' : (userPartner ? userPartner.naam : 'Partner');
+
+  var res = await sb.from('interventie_berichten').insert({
+    interventie_id: id,
+    user_id: myUserId,
+    bericht: text || '(bijlage)',
+    bijlage_urls: bijlageUrls.length > 0 ? bijlageUrls : null,
+    sender_name: senderName,
+    gelezen_door: [myUserId]
+  });
+
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+
+  document.getElementById('int-chat-input').value = '';
+  fileInput.value = '';
+  document.getElementById('int-chat-file-info').textContent = '';
+
+  // Reload chat
+  await loadInterventieChat(id);
+}
+
+// =============================================
+// RAPPORTEN PAGINA
+// =============================================
+function renderRapportenPage() {
+  var search = (document.getElementById('rpt-search').value || '').toLowerCase();
+  var sectorF = document.getElementById('rpt-sector-filter').value;
+  var tbody = document.getElementById('rpt-tbody');
+  var noEl = document.getElementById('no-rapporten');
+
+  var filtered = allRapporten.filter(function(r) {
+    if (sectorF && r.sector !== sectorF) return false;
+    if (search) {
+      var snap = r.klant_snapshot || {};
+      var text = ((snap.naam || '') + ' ' + (r.referentie || '') + ' ' + (r.sector || '')).toLowerCase();
+      if (!text.includes(search)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('rpt-count').textContent = filtered.length + ' rapport(en)';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    noEl.style.display = 'block';
+    return;
+  }
+  noEl.style.display = 'none';
+
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+
+  tbody.innerHTML = filtered.map(function(r) {
+    var snap = r.klant_snapshot || {};
+    var klantNaam = snap.naam || '—';
+    // Checklist summary
+    var chkSummary = '—';
+    if (r.checklist_data) {
+      var ok = 0, nok = 0, na = 0;
+      Object.values(r.checklist_data).forEach(function(v) {
+        if (v.status === 'ok') ok++;
+        else if (v.status === 'nok') nok++;
+        else if (v.status === 'na') na++;
+      });
+      chkSummary = '<span style="color:var(--green);font-weight:600">' + ok + '</span>';
+      if (nok > 0) chkSummary += ' / <span style="color:var(--red);font-weight:600">' + nok + '</span>';
+      if (na > 0) chkSummary += ' / <span style="color:var(--grey)">' + na + '</span>';
+    }
+
+    return '<tr>' +
+      '<td><strong style="font-size:12px;color:var(--navy)">' + esc(r.referentie || '—') + '</strong></td>' +
+      '<td>' + (r.datum_onderhoud || '—') + '</td>' +
+      '<td>' + esc(klantNaam) + '<br><small style="color:var(--grey)">' + esc((snap.gemeente || '') + (snap.postcode ? ' ' + snap.postcode : '')) + '</small></td>' +
+      '<td><span class="sector-badge sector-' + (r.sector || '') + '">' + (sectorLabels[r.sector] || r.sector || '—') + '</span></td>' +
+      '<td style="font-size:12px">' + chkSummary + '</td>' +
+      '<td>' + (r.pdf_url ? '<a href="' + r.pdf_url + '" target="_blank" style="color:var(--blue);font-size:12px;text-decoration:none">Download</a>' : '<span style="color:var(--grey);font-size:12px">—</span>') + '</td>' +
+      '<td><button class="btn-action" onclick="showRapportDetail(\'' + r.id + '\')" title="Bekijk details" style="font-size:11px;padding:3px 8px;border:1px solid var(--rule);border-radius:4px;background:white;cursor:pointer">Details</button></td>' +
+    '</tr>';
+  }).join('');
 }
 
 // =============================================
