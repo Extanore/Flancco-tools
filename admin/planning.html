@@ -591,6 +591,24 @@
         <option value="">Selecteer een contract...</option>
       </select>
     </div>
+    <div id="qa-new-client-fields" style="display:none;background:var(--light);border-radius:10px;padding:16px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:10px">NIEUWE KLANT</div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Naam *</label><input id="qa-klant-naam" placeholder="Jan Janssen"></div>
+        <div class="modal-field"><label>Telefoon</label><input id="qa-klant-tel" placeholder="+32 4..."></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Email</label><input id="qa-klant-email" type="email" placeholder="email@voorbeeld.be"></div>
+        <div class="modal-field"><label>Partner</label>
+          <select id="qa-partner"></select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Straat + nr</label><input id="qa-klant-straat" placeholder="Kerkstraat 12"></div>
+        <div class="modal-field" style="max-width:100px"><label>Postcode</label><input id="qa-klant-postcode" placeholder="9000"></div>
+        <div class="modal-field"><label>Gemeente</label><input id="qa-klant-gemeente" placeholder="Gent"></div>
+      </div>
+    </div>
     <div class="modal-row">
       <div class="modal-field">
         <label>Starttijd</label>
@@ -1734,9 +1752,10 @@ function quickAdd(techId, datum) {
   var tech = allTechniekers.find(function(t) { return t.id === techId; });
   document.getElementById('qa-info').textContent = (tech ? tech.voornaam + ' ' + tech.naam : '') + ' — ' + datum;
 
-  // Populate contract dropdown
+  // Populate contract dropdown with "Nieuwe klant" option
   var sel = document.getElementById('qa-contract');
-  sel.innerHTML = '<option value="">Selecteer een contract...</option>';
+  sel.innerHTML = '<option value="">Selecteer een contract...</option>' +
+    '<option value="__new__" style="font-weight:700;color:var(--navy)">+ Nieuwe klant aanmaken</option>';
   allContracten.forEach(function(c) {
     if (c.status === 'geannuleerd') return;
     var kl = c.klant_naam || '';
@@ -1745,6 +1764,22 @@ function quickAdd(techId, datum) {
     sel.innerHTML += '<option value="' + c.id + '" data-sector="' + (c.sector || 'zonnepanelen') + '">' +
       esc(kl) + ' — ' + esc(c.sector || 'zonnepanelen') + (c.contract_nummer ? ' (' + c.contract_nummer + ')' : '') + '</option>';
   });
+
+  // Populate partner dropdown
+  var partnerSel = document.getElementById('qa-partner');
+  partnerSel.innerHTML = '';
+  allPartners.forEach(function(p) {
+    partnerSel.innerHTML += '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam) + '</option>';
+  });
+
+  // Reset new client fields
+  document.getElementById('qa-new-client-fields').style.display = 'none';
+  document.getElementById('qa-klant-naam').value = '';
+  document.getElementById('qa-klant-tel').value = '';
+  document.getElementById('qa-klant-email').value = '';
+  document.getElementById('qa-klant-straat').value = '';
+  document.getElementById('qa-klant-postcode').value = '';
+  document.getElementById('qa-klant-gemeente').value = '';
 
   // Extra techniekers chips
   var chipHtml = '';
@@ -1761,8 +1796,14 @@ function quickAdd(techId, datum) {
 
 function qaContractChanged() {
   var sel = document.getElementById('qa-contract');
+  var val = sel.value;
   var opt = sel.options[sel.selectedIndex];
-  if (opt && opt.dataset.sector) {
+
+  // Show/hide new client fields
+  document.getElementById('qa-new-client-fields').style.display = val === '__new__' ? 'block' : 'none';
+
+  // Auto-set sector from existing contract
+  if (val !== '__new__' && opt && opt.dataset.sector) {
     document.getElementById('qa-sector').value = opt.dataset.sector;
   }
 }
@@ -1776,8 +1817,8 @@ function closeQuickAdd() {
 }
 
 async function saveQuickAdd() {
-  var contractId = document.getElementById('qa-contract').value;
-  if (!contractId) { alert('Selecteer een contract'); return; }
+  var contractVal = document.getElementById('qa-contract').value;
+  if (!contractVal) { alert('Selecteer een contract of maak een nieuwe klant aan'); return; }
 
   var techId = document.getElementById('qa-tech-id').value;
   var datum = document.getElementById('qa-datum').value;
@@ -1790,6 +1831,52 @@ async function saveQuickAdd() {
   document.querySelectorAll('#qa-extra-techs .tech-chip.selected').forEach(function(el) {
     extraIds.push(el.dataset.id);
   });
+
+  var contractId = contractVal;
+
+  // Create new client + contract if needed
+  if (contractVal === '__new__') {
+    var klantNaam = document.getElementById('qa-klant-naam').value.trim();
+    if (!klantNaam) { alert('Naam van de klant is verplicht'); return; }
+
+    var partnerId = document.getElementById('qa-partner').value;
+
+    // 1. Create client
+    var clientRes = await sb.from('clients').insert([{
+      partner_id: partnerId,
+      contact_person: klantNaam,
+      phone: document.getElementById('qa-klant-tel').value.trim() || null,
+      email: document.getElementById('qa-klant-email').value.trim() || null,
+      street: document.getElementById('qa-klant-straat').value.trim() || null,
+      postal_code: document.getElementById('qa-klant-postcode').value.trim() || null,
+      city: document.getElementById('qa-klant-gemeente').value.trim() || null
+    }]).select();
+
+    if (clientRes.error) { alert('Fout bij klant aanmaken: ' + clientRes.error.message); return; }
+    var newClient = clientRes.data[0];
+
+    // 2. Create minimal contract
+    var contractRes = await sb.from('contracten').insert([{
+      partner_id: partnerId,
+      client_id: newClient.id,
+      klant_naam: klantNaam,
+      klant_postcode: document.getElementById('qa-klant-postcode').value.trim() || null,
+      klant_gemeente: document.getElementById('qa-klant-gemeente').value.trim() || null,
+      klant_telefoon: document.getElementById('qa-klant-tel').value.trim() || null,
+      klant_email: document.getElementById('qa-klant-email').value.trim() || null,
+      sector: sector,
+      frequentie: 'eenmalig',
+      contractduur: 'eenmalig',
+      aantal_panelen: 0,
+      forfait_bedrag: 0,
+      totaal_incl_btw: 0,
+      datum_ondertekening: datum,
+      status: 'actief'
+    }]).select();
+
+    if (contractRes.error) { alert('Fout bij contract aanmaken: ' + contractRes.error.message); return; }
+    contractId = contractRes.data[0].id;
+  }
 
   var payload = {
     contract_id: contractId,
@@ -1807,7 +1894,7 @@ async function saveQuickAdd() {
   if (res.error) { alert('Fout: ' + res.error.message); return; }
 
   await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, 'ingepland via quick-add');
-  showToast('Taak ingepland');
+  showToast(contractVal === '__new__' ? 'Klant aangemaakt + taak ingepland' : 'Taak ingepland');
   closeQuickAdd();
   await loadPlanningData();
   renderView();
