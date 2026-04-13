@@ -99,12 +99,42 @@
   .klant-preview h4 { font-size: 14px; color: var(--navy); margin-bottom: 4px; }
   .klant-preview p { font-size: 13px; color: var(--grey); margin: 0; }
 
-  /* SECTOR TOGGLES (stap 3) */
-  .sector-toggles { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-  .sector-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 2px solid var(--rule); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--grey); transition: all 0.2s; background: var(--white); }
-  .sector-toggle:hover { border-color: var(--navy); }
-  .sector-toggle.active { border-color: var(--navy); background: #f0f0ff; color: var(--navy); }
-  .sector-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  /* SECTOR CARDS (stap 3 — calculator stijl) */
+  .sector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .sector-card { position: relative; border: 2px solid var(--rule); border-radius: var(--radius); padding: 20px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--white); }
+  .sector-card:hover { border-color: var(--navy); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .sector-card.selected { border-color: var(--navy); background: #f0f0ff; box-shadow: 0 0 0 3px rgba(26,26,46,0.1); }
+  .sector-card-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--light); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+  .sector-card-icon svg { width: 22px; height: 22px; stroke: var(--navy); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sector-card h3 { font-size: 13px; color: var(--navy); margin-bottom: 2px; }
+  .sector-card p { font-size: 11px; color: var(--grey); }
+  .sector-check { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--rule); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .sector-card.selected .sector-check { background: var(--navy); }
+  .sector-check svg { width: 12px; height: 12px; stroke: white; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* USP BAR */
+  .usp-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 16px; background: var(--light); border-radius: 8px; }
+  .usp-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--navy); font-weight: 500; }
+  .usp-item svg { width: 16px; height: 16px; stroke: var(--green); fill: none; stroke-width: 2; }
+
+  /* TOGGLE SWITCH (calculator stijl) */
+  .toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; cursor: pointer; }
+  .toggle-label { font-size: 13px; color: var(--navy); }
+  .toggle-label small { display: block; font-size: 11px; color: var(--grey); font-weight: 400; margin-top: 2px; }
+  .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--rule); border-radius: 24px; transition: 0.3s; }
+  .slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+  .switch input:checked + .slider { background: var(--navy); }
+  .switch input:checked + .slider:before { transform: translateX(20px); }
+
+  /* SECTOR TABS (multi-sector) */
+  .sector-tabs { display: none; gap: 0; background: var(--white); border-radius: 8px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .sector-tab-btn { flex: 1; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--grey); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+  .sector-tab-btn:hover { color: var(--navy); }
+  .sector-tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); background: #f9fafb; }
+  .sector-tab-btn svg { width: 16px; height: 16px; }
+
   .sector-color-zon { --sec-color: #F59E0B; }
   .sector-color-wp { --sec-color: #3B82F6; }
   .sector-color-vent { --sec-color: #8B5CF6; }
@@ -157,7 +187,7 @@
   .freq-card p { font-size: 12px; color: var(--grey); }
   .freq-card .badge-korting { display: inline-block; background: #d1fae5; color: #065f46; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
 
-  .duur-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .duur-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
 
   /* SAMENVATTING (stap 5) */
   .summary-card { background: var(--light); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
@@ -358,9 +388,11 @@
     <!-- STAP 3: DIENSTEN & TARIEVEN -->
     <div class="wiz-step" id="wiz-step-3">
       <div class="card">
-        <div class="card-title">Sectoren selecteren</div>
-        <div class="sector-toggles" id="sector-toggles"></div>
+        <div class="card-title">Selecteer uw diensten</div>
+        <div class="sector-grid" id="sector-grid"></div>
       </div>
+      <div class="sector-tabs" id="sector-tabs"></div>
+      <div class="usp-bar" id="usp-bar" style="display:none"></div>
       <div class="two-col">
         <div class="two-col-left" id="sector-configs"></div>
         <div class="two-col-right">
@@ -404,7 +436,7 @@
             <h4>Eenmalig</h4>
             <p>Geen contract</p>
           </div>
-          <div class="freq-card selected" data-duur="3" onclick="selectDuur(this)">
+          <div class="freq-card" data-duur="3" onclick="selectDuur(this)">
             <h4>3 jaar</h4>
             <p>Standaard</p>
             <span class="badge-korting">-5% korting</span>
@@ -497,7 +529,7 @@ let wizState = {
   sectorConfigs: {},   // { zonnepanelen: [{ pan: 12, ... }], ... }
   sectorResults: {},   // calculated results per sector
   freq: 1,             // 1=jaarlijks, 2=halfjaarlijks, 0=eenmalig
-  duur: 3,             // jaren
+  duur: 0,             // jaren — 0 = nog niet gekozen
   startDatum: '',
   afstandKm: 0,
   beschrijving: '',
@@ -510,6 +542,14 @@ let wizState = {
 function round50(n) { return Math.round(n * 2) / 2; }
 function fmt(n) { return '\u20AC ' + n.toFixed(2).replace('.', ','); }
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function getPartnerDisplayName(partner, sector) {
+  if (partner && partner.sector_namen && sector) {
+    var sn = partner.sector_namen[sector];
+    if (sn && sn.naam) return sn.naam;
+  }
+  return partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco';
+}
 
 function getSectorSupplement(sector, type) {
   var sups = allSupplements[sector] || [];
@@ -533,17 +573,24 @@ var SECTORS = {
   zonnepanelen: {
     key: 'zonnepanelen',
     label: 'Zonnepanelen',
+    subtitle: 'Professionele reiniging met osmosewater',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
     colorClass: 'sector-zon',
     badgeClass: 'badge-zon',
     seizoenMaanden: [3,4,5,6,7,8,9,10],
+    usps: [
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Osmosewater zonder chemie' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Tot 20% meer opbrengst' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Technische controle inbegrepen' }
+    ],
 
     defaultConfig: function() {
       return { pan: 12, daktype: 'hellend', hoog: false, verv: false };
     },
 
     renderConfig: function(cfg, idx) {
-      return '<div class="field"><label>Aantal panelen</label>' +
+      return '<div class="card"><div class="card-title">Uw installatie</div>' +
+        '<div class="field"><label>Aantal panelen</label>' +
         '<input type="number" min="1" max="200" value="' + cfg.pan + '" onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'pan\',parseInt(this.value)||1)"></div>' +
         '<div class="field-row">' +
         '<div class="field"><label>Type dak</label><select onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'daktype\',this.value)">' +
@@ -554,9 +601,12 @@ var SECTORS = {
         '<div class="field"><label>Dakhoogte</label><select onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'hoog\',this.value===\'hoog\')">' +
         '<option value="laag"' + (!cfg.hoog ? ' selected' : '') + '>Lager dan 7,5 m</option>' +
         '<option value="hoog"' + (cfg.hoog ? ' selected' : '') + '>Hoger dan 7,5 m</option>' +
-        '</select></div></div>' +
-        '<div class="check-group"><input type="checkbox" id="zon-verv-' + idx + '"' + (cfg.verv ? ' checked' : '') + ' onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'verv\',this.checked)">' +
-        '<label for="zon-verv-' + idx + '">Hevige vervuiling of mosvorming</label></div>';
+        '</select></div></div></div>' +
+        '<div class="card"><div class="card-title">Bijzonderheden</div>' +
+        '<label class="toggle-group" for="zon-verv-' + idx + '">' +
+        '<div class="toggle-label">Hevige vervuiling of mosvorming<small>Toeslag per paneel</small></div>' +
+        '<div class="switch"><input type="checkbox" id="zon-verv-' + idx + '"' + (cfg.verv ? ' checked' : '') + ' onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'verv\',this.checked)"><span class="slider"></span></div>' +
+        '</label></div>';
     },
 
     calculate: function(configs, pricing, supplements, partner) {
@@ -613,26 +663,36 @@ var SECTORS = {
   warmtepomp: {
     key: 'warmtepomp',
     label: 'Warmtepomp',
+    subtitle: 'Periodiek onderhoud van uw warmtepompsysteem',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 8 4 12.5 4 15.5a8 8 0 0 0 16 0C20 12.5 17.5 8 12 2Z"/></svg>',
     colorClass: 'sector-wp',
     badgeClass: 'badge-wp',
     seizoenMaanden: [9,10,11,3,4,5],
+    usps: [
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Gecertificeerd onderhoud' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Optimale efficiëntie' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Verlengde levensduur' }
+    ],
 
     defaultConfig: function() {
       return { formule: 'basic', binnenunits: 1, buitenunits: 1, moeilijk: false };
     },
 
     renderConfig: function(cfg, idx) {
-      return '<div class="field"><label>Formule</label><select onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'formule\',this.value)">' +
+      return '<div class="card"><div class="card-title">Uw warmtepompsysteem</div>' +
+        '<div class="field"><label>Formule</label><select onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'formule\',this.value)">' +
         '<option value="basic"' + (cfg.formule === 'basic' ? ' selected' : '') + '>Basic</option>' +
         '<option value="allin"' + (cfg.formule === 'allin' ? ' selected' : '') + '>All-in</option>' +
         '</select></div>' +
         '<div class="field-row">' +
         '<div class="field"><label>Binnenunits</label><input type="number" min="1" max="20" value="' + cfg.binnenunits + '" onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'binnenunits\',parseInt(this.value)||1)"></div>' +
         '<div class="field"><label>Buitenunits</label><input type="number" min="1" max="10" value="' + cfg.buitenunits + '" onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'buitenunits\',parseInt(this.value)||1)"></div>' +
-        '</div>' +
-        '<div class="check-group"><input type="checkbox" id="wp-moeilijk-' + idx + '"' + (cfg.moeilijk ? ' checked' : '') + ' onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'moeilijk\',this.checked)">' +
-        '<label for="wp-moeilijk-' + idx + '">Moeilijk bereikbaar</label></div>';
+        '</div></div>' +
+        '<div class="card"><div class="card-title">Bijzonderheden</div>' +
+        '<label class="toggle-group" for="wp-moeilijk-' + idx + '">' +
+        '<div class="toggle-label">Moeilijk bereikbare units<small>Toeslag per interventie</small></div>' +
+        '<div class="switch"><input type="checkbox" id="wp-moeilijk-' + idx + '"' + (cfg.moeilijk ? ' checked' : '') + ' onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'moeilijk\',this.checked)"><span class="slider"></span></div>' +
+        '</label></div>';
     },
 
     calculate: function(configs, pricing, supplements, partner) {
@@ -681,24 +741,35 @@ var SECTORS = {
   ventilatie: {
     key: 'ventilatie',
     label: 'Ventilatie',
+    subtitle: 'Onderhoud van uw ventilatiesysteem (C of D)',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>',
     colorClass: 'sector-vent',
     badgeClass: 'badge-vent',
     seizoenMaanden: [1,2,3,4,5,6,7,8,9,10,11,12],
+    usps: [
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Gezonde binnenlucht' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Lager energieverbruik' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Conform EPB-regelgeving' }
+    ],
 
     defaultConfig: function() {
       return { systeem: 'D', ventielen: 10, kanaalreiniging: false, lm: 0 };
     },
 
     renderConfig: function(cfg, idx) {
-      return '<div class="field"><label>Systeem type</label><select onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'systeem\',this.value)">' +
+      return '<div class="card"><div class="card-title">Uw ventilatiesysteem</div>' +
+        '<div class="field"><label>Systeem type</label><select onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'systeem\',this.value)">' +
         '<option value="C"' + (cfg.systeem === 'C' ? ' selected' : '') + '>Systeem C</option>' +
         '<option value="D"' + (cfg.systeem === 'D' ? ' selected' : '') + '>Systeem D</option>' +
         '</select></div>' +
-        '<div class="field"><label>Aantal ventielen</label><input type="number" min="1" max="50" value="' + cfg.ventielen + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'ventielen\',parseInt(this.value)||1)"></div>' +
-        '<div class="check-group"><input type="checkbox" id="vent-kanaal-' + idx + '"' + (cfg.kanaalreiniging ? ' checked' : '') + ' onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'kanaalreiniging\',this.checked)">' +
-        '<label for="vent-kanaal-' + idx + '">Kanaalreiniging</label></div>' +
-        (cfg.kanaalreiniging ? '<div class="field"><label>Kanaallengte (lm)</label><input type="number" min="0" max="500" value="' + cfg.lm + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'lm\',parseInt(this.value)||0)"></div>' : '');
+        '<div class="field"><label>Aantal ventielen</label><input type="number" min="1" max="50" value="' + cfg.ventielen + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'ventielen\',parseInt(this.value)||1)"></div></div>' +
+        '<div class="card"><div class="card-title">Extra opties</div>' +
+        '<label class="toggle-group" for="vent-kanaal-' + idx + '">' +
+        '<div class="toggle-label">Kanaalreiniging<small>Toeslag per lopende meter</small></div>' +
+        '<div class="switch"><input type="checkbox" id="vent-kanaal-' + idx + '"' + (cfg.kanaalreiniging ? ' checked' : '') + ' onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'kanaalreiniging\',this.checked)"><span class="slider"></span></div>' +
+        '</label>' +
+        (cfg.kanaalreiniging ? '<div class="field" style="margin-top:8px"><label>Kanaallengte (lm)</label><input type="number" min="0" max="500" value="' + cfg.lm + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'lm\',parseInt(this.value)||0)"></div>' : '') +
+        '</div>';
     },
 
     calculate: function(configs, pricing, supplements, partner) {
@@ -744,23 +815,33 @@ var SECTORS = {
   verwarming: {
     key: 'verwarming',
     label: 'Verwarming',
+    subtitle: 'Ketelonderhoud inclusief rookgasanalyse',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
     colorClass: 'sector-verw',
     badgeClass: 'badge-verw',
     seizoenMaanden: [6,7,8,9],
+    usps: [
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Wettelijk verplicht' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Lager verbruik' },
+      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Veilige verbranding' }
+    ],
 
     defaultConfig: function() {
       return { keteltype: 'gas', rookgas: false };
     },
 
     renderConfig: function(cfg, idx) {
-      return '<div class="field"><label>Type ketel</label><select onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'keteltype\',this.value)">' +
+      return '<div class="card"><div class="card-title">Uw verwarmingsinstallatie</div>' +
+        '<div class="field"><label>Type ketel</label><select onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'keteltype\',this.value)">' +
         '<option value="gas"' + (cfg.keteltype === 'gas' ? ' selected' : '') + '>Gasketel</option>' +
         '<option value="mazout"' + (cfg.keteltype === 'mazout' ? ' selected' : '') + '>Mazoutketel</option>' +
         '<option value="pellet"' + (cfg.keteltype === 'pellet' ? ' selected' : '') + '>Pelletketel</option>' +
-        '</select></div>' +
-        '<div class="check-group"><input type="checkbox" id="verw-rookgas-' + idx + '"' + (cfg.rookgas ? ' checked' : '') + ' onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'rookgas\',this.checked)">' +
-        '<label for="verw-rookgas-' + idx + '">Rookgasanalyse</label></div>';
+        '</select></div></div>' +
+        '<div class="card"><div class="card-title">Bijzonderheden</div>' +
+        '<label class="toggle-group" for="verw-rookgas-' + idx + '">' +
+        '<div class="toggle-label">Rookgasanalyse<small>Wettelijk verplichte controle</small></div>' +
+        '<div class="switch"><input type="checkbox" id="verw-rookgas-' + idx + '"' + (cfg.rookgas ? ' checked' : '') + ' onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'rookgas\',this.checked)"><span class="slider"></span></div>' +
+        '</label></div>';
     },
 
     calculate: function(configs, pricing, supplements, partner) {
@@ -857,13 +938,16 @@ async function initApp() {
     sel.appendChild(opt);
   });
 
-  // If partner role: preselect and lock
+  // If partner role: preselect and lock, hide "Partner" klanttype
   if (userRole === 'partner' && roleData.partner_id) {
     userPartner = partners.find(p => p.id === roleData.partner_id);
     sel.value = roleData.partner_id;
     sel.disabled = true;
     wizState.partnerId = roleData.partner_id;
     await loadPartnerData(roleData.partner_id);
+    // Partners maken altijd contracten voor eindklanten — verberg de "Partner" optie
+    var partnerTypeCard = document.querySelector('.type-card[data-type="partner"]');
+    if (partnerTypeCard) partnerTypeCard.style.display = 'none';
   }
 
   // Set default start date to today
@@ -922,6 +1006,12 @@ function goStep(n) {
     return;
   }
   if (n === 5) {
+    // Check of er een looptijd is gekozen
+    var duurSelected = document.querySelector('.duur-grid .freq-card.selected');
+    if (!duurSelected) {
+      showToast('Kies een looptijd');
+      return;
+    }
     renderSummary();
   }
 
@@ -1036,20 +1126,24 @@ var availableSectors = [];
 
 function renderSectorToggles(partnerSectors) {
   availableSectors = partnerSectors;
-  var container = document.getElementById('sector-toggles');
+  var container = document.getElementById('sector-grid');
   container.innerHTML = partnerSectors.map(function(sec) {
     var cfg = SECTORS[sec];
     if (!cfg) return '';
-    return '<div class="sector-toggle" data-sector="' + sec + '" onclick="toggleSector(\'' + sec + '\')">' +
-      cfg.icon + ' <span>' + cfg.label + '</span></div>';
+    return '<div class="sector-card" data-sector="' + sec + '" onclick="toggleSector(\'' + sec + '\')">' +
+      '<div class="sector-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+      '<div class="sector-card-icon">' + cfg.icon + '</div>' +
+      '<h3>' + cfg.label + '</h3>' +
+      '<p>' + (cfg.subtitle || '') + '</p></div>';
   }).join('');
 }
+
+var activeSectorTab = null;
 
 function toggleSector(sector) {
   var idx = wizState.selectedSectors.indexOf(sector);
   if (idx === -1) {
     wizState.selectedSectors.push(sector);
-    // Initialize config if not present
     if (!wizState.sectorConfigs[sector]) {
       wizState.sectorConfigs[sector] = [SECTORS[sector].defaultConfig()];
     }
@@ -1057,21 +1151,75 @@ function toggleSector(sector) {
     wizState.selectedSectors.splice(idx, 1);
   }
 
-  // Update toggle visuals
-  document.querySelectorAll('.sector-toggle').forEach(function(el) {
-    el.classList.toggle('active', wizState.selectedSectors.indexOf(el.dataset.sector) !== -1);
+  // Update card visuals
+  document.querySelectorAll('.sector-card').forEach(function(el) {
+    el.classList.toggle('selected', wizState.selectedSectors.indexOf(el.dataset.sector) !== -1);
   });
 
+  // Set active tab
+  if (wizState.selectedSectors.length > 0) {
+    if (!activeSectorTab || wizState.selectedSectors.indexOf(activeSectorTab) === -1) {
+      activeSectorTab = wizState.selectedSectors[0];
+    }
+  } else {
+    activeSectorTab = null;
+  }
+
   document.getElementById('btn-step3-next').disabled = wizState.selectedSectors.length === 0;
+  renderSectorTabs();
+  renderSectorUSPs();
   renderSectorConfigs();
   recalcPricing();
+}
+
+function switchSectorTab(sec) {
+  activeSectorTab = sec;
+  renderSectorTabs();
+  renderSectorUSPs();
+  renderSectorConfigs();
+}
+
+function renderSectorTabs() {
+  var tabBar = document.getElementById('sector-tabs');
+  if (wizState.selectedSectors.length <= 1) {
+    tabBar.style.display = 'none';
+    return;
+  }
+  tabBar.style.display = 'flex';
+  tabBar.innerHTML = wizState.selectedSectors.map(function(sec) {
+    var cfg = SECTORS[sec];
+    var cls = sec === activeSectorTab ? ' active' : '';
+    return '<button class="sector-tab-btn' + cls + '" data-sector="' + sec + '" onclick="switchSectorTab(\'' + sec + '\')">' +
+      cfg.icon + ' ' + cfg.label + '</button>';
+  }).join('');
+}
+
+function renderSectorUSPs() {
+  var bar = document.getElementById('usp-bar');
+  if (!activeSectorTab || wizState.selectedSectors.length === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  var cfg = SECTORS[activeSectorTab];
+  if (!cfg || !cfg.usps || cfg.usps.length === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = cfg.usps.map(function(u) {
+    return '<div class="usp-item">' + u.icon + ' ' + u.text + '</div>';
+  }).join('');
 }
 
 function renderSectorConfigs() {
   var container = document.getElementById('sector-configs');
   var html = '';
 
-  wizState.selectedSectors.forEach(function(sec) {
+  // When tabs are used, only show the active sector
+  var sectorsToShow = wizState.selectedSectors.length > 1 && activeSectorTab
+    ? [activeSectorTab] : wizState.selectedSectors;
+
+  sectorsToShow.forEach(function(sec) {
     var cfg = SECTORS[sec];
     var configs = wizState.sectorConfigs[sec] || [cfg.defaultConfig()];
 
@@ -1272,7 +1420,8 @@ function renderSummary() {
     html += '<div class="summary-row"><span class="label">Adres</span><span class="value">' + esc([nc.street, nc.postal_code, nc.city].filter(Boolean).join(' ')) + '</span></div>';
   }
   if (partner) {
-    html += '<div class="summary-row"><span class="label">Partner</span><span class="value">' + esc(partner.bedrijfsnaam || partner.naam) + '</span></div>';
+    var mainSector = wizState.selectedSectors[0] || null;
+    html += '<div class="summary-row"><span class="label">Partner</span><span class="value">' + esc(getPartnerDisplayName(partner, mainSector)) + '</span></div>';
   }
   html += '</div>';
 

@@ -660,6 +660,14 @@ function fmtTotal(n) { var r = round50(n); return '\u20AC ' + r.toFixed(2).repla
 function fmtCleanTotal(n) { var r = round50(n); return '\u20AC\u00A0' + r.toFixed(2).replace('.', ','); }
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+function getPartnerDisplayName(partner, sector) {
+  if (partner && partner.sector_namen && sector) {
+    var sn = partner.sector_namen[sector];
+    if (sn && sn.naam) return sn.naam;
+  }
+  return partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco';
+}
+
 // ═══════════════════════════════════════════
 // SECTOR CONFIG
 // ═══════════════════════════════════════════
@@ -1520,8 +1528,9 @@ async function loadContractForSigning(token) {
     r.setProperty('--primary-light', primary + '80');
     r.setProperty('--primary-bg', primary + '12');
 
-    document.title = (signingPartner.bedrijfsnaam || signingPartner.naam) + ' — Contract ondertekenen';
-    var displayName = esc(signingPartner.bedrijfsnaam || signingPartner.naam);
+    var sigSector = (signingContract.sectoren || [])[0] ? ((signingContract.sectoren[0].sector) || signingContract.sectoren[0]) : null;
+    document.title = getPartnerDisplayName(signingPartner, sigSector) + ' — Contract ondertekenen';
+    var displayName = esc(getPartnerDisplayName(signingPartner, sigSector));
     if (/flancco/i.test(displayName)) {
       displayName = displayName.replace(/O/gi, '<span style="color:#922B21">O</span>');
     }
@@ -1899,7 +1908,8 @@ async function submitSigning() {
     document.getElementById('signing-post-freq').textContent = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x)';
     document.getElementById('signing-post-duur').textContent = c.contractduur || 'n.v.t.';
     document.getElementById('signing-post-bedrag').textContent = c.totaal_incl_btw ? fmt(parseFloat(c.totaal_incl_btw)) : '\u2014';
-    document.getElementById('signing-post-contact').textContent = (p.bedrijfsnaam || p.naam) + (p.telefoon ? ' \u2014 ' + p.telefoon : '') + (p.email ? ' \u2014 ' + p.email : '');
+    var postSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
+    document.getElementById('signing-post-contact').textContent = getPartnerDisplayName(p, postSector) + (p.telefoon ? ' \u2014 ' + p.telefoon : '') + (p.email ? ' \u2014 ' + p.email : '');
 
   } catch (err) {
     console.error('Signing error:', err);
@@ -1924,8 +1934,8 @@ function applyBranding(p) {
   r.setProperty('--primary-light', primary + '80');
   r.setProperty('--primary-bg', primary + '12');
 
-  document.title = (p.bedrijfsnaam || p.naam) + ' \u2014 Onderhoudscalculator';
-  var displayName = esc(p.bedrijfsnaam || p.naam);
+  document.title = getPartnerDisplayName(p, null) + ' \u2014 Onderhoudscalculator';
+  var displayName = esc(getPartnerDisplayName(p, null));
   if (/flancco/i.test(displayName)) {
     displayName = displayName.replace(/O/gi, '<span style="color:#922B21">O</span>');
   }
@@ -1946,7 +1956,7 @@ function applyBranding(p) {
 
   // Footer
   var footer = document.getElementById('footer');
-  var parts = [p.bedrijfsnaam || p.naam];
+  var parts = [getPartnerDisplayName(p, selectedSectors[0] || null)];
   if (p.adres) parts.push(p.adres + (p.postcode ? ', ' + p.postcode : '') + (p.gemeente ? ' ' + p.gemeente : ''));
   if (p.btw_nummer) parts.push(p.btw_nummer);
   footer.innerHTML = parts.join(' &middot; ') + '<br>Prijzen zijn indicatief en incl. btw. De definitieve prijs wordt bevestigd na inspectie.';
@@ -1956,7 +1966,7 @@ function applyBranding(p) {
   if (p.slug === 'flancco') {
     privText.innerHTML = 'Ik heb de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>Flancco BV</strong>.';
   } else {
-    privText.innerHTML = 'Ik heb de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>' + esc(p.bedrijfsnaam || p.naam) + '</strong> en <strong>Flancco BV</strong>.';
+    privText.innerHTML = 'Ik heb de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>' + esc(getPartnerDisplayName(p, selectedSectors[0] || null)) + '</strong> en <strong>Flancco BV</strong>.';
   }
 }
 
@@ -2405,7 +2415,7 @@ function generateContract() {
   var freqTxt = s.freq === 1 ? 'Jaarlijks (1\u00D7)' : 'Halfjaarlijks (2\u00D7)';
   var duurTxt = s.duur === 0 ? 'Eenmalige interventie' : s.duur + ' jaar (5% korting)';
   var today = new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
-  var pNaam = esc(partner.bedrijfsnaam || partner.naam);
+  var pNaam = esc(getPartnerDisplayName(partner, selectedSectors[0] || null));
   var pAdres = esc([partner.adres, partner.postcode, partner.gemeente].filter(Boolean).join(', '));
   var pBtw = esc(partner.btw_nummer || '');
   var btwMult = 1 + s.btwPct / 100;
@@ -2579,7 +2589,7 @@ function generateContract() {
     '<div class="accept-box"><label><input type="checkbox" id="accept-check" onchange="checkAccept()">' +
     '<div class="accept-text">Ik, <strong>' + naam + '</strong>, verklaar deze overeenkomst gelezen te hebben en ga akkoord met alle hierin vermelde voorwaarden en tarieven. Ik begrijp dat deze digitale ondertekening rechtsgeldig is conform de EU eIDAS-verordening.</div></label></div>' +
     '<p style="text-align:center;font-size:11px;color:var(--grey);margin-top:32px;padding-top:16px;border-top:1px solid var(--rule)">' +
-    esc(partner.bedrijfsnaam || partner.naam) + (pAdres ? ' \u00B7 ' + pAdres : '') + (pBtw ? ' \u00B7 ' + pBtw : '') + '</p>';
+    esc(getPartnerDisplayName(partner, selectedSectors[0] || null)) + (pAdres ? ' \u00B7 ' + pAdres : '') + (pBtw ? ' \u00B7 ' + pBtw : '') + '</p>';
 
   document.getElementById('contract-body').innerHTML = html;
   goToStep(3);
@@ -2861,7 +2871,7 @@ async function submitContract() {
     }).filter(function(v, i, a) { return v && a.indexOf(v) === i; });
     document.getElementById('post-seizoen').textContent = 'Wij plannen uw eerste onderhoudsbeurt in de periode ' + seizoenen.join(' / ');
 
-    document.getElementById('post-contact').textContent = (partner.bedrijfsnaam || partner.naam) +
+    document.getElementById('post-contact').textContent = getPartnerDisplayName(partner, selectedSectors[0] || null) +
       (partner.telefoon ? ' \u2014 ' + partner.telefoon : '') + (partner.email ? ' \u2014 ' + partner.email : '');
 
     // Auto-download PDF
@@ -2970,7 +2980,7 @@ function downloadContract() {
 
   var printWin = window.open('', '_blank', 'width=800,height=600');
   var styles = document.querySelector('style').textContent;
-  printWin.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>' + esc(partner.bedrijfsnaam || partner.naam) + ' \u2014 Overeenkomst</title><style>' + styles + ' body{background:white;margin:0;padding:20px} .contract{box-shadow:none;border-radius:0;max-width:100%} @page{margin:15mm 10mm}</style></head><body>' + clone.innerHTML + '</body></html>');
+  printWin.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>' + esc(getPartnerDisplayName(partner, selectedSectors[0] || null)) + ' \u2014 Overeenkomst</title><style>' + styles + ' body{background:white;margin:0;padding:20px} .contract{box-shadow:none;border-radius:0;max-width:100%} @page{margin:15mm 10mm}</style></head><body>' + clone.innerHTML + '</body></html>');
   printWin.document.close();
   printWin.onload = function() { setTimeout(function() { printWin.print(); printWin.onafterprint = function() { printWin.close(); }; }, 300); };
 }

@@ -278,6 +278,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <span>Interventies</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('admin-instellingen')" data-page="admin-instellingen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Instellingen</span>
+    </a>
     <a class="nav-item partner-only" onclick="showPage('overzicht')" data-page="overzicht">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Overzicht</span>
@@ -354,7 +358,7 @@
             <select id="filter-klant-partner" class="admin-only" onchange="renderKlanten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
               <option value="">Alle partners</option>
             </select>
-            <button class="btn-save" onclick="exportKlantenExcel()" style="margin:0;font-size:12px;background:var(--blue)">&#11015; Excel</button>
+            <button class="btn-save" onclick="exportKlantenExcel()" style="margin:0;font-size:12px;background:var(--blue);display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
             <button class="btn-save" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
           </div>
         </div>
@@ -376,7 +380,24 @@
 
     <!-- PRICING PAGE -->
     <div class="page" id="page-pricing">
-      <p style="font-size:13px;color:var(--grey);margin-bottom:20px">Pas de Flancco-basisforfaits aan per partner. Eindklantprijzen worden automatisch berekend: (forfait × marge%) + planning → + btw.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <p style="font-size:13px;color:var(--grey);margin:0">Flancco-basisforfaits per partner. Eindklantprijzen: (forfait × marge%) + planning → + btw.</p>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="pricing-filter-partner" onchange="renderPricing()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+            <option value="">Alle partners</option>
+          </select>
+          <select id="pricing-filter-sector" onchange="renderPricing()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+            <option value="">Alle sectoren</option>
+            <option value="zonnepanelen">Zonnepanelen</option>
+            <option value="warmtepomp">Warmtepomp</option>
+            <option value="ventilatie">Ventilatie</option>
+            <option value="verwarming">Verwarming</option>
+            <option value="airco">Airco</option>
+            <option value="ic">Industrial Cleaning</option>
+            <option value="klussen">Klussen</option>
+          </select>
+        </div>
+      </div>
       <div class="pricing-grid" id="pricing-grid"></div>
     </div>
 
@@ -385,6 +406,13 @@
       <div class="card">
         <div class="card-header"><span class="card-title">Branding & weergave</span></div>
         <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Pas je huisstijl aan. Deze kleuren worden toegepast op je calculator en dit dashboard.</p>
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>Logo URL</label>
+            <input type="text" id="set-logo-url" placeholder="https://example.com/logo.png">
+            <small style="color:var(--grey);font-size:11px">Wordt getoond op je calculator en contracten</small>
+          </div>
+        </div>
         <div class="modal-row">
           <div class="modal-field">
             <label>Primaire kleur</label>
@@ -421,6 +449,11 @@
             <input type="tel" id="set-telefoon">
           </div>
         </div>
+        <div style="margin-top:20px">
+          <label style="font-weight:600;font-size:13px">Sectorbenamingen (optioneel)</label>
+          <p style="font-size:12px;color:var(--grey);margin:4px 0 12px">Afwijkende bedrijfsnaam per sector, zoals getoond op contracten en de calculator.</p>
+          <div id="sector-namen-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+        </div>
       </div>
 
       <div class="card">
@@ -456,6 +489,15 @@
 
       <button class="btn-save" onclick="saveSettings()" style="margin-top:4px">Instellingen opslaan</button>
       <span class="save-msg" id="settings-saved">Opgeslagen!</span>
+    </div>
+
+    <!-- ADMIN INSTELLINGEN PAGE -->
+    <div class="page admin-only" id="page-admin-instellingen">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Partnerbeheer</span></div>
+        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Beheer partners, wijs sectoren toe en stel machtigingen in.</p>
+        <div id="admin-partner-list"></div>
+      </div>
     </div>
 
     <!-- FORECAST PAGE -->
@@ -1025,6 +1067,7 @@ function applyBranding(p) {
 }
 
 function loadSettings(p) {
+  document.getElementById('set-logo-url').value = p.logo_url || '';
   document.getElementById('set-kleur1').value = p.kleur_primair || '#098979';
   document.getElementById('set-kleur1-hex').value = p.kleur_primair || '#098979';
   document.getElementById('set-kleur2').value = p.kleur_donker || '#066b5e';
@@ -1037,6 +1080,19 @@ function loadSettings(p) {
   document.getElementById('set-marge').value = p.marge_pct || 10;
   document.getElementById('set-planning').value = p.planning_fee || 5;
   document.getElementById('set-inzage').value = p.akkoord_flancco_inzage ? 'true' : 'false';
+
+  // Sector namen grid
+  var sectorNamen = p.sector_namen || {};
+  var allSectors = ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'];
+  var sectorLabelsMap = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', airco:'Airco', ic:'Industrial Cleaning', klussen:'Klussen' };
+  var grid = document.getElementById('sector-namen-grid');
+  grid.innerHTML = allSectors.map(function(s) {
+    var val = sectorNamen[s] ? sectorNamen[s].naam || '' : '';
+    return '<div style="display:flex;align-items:center;gap:6px">' +
+      '<label style="width:110px;font-size:12px;color:var(--grey)">' + sectorLabelsMap[s] + '</label>' +
+      '<input id="sn-' + s + '" value="' + esc(val) + '" placeholder="' + esc(p.bedrijfsnaam || p.naam) + '" style="flex:1;padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">' +
+    '</div>';
+  }).join('');
 
   const calcLink = document.getElementById('set-calc-link');
   const url = window.location.origin + window.location.pathname.replace('/admin/', '/' + p.slug + '/');
@@ -1055,13 +1111,21 @@ function loadSettings(p) {
 async function saveSettings() {
   if (!userPartner) return;
 
+  var sectorNamen = {};
+  ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(s) {
+    var val = document.getElementById('sn-' + s).value.trim();
+    if (val) sectorNamen[s] = { naam: val };
+  });
+
   const updates = {
+    logo_url: document.getElementById('set-logo-url').value.trim() || null,
     kleur_primair: document.getElementById('set-kleur1-hex').value,
     kleur_donker: document.getElementById('set-kleur2-hex').value,
     bedrijfsnaam: document.getElementById('set-bedrijfsnaam').value,
     contactpersoon: document.getElementById('set-contact').value,
     email: document.getElementById('set-email').value,
-    telefoon: document.getElementById('set-telefoon').value
+    telefoon: document.getElementById('set-telefoon').value,
+    sector_namen: sectorNamen
   };
 
   const { error } = await sb.from('partners').update(updates).eq('id', userPartner.id);
@@ -1123,6 +1187,10 @@ async function loadAllData() {
   renderTechniekers();
   renderWagenpark();
   renderInterventies();
+  if (userRole === 'admin') {
+    await loadPartnerSectors();
+    renderAdminSettings();
+  }
 
   // Deep-link: ?page=techniekers etc.
   var urlPage = new URLSearchParams(window.location.search).get('page');
@@ -1291,6 +1359,169 @@ function togglePartnerDetail(partnerId) {
 }
 
 // =============================================
+// ADMIN INSTELLINGEN
+// =============================================
+var allPartnerSectors = {};
+
+async function loadPartnerSectors() {
+  var { data } = await sb.from('partner_sectors').select('*');
+  allPartnerSectors = {};
+  (data || []).forEach(function(ps) {
+    if (!allPartnerSectors[ps.partner_id]) allPartnerSectors[ps.partner_id] = [];
+    allPartnerSectors[ps.partner_id].push(ps);
+  });
+}
+
+var allSectorsList = ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'];
+var allSectorLabels = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', airco:'Airco', ic:'Industrial Cleaning', klussen:'Klussen' };
+var allSectorColors = { zonnepanelen:'#F59E0B', warmtepomp:'#3B82F6', ventilatie:'#8B5CF6', verwarming:'#EF4444', airco:'#06B6D4', ic:'#10B981', klussen:'#D97706' };
+
+function renderAdminSettings() {
+  var container = document.getElementById('admin-partner-list');
+  if (!container) return;
+
+  container.innerHTML = partners.map(function(p) {
+    var pSectors = allPartnerSectors[p.id] || [];
+    var activeSectors = pSectors.filter(function(s) { return s.actief; }).map(function(s) { return s.sector; });
+
+    var sectorToggles = allSectorsList.map(function(sec) {
+      var active = activeSectors.indexOf(sec) !== -1;
+      var color = allSectorColors[sec];
+      return '<label style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid ' + (active ? color : 'var(--rule)') + ';background:' + (active ? color + '15' : 'transparent') + ';color:' + (active ? color : 'var(--grey)') + ';transition:all 0.2s" onclick="toggleAdminSector(\'' + p.id + '\',\'' + sec + '\',this)">' +
+        '<input type="checkbox" ' + (active ? 'checked' : '') + ' style="display:none">' +
+        allSectorLabels[sec] +
+        '</label>';
+    }).join(' ');
+
+    // Editable fields
+    var html = '<div style="border:1px solid var(--rule);border-radius:var(--radius);margin-bottom:16px;overflow:hidden">';
+    html += '<div onclick="toggleAdminPartner(\'' + p.id + '\')" style="display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;background:var(--white)">';
+    html += '<span style="width:32px;height:32px;border-radius:8px;background:' + (p.kleur_primair || '#098979') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    if (p.logo_url) {
+      html += '<img src="' + esc(p.logo_url) + '" style="width:24px;height:24px;object-fit:contain;border-radius:4px">';
+    } else {
+      html += '<span style="color:white;font-weight:700;font-size:14px">' + esc((p.naam || '')[0] || '?') + '</span>';
+    }
+    html += '</span>';
+    html += '<div style="flex:1;min-width:0"><strong style="font-size:14px">' + esc(p.bedrijfsnaam || p.naam) + '</strong>';
+    html += '<div style="font-size:12px;color:var(--grey);margin-top:2px">' + esc(p.email || '') + (p.slug ? ' · /' + p.slug : '') + '</div></div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap">' + activeSectors.map(function(s) {
+      return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + (allSectorColors[s] || '#ccc') + '"></span>';
+    }).join('') + '</div>';
+    html += '<svg id="adm-chev-' + p.id + '" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--grey)" stroke-width="2" style="transition:transform 0.2s;flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>';
+    html += '</div>';
+
+    // Detail panel
+    html += '<div id="adm-detail-' + p.id + '" style="display:none;padding:20px;border-top:1px solid var(--rule);background:#fafafa">';
+
+    // Sectoren
+    html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Actieve sectoren</label>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap">' + sectorToggles + '</div></div>';
+
+    // Bedrijfsgegevens
+    html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Bedrijfsgegevens</label>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Bedrijfsnaam</label><input type="text" id="adm-naam-' + p.id + '" value="' + esc(p.bedrijfsnaam || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Contactpersoon</label><input type="text" id="adm-contact-' + p.id + '" value="' + esc(p.contactpersoon || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">E-mail</label><input type="email" id="adm-email-' + p.id + '" value="' + esc(p.email || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Telefoon</label><input type="tel" id="adm-tel-' + p.id + '" value="' + esc(p.telefoon || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">BTW-nummer</label><input type="text" id="adm-btw-' + p.id + '" value="' + esc(p.btw_nummer || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Website</label><input type="text" id="adm-web-' + p.id + '" value="' + esc(p.website || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div style="grid-column:span 2"><label style="font-size:11px;color:var(--grey)">Adres</label><input type="text" id="adm-adres-' + p.id + '" value="' + esc([p.adres, p.postcode, p.gemeente].filter(Boolean).join(', ')) + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '</div></div>';
+
+    // Branding
+    html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Branding</label>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Primaire kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur1-' + p.id + '" value="' + (p.kleur_primair || '#098979') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px"><input type="text" id="adm-kleur1t-' + p.id + '" value="' + (p.kleur_primair || '#098979') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="document.getElementById(\'adm-kleur1-' + p.id + '\').value=this.value"></div></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Donkere kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur2-' + p.id + '" value="' + (p.kleur_donker || '#066b5e') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px"><input type="text" id="adm-kleur2t-' + p.id + '" value="' + (p.kleur_donker || '#066b5e') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="document.getElementById(\'adm-kleur2-' + p.id + '\').value=this.value"></div></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Logo URL</label><input type="text" id="adm-logo-' + p.id + '" value="' + esc(p.logo_url || '') + '" placeholder="https://..." style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px"></div>';
+    html += '</div></div>';
+
+    // Tarieven
+    html += '<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Tarieven & voorwaarden</label>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Marge (%)</label><input type="number" id="adm-marge-' + p.id + '" value="' + (p.marge_pct || 0) + '" min="0" step="0.5" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Planning fee (€)</label><input type="number" id="adm-planfee-' + p.id + '" value="' + (p.planning_fee || 0) + '" min="0" step="0.5" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Gratis transport (km)</label><input type="number" id="adm-km-' + p.id + '" value="' + (p.transport_gratis_km || 0) + '" min="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '</div></div>';
+
+    // Save button
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<button onclick="saveAdminPartner(\'' + p.id + '\')" style="padding:8px 20px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Opslaan</button>';
+    html += '<span id="adm-saved-' + p.id + '" style="font-size:12px;color:var(--green);display:none">Opgeslagen!</span>';
+    html += '</div>';
+
+    html += '</div></div>';
+    return html;
+  }).join('');
+}
+
+function toggleAdminPartner(id) {
+  var el = document.getElementById('adm-detail-' + id);
+  var chev = document.getElementById('adm-chev-' + id);
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    chev.style.transform = 'rotate(180deg)';
+  } else {
+    el.style.display = 'none';
+    chev.style.transform = '';
+  }
+}
+
+async function toggleAdminSector(partnerId, sector, label) {
+  var cb = label.querySelector('input[type="checkbox"]');
+  var nowActive = cb.checked;
+  var existing = (allPartnerSectors[partnerId] || []).find(function(s) { return s.sector === sector; });
+
+  if (existing) {
+    await sb.from('partner_sectors').update({ actief: nowActive }).eq('id', existing.id);
+    existing.actief = nowActive;
+  } else if (nowActive) {
+    var { data } = await sb.from('partner_sectors').insert({ partner_id: partnerId, sector: sector, actief: true }).select().single();
+    if (data) {
+      if (!allPartnerSectors[partnerId]) allPartnerSectors[partnerId] = [];
+      allPartnerSectors[partnerId].push(data);
+    }
+  }
+
+  // Update visual
+  var color = allSectorColors[sector];
+  label.style.borderColor = nowActive ? color : 'var(--rule)';
+  label.style.background = nowActive ? color + '15' : 'transparent';
+  label.style.color = nowActive ? color : 'var(--grey)';
+}
+
+async function saveAdminPartner(partnerId) {
+  var updates = {
+    bedrijfsnaam: document.getElementById('adm-naam-' + partnerId).value.trim(),
+    contactpersoon: document.getElementById('adm-contact-' + partnerId).value.trim(),
+    email: document.getElementById('adm-email-' + partnerId).value.trim(),
+    telefoon: document.getElementById('adm-tel-' + partnerId).value.trim(),
+    btw_nummer: document.getElementById('adm-btw-' + partnerId).value.trim(),
+    website: document.getElementById('adm-web-' + partnerId).value.trim(),
+    kleur_primair: document.getElementById('adm-kleur1t-' + partnerId).value.trim() || document.getElementById('adm-kleur1-' + partnerId).value,
+    kleur_donker: document.getElementById('adm-kleur2t-' + partnerId).value.trim() || document.getElementById('adm-kleur2-' + partnerId).value,
+    logo_url: document.getElementById('adm-logo-' + partnerId).value.trim() || null,
+    marge_pct: parseFloat(document.getElementById('adm-marge-' + partnerId).value) || 0,
+    planning_fee: parseFloat(document.getElementById('adm-planfee-' + partnerId).value) || 0,
+    transport_gratis_km: parseInt(document.getElementById('adm-km-' + partnerId).value) || 0
+  };
+
+  var { error } = await sb.from('partners').update(updates).eq('id', partnerId);
+  if (error) { showToast('Fout bij opslaan: ' + error.message, 'error'); return; }
+
+  // Update local data
+  var p = partners.find(function(x) { return x.id === partnerId; });
+  if (p) Object.assign(p, updates);
+
+  var msg = document.getElementById('adm-saved-' + partnerId);
+  msg.style.display = 'inline';
+  setTimeout(function() { msg.style.display = 'none'; }, 2000);
+  showToast('Partner opgeslagen');
+}
+
+// =============================================
 // CONTRACTEN
 // =============================================
 function populateFilterDropdown() {
@@ -1346,38 +1577,75 @@ function loadContracten() { renderContracten(); }
 // PRICING
 // =============================================
 function renderPricing() {
-  document.getElementById('pricing-grid').innerHTML = partners.map(p => {
-    const pricing = allPricing.filter(pr => pr.partner_id === p.id).sort((a,b) => a.staffel_min - b.staffel_min);
-    const marge = parseFloat(p.marge_pct) / 100;
-    const plan = parseFloat(p.planning_fee);
-    return `<div class="pricing-partner">
-      <div onclick="togglePricingDetail('${p.id}')" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-bottom:0">
-        <span style="width:10px;height:10px;border-radius:50%;background:${p.kleur_primair};flex-shrink:0"></span>
-        <strong style="flex:1">${p.naam}</strong>
-        <span style="color:var(--grey);font-size:12px">${pricing.length} tarieven · marge ${p.marge_pct}%</span>
-        <svg id="pricing-chevron-${p.id}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div id="pricing-detail-${p.id}" style="display:none;margin-top:12px">
-        <table>
-          <thead><tr><th>Staffel</th><th>Flancco</th><th>→ Partner</th><th>→ Klant (21%)</th></tr></thead>
-          <tbody>
-            ${pricing.map(pr => {
-              const partnerPrice = parseFloat(pr.flancco_forfait) * (1 + marge) + plan;
-              const clientPrice = Math.round(partnerPrice * 1.21);
-              return `<tr>
-                <td>${pr.label}</td>
-                <td><input class="pricing-input" type="number" step="0.01" value="${parseFloat(pr.flancco_forfait).toFixed(2)}" data-id="${pr.id}" onchange="calcPriceRow(this, ${marge}, ${plan})" readonly></td>
-                <td style="color:var(--grey)">€ ${partnerPrice.toFixed(2).replace('.',',')}</td>
-                <td><strong>€ ${clientPrice}</strong></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-        <button class="btn-edit-pricing" onclick="editPricing('${p.id}', this)" style="background:var(--light);color:var(--navy);border:1px solid #ddd;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px">&#9998; Bewerken</button>
-        <button class="btn-save" onclick="savePricing('${p.id}', this)" style="display:none">Opslaan</button>
-        <span class="save-msg">Opgeslagen!</span>
-      </div>
-    </div>`;
+  // Populate partner filter if empty
+  var pSel = document.getElementById('pricing-filter-partner');
+  if (pSel && pSel.options.length <= 1) {
+    pSel.innerHTML = '<option value="">Alle partners</option>' + partners.map(function(p) {
+      return '<option value="' + p.id + '">' + esc(p.naam) + '</option>';
+    }).join('');
+  }
+
+  var filterPartner = document.getElementById('pricing-filter-partner') ? document.getElementById('pricing-filter-partner').value : '';
+  var filterSector = document.getElementById('pricing-filter-sector') ? document.getElementById('pricing-filter-sector').value : '';
+
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorColors = { zonnepanelen: '#F59E0B', warmtepomp: '#3B82F6', ventilatie: '#8B5CF6', verwarming: '#EF4444', airco: '#06B6D4', ic: '#10B981', klussen: '#D97706' };
+
+  var filteredPartners = filterPartner ? partners.filter(function(p) { return p.id === filterPartner; }) : partners;
+
+  document.getElementById('pricing-grid').innerHTML = filteredPartners.map(function(p) {
+    var pricing = allPricing.filter(function(pr) { return pr.partner_id === p.id; }).sort(function(a,b) { return a.staffel_min - b.staffel_min; });
+    if (filterSector) pricing = pricing.filter(function(pr) { return pr.sector === filterSector; });
+    var marge = parseFloat(p.marge_pct) / 100;
+    var plan = parseFloat(p.planning_fee);
+
+    // Group by sector
+    var sectors = {};
+    pricing.forEach(function(pr) {
+      var sec = pr.sector || 'zonnepanelen';
+      if (!sectors[sec]) sectors[sec] = [];
+      sectors[sec].push(pr);
+    });
+
+    var sectorKeys = Object.keys(sectors);
+    if (sectorKeys.length === 0 && !filterSector) return '';
+
+    var sectorTablesHtml = sectorKeys.map(function(sec) {
+      var secPricing = sectors[sec];
+      var color = sectorColors[sec] || '#6B7280';
+      return '<div style="margin-bottom:16px">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">' +
+        '<span style="width:8px;height:8px;border-radius:50%;background:' + color + '"></span>' +
+        '<span style="font-size:12px;font-weight:600;color:' + color + ';text-transform:uppercase;letter-spacing:0.5px">' + (sectorLabels[sec] || sec) + '</span>' +
+        '</div>' +
+        '<table style="font-size:13px">' +
+        '<thead><tr><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--grey)">Staffel</th><th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--grey)">Flancco</th><th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--grey)">Partner</th><th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--grey)">Klant (21%)</th></tr></thead>' +
+        '<tbody>' + secPricing.map(function(pr) {
+          var partnerPrice = parseFloat(pr.flancco_forfait) * (1 + marge) + plan;
+          var clientPrice = Math.round(partnerPrice * 1.21);
+          return '<tr>' +
+            '<td style="padding:6px 8px">' + esc(pr.label) + '</td>' +
+            '<td style="text-align:right;padding:6px 8px"><input class="pricing-input" type="number" step="0.01" value="' + parseFloat(pr.flancco_forfait).toFixed(2) + '" data-id="' + pr.id + '" onchange="calcPriceRow(this,' + marge + ',' + plan + ')" readonly style="width:80px;text-align:right;padding:4px 8px;border:1px solid transparent;border-radius:4px;font-size:13px;background:transparent"></td>' +
+            '<td style="text-align:right;padding:6px 8px;color:var(--grey)">\u20AC ' + partnerPrice.toFixed(2).replace('.',',') + '</td>' +
+            '<td style="text-align:right;padding:6px 8px;font-weight:600">\u20AC ' + clientPrice + '</td>' +
+            '</tr>';
+        }).join('') + '</tbody></table></div>';
+    }).join('');
+
+    return '<div class="pricing-partner" style="background:var(--white);border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:12px;overflow:hidden">' +
+      '<div onclick="togglePricingDetail(\'' + p.id + '\')" style="display:flex;align-items:center;gap:10px;padding:16px;cursor:pointer;user-select:none">' +
+      '<span style="width:28px;height:28px;border-radius:6px;background:' + (p.kleur_primair || '#098979') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="color:white;font-weight:700;font-size:12px">' + esc((p.naam || '')[0]) + '</span></span>' +
+      '<strong style="flex:1;font-size:14px">' + esc(p.bedrijfsnaam || p.naam) + '</strong>' +
+      '<span style="color:var(--grey);font-size:12px">' + pricing.length + ' tarieven &middot; marge ' + p.marge_pct + '%</span>' +
+      '<svg id="pricing-chevron-' + p.id + '" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--grey)" stroke-width="2" style="transition:transform 0.2s;flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>' +
+      '</div>' +
+      '<div id="pricing-detail-' + p.id + '" style="display:none;padding:0 16px 16px;border-top:1px solid var(--rule)">' +
+      sectorTablesHtml +
+      '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">' +
+      '<button class="btn-edit-pricing" onclick="editPricing(\'' + p.id + '\', this)" style="background:var(--light);color:var(--navy);border:1px solid var(--rule);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Bewerken</button>' +
+      '<button class="btn-save" onclick="savePricing(\'' + p.id + '\', this)" style="display:none">Opslaan</button>' +
+      '<span class="save-msg" style="font-size:12px;color:var(--green);display:none">Opgeslagen!</span>' +
+      '</div></div></div>';
   }).join('');
 }
 
@@ -1543,13 +1811,16 @@ function contractActions(c) {
   var st = computeStatus(c);
   var btns = '';
   // Preview + PDF for all statuses
-  btns += '<button class="btn-action" onclick="previewContract(\'' + c.id + '\')" title="Preview">&#128065;</button>';
-  btns += '<button class="btn-action" onclick="downloadContractPDF(\'' + c.id + '\')" title="Download PDF">&#128196;</button>';
+  btns += '<button class="btn-action" onclick="previewContract(\'' + c.id + '\')" title="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>';
+  btns += '<button class="btn-action" onclick="downloadContractPDF(\'' + c.id + '\')" title="Download PDF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>';
   if (st === 'concept') {
-    btns += '<button class="btn-action" onclick="copyTekenLink(\'' + c.teken_token + '\')" title="Kopieer tekenlink">&#128279;</button>';
-    btns += '<button class="btn-action" onclick="sendContractMail(\'' + c.id + '\')" title="Verstuur per mail">&#9993;</button>';
-    btns += '<a class="btn-action" href="contracten-wizard.html?edit=' + c.id + '" title="Bewerken">&#9998;</a>';
-    btns += '<button class="btn-action btn-action-red" onclick="annuleerContract(\'' + c.id + '\')" title="Annuleren">&times;</button>';
+    btns += '<button class="btn-action" onclick="copyTekenLink(\'' + c.teken_token + '\')" title="Kopieer tekenlink"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>';
+    btns += '<button class="btn-action" onclick="sendContractMail(\'' + c.id + '\')" title="Verstuur per mail"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>';
+    btns += '<a class="btn-action" href="contracten-wizard.html?edit=' + c.id + '" title="Bewerken"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a>';
+    btns += '<button class="btn-action btn-action-red" onclick="annuleerContract(\'' + c.id + '\')" title="Annuleren"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>';
+  }
+  if (st === 'geannuleerd') {
+    btns += '<button class="btn-action btn-action-red" onclick="deleteContract(\'' + c.id + '\')" title="Definitief verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
   }
   return btns;
 }
@@ -1569,6 +1840,15 @@ async function annuleerContract(id) {
   showToast('Contract geannuleerd');
 }
 
+async function deleteContract(id) {
+  if (!confirm('Contract definitief verwijderen? Dit kan niet ongedaan worden.')) return;
+  var { error } = await sb.from('contracten').delete().eq('id', id);
+  if (error) { showToast('Fout bij verwijderen: ' + error.message, 'error'); return; }
+  await loadAllData();
+  renderContracten();
+  showToast('Contract verwijderd');
+}
+
 // =============================================
 // CONTRACT PREVIEW (HTML in nieuw venster)
 // =============================================
@@ -1576,7 +1856,8 @@ function previewContract(contractId) {
   var c = allContracten.find(x => x.id === contractId);
   if (!c) { showToast('Contract niet gevonden', 'error'); return; }
   var p = partners.find(x => x.id === c.partner_id);
-  var pName = p ? (p.bedrijfsnaam || p.naam) : 'Partner';
+  var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
+  var pName = getPartnerDisplayName(p, contractSector);
   var primary = p ? (p.kleur_primair || '#098979') : '#098979';
 
   var sectoren = c.sectoren || [];
@@ -1693,7 +1974,8 @@ function downloadContractPDF(contractId) {
   var c = allContracten.find(x => x.id === contractId);
   if (!c) { showToast('Contract niet gevonden', 'error'); return; }
   var p = partners.find(x => x.id === c.partner_id);
-  var pName = p ? (p.bedrijfsnaam || p.naam) : 'Partner';
+  var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
+  var pName = getPartnerDisplayName(p, contractSector);
   var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
 
   var { jsPDF } = window.jspdf;
@@ -1877,7 +2159,8 @@ function sendContractMail(contractId) {
   if (!c) return;
   var url = 'https://extanore.github.io/Flancco-tools/calculator/?contract=' + c.teken_token;
   var p = partners.find(x => x.id === c.partner_id);
-  var pName = p ? (p.bedrijfsnaam || p.naam) : 'Flancco';
+  var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
+  var pName = getPartnerDisplayName(p, contractSector);
 
   // Build mailto link or show modal with link + copy
   var subject = encodeURIComponent('Uw onderhoudscontract van ' + pName + ' ter ondertekening');
@@ -2057,6 +2340,14 @@ async function saveNewContract() {
 // KLANTEN
 // =============================================
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function getPartnerDisplayName(partner, sector) {
+  if (partner && partner.sector_namen && sector) {
+    var sn = partner.sector_namen[sector];
+    if (sn && sn.naam) return sn.naam;
+  }
+  return partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco';
+}
 
 function showToast(msg, type) {
   var existing = document.getElementById('admin-toast');
@@ -2445,7 +2736,7 @@ function renderTechniekers() {
       '<td>' + (t.email ? '<a href="mailto:' + esc(t.email) + '">' + esc(t.email) + '</a>' : '—') + '</td>' +
       '<td>' + (secBadges || '—') + '</td>' +
       '<td>' + uren + 'u</td>' +
-      '<td><button class="btn-action" onclick="editTechnieker(\'' + t.id + '\')" title="Bewerken">&#9998;</button></td>' +
+      '<td><button class="btn-action" onclick="editTechnieker(\'' + t.id + '\')" title="Bewerken"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>' +
       '</tr>';
   }).join('');
 }
@@ -2741,8 +3032,8 @@ async function loadTechCerts(techId) {
       '<td>' + (c.uitgiftedatum ? fmtDate(c.uitgiftedatum) : '—') + '</td>' +
       '<td' + (vervalClass ? ' style="' + vervalClass + '"' : '') + '>' + (c.vervaldatum ? fmtDate(c.vervaldatum) : '—') + '</td>' +
       '<td class="cert-actions">' +
-        '<button title="Bewerk" onclick="editCert(\'' + c.id + '\',\'' + esc(c.type) + '\',\'' + (c.uitgiftedatum || '') + '\',\'' + (c.vervaldatum || '') + '\')">&#9998;</button>' +
-        '<button class="danger" title="Verwijder" onclick="deleteTechCert(\'' + c.id + '\')">&#10005;</button>' +
+        '<button title="Bewerk" onclick="editCert(\'' + c.id + '\',\'' + esc(c.type) + '\',\'' + (c.uitgiftedatum || '') + '\',\'' + (c.vervaldatum || '') + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+        '<button class="danger" title="Verwijder" onclick="deleteTechCert(\'' + c.id + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' +
       '</td></tr>';
   });
   html += '</tbody></table>';
@@ -2874,7 +3165,7 @@ function renderWagenpark() {
       '<td>' + verzHtml + '</td>' +
       '<td>' + (v.huidige_km ? v.huidige_km.toLocaleString('nl-BE') : '—') + '</td>' +
       '<td><span style="color:' + (statusColors[v.status] || 'var(--grey)') + ';font-weight:600;font-size:12px">● ' + (statusLabels[v.status] || v.status) + '</span></td>' +
-      '<td><button class="btn-action" onclick="editVoertuig(\'' + v.id + '\')" title="Bewerken">&#9998;</button></td>' +
+      '<td><button class="btn-action" onclick="editVoertuig(\'' + v.id + '\')" title="Bewerken"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>' +
       '</tr>';
   }).join('');
 }
