@@ -531,6 +531,8 @@
           <option value="ventilatie">Ventilatie</option>
           <option value="verwarming">Verwarming</option>
           <option value="airco">Airco</option>
+          <option value="ic">Industrial Cleaning</option>
+          <option value="klussen">Klussen</option>
         </select>
       </div>
       <div class="filter-group">
@@ -551,6 +553,8 @@
         <span class="legend-item"><span class="legend-dot" style="background:#06B6D4"></span> Airco</span>
         <span class="legend-item"><span class="legend-dot" style="background:var(--navy)"></span> Ventilatie</span>
         <span class="legend-item"><span class="legend-dot" style="background:#8B5CF6"></span> Verwarming</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#10B981"></span> IC</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#D97706"></span> Klussen</span>
       </div>
     </div>
 
@@ -571,6 +575,8 @@
           <option value="ventilatie">Ventilatie</option>
           <option value="verwarming">Verwarming</option>
           <option value="airco">Airco</option>
+          <option value="ic">Industrial Cleaning</option>
+          <option value="klussen">Klussen</option>
         </select>
         <select id="sb-filter-regio" onchange="renderSidebar()">
           <option value="">Regio</option>
@@ -603,6 +609,9 @@
           <option value="warmtepomp">Warmtepomp</option>
           <option value="ventilatie">Ventilatie</option>
           <option value="verwarming">Verwarming</option>
+          <option value="airco">Airco</option>
+          <option value="ic">Industrial Cleaning</option>
+          <option value="klussen">Klussen</option>
         </select>
       </div>
     </div>
@@ -699,9 +708,18 @@
         <label>Starttijd</label>
         <input type="time" id="edit-beurt-start" step="900" value="08:00">
       </div>
-      <div class="modal-field">
-        <label>Duur (minuten)</label>
-        <input type="number" id="edit-beurt-duur" min="15" step="15" value="60">
+      <div class="modal-field" style="max-width:80px">
+        <label>Uren</label>
+        <input type="number" id="edit-beurt-duur-uren" min="0" max="12" value="1" onchange="syncDuurLabel()">
+      </div>
+      <div class="modal-field" style="max-width:80px">
+        <label>Min.</label>
+        <select id="edit-beurt-duur-min" onchange="syncDuurLabel()">
+          <option value="0">00</option>
+          <option value="15">15</option>
+          <option value="30">30</option>
+          <option value="45">45</option>
+        </select>
       </div>
     </div>
 
@@ -711,12 +729,21 @@
     </div>
 
     <div class="modal-field">
+      <label>Extra technieker(s)</label>
+      <div id="edit-beurt-extra-techs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+      <select id="edit-beurt-extra-select" onchange="addExtraTechnieker()">
+        <option value="">+ Extra technieker toevoegen...</option>
+      </select>
+    </div>
+
+    <div class="modal-field">
       <label>Notities</label>
       <textarea id="edit-beurt-notities" rows="2" placeholder="Optioneel..."></textarea>
     </div>
 
     <div class="modal-buttons">
       <button onclick="closeEditBeurtModal()">Annuleren</button>
+      <button id="edit-beurt-unplan-btn" style="margin-right:auto;background:#FEE2E2;color:#DC2626" onclick="unplanFromModal()">Uitplannen</button>
       <button class="btn-save" onclick="saveEditBeurt()">Opslaan</button>
     </div>
   </div>
@@ -1056,21 +1083,14 @@ async function loadPlanningData() {
 }
 
 function populateFilterDropdowns() {
-  // Regio filter - collect unique postcode prefixes from contracts
-  var regios = {};
-  allContracten.forEach(function(c) {
-    var pc = c.klant_postcode || '';
-    if (pc.length >= 2) regios[pc.substring(0,2)] = true;
-  });
-  allClients.forEach(function(c) {
-    var pc = c.postal_code || '';
-    if (pc.length >= 2) regios[pc.substring(0,2)] = true;
-  });
+  // Regio filter - Belgische provincies
+  var provincies = ['Antwerpen','Brussel','Henegouwen','Limburg','Luik','Luxemburg','Namen','Oost-Vlaanderen','Vlaams-Brabant','Waals-Brabant','West-Vlaanderen'];
   var regioSel = document.getElementById('filter-regio');
   var sbRegioSel = document.getElementById('sb-filter-regio');
-  Object.keys(regios).sort().forEach(function(r) {
-    regioSel.innerHTML += '<option value="' + r + '">' + r + 'xx</option>';
-    sbRegioSel.innerHTML += '<option value="' + r + '">' + r + 'xx</option>';
+  provincies.forEach(function(p) {
+    var opt = '<option value="' + p + '">' + p + '</option>';
+    regioSel.innerHTML += opt;
+    sbRegioSel.innerHTML += opt;
   });
 
   // Technieker filter
@@ -1109,7 +1129,7 @@ function passesFilters(beurt) {
     if (!contract || contract.partner_id !== partnerFilter) return false;
   }
   if (sectorFilter && info.sector.toLowerCase() !== sectorFilter) return false;
-  if (regioFilter && !(info.postcode || '').startsWith(regioFilter)) return false;
+  if (regioFilter && getProvincie(info.postcode) !== regioFilter) return false;
   if (techFilter && beurt.technieker_id !== techFilter) return false;
 
   return true;
@@ -1481,7 +1501,7 @@ function renderSidebar() {
       if (!contract || contract.partner_id !== partnerFilter) return false;
     }
     if (sectorFilter && info.sector.toLowerCase() !== sectorFilter) return false;
-    if (regioFilter && !(info.postcode || '').startsWith(regioFilter)) return false;
+    if (regioFilter && getProvincie(info.postcode) !== regioFilter) return false;
     return true;
   });
 
@@ -1767,7 +1787,7 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   document.getElementById('edit-beurt-title').textContent = isNew || dropTechId ? 'Beurt inplannen' : 'Beurt bewerken';
 
   // Info preview
-  var sectorIcons = { zonnepanelen: '&#9728;', warmtepomp: '&#127777;', ventilatie: '&#9741;', verwarming: '&#128293;' };
+  var sectorIcons = { zonnepanelen: '&#9728;', warmtepomp: '&#127777;', ventilatie: '&#9741;', verwarming: '&#128293;', ic: '&#9881;', klussen: '&#128295;' };
   var infoHtml = '<div style="display:flex;gap:12px;align-items:flex-start">' +
     '<div style="flex:1">' +
       '<strong>' + esc(info.naam) + '</strong><br>' +
@@ -1787,7 +1807,9 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   document.getElementById('edit-beurt-start').value = timeVal;
 
   // Set duration
-  document.getElementById('edit-beurt-duur').value = beurt.duur_minuten || 60;
+  var totalMin = beurt.duur_minuten || 60;
+  document.getElementById('edit-beurt-duur-uren').value = Math.floor(totalMin / 60);
+  document.getElementById('edit-beurt-duur-min').value = (totalMin % 60) - ((totalMin % 60) % 15);
 
   // Set notities
   document.getElementById('edit-beurt-notities').value = beurt.notities || '';
@@ -1802,6 +1824,19 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
       esc(t.voornaam + ' ' + t.naam) + '</option>';
   });
 
+  // Populate extra technieker dropdown
+  var extraSel = document.getElementById('edit-beurt-extra-select');
+  extraSel.innerHTML = '<option value="">+ Extra technieker toevoegen...</option>';
+  document.getElementById('edit-beurt-extra-techs').innerHTML = '';
+  allTechniekers.forEach(function(t) {
+    if (!t.actief) return;
+    extraSel.innerHTML += '<option value="' + t.id + '">' + esc(t.voornaam + ' ' + t.naam) + '</option>';
+  });
+
+  // Show/hide uitplannen button (only for already planned beurten)
+  var unplanBtn = document.getElementById('edit-beurt-unplan-btn');
+  if (unplanBtn) unplanBtn.style.display = (beurt.status === 'ingepland') ? '' : 'none';
+
   document.getElementById('modal-edit-beurt').classList.add('open');
 }
 
@@ -1810,8 +1845,71 @@ function closeEditBeurtModal() {
 }
 
 function getSectorColor(sector) {
-  var colors = { zonnepanelen: '#F39C12', warmtepomp: '#E74C3C', ventilatie: '#1A1A2E', verwarming: '#8B5CF6' };
+  var colors = { zonnepanelen: '#F39C12', warmtepomp: '#E74C3C', ventilatie: '#1A1A2E', verwarming: '#8B5CF6', airco: '#06B6D4', ic: '#10B981', klussen: '#D97706' };
   return colors[(sector || '').toLowerCase()] || '#6B7280';
+}
+
+function getProvincie(postcode) {
+  var pc = parseInt(postcode);
+  if (isNaN(pc)) return '';
+  if (pc >= 1000 && pc <= 1299) return 'Brussel';
+  if (pc >= 1300 && pc <= 1499) return 'Waals-Brabant';
+  if (pc >= 1500 && pc <= 1999) return 'Vlaams-Brabant';
+  if (pc >= 2000 && pc <= 2999) return 'Antwerpen';
+  if (pc >= 3000 && pc <= 3499) return 'Vlaams-Brabant';
+  if (pc >= 3500 && pc <= 3999) return 'Limburg';
+  if (pc >= 4000 && pc <= 4999) return 'Luik';
+  if (pc >= 5000 && pc <= 5999) return 'Namen';
+  if (pc >= 6000 && pc <= 6599) return 'Henegouwen';
+  if (pc >= 6600 && pc <= 6999) return 'Luxemburg';
+  if (pc >= 7000 && pc <= 7999) return 'Henegouwen';
+  if (pc >= 8000 && pc <= 8999) return 'West-Vlaanderen';
+  if (pc >= 9000 && pc <= 9999) return 'Oost-Vlaanderen';
+  return '';
+}
+
+function syncDuurLabel() {
+  // Placeholder for future duration label updates
+}
+
+function addExtraTechnieker() {
+  var sel = document.getElementById('edit-beurt-extra-select');
+  var techId = sel.value;
+  if (!techId) return;
+  var tech = allTechniekers.find(function(t) { return t.id === techId; });
+  if (!tech) return;
+  var container = document.getElementById('edit-beurt-extra-techs');
+  if (container.querySelector('[data-tech="' + techId + '"]')) { sel.value = ''; return; }
+  var chip = document.createElement('span');
+  chip.setAttribute('data-tech', techId);
+  chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:var(--light);padding:4px 10px;border-radius:12px;font-size:13px';
+  chip.innerHTML = esc(tech.voornaam + ' ' + tech.naam) +
+    ' <span onclick="removeExtraTechnieker(this)" style="cursor:pointer;color:var(--red)">&times;</span>';
+  container.appendChild(chip);
+  sel.value = '';
+}
+
+function removeExtraTechnieker(el) {
+  el.parentElement.remove();
+}
+
+async function unplanFromModal() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+  var res = await sb.from('onderhoudsbeurten').update({
+    status: 'gepland', technieker_id: null, plan_datum: null,
+    start_tijd: null, updated_at: new Date().toISOString()
+  }).eq('id', beurtId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+  beurt.status = 'gepland';
+  beurt.technieker_id = null;
+  beurt.plan_datum = null;
+  beurt.start_tijd = null;
+  closeEditBeurtModal();
+  showToast('Beurt terug naar In te plannen');
+  renderView();
+  renderSidebar();
 }
 
 async function saveEditBeurt() {
@@ -1819,7 +1917,10 @@ async function saveEditBeurt() {
   var techId = document.getElementById('edit-beurt-technieker').value;
   var datum = document.getElementById('edit-beurt-datum').value;
   var startTijd = document.getElementById('edit-beurt-start').value;
-  var duur = parseInt(document.getElementById('edit-beurt-duur').value) || 60;
+  var uren = parseInt(document.getElementById('edit-beurt-duur-uren').value) || 0;
+  var min = parseInt(document.getElementById('edit-beurt-duur-min').value) || 0;
+  var duur = uren * 60 + min;
+  if (duur <= 0) duur = 60;
   var notities = document.getElementById('edit-beurt-notities').value.trim();
 
   if (!techId) { showToast('Kies een technieker', 'error'); return; }
@@ -2216,7 +2317,7 @@ function renderBeschikbaarheid() {
         html += '<div class="taken-vandaag-title">Taken vandaag</div>';
         todayBeurten.forEach(function(b) {
           var info = getClientInfo(b);
-          var sectorColors = { zonnepanelen: 'var(--orange)', warmtepomp: 'var(--red)', ventilatie: 'var(--blue)', verwarming: '#8B5CF6' };
+          var sectorColors = { zonnepanelen: 'var(--orange)', warmtepomp: 'var(--red)', ventilatie: 'var(--blue)', verwarming: '#8B5CF6', ic: '#10B981', klussen: '#D97706' };
           var sc = sectorColors[info.sector] || 'var(--grey)';
           html += '<div class="taak-chip">' +
             '<span class="taak-chip-sector" style="background:' + sc + '"></span>' +

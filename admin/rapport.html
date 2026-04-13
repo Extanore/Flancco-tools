@@ -328,7 +328,7 @@ async function selectBeurt() {
   if (!currentBeurt) return;
   currentContract = currentBeurt.contracten;
 
-  var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var info = document.getElementById('beurt-info-box');
   info.innerHTML =
     '<strong>' + esc(currentContract.klant_naam) + '</strong><br>' +
@@ -379,7 +379,7 @@ function prevStep() { if (wizardStep > 0) { wizardStep--; renderStep(); window.s
 function initChecklist() {
   var sector = currentBeurt.sector;
   var items = CHECKLISTS[sector] || [];
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   document.getElementById('checklist-title').textContent = 'Checklist — ' + (sectorLabels[sector] || sector);
 
   document.getElementById('checklist-items').innerHTML = items.map(function(item) {
@@ -619,7 +619,7 @@ function downloadPDF() {
   doc.rect(margin, y - 2, contentW, 22, 'F');
   doc.setTextColor(26, 26, 46);
   doc.setFontSize(10);
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   doc.text('Sector: ' + (sectorLabels[currentBeurt.sector] || currentBeurt.sector), margin + 4, y + 5);
   doc.text('Datum: ' + (currentBeurt.plan_datum || '—'), margin + 80, y + 5);
   doc.text('Contract: ' + (klant.contract_nummer || '—'), margin + 4, y + 13);
