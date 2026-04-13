@@ -278,6 +278,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <span>Interventies</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('facturatie')" data-page="facturatie">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <span>Facturatie</span>
+    </a>
     <a class="nav-item admin-only" onclick="showPage('admin-instellingen')" data-page="admin-instellingen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Instellingen</span>
@@ -285,6 +289,10 @@
     <a class="nav-item partner-only" onclick="showPage('overzicht')" data-page="overzicht">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Overzicht</span>
+    </a>
+    <a class="nav-item partner-only" id="nav-partner-facturatie" style="display:none" onclick="showPage('facturatie')" data-page="facturatie">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <span>Facturatie</span>
     </a>
     <div class="nav-section partner-only">Beheer</div>
     <a class="nav-item partner-only" onclick="showPage('instellingen')" data-page="instellingen">
@@ -497,6 +505,35 @@
         <div class="card-header"><span class="card-title">Partnerbeheer</span></div>
         <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Beheer partners, wijs sectoren toe en stel machtigingen in.</p>
         <div id="admin-partner-list"></div>
+      </div>
+    </div>
+
+    <!-- FACTURATIE PAGE -->
+    <div class="page" id="page-facturatie">
+      <div class="card">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+          <span class="card-title">Facturatie</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="fact-filter-partner" class="admin-only" onchange="renderFacturatie()" style="padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px">
+              <option value="">Alle partners</option>
+            </select>
+            <select id="fact-filter-status" onchange="renderFacturatie()" style="padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px">
+              <option value="">Alle statussen</option>
+              <option value="open">Open</option>
+              <option value="te_factureren">Te factureren</option>
+              <option value="gefactureerd">Gefactureerd</option>
+              <option value="geexporteerd">Geëxporteerd</option>
+            </select>
+            <button class="admin-only" onclick="createFacturatieRecord()" style="padding:6px 14px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">+ Nieuw</button>
+            <button onclick="exportFacturatieCSV()" style="padding:6px 14px;background:var(--green);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              CSV Export
+            </button>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--grey);margin-bottom:16px">Overzicht van alle facturatie-records per partner en klant.</p>
+        <div id="facturatie-list"></div>
+        <p id="no-facturatie" style="display:none;text-align:center;color:var(--grey);padding:40px;font-size:13px">Geen facturatie-records gevonden.</p>
       </div>
     </div>
 
@@ -1043,6 +1080,16 @@ async function initApp() {
       loadSettings(userPartner);
     }
     document.getElementById('contracten-title').textContent = 'Mijn contracten';
+
+    // Show/hide partner facturatie nav based on permission
+    var partnerPerms = allPartnerPermissions[roleData.partner_id] || {};
+    if (partnerPerms.facturatie_inzage) {
+      var navFactEl = document.getElementById('nav-partner-facturatie');
+      if (navFactEl) {
+        navFactEl.style.display = '';
+        navFactEl.classList.remove('role-hidden');
+      }
+    }
   }
 }
 
@@ -1187,10 +1234,21 @@ async function loadAllData() {
   renderTechniekers();
   renderWagenpark();
   renderInterventies();
+  await loadPartnerPermissions();
+  await loadFacturatie();
+
   if (userRole === 'admin') {
     await loadPartnerSectors();
     renderAdminSettings();
+    // Populate facturatie partner filter
+    var factPartnerSel = document.getElementById('fact-filter-partner');
+    if (factPartnerSel) {
+      factPartnerSel.innerHTML = '<option value="">Alle partners</option>' +
+        partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam) + '</option>'; }).join('');
+    }
   }
+  renderFacturatie();
+
 
   // Deep-link: ?page=techniekers etc.
   var urlPage = new URLSearchParams(window.location.search).get('page');
@@ -1438,6 +1496,27 @@ function renderAdminSettings() {
     html += '<div><label style="font-size:11px;color:var(--grey)">Logo URL</label><input type="text" id="adm-logo-' + p.id + '" value="' + esc(p.logo_url || '') + '" placeholder="https://..." style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px"></div>';
     html += '</div></div>';
 
+    // Machtigingen
+    var perms = allPartnerPermissions[p.id] || {};
+    var permList = [
+      { key: 'facturatie_inzage', label: 'Facturatie-inzage', desc: 'Partner kan facturatie-overzicht bekijken' },
+      { key: 'rapporten_inzage', label: 'Rapporten-inzage', desc: 'Partner kan onderhoudsbeurten-rapporten bekijken' },
+      { key: 'planning_inzage', label: 'Planning-inzage', desc: 'Partner kan eigen planning bekijken' },
+      { key: 'contracten_aanmaken', label: 'Contracten aanmaken', desc: 'Partner kan zelf contracten aanmaken' },
+      { key: 'klanten_beheren', label: 'Klanten beheren', desc: 'Partner kan klantgegevens wijzigen' }
+    ];
+    html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Machtigingen</label>';
+    html += '<div style="display:flex;flex-direction:column;gap:6px">';
+    permList.forEach(function(pm) {
+      var enabled = perms[pm.key] || false;
+      html += '<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid ' + (enabled ? 'var(--green)' : 'var(--rule)') + ';background:' + (enabled ? 'rgba(39,174,96,0.06)' : 'var(--white)') + ';cursor:pointer;transition:all 0.2s" onclick="toggleAdminPermission(\'' + p.id + '\',\'' + pm.key + '\',this)">';
+      html += '<div style="width:36px;height:20px;border-radius:10px;background:' + (enabled ? 'var(--green)' : '#ccc') + ';position:relative;transition:background 0.2s;flex-shrink:0"><div style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:2px;' + (enabled ? 'left:18px' : 'left:2px') + ';transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div></div>';
+      html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--navy)">' + pm.label + '</div><div style="font-size:11px;color:var(--grey)">' + pm.desc + '</div></div>';
+      html += '<input type="checkbox" ' + (enabled ? 'checked' : '') + ' style="display:none">';
+      html += '</label>';
+    });
+    html += '</div></div>';
+
     // Tarieven
     html += '<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Tarieven & voorwaarden</label>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
@@ -1519,6 +1598,291 @@ async function saveAdminPartner(partnerId) {
   msg.style.display = 'inline';
   setTimeout(function() { msg.style.display = 'none'; }, 2000);
   showToast('Partner opgeslagen');
+}
+
+// =============================================
+// PARTNER PERMISSIONS
+// =============================================
+var allPartnerPermissions = {}; // { partnerId: { perm_key: true/false } }
+
+async function loadPartnerPermissions() {
+  var { data } = await sb.from('partner_permissions').select('*');
+  allPartnerPermissions = {};
+  (data || []).forEach(function(pp) {
+    if (!allPartnerPermissions[pp.partner_id]) allPartnerPermissions[pp.partner_id] = {};
+    allPartnerPermissions[pp.partner_id][pp.permission] = pp.enabled;
+  });
+}
+
+async function toggleAdminPermission(partnerId, permission, label) {
+  var cb = label.querySelector('input[type="checkbox"]');
+  var nowEnabled = cb.checked;
+  cb.checked = !nowEnabled; // toggle
+
+  var newVal = !nowEnabled;
+  var toggle = label.querySelector('div[style*="border-radius:10px"]');
+  var knob = toggle.querySelector('div');
+  toggle.style.background = newVal ? 'var(--green)' : '#ccc';
+  knob.style.left = newVal ? '18px' : '2px';
+  label.style.borderColor = newVal ? 'var(--green)' : 'var(--rule)';
+  label.style.background = newVal ? 'rgba(39,174,96,0.06)' : 'var(--white)';
+
+  // Upsert
+  var { error } = await sb.from('partner_permissions')
+    .upsert({ partner_id: partnerId, permission: permission, enabled: newVal, updated_at: new Date().toISOString() },
+      { onConflict: 'partner_id,permission' });
+
+  if (error) { showToast('Fout: ' + error.message, 'error'); return; }
+
+  if (!allPartnerPermissions[partnerId]) allPartnerPermissions[partnerId] = {};
+  allPartnerPermissions[partnerId][permission] = newVal;
+
+  showToast(newVal ? 'Machtiging geactiveerd' : 'Machtiging gedeactiveerd');
+}
+
+// =============================================
+// FACTURATIE
+// =============================================
+var allFacturatieRecords = [];
+var allFacturatieRegels = [];
+
+async function loadFacturatie() {
+  var [fr, fl] = await Promise.all([
+    sb.from('facturatie_records').select('*').order('created_at', { ascending: false }),
+    sb.from('facturatie_regels').select('*')
+  ]);
+  allFacturatieRecords = fr.data || [];
+  allFacturatieRegels = fl.data || [];
+}
+
+function renderFacturatie() {
+  var container = document.getElementById('facturatie-list');
+  var noEl = document.getElementById('no-facturatie');
+  if (!container) return;
+
+  var records = allFacturatieRecords.slice();
+
+  // Filters
+  var filterPartner = document.getElementById('fact-filter-partner');
+  var filterStatus = document.getElementById('fact-filter-status');
+  if (filterPartner && filterPartner.value) {
+    records = records.filter(function(r) { return r.partner_id === filterPartner.value; });
+  }
+  if (filterStatus && filterStatus.value) {
+    records = records.filter(function(r) { return r.status === filterStatus.value; });
+  }
+
+  // Partner filter: only own records for partners
+  if (userRole === 'partner' && userPartner) {
+    records = records.filter(function(r) { return r.partner_id === userPartner.id; });
+  }
+
+  if (records.length === 0) {
+    container.innerHTML = '';
+    noEl.style.display = 'block';
+    return;
+  }
+  noEl.style.display = 'none';
+
+  var statusColors = {
+    open: 'var(--blue)', te_factureren: 'var(--orange)',
+    gefactureerd: 'var(--green)', geexporteerd: 'var(--grey)'
+  };
+  var statusLabels = {
+    open: 'Open', te_factureren: 'Te factureren',
+    gefactureerd: 'Gefactureerd', geexporteerd: 'Geëxporteerd'
+  };
+
+  container.innerHTML = records.map(function(rec) {
+    var p = partners.find(function(x) { return x.id === rec.partner_id; });
+    var regels = allFacturatieRegels.filter(function(rl) { return rl.facturatie_record_id === rec.id; });
+    var sColor = statusColors[rec.status] || 'var(--grey)';
+
+    var html = '<div style="border:1px solid var(--rule);border-radius:var(--radius);margin-bottom:12px;overflow:hidden">';
+    // Header row
+    html += '<div onclick="toggleFacturatieDetail(\'' + rec.id + '\')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:var(--white);transition:background 0.15s">';
+    html += '<div style="flex-shrink:0"><span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:' + sColor + '15;color:' + sColor + '">' + statusLabels[rec.status] + '</span></div>';
+    html += '<div style="flex:1;min-width:0"><strong style="font-size:13px">' + esc(rec.referentie) + '</strong>';
+    if (p) html += '<span style="font-size:12px;color:var(--grey);margin-left:8px">' + esc(p.bedrijfsnaam || p.naam) + '</span>';
+    html += '</div>';
+    html += '<div style="text-align:right;flex-shrink:0">';
+    html += '<div style="font-size:14px;font-weight:700;color:var(--navy)">' + formatCurrency(rec.totaal_incl_btw || 0) + '</div>';
+    if (rec.periode_van) html += '<div style="font-size:11px;color:var(--grey)">' + rec.periode_van + ' — ' + (rec.periode_tot || '...') + '</div>';
+    html += '</div>';
+    html += '<svg id="fact-chev-' + rec.id + '" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--grey)" stroke-width="2" style="transition:transform 0.2s;flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>';
+    html += '</div>';
+
+    // Detail panel
+    html += '<div id="fact-detail-' + rec.id + '" style="display:none;border-top:1px solid var(--rule);background:#fafafa;padding:16px">';
+
+    // Regels table
+    if (regels.length > 0) {
+      html += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">';
+      html += '<thead><tr style="background:var(--light);text-align:left"><th style="padding:8px 10px;font-weight:600;color:var(--grey)">Klant</th><th style="padding:8px 10px;font-weight:600;color:var(--grey)">Sector</th><th style="padding:8px 10px;font-weight:600;color:var(--grey)">Omschrijving</th><th style="padding:8px 10px;font-weight:600;color:var(--grey);text-align:right">Excl. BTW</th><th style="padding:8px 10px;font-weight:600;color:var(--grey);text-align:right">BTW</th><th style="padding:8px 10px;font-weight:600;color:var(--grey);text-align:right">Incl. BTW</th></tr></thead>';
+      html += '<tbody>';
+      regels.forEach(function(rl) {
+        var sLabel = allSectorLabels[rl.sector] || rl.sector || '-';
+        html += '<tr style="border-bottom:1px solid var(--rule)"><td style="padding:8px 10px">' + esc(rl.klant_naam || '-') + '</td>';
+        html += '<td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;background:' + (allSectorColors[rl.sector] || '#ccc') + '15;color:' + (allSectorColors[rl.sector] || '#666') + '">' + sLabel + '</span></td>';
+        html += '<td style="padding:8px 10px;color:var(--grey)">' + esc(rl.omschrijving || '-') + '</td>';
+        html += '<td style="padding:8px 10px;text-align:right">' + formatCurrency(rl.bedrag_excl_btw || 0) + '</td>';
+        html += '<td style="padding:8px 10px;text-align:right;color:var(--grey)">' + (rl.btw_pct || 21) + '%</td>';
+        html += '<td style="padding:8px 10px;text-align:right;font-weight:600">' + formatCurrency(rl.bedrag_incl_btw || 0) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--grey);font-size:12px;padding:8px 0">Geen regels gekoppeld aan dit record.</p>';
+    }
+
+    // Admin actions
+    if (userRole === 'admin') {
+      html += '<div style="display:flex;gap:8px;margin-top:8px">';
+      var nextStatus = { open: 'te_factureren', te_factureren: 'gefactureerd', gefactureerd: 'geexporteerd' };
+      var nextLabel = { open: 'Markeer te factureren', te_factureren: 'Markeer gefactureerd', gefactureerd: 'Markeer geëxporteerd' };
+      if (nextStatus[rec.status]) {
+        html += '<button onclick="updateFacturatieStatus(\'' + rec.id + '\',\'' + nextStatus[rec.status] + '\')" style="padding:6px 14px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">' + nextLabel[rec.status] + '</button>';
+      }
+      html += '<button onclick="deleteFacturatieRecord(\'' + rec.id + '\')" style="padding:6px 14px;background:transparent;color:var(--red);border:1.5px solid var(--red);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Verwijderen</button>';
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+    return html;
+  }).join('');
+}
+
+function toggleFacturatieDetail(id) {
+  var el = document.getElementById('fact-detail-' + id);
+  var chev = document.getElementById('fact-chev-' + id);
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    chev.style.transform = 'rotate(180deg)';
+  } else {
+    el.style.display = 'none';
+    chev.style.transform = '';
+  }
+}
+
+async function updateFacturatieStatus(id, newStatus) {
+  var updates = { status: newStatus, updated_at: new Date().toISOString() };
+  if (newStatus === 'gefactureerd') updates.factuurdatum = new Date().toISOString().slice(0, 10);
+
+  var { error } = await sb.from('facturatie_records').update(updates).eq('id', id);
+  if (error) { showToast('Fout: ' + error.message, 'error'); return; }
+
+  // Update linked onderhoudsbeurten
+  var regels = allFacturatieRegels.filter(function(rl) { return rl.facturatie_record_id === id; });
+  var beurtIds = regels.map(function(rl) { return rl.onderhoudsbeurt_id; });
+  if (beurtIds.length > 0) {
+    await sb.from('onderhoudsbeurten').update({ facturatie_status: newStatus }).in('id', beurtIds);
+  }
+
+  await loadFacturatie();
+  renderFacturatie();
+  showToast('Status bijgewerkt');
+}
+
+async function deleteFacturatieRecord(id) {
+  if (!confirm('Facturatie-record definitief verwijderen?')) return;
+  var { error } = await sb.from('facturatie_records').delete().eq('id', id);
+  if (error) { showToast('Fout: ' + error.message, 'error'); return; }
+  await loadFacturatie();
+  renderFacturatie();
+  showToast('Record verwijderd');
+}
+
+async function createFacturatieRecord() {
+  // Create a new facturatie record — admin picks partner and links beurten
+  var partnerSelect = '<select id="new-fact-partner" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">';
+  partnerSelect += partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam) + '</option>'; }).join('');
+  partnerSelect += '</select>';
+
+  var ref = 'FACT-' + new Date().getFullYear() + '-' + String(allFacturatieRecords.length + 1).padStart(4, '0');
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = '<div style="background:white;border-radius:12px;padding:24px;width:420px;max-width:90vw">' +
+    '<h3 style="font-size:16px;font-weight:700;margin-bottom:16px">Nieuw facturatie-record</h3>' +
+    '<div style="margin-bottom:12px"><label style="font-size:12px;font-weight:600;color:var(--grey);display:block;margin-bottom:4px">Partner</label>' + partnerSelect + '</div>' +
+    '<div style="margin-bottom:12px"><label style="font-size:12px;font-weight:600;color:var(--grey);display:block;margin-bottom:4px">Referentie</label><input id="new-fact-ref" value="' + ref + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"><div><label style="font-size:12px;font-weight:600;color:var(--grey);display:block;margin-bottom:4px">Periode van</label><input type="date" id="new-fact-van" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>' +
+    '<div><label style="font-size:12px;font-weight:600;color:var(--grey);display:block;margin-bottom:4px">Periode tot</label><input type="date" id="new-fact-tot" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div></div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:8px 16px;background:var(--light);border:1px solid var(--rule);border-radius:6px;font-size:13px;cursor:pointer">Annuleren</button>' +
+    '<button onclick="submitNewFacturatie(this)" style="padding:8px 16px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Aanmaken</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+}
+
+async function submitNewFacturatie(btn) {
+  var modal = btn.closest('div[style*="fixed"]');
+  var partnerId = modal.querySelector('#new-fact-partner').value;
+  var ref = modal.querySelector('#new-fact-ref').value.trim();
+  var van = modal.querySelector('#new-fact-van').value || null;
+  var tot = modal.querySelector('#new-fact-tot').value || null;
+
+  if (!ref) { showToast('Referentie is verplicht', 'error'); return; }
+
+  var { data, error } = await sb.from('facturatie_records').insert({
+    partner_id: partnerId, referentie: ref,
+    periode_van: van, periode_tot: tot, status: 'open'
+  }).select().single();
+
+  if (error) { showToast('Fout: ' + error.message, 'error'); return; }
+
+  modal.remove();
+  await loadFacturatie();
+  renderFacturatie();
+  showToast('Facturatie-record aangemaakt');
+}
+
+function exportFacturatieCSV() {
+  var records = allFacturatieRecords.slice();
+  if (userRole === 'partner' && userPartner) {
+    records = records.filter(function(r) { return r.partner_id === userPartner.id; });
+  }
+  var filterPartner = document.getElementById('fact-filter-partner');
+  var filterStatus = document.getElementById('fact-filter-status');
+  if (filterPartner && filterPartner.value) records = records.filter(function(r) { return r.partner_id === filterPartner.value; });
+  if (filterStatus && filterStatus.value) records = records.filter(function(r) { return r.status === filterStatus.value; });
+
+  var lines = ['Partner;Referentie;Status;Klant;Sector;Omschrijving;Bedrag excl. BTW;BTW%;Bedrag incl. BTW;Periode van;Periode tot'];
+
+  records.forEach(function(rec) {
+    var p = partners.find(function(x) { return x.id === rec.partner_id; });
+    var pName = p ? (p.bedrijfsnaam || p.naam) : '-';
+    var regels = allFacturatieRegels.filter(function(rl) { return rl.facturatie_record_id === rec.id; });
+    var statusLabel = { open: 'Open', te_factureren: 'Te factureren', gefactureerd: 'Gefactureerd', geexporteerd: 'Geëxporteerd' }[rec.status] || rec.status;
+
+    if (regels.length === 0) {
+      lines.push([pName, rec.referentie, statusLabel, '-', '-', '-', '0', '21', '0', rec.periode_van || '', rec.periode_tot || ''].map(csvEsc).join(';'));
+    } else {
+      regels.forEach(function(rl) {
+        lines.push([pName, rec.referentie, statusLabel, rl.klant_naam || '-', allSectorLabels[rl.sector] || rl.sector || '-', rl.omschrijving || '-',
+          (rl.bedrag_excl_btw || 0).toFixed(2), (rl.btw_pct || 21), (rl.bedrag_incl_btw || 0).toFixed(2),
+          rec.periode_van || '', rec.periode_tot || ''].map(csvEsc).join(';'));
+      });
+    }
+  });
+
+  var blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'facturatie_export_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  showToast('CSV geëxporteerd');
+}
+
+function csvEsc(val) {
+  var s = String(val);
+  if (s.indexOf(';') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function formatCurrency(val) {
+  return '€ ' + Number(val).toFixed(2).replace('.', ',');
 }
 
 // =============================================
