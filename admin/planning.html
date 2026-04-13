@@ -778,9 +778,10 @@
       <textarea id="edit-beurt-notities" rows="2" placeholder="Optioneel..."></textarea>
     </div>
 
-    <div class="modal-buttons">
+    <div class="modal-buttons" style="flex-wrap:wrap;gap:8px">
       <button onclick="closeEditBeurtModal()">Annuleren</button>
       <button id="edit-beurt-unplan-btn" style="margin-right:auto;background:#FEE2E2;color:#DC2626" onclick="unplanFromModal()">Uitplannen</button>
+      <button id="edit-beurt-uitgevoerd-btn" class="btn-save" style="background:#059669" onclick="markUitgevoerdFromModal()">Markeer als uitgevoerd</button>
       <button class="btn-save" onclick="saveEditBeurt()">Opslaan</button>
     </div>
   </div>
@@ -2013,6 +2014,10 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   var unplanBtn = document.getElementById('edit-beurt-unplan-btn');
   if (unplanBtn) unplanBtn.style.display = (beurt.status === 'ingepland') ? '' : 'none';
 
+  // Show/hide uitgevoerd button (only for ingepland)
+  var uitgevoerdBtn = document.getElementById('edit-beurt-uitgevoerd-btn');
+  if (uitgevoerdBtn) uitgevoerdBtn.style.display = (beurt.status === 'ingepland') ? '' : 'none';
+
   document.getElementById('modal-edit-beurt').classList.add('open');
 }
 
@@ -2107,6 +2112,28 @@ async function unplanFromModal() {
   showToast('Beurt terug naar In te plannen');
   renderView();
   renderSidebar();
+}
+
+async function markUitgevoerdFromModal() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+  if (!confirm('Markeer als uitgevoerd? De beurt verschijnt in de Rapportage-tab voor rapportopmaak.')) return;
+  var datum = beurt.plan_datum || new Date().toISOString().split('T')[0];
+  var res = await sb.from('onderhoudsbeurten').update({
+    status: 'uitgevoerd',
+    uitvoer_datum: datum,
+    updated_at: new Date().toISOString()
+  }).eq('id', beurtId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+  beurt.status = 'uitgevoerd';
+  beurt.uitvoer_datum = datum;
+  closeEditBeurtModal();
+  auditLog('onderhoudsbeurten', beurtId, 'status_update', 'ingepland', 'uitgevoerd');
+  showToast('Beurt gemarkeerd als uitgevoerd — ga naar Rapportage-tab om rapport op te maken');
+  renderView();
+  renderSidebar();
+  updateWorkflowBadges();
 }
 
 async function saveEditBeurt() {
