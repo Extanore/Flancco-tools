@@ -1235,7 +1235,9 @@ function renderStats() {
   allTechniekers.forEach(function(t) {
     var weekMin = 0;
     allBeurten.forEach(function(b) {
-      if (b.technieker_id === t.id && weekStrs.indexOf(b.plan_datum) !== -1 && b.status === 'ingepland') {
+      var isPri = b.technieker_id === t.id;
+      var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(t.id) !== -1;
+      if ((isPri || isExt) && weekStrs.indexOf(b.plan_datum) !== -1 && b.status === 'ingepland') {
         weekMin += b.duur_minuten || 60;
       }
     });
@@ -1306,7 +1308,9 @@ function renderWeekView() {
     // C3: Uren naast technieker-naam
     var weekMin = 0;
     allBeurten.forEach(function(b) {
-      if (b.technieker_id === tech.id && b.status === 'ingepland') {
+      var isPrimary = b.technieker_id === tech.id;
+      var isExtra = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
+      if ((isPrimary || isExtra) && b.status === 'ingepland') {
         var pd = b.plan_datum;
         for (var wd = 0; wd < 5; wd++) {
           if (formatDateISO(dates[wd]) === pd) { weekMin += b.duur_minuten || 60; break; }
@@ -1350,13 +1354,23 @@ function renderWeekView() {
           var info = getClientInfo(b);
           html += renderApptCard(b, info);
         });
-        // Ghost cards for duo-beurten
+        // Duo-beurten: toon als volwaardige kaart met duo-indicator
         ghostBeurten.forEach(function(b) {
           var info = getClientInfo(b);
-          html += '<div class="appt-card ' + getSectorClass(info.sector) + '" style="opacity:0.5;border-style:dashed" ' +
-            'title="Duo-beurt met ' + esc(info.naam) + '">' +
+          var hoofdTech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
+          var hoofdNaam = hoofdTech ? (hoofdTech.voornaam + ' ' + hoofdTech.naam) : '';
+          html += '<div class="appt-card ' + getSectorClass(info.sector) + '" ' +
+            'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
+            'style="cursor:pointer" ' +
+            'title="Duo-beurt met ' + esc(hoofdNaam) + '">' +
             '<div class="appt-sector">' + getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</div>' +
-            '<div class="appt-klant">\uD83D\uDD17 ' + esc(info.naam) + '</div>' +
+            '<div class="appt-klant">' + esc(info.naam) + '</div>' +
+            '<div class="appt-meta">' + esc(info.postcode) + ' ' + esc(info.gemeente) +
+            (b.duur_minuten ? ' \u00B7 ' + b.duur_minuten + 'min' : '') + '</div>' +
+            (b.status === 'ingepland' ? '<span class="appt-badge" style="background:#DBEAFE;color:#1E40AF;">Ingepland</span>' : '') +
+            '<div style="display:flex;align-items:center;gap:4px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.06);font-size:10px;color:var(--grey)">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+            'Duo met ' + esc(hoofdNaam) + '</div>' +
             '</div>';
         });
         // C4: Quick-add button — centered if empty, below tasks if filled
@@ -1433,9 +1447,11 @@ function renderDayView() {
         var dayAfwInfo = getAfwezigheidInfo(tech.id, viewDate);
         html += '<td class="absent-cell" style="background:' + dayAfwInfo.kleur + '12"><span class="absent-label" style="color:' + dayAfwInfo.kleur + '">' + esc(dayAfwInfo.type_naam) + '</span></td>';
       } else {
-        // Find beurten that start at this time slot
+        // Find beurten that start at this time slot (incl. duo-beurten)
         var beurten = allBeurten.filter(function(b) {
-          return b.technieker_id === tech.id && b.plan_datum === dateStr &&
+          var isPri = b.technieker_id === tech.id;
+          var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
+          return (isPri || isExt) && b.plan_datum === dateStr &&
             b.start_tijd && b.start_tijd.substring(0,5) === slot &&
             (b.status === 'ingepland' || b.status === 'uitgevoerd');
         }).filter(passesFilters);
@@ -2273,7 +2289,9 @@ function renderBeschikbaarheid() {
       dayAbsent[d] = isTechAbsent(tech.id, dates[d]);
       dayAfwInfo[d] = dayAbsent[d] ? getAfwezigheidInfo(tech.id, dates[d]) : null;
       allBeurten.forEach(function(b) {
-        if (b.technieker_id === tech.id && b.plan_datum === formatDateISO(dates[d]) && b.status === 'ingepland') {
+        var isPri = b.technieker_id === tech.id;
+        var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
+        if ((isPri || isExt) && b.plan_datum === formatDateISO(dates[d]) && b.status === 'ingepland') {
           weekMin += b.duur_minuten || 60;
           dayTaken[d]++;
         }
@@ -2337,7 +2355,9 @@ function renderBeschikbaarheid() {
     var todayIdx = todayDate.getDay() - 1; // 0=ma
     if (todayIdx >= 0 && todayIdx < 5 && !dayAbsent[todayIdx]) {
       var todayBeurten = allBeurten.filter(function(b) {
-        return b.technieker_id === tech.id && b.plan_datum === todayStr && b.status === 'ingepland';
+        var isPri = b.technieker_id === tech.id;
+        var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
+        return (isPri || isExt) && b.plan_datum === todayStr && b.status === 'ingepland';
       });
       if (todayBeurten.length > 0) {
         html += '<div class="taken-vandaag">';
