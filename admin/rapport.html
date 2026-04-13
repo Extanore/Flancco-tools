@@ -46,18 +46,27 @@
   .card { background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
   .card h3 { font-size: 15px; color: var(--navy); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  .checklist-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+  .checklist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .checklist-header h3 { margin-bottom: 0 !important; }
+  .btn-alles-ok { padding: 6px 14px; border-radius: 6px; border: 1.5px solid var(--green); background: #DEF7EC; color: var(--green); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+  .btn-alles-ok:hover { background: var(--green); color: white; }
+  .checklist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
   .checklist-item:last-child { border-bottom: none; }
   .check-status { display: flex; gap: 4px; flex-shrink: 0; }
   .check-btn { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--white); cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; color: #9CA3AF; }
-  .check-btn:hover { border-color: var(--navy); color: var(--navy); }
+  .check-btn[data-type="ok"] { border-color: #bbf7d0; color: #86efac; }
+  .check-btn[data-type="nok"] { border-color: #fecaca; color: #fca5a5; }
+  .check-btn[data-type="na"] { border-color: var(--rule); color: #d1d5db; }
+  .check-btn[data-type="ok"]:hover { background: #DEF7EC; border-color: var(--green); color: var(--green); }
+  .check-btn[data-type="nok"]:hover { background: #FDE8E8; border-color: var(--red); color: var(--red); }
+  .check-btn[data-type="na"]:hover { background: var(--light); border-color: var(--grey); color: var(--grey); }
   .check-btn.ok { background: #DEF7EC; border-color: var(--green); color: var(--green); }
   .check-btn.nok { background: #FDE8E8; border-color: var(--red); color: var(--red); }
   .check-btn.na { background: var(--light); border-color: var(--grey); color: var(--grey); }
-  .checklist-item.has-value .check-btn:not(.ok):not(.nok):not(.na) { opacity: 0.35; }
-  .check-label { flex: 1; font-size: 13px; padding-top: 6px; }
-  .check-label small { display: block; color: var(--grey); margin-top: 2px; }
-  .check-note { width: 100%; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; font-size: 12px; font-family: inherit; resize: none; display: none; }
+  .checklist-item.has-value .check-btn:not(.ok):not(.nok):not(.na) { opacity: 0.25; }
+  .check-label { flex: 1; font-size: 13px; }
+  .check-label small { display: block; color: var(--grey); margin-top: 1px; }
+  .check-note { width: 100%; margin-top: 6px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; font-size: 12px; font-family: inherit; resize: none; display: none; }
   .check-note.visible { display: block; }
 
   .foto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 12px; }
@@ -168,7 +177,10 @@
 
       <div class="step active" id="step-checklist">
         <div class="card">
-          <h3 id="checklist-title">Checklist</h3>
+          <div class="checklist-header">
+            <h3 id="checklist-title">Checklist</h3>
+            <button class="btn-alles-ok" onclick="setAllesOK()">&#10003; Alles OK</button>
+          </div>
           <div id="checklist-items"></div>
         </div>
         <div class="wizard-nav"><span></span><button class="btn btn-primary" onclick="nextStep()">Verder →</button></div>
@@ -553,14 +565,23 @@ function initChecklist() {
   document.getElementById('checklist-items').innerHTML = items.map(function(item) {
     return '<div class="checklist-item" data-key="' + item.key + '">' +
       '<div class="check-status">' +
-        '<button class="check-btn" onclick="setCheck(this,\'ok\')" title="OK">&#10003; OK</button>' +
-        '<button class="check-btn" onclick="setCheck(this,\'nok\')" title="Niet OK">&#10007; NOK</button>' +
-        '<button class="check-btn" onclick="setCheck(this,\'na\')" title="Niet van toepassing">— N.v.t.</button>' +
+        '<button class="check-btn" data-type="ok" onclick="setCheck(this,\'ok\')" title="OK">&#10003; OK</button>' +
+        '<button class="check-btn" data-type="nok" onclick="setCheck(this,\'nok\')" title="Niet OK">&#10007; NOK</button>' +
+        '<button class="check-btn" data-type="na" onclick="setCheck(this,\'na\')" title="Niet van toepassing">— N.v.t.</button>' +
       '</div>' +
       '<div class="check-label">' + esc(item.label) + '<small>' + esc(item.hint || '') + '</small>' +
         '<textarea class="check-note" placeholder="Opmerking bij dit punt..." rows="2"></textarea>' +
       '</div></div>';
   }).join('');
+}
+
+function setAllesOK() {
+  document.querySelectorAll('.checklist-item').forEach(function(row) {
+    if (!row.dataset.value) {
+      var okBtn = row.querySelector('.check-btn[data-type="ok"]');
+      if (okBtn) setCheck(okBtn, 'ok');
+    }
+  });
 }
 
 function setCheck(btn, value) {
