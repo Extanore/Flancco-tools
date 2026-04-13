@@ -996,6 +996,12 @@ async function loadAllData() {
   renderTechniekers();
   renderWagenpark();
   renderInterventies();
+
+  // Deep-link: ?page=techniekers etc.
+  var urlPage = new URLSearchParams(window.location.search).get('page');
+  if (urlPage && document.getElementById('page-' + urlPage)) {
+    showPage(urlPage);
+  }
 }
 
 // =============================================
