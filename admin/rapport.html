@@ -275,10 +275,15 @@ var CHECKLISTS = {
 // AUTH
 // ═══════════════════════════════
 async function init() {
-  // Use onAuthStateChange for reliable session detection
-  var session = await new Promise(function(resolve) {
-    sb.auth.onAuthStateChange(function(event, s) { resolve(s); });
-  });
+  var session = null;
+  try { var res = await sb.auth.getSession(); session = res.data.session; } catch(e) {}
+  if (!session) { try { var ref = await sb.auth.refreshSession(); session = ref.data.session; } catch(e) {} }
+  if (!session) {
+    try {
+      var stored = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+      if (stored) { var p = JSON.parse(stored); if (p.access_token && p.refresh_token) { var set = await sb.auth.setSession({ access_token: p.access_token, refresh_token: p.refresh_token }); session = set.data.session; } }
+    } catch(e) {}
+  }
   if (!session) { window.location.href = './'; return; }
   currentUser = session.user;
 

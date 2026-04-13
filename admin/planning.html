@@ -581,27 +581,56 @@ function showToast(msg, type) {
 // AUTH
 // =============================================
 async function checkAuth() {
-  // Use onAuthStateChange for reliable session detection
-  var handled = false;
-  sb.auth.onAuthStateChange(async function(event, session) {
-    if (handled) return;
-    handled = true;
-    if (!session) {
-      window.location.href = './';
-      return;
-    }
-    currentUser = session.user;
-    var roleQ = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
-    if (roleQ.error || !roleQ.data || roleQ.data.role !== 'admin') {
-      window.location.href = './';
-      return;
-    }
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    await loadPlanningData();
-    renderView();
-    renderSidebar();
-  });
+  var session = null;
+
+  // Method 1: getSession from localStorage
+  try {
+    var res = await sb.auth.getSession();
+    session = res.data.session;
+  } catch(e) {}
+
+  // Method 2: try refreshing stored refresh token
+  if (!session) {
+    try {
+      var ref = await sb.auth.refreshSession();
+      session = ref.data.session;
+    } catch(e) {}
+  }
+
+  // Method 3: check localStorage directly and setSession
+  if (!session) {
+    try {
+      var key = 'sb-dhuqpxwwavqyxaelxuzl-auth-token';
+      var stored = localStorage.getItem(key);
+      if (stored) {
+        var parsed = JSON.parse(stored);
+        if (parsed.access_token && parsed.refresh_token) {
+          var set = await sb.auth.setSession({
+            access_token: parsed.access_token,
+            refresh_token: parsed.refresh_token
+          });
+          session = set.data.session;
+        }
+      }
+    } catch(e) {}
+  }
+
+  if (!session) {
+    window.location.href = './';
+    return;
+  }
+
+  currentUser = session.user;
+  var roleQ = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
+  if (roleQ.error || !roleQ.data || roleQ.data.role !== 'admin') {
+    window.location.href = './';
+    return;
+  }
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await loadPlanningData();
+  renderView();
+  renderSidebar();
 }
 
 async function doLogout() {
