@@ -343,6 +343,16 @@ function getSelectedInstallatie() {
   return currentInstallaties.find(function(i) { return i.id === id; }) || null;
 }
 
+// Async version: tries selected installatie, then fetches from DB by client+sector
+async function getInstallatieForReport() {
+  var inst = getSelectedInstallatie();
+  if (inst) return inst;
+  if (!currentContract || !currentContract.client_id || !currentBeurt) return null;
+  var res = await sb.from('klant_installaties').select('*').eq('client_id', currentContract.client_id).eq('installation_type', currentBeurt.sector).limit(1);
+  if (res.data && res.data.length > 0) return res.data[0];
+  return null;
+}
+
 function buildInstallatieHtml(inst) {
   if (!inst) return '';
   var rows = '';
@@ -841,12 +851,12 @@ function initStepBar() {
   }
 }
 
-function renderStep() {
+async function renderStep() {
   steps.forEach(function(s, i) { document.getElementById('step-' + s).classList.toggle('active', i === wizardStep); });
   document.querySelectorAll('.step-dot').forEach(function(d, i) {
     d.className = 'step-dot' + (i < wizardStep ? ' done' : '') + (i === wizardStep ? ' active' : '');
   });
-  if (wizardStep === 4) renderSamenvatting();
+  if (wizardStep === 4) await renderSamenvatting();
 }
 
 function nextStep() { if (wizardStep < steps.length - 1) { wizardStep++; renderStep(); window.scrollTo(0, 0); } }
@@ -1188,7 +1198,7 @@ function getInterventies() {
 // ═══════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════
-function renderSamenvatting() {
+async function renderSamenvatting() {
   var chk = getChecklistData();
   var sector = currentBeurt.sector;
   var items = activeChecklistItems.length > 0 ? activeChecklistItems : (CHECKLISTS[sector] || []);
@@ -1261,7 +1271,7 @@ function renderSamenvatting() {
   }
 
   // Installatie sectie
-  var instHtml = buildInstallatieHtml(getSelectedInstallatie());
+  var instHtml = buildInstallatieHtml(await getInstallatieForReport());
 
   // Build full preview
   document.getElementById('rapport-preview').innerHTML =
@@ -1336,6 +1346,45 @@ async function saveRapport() {
     var installatieId = document.getElementById('installatie-select').value || null;
     var installatieSnapshot = getSelectedInstallatie();
 
+    // Auto-create installatie if none exists for this client+sector
+    if (!installatieSnapshot && currentContract.client_id) {
+      var sectorDetails = currentContract.sector_details || {};
+      var autoInst = {
+        client_id: currentContract.client_id,
+        installation_type: currentBeurt.sector
+      };
+      // Fill sector-specific fields from contract
+      if (currentBeurt.sector === 'zonnepanelen' && sectorDetails.zonnepanelen) {
+        var zd = sectorDetails.zonnepanelen;
+        if (zd.dakvlakken) autoInst.roof_surfaces = zd.dakvlakken;
+        if (zd.goothoogte) autoInst.gutter_height = zd.goothoogte;
+      }
+      if ((currentBeurt.sector === 'warmtepomp' || currentBeurt.sector === 'airco') && sectorDetails[currentBeurt.sector]) {
+        var sd = sectorDetails[currentBeurt.sector];
+        if (sd.binnenunits) autoInst.indoor_unit_count = sd.binnenunits;
+        if (sd.buitenunits) autoInst.outdoor_unit_count = sd.buitenunits;
+      }
+      if (currentBeurt.sector === 'ventilatie' && sectorDetails.ventilatie) {
+        var vd = sectorDetails.ventilatie;
+        if (vd.type) autoInst.ventilation_system_type = vd.type === 'Systeem C' ? 'c_system' : vd.type === 'Systeem D' ? 'd_system' : vd.type;
+      }
+      if (currentBeurt.sector === 'verwarming' && sectorDetails.verwarming) {
+        if (sectorDetails.verwarming.type) autoInst.heating_type = sectorDetails.verwarming.type;
+      }
+      // Check if one already exists
+      var existCheck = await sb.from('klant_installaties').select('*').eq('client_id', currentContract.client_id).eq('installation_type', currentBeurt.sector).limit(1);
+      if (existCheck.data && existCheck.data.length > 0) {
+        installatieId = existCheck.data[0].id;
+        installatieSnapshot = existCheck.data[0];
+      } else {
+        var autoRes = await sb.from('klant_installaties').insert([autoInst]).select();
+        if (autoRes.data && autoRes.data.length > 0) {
+          installatieId = autoRes.data[0].id;
+          installatieSnapshot = autoRes.data[0];
+        }
+      }
+    }
+
     // Uren & materiaal
     var urenData = getUrenData();
     var materiaalData = getMateriaalData();
@@ -1387,7 +1436,7 @@ async function saveRapport() {
     }
 
     // Generate PDF and upload to Storage
-    var pdfBlob = generatePDFBlob();
+    var pdfBlob = await generatePDFBlob();
     if (pdfBlob) {
       var pdfPath = 'rapporten/' + ref + '.pdf';
       var pdfUpload = await sb.storage.from('handtekeningen').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' });
@@ -1414,23 +1463,23 @@ async function saveRapport() {
 // ═══════════════════════════════
 // PDF GENERATIE
 // ═══════════════════════════════
-function generatePDFBlob() {
+async function generatePDFBlob() {
   try {
     var { jsPDF } = window.jspdf;
     var doc = new jsPDF('p', 'mm', 'a4');
-    buildPDF(doc);
+    await buildPDF(doc);
     return doc.output('blob');
   } catch(e) { console.warn('PDF generation failed:', e); return null; }
 }
 
-function downloadPDF() {
+async function downloadPDF() {
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF('p', 'mm', 'a4');
-  buildPDF(doc);
+  await buildPDF(doc);
   doc.save(lastSavedRef + '.pdf');
 }
 
-function buildPDF(doc) {
+async function buildPDF(doc) {
   var pageW = 210, margin = 20, contentW = pageW - 2 * margin;
   var y = 20;
 
@@ -1481,7 +1530,7 @@ function buildPDF(doc) {
   doc.text('Contract: ' + (klant.contract_nummer || '\u2014'), margin + 4, y + 13);
 
   // Installatie info (compact line in beurt block)
-  var pdfInst = getSelectedInstallatie();
+  var pdfInst = await getInstallatieForReport();
   if (pdfInst) {
     var instLine = (pdfInst.brand || '') + ' ' + (pdfInst.model || '');
     doc.text('Installatie: ' + instLine.trim(), margin + 80, y + 13);
