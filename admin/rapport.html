@@ -104,13 +104,13 @@
   .add-interventie:hover { border-color: var(--navy); color: var(--navy); }
 
   /* Uren & materiaal tabel */
-  .uren-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .uren-table th { text-align: left; font-size: 11px; color: var(--grey); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 8px; border-bottom: 2px solid var(--rule); }
-  .uren-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
-  .uren-table input, .uren-table select { width: 100%; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; font-size: 12px; font-family: inherit; }
-  .uren-table input[type="number"] { width: 80px; }
-  .uren-table input[type="date"] { width: 130px; }
-  .uren-table input[type="time"] { width: 100px; }
+  .uren-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  .uren-table th { text-align: left; font-size: 10px; color: var(--grey); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; padding: 4px 4px; border-bottom: 2px solid var(--rule); white-space: nowrap; }
+  .uren-table td { padding: 4px 4px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .uren-table input, .uren-table select { width: 100%; padding: 6px 6px; border: 1px solid var(--rule); border-radius: 6px; font-size: 11px; font-family: inherit; box-sizing: border-box; }
+  .uren-table input[type="number"] { width: 100%; }
+  .uren-table input[type="date"] { width: 100%; }
+  .uren-table input[type="time"] { width: 100%; }
   .uren-table .remove-row { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px; }
   .uren-add { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1.5px dashed var(--rule); border-radius: 6px; background: none; cursor: pointer; font-size: 12px; color: var(--grey); margin-top: 8px; }
   .uren-add:hover { border-color: var(--navy); color: var(--navy); }
@@ -252,7 +252,8 @@
           <h3>Gewerkte uren</h3>
           <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Registreer de gewerkte uren per technieker.</p>
           <table class="uren-table" id="uren-table">
-            <thead><tr><th>Technieker</th><th>Datum</th><th>Start</th><th>Eind</th><th>Uren</th><th>Uurtarief</th><th>Km</th><th></th></tr></thead>
+            <colgroup><col style="width:18%"><col style="width:18%"><col style="width:13%"><col style="width:13%"><col style="width:10%"><col style="width:12%"><col style="width:10%"><col style="width:6%"></colgroup>
+            <thead><tr><th>Technieker</th><th>Datum</th><th>Start</th><th>Eind</th><th>Uren</th><th>Tarief</th><th>Km</th><th></th></tr></thead>
             <tbody id="uren-body"></tbody>
           </table>
           <div class="uren-totaal" id="uren-totaal"></div>
