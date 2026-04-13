@@ -481,9 +481,9 @@
           </div>
         </div>
         <div style="margin-top:20px">
-          <label style="font-weight:600;font-size:13px">Sectorbenamingen (optioneel)</label>
-          <p style="font-size:12px;color:var(--grey);margin:4px 0 12px">Afwijkende bedrijfsnaam per sector, zoals getoond op contracten en de calculator.</p>
-          <div id="sector-namen-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+          <label style="font-weight:600;font-size:13px">Sector-branding (optioneel)</label>
+          <p style="font-size:12px;color:var(--grey);margin:4px 0 12px">Afwijkende bedrijfsnaam en kleuren per sector, zoals getoond op contracten en de calculator.</p>
+          <div id="sector-namen-grid" style="display:flex;flex-direction:column;gap:6px"></div>
         </div>
       </div>
 
@@ -525,9 +525,80 @@
     <!-- ADMIN INSTELLINGEN PAGE -->
     <div class="page admin-only" id="page-admin-instellingen">
       <div class="card">
-        <div class="card-header"><span class="card-title">Partnerbeheer</span></div>
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+          <span class="card-title">Partnerbeheer</span>
+          <button onclick="openNewPartnerModal()" style="padding:8px 16px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Nieuwe partner
+          </button>
+        </div>
         <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Beheer partners, wijs sectoren toe en stel machtigingen in.</p>
         <div id="admin-partner-list"></div>
+      </div>
+    </div>
+
+    <!-- NIEUWE PARTNER MODAL -->
+    <div id="modal-new-partner" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:12px;padding:28px;max-width:520px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+        <h3 style="margin:0 0 4px">Nieuwe partner aanmaken</h3>
+        <p style="color:var(--grey);font-size:13px;margin:0 0 20px">Vul de basisgegevens in. Branding en machtigingen kunnen later ingesteld worden.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Bedrijfsnaam *</label>
+            <input type="text" id="np-bedrijfsnaam" placeholder="CW-Group" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px" oninput="document.getElementById('np-slug').value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Slug (URL) *</label>
+            <input type="text" id="np-slug" placeholder="cwgroup" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Contactpersoon</label>
+            <input type="text" id="np-contact" placeholder="Jan Janssen" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">E-mail</label>
+            <input type="email" id="np-email" placeholder="info@cwgroup.be" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Telefoon</label>
+            <input type="tel" id="np-telefoon" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">BTW-nummer</label>
+            <input type="text" id="np-btw" placeholder="BE0123.456.789" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Marge (%)</label>
+            <input type="number" id="np-marge" value="15" min="0" step="0.5" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Planning fee (&euro;)</label>
+            <input type="number" id="np-planfee" value="25" min="0" step="0.5" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+          <button onclick="closeNewPartnerModal()" style="padding:10px 20px;border:1.5px solid var(--rule);border-radius:8px;background:white;font-size:13px;font-weight:600;cursor:pointer">Annuleren</button>
+          <button onclick="createNewPartner()" id="np-submit-btn" style="padding:10px 24px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Aanmaken</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UITNODIGING MODAL -->
+    <div id="modal-invite-partner" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:12px;padding:28px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+        <h3 style="margin:0 0 4px">Partner uitnodigen</h3>
+        <p style="color:var(--grey);font-size:13px;margin:0 0 16px">Maak een login-account aan voor <strong id="invite-partner-name"></strong></p>
+        <input type="hidden" id="invite-partner-id">
+        <div>
+          <label style="font-size:12px;color:var(--grey);font-weight:600">E-mailadres voor login *</label>
+          <input type="email" id="invite-email" placeholder="partner@bedrijf.be" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
+        </div>
+        <div id="invite-result" style="display:none;margin-top:16px;padding:16px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+          <button onclick="closeInviteModal()" style="padding:10px 20px;border:1.5px solid var(--rule);border-radius:8px;background:white;font-size:13px;font-weight:600;cursor:pointer">Sluiten</button>
+          <button onclick="sendPartnerInvite()" id="invite-submit-btn" style="padding:10px 24px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Account aanmaken</button>
+        </div>
       </div>
     </div>
 
@@ -1151,16 +1222,23 @@ function loadSettings(p) {
   document.getElementById('set-planning').value = p.planning_fee || 5;
   document.getElementById('set-inzage').value = p.akkoord_flancco_inzage ? 'true' : 'false';
 
-  // Sector namen grid
+  // Sector branding grid
   var sectorNamen = p.sector_namen || {};
   var allSectors = ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'];
   var sectorLabelsMap = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', airco:'Airco', ic:'Industrial Cleaning', klussen:'Klussen' };
   var grid = document.getElementById('sector-namen-grid');
+  var defPrimair = p.kleur_primair || '#098979';
+  var defDonker = p.kleur_donker || '#066b5e';
   grid.innerHTML = allSectors.map(function(s) {
-    var val = sectorNamen[s] ? sectorNamen[s].naam || '' : '';
-    return '<div style="display:flex;align-items:center;gap:6px">' +
-      '<label style="width:110px;font-size:12px;color:var(--grey)">' + sectorLabelsMap[s] + '</label>' +
-      '<input id="sn-' + s + '" value="' + esc(val) + '" placeholder="' + esc(p.bedrijfsnaam || p.naam) + '" style="flex:1;padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">' +
+    var sn = sectorNamen[s] || {};
+    var naam = sn.naam || '';
+    var kp = sn.kleur_primair || '';
+    var kd = sn.kleur_donker || '';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule)">' +
+      '<label style="width:110px;font-size:12px;color:var(--grey);flex-shrink:0">' + sectorLabelsMap[s] + '</label>' +
+      '<input id="sn-' + s + '" value="' + esc(naam) + '" placeholder="' + esc(p.bedrijfsnaam || p.naam) + '" title="Bedrijfsnaam" style="flex:1;padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;min-width:0">' +
+      '<input type="color" id="sn-kp-' + s + '" value="' + (kp || defPrimair) + '" title="Hoofdkleur" style="width:32px;height:32px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:1px;flex-shrink:0;' + (kp ? '' : 'opacity:0.35') + '" onchange="this.style.opacity=1">' +
+      '<input type="color" id="sn-kd-' + s + '" value="' + (kd || defDonker) + '" title="Donkere kleur" style="width:32px;height:32px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:1px;flex-shrink:0;' + (kd ? '' : 'opacity:0.35') + '" onchange="this.style.opacity=1">' +
     '</div>';
   }).join('');
 
@@ -1182,9 +1260,21 @@ async function saveSettings() {
   if (!userPartner) return;
 
   var sectorNamen = {};
+  var defPrimair = document.getElementById('set-kleur1-hex').value || '#098979';
+  var defDonker = document.getElementById('set-kleur2-hex').value || '#066b5e';
   ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(s) {
-    var val = document.getElementById('sn-' + s).value.trim();
-    if (val) sectorNamen[s] = { naam: val };
+    var naam = document.getElementById('sn-' + s).value.trim();
+    var kpEl = document.getElementById('sn-kp-' + s);
+    var kdEl = document.getElementById('sn-kd-' + s);
+    var kp = kpEl.style.opacity !== '0.35' ? kpEl.value : '';
+    var kd = kdEl.style.opacity !== '0.35' ? kdEl.value : '';
+    if (naam || kp || kd) {
+      var entry = {};
+      if (naam) entry.naam = naam;
+      if (kp && kp !== defPrimair) entry.kleur_primair = kp;
+      if (kd && kd !== defDonker) entry.kleur_donker = kd;
+      if (Object.keys(entry).length) sectorNamen[s] = entry;
+    }
   });
 
   const updates = {
@@ -1550,9 +1640,12 @@ function renderAdminSettings() {
     html += '<div><label style="font-size:11px;color:var(--grey)">Gratis transport (km)</label><input type="number" id="adm-km-' + p.id + '" value="' + (p.transport_gratis_km || 0) + '" min="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
     html += '</div></div>';
 
-    // Save button
+    // Save button + invite button
     html += '<div style="display:flex;gap:8px;align-items:center">';
     html += '<button onclick="saveAdminPartner(\'' + p.id + '\')" style="padding:8px 20px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Opslaan</button>';
+    html += '<button onclick="openInviteModal(\'' + p.id + '\')" style="padding:8px 16px;background:white;color:var(--navy);border:1.5px solid var(--navy);border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
+    html += 'Uitnodigen</button>';
     html += '<span id="adm-saved-' + p.id + '" style="font-size:12px;color:var(--green);display:none">Opgeslagen!</span>';
     html += '</div>';
 
@@ -1571,6 +1664,160 @@ function toggleAdminPartner(id) {
     el.style.display = 'none';
     chev.style.transform = '';
   }
+}
+
+// =============================================
+// NIEUWE PARTNER AANMAKEN
+// =============================================
+function openNewPartnerModal() {
+  document.getElementById('np-bedrijfsnaam').value = '';
+  document.getElementById('np-slug').value = '';
+  document.getElementById('np-contact').value = '';
+  document.getElementById('np-email').value = '';
+  document.getElementById('np-telefoon').value = '';
+  document.getElementById('np-btw').value = '';
+  document.getElementById('np-marge').value = '15';
+  document.getElementById('np-planfee').value = '25';
+  document.getElementById('np-submit-btn').disabled = false;
+  document.getElementById('np-submit-btn').textContent = 'Aanmaken';
+  document.getElementById('modal-new-partner').style.display = 'flex';
+}
+
+function closeNewPartnerModal() {
+  document.getElementById('modal-new-partner').style.display = 'none';
+}
+
+async function createNewPartner() {
+  var naam = document.getElementById('np-bedrijfsnaam').value.trim();
+  var slug = document.getElementById('np-slug').value.trim();
+  if (!naam) { showToast('Bedrijfsnaam is verplicht', 'error'); return; }
+  if (!slug) { showToast('Slug is verplicht', 'error'); return; }
+  if (!/^[a-z0-9-]+$/.test(slug)) { showToast('Slug mag alleen kleine letters, cijfers en streepjes bevatten', 'error'); return; }
+
+  // Check of slug al bestaat
+  if (partners.some(function(p) { return p.slug === slug; })) {
+    showToast('Deze slug is al in gebruik', 'error'); return;
+  }
+
+  var btn = document.getElementById('np-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Aanmaken...';
+
+  var newPartner = {
+    naam: naam,
+    bedrijfsnaam: naam,
+    slug: slug,
+    contactpersoon: document.getElementById('np-contact').value.trim() || null,
+    email: document.getElementById('np-email').value.trim() || null,
+    telefoon: document.getElementById('np-telefoon').value.trim() || null,
+    btw_nummer: document.getElementById('np-btw').value.trim() || null,
+    marge_pct: parseFloat(document.getElementById('np-marge').value) || 0,
+    planning_fee: parseFloat(document.getElementById('np-planfee').value) || 0,
+    transport_gratis_km: 30,
+    kleur_primair: '#098979',
+    kleur_donker: '#066b5e',
+    actief: true
+  };
+
+  var { data, error } = await sb.from('partners').insert(newPartner).select().single();
+  if (error) {
+    showToast('Fout: ' + error.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Aanmaken';
+    return;
+  }
+
+  partners.push(data);
+  closeNewPartnerModal();
+  renderPartners();
+  renderAdminSettings();
+  showToast('Partner ' + naam + ' aangemaakt');
+}
+
+// =============================================
+// PARTNER UITNODIGEN
+// =============================================
+function openInviteModal(partnerId) {
+  var p = partners.find(function(x) { return x.id === partnerId; });
+  if (!p) return;
+  document.getElementById('invite-partner-id').value = partnerId;
+  document.getElementById('invite-partner-name').textContent = p.bedrijfsnaam || p.naam;
+  document.getElementById('invite-email').value = p.email || '';
+  document.getElementById('invite-result').style.display = 'none';
+  document.getElementById('invite-result').innerHTML = '';
+  document.getElementById('invite-submit-btn').disabled = false;
+  document.getElementById('invite-submit-btn').textContent = 'Account aanmaken';
+  document.getElementById('modal-invite-partner').style.display = 'flex';
+}
+
+function closeInviteModal() {
+  document.getElementById('modal-invite-partner').style.display = 'none';
+}
+
+async function sendPartnerInvite() {
+  var partnerId = document.getElementById('invite-partner-id').value;
+  var email = document.getElementById('invite-email').value.trim();
+  if (!email) { showToast('E-mailadres is verplicht', 'error'); return; }
+
+  var btn = document.getElementById('invite-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Aanmaken...';
+
+  try {
+    var session = (await sb.auth.getSession()).data.session;
+    var res = await fetch(SUPA_URL + '/functions/v1/invite-partner', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SUPA_KEY
+      },
+      body: JSON.stringify({ email: email, partner_id: partnerId })
+    });
+
+    var result = await res.json();
+    if (!res.ok) {
+      showToast(result.error || 'Fout bij uitnodigen', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Account aanmaken';
+      return;
+    }
+
+    // Show result with credentials
+    var resultDiv = document.getElementById('invite-result');
+    var loginUrl = window.location.origin + window.location.pathname;
+    resultDiv.innerHTML =
+      '<div style="font-weight:600;color:#166534;margin-bottom:8px">Account aangemaakt!</div>' +
+      '<div style="font-size:13px;color:#333;display:flex;flex-direction:column;gap:6px">' +
+        '<div><strong>E-mail:</strong> ' + esc(email) + '</div>' +
+        '<div><strong>Tijdelijk wachtwoord:</strong> <code style="background:#e5e7eb;padding:2px 8px;border-radius:4px;font-size:13px">' + esc(result.temp_password) + '</code></div>' +
+        '<div><strong>Login:</strong> <a href="' + loginUrl + '" target="_blank" style="color:var(--blue)">' + loginUrl + '</a></div>' +
+      '</div>' +
+      '<div style="margin-top:12px;display:flex;gap:8px">' +
+        '<button onclick="copyInviteInfo()" style="padding:6px 14px;border:1.5px solid var(--rule);border-radius:6px;background:white;font-size:12px;font-weight:600;cursor:pointer">Kopieer inloggegevens</button>' +
+      '</div>';
+    resultDiv.style.display = 'block';
+    btn.style.display = 'none';
+
+    showToast('Partner account aangemaakt voor ' + email);
+  } catch (err) {
+    showToast('Fout: ' + (err.message || err), 'error');
+    btn.disabled = false;
+    btn.textContent = 'Account aanmaken';
+  }
+}
+
+function copyInviteInfo() {
+  var email = document.getElementById('invite-email').value;
+  var pw = document.querySelector('#invite-result code');
+  var loginUrl = window.location.origin + window.location.pathname;
+  var text = 'Inloggegevens Flancco Partner Platform\n' +
+    'Login: ' + loginUrl + '\n' +
+    'E-mail: ' + email + '\n' +
+    'Wachtwoord: ' + (pw ? pw.textContent : '');
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('Inloggegevens gekopieerd');
+  });
 }
 
 async function toggleAdminSector(partnerId, sector, label) {
@@ -2320,8 +2567,9 @@ function previewContract(contractId) {
   if (!c) { showToast('Contract niet gevonden', 'error'); return; }
   var p = partners.find(x => x.id === c.partner_id);
   var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
-  var pName = getPartnerDisplayName(p, contractSector);
-  var primary = p ? (p.kleur_primair || '#098979') : '#098979';
+  var branding = getPartnerBranding(p, contractSector);
+  var pName = branding.naam;
+  var primary = branding.kleur_primair;
 
   var sectoren = c.sectoren || [];
   var pricing = c.pricing_breakdown || {};
@@ -2438,7 +2686,9 @@ function downloadContractPDF(contractId) {
   if (!c) { showToast('Contract niet gevonden', 'error'); return; }
   var p = partners.find(x => x.id === c.partner_id);
   var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
-  var pName = getPartnerDisplayName(p, contractSector);
+  var branding = getPartnerBranding(p, contractSector);
+  var pName = branding.naam;
+  var brandColor = branding.kleur_primair;
   var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
 
   var { jsPDF } = window.jspdf;
@@ -2448,7 +2698,7 @@ function downloadContractPDF(contractId) {
   var pw = 170; // printable width
 
   // Header
-  doc.setFillColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.setFillColor(brandColor);
   doc.rect(0, 0, 210, 40, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(20);
@@ -2470,7 +2720,7 @@ function downloadContractPDF(contractId) {
   // Klantgegevens
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.setTextColor(brandColor);
   doc.text('KLANTGEGEVENS', lm, y);
   y += 2;
   doc.setDrawColor(230, 230, 230);
@@ -2501,7 +2751,7 @@ function downloadContractPDF(contractId) {
   // Diensten
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.setTextColor(brandColor);
   doc.text('DIENSTEN', lm, y);
   y += 2;
   doc.line(lm, y, lm + pw, y);
@@ -2542,7 +2792,7 @@ function downloadContractPDF(contractId) {
   // Prijsoverzicht
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.setTextColor(brandColor);
   doc.text('PRIJSOVERZICHT', lm, y);
   y += 2;
   doc.line(lm, y, lm + pw, y);
@@ -2582,17 +2832,17 @@ function downloadContractPDF(contractId) {
     y += 7;
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+    doc.setTextColor(brandColor);
     doc.text('Totaal incl. BTW', lm, y);
     doc.text('\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',','), 190, y, { align: 'right' });
     y += 4;
-    doc.setDrawColor(p ? p.kleur_primair || '#098979' : '#098979');
+    doc.setDrawColor(brandColor);
     doc.setLineWidth(0.8);
     doc.line(lm, y, lm + pw, y);
   } else if (c.totaal_incl_btw) {
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+    doc.setTextColor(brandColor);
     doc.text('Totaal incl. BTW', lm, y);
     doc.text('\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',','), 190, y, { align: 'right' });
   }
@@ -2805,11 +3055,26 @@ async function saveNewContract() {
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function getPartnerDisplayName(partner, sector) {
+  return getPartnerBranding(partner, sector).naam;
+}
+
+function getPartnerBranding(partner, sector) {
+  var fallback = {
+    naam: partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco',
+    kleur_primair: partner ? (partner.kleur_primair || '#098979') : '#098979',
+    kleur_donker: partner ? (partner.kleur_donker || '#066b5e') : '#066b5e'
+  };
   if (partner && partner.sector_namen && sector) {
     var sn = partner.sector_namen[sector];
-    if (sn && sn.naam) return sn.naam;
+    if (sn) {
+      return {
+        naam: sn.naam || fallback.naam,
+        kleur_primair: sn.kleur_primair || fallback.kleur_primair,
+        kleur_donker: sn.kleur_donker || fallback.kleur_donker
+      };
+    }
   }
-  return partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco';
+  return fallback;
 }
 
 function showToast(msg, type) {

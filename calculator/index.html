@@ -661,11 +661,26 @@ function fmtCleanTotal(n) { var r = round50(n); return '\u20AC\u00A0' + r.toFixe
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function getPartnerDisplayName(partner, sector) {
+  return getPartnerBranding(partner, sector).naam;
+}
+
+function getPartnerBranding(partner, sector) {
+  var fallback = {
+    naam: partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco',
+    kleur_primair: partner ? (partner.kleur_primair || '#098979') : '#098979',
+    kleur_donker: partner ? (partner.kleur_donker || '#066b5e') : '#066b5e'
+  };
   if (partner && partner.sector_namen && sector) {
     var sn = partner.sector_namen[sector];
-    if (sn && sn.naam) return sn.naam;
+    if (sn) {
+      return {
+        naam: sn.naam || fallback.naam,
+        kleur_primair: sn.kleur_primair || fallback.kleur_primair,
+        kleur_donker: sn.kleur_donker || fallback.kleur_donker
+      };
+    }
   }
-  return partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco';
+  return fallback;
 }
 
 // ═══════════════════════════════════════════
@@ -1519,18 +1534,17 @@ async function loadContractForSigning(token) {
     if (pRes.error || !pRes.data) { showError('Partner niet gevonden.'); return; }
     signingPartner = pRes.data;
 
-    // Apply branding
-    var primary = signingPartner.kleur_primair || '#098979';
-    var dark = signingPartner.kleur_donker || '#066b5e';
-    var r = document.documentElement.style;
-    r.setProperty('--primary', primary);
-    r.setProperty('--primary-dark', dark);
-    r.setProperty('--primary-light', primary + '80');
-    r.setProperty('--primary-bg', primary + '12');
-
+    // Apply sector-specific branding
     var sigSector = (signingContract.sectoren || [])[0] ? ((signingContract.sectoren[0].sector) || signingContract.sectoren[0]) : null;
-    document.title = getPartnerDisplayName(signingPartner, sigSector) + ' — Contract ondertekenen';
-    var displayName = esc(getPartnerDisplayName(signingPartner, sigSector));
+    var sigBranding = getPartnerBranding(signingPartner, sigSector);
+    var r = document.documentElement.style;
+    r.setProperty('--primary', sigBranding.kleur_primair);
+    r.setProperty('--primary-dark', sigBranding.kleur_donker);
+    r.setProperty('--primary-light', sigBranding.kleur_primair + '80');
+    r.setProperty('--primary-bg', sigBranding.kleur_primair + '12');
+
+    document.title = sigBranding.naam + ' — Contract ondertekenen';
+    var displayName = esc(sigBranding.naam);
     if (/flancco/i.test(displayName)) {
       displayName = displayName.replace(/O/gi, '<span style="color:#922B21">O</span>');
     }
@@ -1925,17 +1939,16 @@ function showError(msg) {
   document.getElementById('error-msg').textContent = msg;
 }
 
-function applyBranding(p) {
-  var primary = p.kleur_primair || '#098979';
-  var dark = p.kleur_donker || '#066b5e';
+function applyBranding(p, sector) {
+  var branding = getPartnerBranding(p, sector || null);
   var r = document.documentElement.style;
-  r.setProperty('--primary', primary);
-  r.setProperty('--primary-dark', dark);
-  r.setProperty('--primary-light', primary + '80');
-  r.setProperty('--primary-bg', primary + '12');
+  r.setProperty('--primary', branding.kleur_primair);
+  r.setProperty('--primary-dark', branding.kleur_donker);
+  r.setProperty('--primary-light', branding.kleur_primair + '80');
+  r.setProperty('--primary-bg', branding.kleur_primair + '12');
 
-  document.title = getPartnerDisplayName(p, null) + ' \u2014 Onderhoudscalculator';
-  var displayName = esc(getPartnerDisplayName(p, null));
+  document.title = branding.naam + ' \u2014 Onderhoudscalculator';
+  var displayName = esc(branding.naam);
   if (/flancco/i.test(displayName)) {
     displayName = displayName.replace(/O/gi, '<span style="color:#922B21">O</span>');
   }
@@ -2031,6 +2044,8 @@ function toggleSectorCard(sector) {
 function proceedFromSectors() {
   if (selectedSectors.length === 0) return;
   activeSectorTab = selectedSectors[0];
+  // Re-apply branding for selected sector
+  if (partner) applyBranding(partner, selectedSectors[0]);
   renderStep1();
   goToStep(1);
   calculateAll();

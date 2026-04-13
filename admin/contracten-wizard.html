@@ -544,11 +544,26 @@ function fmt(n) { return '\u20AC ' + n.toFixed(2).replace('.', ','); }
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function getPartnerDisplayName(partner, sector) {
+  return getPartnerBranding(partner, sector).naam;
+}
+
+function getPartnerBranding(partner, sector) {
+  var fallback = {
+    naam: partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco',
+    kleur_primair: partner ? (partner.kleur_primair || '#098979') : '#098979',
+    kleur_donker: partner ? (partner.kleur_donker || '#066b5e') : '#066b5e'
+  };
   if (partner && partner.sector_namen && sector) {
     var sn = partner.sector_namen[sector];
-    if (sn && sn.naam) return sn.naam;
+    if (sn) {
+      return {
+        naam: sn.naam || fallback.naam,
+        kleur_primair: sn.kleur_primair || fallback.kleur_primair,
+        kleur_donker: sn.kleur_donker || fallback.kleur_donker
+      };
+    }
   }
-  return partner ? (partner.bedrijfsnaam || partner.naam) : 'Flancco';
+  return fallback;
 }
 
 function getSectorSupplement(sector, type) {
