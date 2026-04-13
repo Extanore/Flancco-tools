@@ -2575,102 +2575,226 @@ function previewContract(contractId) {
   var pricing = c.pricing_breakdown || {};
   var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
-
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contract Preview</title>';
-  html += '<style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:40px 20px;color:#1f2937}';
-  html += '.header{background:' + primary + ';color:white;padding:32px;border-radius:12px;margin-bottom:32px;text-align:center}';
-  html += '.header h1{font-size:24px;margin:0 0 4px}.header p{opacity:0.8;font-size:14px;margin:0}';
-  html += '.card{background:white;border:1px solid #e5e7eb;border-radius:10px;padding:24px;margin-bottom:16px}';
-  html += '.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:' + primary + ';margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #f3f4f6}';
-  html += '.row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid #f3f4f6}';
-  html += '.row .lbl{color:#6b7280}.row .val{font-weight:600}';
-  html += '.sector-badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-right:6px}';
-  html += '.total-row{display:flex;justify-content:space-between;font-size:20px;font-weight:700;color:' + primary + ';padding:12px 0;border-top:2px solid ' + primary + ';margin-top:8px}';
-  html += '.status{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600}';
-  html += '@media print{body{padding:20px}.header{page-break-after:auto}}</style></head><body>';
-
-  // Header
-  html += '<div class="header"><h1>' + pName + '</h1><p>Onderhoudscontract</p></div>';
-
-  // Status
+  var duurTxt = c.contractduur === 'eenmalig' ? 'Eenmalige interventie' : (c.contractduur || 'n.v.t.');
+  var today = c.datum_ondertekening ? new Date(c.datum_ondertekening).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+  var pAdres = p ? [p.adres, p.postcode, p.gemeente].filter(Boolean).join(', ') : '';
+  var pBtw = p ? (p.btw_nummer || '') : '';
   var st = computeStatus(c);
   var statusColor = { concept:'#9CA3AF', actief:'#059669', verlopen:'#D97706', geannuleerd:'#DC2626' };
-  var statusBg = { concept:'#F3F4F6', actief:'#D1FAE5', verlopen:'#FEF3C7', geannuleerd:'#FEE2E2' };
-  html += '<div style="text-align:right;margin-bottom:16px"><span class="status" style="background:' + (statusBg[st]||'#F3F4F6') + ';color:' + (statusColor[st]||'#6B7280') + '">' + st.charAt(0).toUpperCase() + st.slice(1) + '</span></div>';
+  var statusBg = { concept:'#F3F4F6', actief:'#ECFDF5', verlopen:'#FFFBEB', geannuleerd:'#FEF2F2' };
 
-  // Klantgegevens
-  html += '<div class="card"><div class="card-title">Klantgegevens</div>';
-  html += '<div class="row"><span class="lbl">Naam</span><span class="val">' + (c.klant_naam || '') + '</span></div>';
-  if (c.klant_contact) html += '<div class="row"><span class="lbl">Contact</span><span class="val">' + c.klant_contact + '</span></div>';
-  if (c.klant_email) html += '<div class="row"><span class="lbl">Email</span><span class="val">' + c.klant_email + '</span></div>';
-  if (c.klant_telefoon) html += '<div class="row"><span class="lbl">Telefoon</span><span class="val">' + c.klant_telefoon + '</span></div>';
-  var adres = [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', ');
-  if (adres) html += '<div class="row"><span class="lbl">Adres</span><span class="val">' + adres + '</span></div>';
-  html += '</div>';
+  // Contract HTML in calculator style
+  var html = '<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>' + pName + ' — Contract</title>';
+  html += '<style>';
+  html += ':root{--primary:' + primary + ';--primary-bg:' + primary + '12;--primary-light:' + primary + '30}';
+  html += 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:800px;margin:0 auto;padding:40px 24px;color:#1f2937;background:#fff}';
+  html += '.contract-header{text-align:center;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid var(--primary)}';
+  html += '.contract-header h1{font-size:22px;font-weight:700;color:var(--primary);letter-spacing:1px;margin:0}';
+  html += '.contract-header p{font-size:13px;color:#6b7280;margin:6px 0 0}';
+  html += '.status-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}';
+  html += '.status-badge{display:inline-block;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600}';
+  html += 'h2{font-size:15px;font-weight:700;color:#1f2937;margin:28px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--primary);letter-spacing:0.8px;text-transform:uppercase}';
+  html += 'p{font-size:13px;color:#374151;margin-bottom:8px;line-height:1.7}';
+  html += 'ul{margin:8px 0 12px 20px}ul li{font-size:13px;color:#374151;margin-bottom:4px;line-height:1.6}';
+  html += '.data-row{display:flex;justify-content:space-between;padding:8px 12px;font-size:13px;border-bottom:1px solid #f3f4f6}';
+  html += '.data-row:nth-child(even){background:#f9fafb}';
+  html += '.data-label{color:#6b7280;font-weight:500}.data-value{font-weight:600;color:#1f2937}';
+  html += '.pricing-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}';
+  html += '.pricing-table th{background:var(--primary);color:white;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}';
+  html += '.pricing-table td{padding:8px 12px;border-bottom:1px solid #f3f4f6}';
+  html += '.pricing-table tr:nth-child(even) td{background:#f9fafb}';
+  html += '.pricing-table td:last-child{text-align:right;font-weight:600}';
+  html += '.total-box{background:var(--primary-bg);border:2px solid var(--primary-light);border-radius:10px;padding:20px 24px;margin:20px 0}';
+  html += '.total-box .line{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:#374151}';
+  html += '.total-box .line.grand{font-size:18px;font-weight:700;color:var(--primary);padding:12px 0 0;margin-top:8px;border-top:2px solid var(--primary-light)}';
+  html += '.total-box .line.sub{font-weight:600;padding-top:8px;margin-top:4px;border-top:1px solid #e5e7eb}';
+  html += '.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:32px}';
+  html += '.sig-box{border-top:2px solid var(--primary);padding-top:16px}';
+  html += '.sig-box h3{font-size:13px;font-weight:700;color:var(--primary);margin:0 0 16px;text-transform:uppercase;letter-spacing:0.5px}';
+  html += '.sig-line{font-size:13px;color:#374151;margin-bottom:8px}';
+  html += '.sig-area{height:60px;border-bottom:1px solid #d1d5db;margin:16px 0 8px}';
+  html += '@media print{body{padding:20px}@page{margin:15mm 10mm}}';
+  html += '</style></head><body>';
 
-  // Diensten
-  html += '<div class="card"><div class="card-title">Diensten</div>';
+  // Header
+  html += '<div class="contract-header"><h1>' + pName + '</h1>';
+  html += '<p style="font-size:14px;color:#374151;margin:8px 0 4px">Dienstverleningsovereenkomst</p>';
+
+  // Diensten beschrijving
+  var dienstTxt = [];
   if (sectoren.length > 0) {
     sectoren.forEach(function(s) {
       var sec = s.sector || s;
-      var badgeColors = { zonnepanelen:'background:#FEF3C7;color:#92400E', warmtepomp:'background:#DBEAFE;color:#1E40AF', ventilatie:'background:#EDE9FE;color:#5B21B6', verwarming:'background:#FEE2E2;color:#991B1B', ic:'background:#D1FAE5;color:#065F46', klussen:'background:#FEF3C7;color:#78350F' };
-      html += '<span class="sector-badge" style="' + (badgeColors[sec] || '') + '">' + (sectorLabels[sec] || sec) + '</span>';
+      var label = sectorLabels[sec] || sec;
+      if (s.configs) {
+        s.configs.forEach(function(cfg) {
+          if (sec === 'zonnepanelen') dienstTxt.push(label + ': ' + cfg.pan + ' panelen, ' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling'));
+          else if (sec === 'warmtepomp') dienstTxt.push(label + ': ' + cfg.binnenunits + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic'));
+          else if (sec === 'ventilatie') dienstTxt.push(label + ': systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen');
+          else if (sec === 'verwarming') dienstTxt.push(label + ': ' + cfg.keteltype + 'ketel');
+          else dienstTxt.push(label);
+        });
+      } else {
+        dienstTxt.push(label);
+      }
     });
-    html += '<br><br>';
+  }
+  html += '<p>' + (dienstTxt.length ? dienstTxt.join('; ') + ' — ' : '') + today + '</p></div>';
+
+  // Status
+  html += '<div class="status-bar"><span></span><span class="status-badge" style="background:' + (statusBg[st]||'#F3F4F6') + ';color:' + (statusColor[st]||'#6B7280') + '">' + st.charAt(0).toUpperCase() + st.slice(1) + '</span></div>';
+
+  // Partijen
+  html += '<p style="font-size:13px;color:#6b7280">Tussen <strong>' + pName + '</strong>';
+  if (pAdres) html += ', gevestigd te ' + pAdres;
+  if (pBtw) html += ', ' + pBtw;
+  html += ', hierna "de Dienstverlener",</p>';
+  html += '<p style="font-size:13px;color:#6b7280">En</p>';
+  html += '<div style="margin:12px 0 24px">';
+  html += '<div class="data-row"><span class="data-label">Naam / Bedrijfsnaam</span><span class="data-value">' + (c.klant_naam || '—') + '</span></div>';
+  var adres = [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', ');
+  if (adres) html += '<div class="data-row"><span class="data-label">Adres</span><span class="data-value">' + adres + '</span></div>';
+  if (c.klant_contact) html += '<div class="data-row"><span class="data-label">Contactpersoon</span><span class="data-value">' + c.klant_contact + '</span></div>';
+  if (c.klant_telefoon) html += '<div class="data-row"><span class="data-label">Telefoon</span><span class="data-value">' + c.klant_telefoon + '</span></div>';
+  if (c.klant_email) html += '<div class="data-row"><span class="data-label">E-mail</span><span class="data-value">' + c.klant_email + '</span></div>';
+  html += '</div>';
+  html += '<p style="font-size:13px;color:#6b7280">hierna "de Klant", gezamenlijk "de Partijen".</p>';
+
+  // Art 1: Voorwerp
+  var artNum = 1;
+  html += '<h2>Artikel ' + artNum + ' — Voorwerp</h2>';
+  html += '<p>De Dienstverlener verbindt zich ertoe de volgende diensten uit te voeren op het hierboven vermelde adres:</p><ul>';
+  if (sectoren.length > 0) {
     sectoren.forEach(function(s) {
       var sec = s.sector || s;
+      var label = sectorLabels[sec] || sec;
+      html += '<li><strong>' + label + '</strong>';
       if (s.configs) {
-        s.configs.forEach(function(cfg, i) {
-          html += '<div style="font-size:13px;color:#6b7280;margin-bottom:4px">';
-          if (sec === 'zonnepanelen') html += cfg.pan + ' panelen, ' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling');
-          else if (sec === 'warmtepomp') html += cfg.binnenunits + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic');
-          else if (sec === 'ventilatie') html += 'Systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen';
-          else if (sec === 'verwarming') html += cfg.keteltype + 'ketel';
-          html += '</div>';
+        s.configs.forEach(function(cfg) {
+          if (sec === 'zonnepanelen') html += ': reiniging van ' + cfg.pan + ' zonnepanelen (' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling') + ')';
+          else if (sec === 'warmtepomp') html += ': onderhoud van ' + cfg.binnenunits + ' binnenunit(s) (' + (cfg.formule === 'allin' ? 'all-in formule' : 'basic formule') + ')';
+          else if (sec === 'ventilatie') html += ': onderhoud ventilatiesysteem ' + cfg.systeem + ' met ' + cfg.ventielen + ' ventielen';
+          else if (sec === 'verwarming') html += ': onderhoud ' + cfg.keteltype + 'ketel';
         });
       }
+      html += '</li>';
     });
   } else if (c.sector) {
-    html += '<span class="sector-badge">' + (sectorLabels[c.sector] || c.sector) + '</span>';
-    if (c.aantal_panelen) html += '<div style="font-size:13px;color:#6b7280;margin-top:8px">' + c.aantal_panelen + ' panelen</div>';
+    html += '<li>' + (sectorLabels[c.sector] || c.sector);
+    if (c.aantal_panelen) html += ': ' + c.aantal_panelen + ' panelen';
+    html += '</li>';
   }
-  html += '</div>';
+  html += '</ul>';
+  artNum++;
 
-  // Prijsoverzicht
-  html += '<div class="card"><div class="card-title">Prijsoverzicht</div>';
+  // Art: Tarieven
+  html += '<h2>Artikel ' + artNum + ' — Tarieven</h2>';
+  var btwPct = pricing.btwPct || 21;
+  html += '<p>Alle bedragen zijn in euro en inclusief ' + btwPct + '% btw.</p>';
+
+  // Pricing breakdown
   if (pricing.lines) {
+    html += '<table class="pricing-table"><tr><th>Omschrijving</th><th style="text-align:right">Bedrag</th></tr>';
     pricing.lines.forEach(function(l) {
-      if (l.type === 'header') html += '<div style="font-weight:600;padding:8px 0 4px;margin-top:8px">' + l.label + '</div>';
-      else {
+      if (l.type === 'header') {
+        html += '<tr><td colspan="2" style="font-weight:600;background:#f9fafb;color:#374151">' + l.label + '</td></tr>';
+      } else {
         var amt = l.amount < 0 ? '- \u20AC ' + Math.abs(l.amount).toFixed(2).replace('.',',') : '\u20AC ' + l.amount.toFixed(2).replace('.',',');
-        html += '<div class="row"><span class="lbl">' + l.label + '</span><span class="val">' + amt + '</span></div>';
+        html += '<tr><td>' + l.label + '</td><td>' + amt + '</td></tr>';
       }
     });
-    html += '<div class="row" style="font-weight:600;border-top:2px solid #e5e7eb;padding-top:8px;margin-top:8px"><span>Subtotaal excl. BTW</span><span>\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',',') + '</span></div>';
-    html += '<div class="row"><span class="lbl">BTW ' + (pricing.btwPct || 21) + '%</span><span class="val">\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',',') + '</span></div>';
-    html += '<div class="total-row"><span>Totaal incl. BTW</span><span>\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',',') + '</span></div>';
+    html += '</table>';
+  }
+
+  // Total box with partner color background
+  html += '<div class="total-box">';
+  html += '<p style="font-weight:600;margin:0 0 8px;color:var(--primary)">Uw prijsoverzicht</p>';
+  if (pricing.lines) {
+    pricing.lines.forEach(function(l) {
+      if (l.type !== 'header') {
+        var amt = l.amount < 0 ? '- \u20AC ' + Math.abs(l.amount).toFixed(2).replace('.',',') : '\u20AC ' + l.amount.toFixed(2).replace('.',',');
+        html += '<div class="line"><span>' + l.label + '</span><span>' + amt + '</span></div>';
+      }
+    });
+    html += '<div class="line sub"><span>Subtotaal excl. BTW</span><span>\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',',') + '</span></div>';
+    html += '<div class="line"><span>BTW ' + btwPct + '%</span><span>\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',',') + '</span></div>';
+    html += '<div class="line grand"><span>Totaal per beurt incl. BTW</span><span>\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',',') + '</span></div>';
   } else if (c.totaal_incl_btw) {
-    html += '<div class="total-row"><span>Totaal incl. BTW</span><span>\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') + '</span></div>';
+    html += '<div class="line grand"><span>Totaal incl. BTW</span><span>\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') + '</span></div>';
   }
-  html += '<div style="text-align:center;font-size:12px;color:#6b7280;margin-top:12px">' + freqTxt + ' | Looptijd: ' + (c.contractduur || 'n.v.t.') + '</div>';
   html += '</div>';
+  artNum++;
 
-  // Contract details
-  html += '<div class="card"><div class="card-title">Contractdetails</div>';
-  html += '<div class="row"><span class="lbl">Type</span><span class="val">' + (c.contract_type === 'raam' ? 'Raamcontract' : 'Per klant') + '</span></div>';
-  html += '<div class="row"><span class="lbl">Frequentie</span><span class="val">' + freqTxt + '</span></div>';
-  html += '<div class="row"><span class="lbl">Looptijd</span><span class="val">' + (c.contractduur || 'n.v.t.') + '</span></div>';
-  if (c.contract_start) html += '<div class="row"><span class="lbl">Startdatum</span><span class="val">' + fmtDate(c.contract_start) + '</span></div>';
-  if (c.contract_einde) html += '<div class="row"><span class="lbl">Einddatum</span><span class="val">' + fmtDate(c.contract_einde) + '</span></div>';
-  if (c.contract_nummer) html += '<div class="row"><span class="lbl">Contractnummer</span><span class="val">' + c.contract_nummer + '</span></div>';
-  if (c.datum_ondertekening) html += '<div class="row"><span class="lbl">Ondertekend op</span><span class="val">' + fmtDate(c.datum_ondertekening) + '</span></div>';
-  html += '</div>';
+  // Art: Frequentie
+  html += '<h2>Artikel ' + artNum + ' — Frequentie</h2>';
+  html += '<p>Gekozen frequentie: <strong>' + freqTxt + '</strong></p>';
+  html += '<p>De onderhoudsbeurten worden in onderling overleg ingepland. De Dienstverlener contacteert de Klant minstens twee (2) weken op voorhand.</p>';
+  artNum++;
 
-  if (c.beschrijving) {
-    html += '<div class="card"><div class="card-title">Beschrijving</div><p style="font-size:14px;color:#6b7280">' + c.beschrijving + '</p></div>';
+  // Art: Contractduur
+  html += '<h2>Artikel ' + artNum + ' — Contractduur</h2>';
+  html += '<p>Gekozen contractduur: <strong>' + duurTxt + '</strong></p>';
+  html += '<p>Bij een contract van 3 of 5 jaar wordt een korting van 5% toegepast. Het contract vangt aan op de datum van ondertekening. Behoudens schriftelijke opzegging (2 maanden opzegtermijn) wordt het stilzwijgend verlengd per jaar.</p>';
+  artNum++;
+
+  // Art: Prijsindexatie
+  html += '<h2>Artikel ' + artNum + ' — Prijsindexatie</h2>';
+  html += '<p>Tarieven worden jaarlijks ge\u00EFndexeerd op basis van de consumptieprijsindex (CPI).</p>';
+  artNum++;
+
+  // Art: Facturatie
+  html += '<h2>Artikel ' + artNum + ' — Facturatie en betaling</h2>';
+  html += '<p>Facturen zijn betaalbaar binnen 30 kalenderdagen na factuurdatum.</p>';
+  artNum++;
+
+  // Art: Uitvoering
+  html += '<h2>Artikel ' + artNum + ' — Uitvoering</h2>';
+  html += '<p>De Dienstverlener voert het onderhoud uit met eigen gekwalificeerd personeel. De Klant zorgt voor vrije toegang tot de installatie(s).</p>';
+  artNum++;
+
+  // Art: Annulatie
+  html += '<h2>Artikel ' + artNum + ' — Annulatie</h2>';
+  html += '<p>Bij annulatie minder dan 48 uur v\u00F3\u00F3r de geplande interventie wordt een annulatiekost aangerekend.</p>';
+  artNum++;
+
+  // Art: Aansprakelijkheid
+  html += '<h2>Artikel ' + artNum + ' — Aansprakelijkheid</h2>';
+  html += '<p>De Dienstverlener is verzekerd voor beroeps- en uitbatingsaansprakelijkheid. Niet aansprakelijk voor reeds bestaande schade of indirecte gevolgschade.</p>';
+  artNum++;
+
+  // BTW attest if 6%
+  if (btwPct === 6) {
+    html += '<h2>Artikel ' + artNum + ' — Attest verlaagd btw-tarief (6%)</h2>';
+    html += '<div style="border:1px solid #d1d5db;border-radius:8px;padding:16px 20px;margin-bottom:8px;background:#FAFAF5">';
+    html += '<p style="margin:0 0 8px"><strong>Verklaring op eer door de opdrachtgever</strong></p>';
+    html += '<p style="margin:0">Ondergetekende, <strong>' + (c.klant_naam || '') + '</strong>, verklaart op eer dat het gebouw' + (adres ? ' gelegen te <strong>' + adres + '</strong>' : '') + ' langer dan 10 jaar in gebruik is als priv\u00E9woning, de werken rechtstreeks aan de eindverbruiker worden gefactureerd, en de woning hoofdzakelijk voor priv\u00E9doeleinden wordt aangewend.</p>';
+    html += '</div>';
+    artNum++;
   }
 
-  html += '<div style="text-align:center;padding:24px 0;color:#9CA3AF;font-size:12px">Gegenereerd door ' + pName + ' via Flancco Platform</div>';
+  // Art: Herroepingsrecht
+  html += '<h2>Artikel ' + artNum + ' — Herroepingsrecht</h2>';
+  html += '<p>De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU.</p>';
+  artNum++;
+
+  // Ondertekening
+  html += '<h2>Ondertekening</h2>';
+  html += '<p>Door ondertekening verklaart de Klant akkoord te gaan met alle bepalingen van deze Overeenkomst.</p>';
+  html += '<div class="sig-grid">';
+  html += '<div class="sig-box"><h3>' + pName + '</h3><div class="sig-line">Vertegenwoordigd door de Dienstverlener</div><div class="sig-line">Datum: ' + today + '</div></div>';
+  html += '<div class="sig-box"><h3>De Klant</h3><div class="sig-line">Naam: <strong>' + (c.klant_naam || '') + '</strong></div>';
+  if (c.handtekening) {
+    html += '<div style="margin:12px 0"><img src="' + c.handtekening + '" style="max-width:200px;max-height:80px" alt="Handtekening"></div>';
+    html += '<div class="sig-line">Datum: ' + today + '</div>';
+  } else {
+    html += '<div class="sig-area"></div><div class="sig-line">Datum:</div>';
+  }
+  html += '</div></div>';
+
+  // Footer
+  html += '<p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb">' +
+    pName + (pAdres ? ' \u00B7 ' + pAdres : '') + (pBtw ? ' \u00B7 ' + pBtw : '') + '</p>';
+
   html += '</body></html>';
 
   var win = window.open('', '_blank');
