@@ -404,15 +404,11 @@
           <div class="freq-card selected" data-duur="3" onclick="selectDuur(this)">
             <h4>3 jaar</h4>
             <p>Standaard</p>
+            <span class="badge-korting">-5% korting</span>
           </div>
           <div class="freq-card" data-duur="5" onclick="selectDuur(this)">
             <h4>5 jaar</h4>
             <p>Langetermijn</p>
-            <span class="badge-korting">-5% korting</span>
-          </div>
-          <div class="freq-card" data-duur="10" onclick="selectDuur(this)">
-            <h4>10 jaar</h4>
-            <p>Maximum</p>
             <span class="badge-korting">-5% korting</span>
           </div>
         </div>
@@ -1158,9 +1154,9 @@ function recalcPricing() {
     grandSubtotal += transportCost;
   }
 
-  // Korting (5% bij 5+ jaar)
+  // Korting (5% bij 3+ jaar)
   var korting = 0;
-  if (wizState.duur >= 5) {
+  if (wizState.duur >= 3) {
     korting = grandSubtotal * 0.05;
     allLines.push({ type: 'line', label: 'Contractkorting (-5%)', amount: -korting });
     grandSubtotal -= korting;
@@ -1383,7 +1379,7 @@ async function saveContract() {
       pricing_breakdown: pricingBreakdown,
       frequentie: freqTxt,
       contractduur: duurTxt,
-      korting_pct: wizState.duur >= 5 ? 5 : 0,
+      korting_pct: wizState.duur >= 3 ? 5 : 0,
       totaal_incl_btw: wizState._totaalIncl,
       btw_type: wizState._btwPct + '%',
       forfait_bedrag: wizState._subtotalExcl,
