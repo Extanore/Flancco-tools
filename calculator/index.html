@@ -327,6 +327,11 @@
     .step-tab { padding: 12px 4px; }
     .sector-grid { grid-template-columns: 1fr; }
   }
+
+  /* SIGNING MODE */
+  #signing-app .data-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--rule); }
+  #signing-app .data-label { color: var(--grey); }
+  #signing-app .data-value { font-weight: 600; color: var(--dark); }
 </style>
 </head>
 <body>
@@ -345,6 +350,49 @@
   <h1>Partner niet gevonden</h1>
   <p id="error-msg">De opgegeven partner bestaat niet of is niet actief. Controleer de link of neem contact op met Flancco.</p>
   <a class="btn" href="https://flancco.be">Naar Flancco.be</a>
+</div>
+
+<!-- SIGNING MODE -->
+<div id="signing-app" style="display:none">
+  <div class="header" id="signing-header">
+    <div class="header-logo">
+      <img id="signing-logo-img" src="" alt="" style="display:none">
+      <span id="signing-header-name"></span>
+    </div>
+    <div class="header-subtitle">Uw onderhoudscontract</div>
+  </div>
+  <div class="container">
+    <div id="signing-content"></div>
+
+    <!-- SIGNING POST SUBMIT -->
+    <div id="signing-post-submit" style="display:none">
+      <div class="post-submit">
+        <div class="post-check-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h2>Uw contract is succesvol ondertekend</h2>
+        <p class="post-sub">Bedankt voor uw vertrouwen. U ontvangt een bevestiging per e-mail.</p>
+        <div class="post-summary">
+          <h3>Uw overeenkomst</h3>
+          <dl>
+            <dt>Contractnummer</dt><dd id="signing-post-nr">&mdash;</dd>
+            <dt>Datum</dt><dd id="signing-post-datum"></dd>
+            <dt>Diensten</dt><dd id="signing-post-diensten"></dd>
+            <dt>Frequentie</dt><dd id="signing-post-freq"></dd>
+            <dt>Contractduur</dt><dd id="signing-post-duur"></dd>
+            <dt>Totaal per beurt</dt><dd class="post-total" id="signing-post-bedrag"></dd>
+          </dl>
+        </div>
+        <div class="post-steps">
+          <h3>Wat gebeurt er nu?</h3>
+          <ol>
+            <li>Uw ondertekend contract wordt verwerkt door uw partner</li>
+            <li id="signing-post-seizoen">Wij plannen uw eerste onderhoudsbeurt in</li>
+            <li>U wordt telefonisch gecontacteerd voor een exacte datum</li>
+          </ol>
+        </div>
+        <div class="post-contact">Vragen? Neem contact op met <strong id="signing-post-contact"></strong></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MAIN APP -->
@@ -1343,6 +1391,12 @@ function toggleInfo(id) { document.getElementById(id).classList.toggle('open'); 
 // ═══════════════════════════════════════════
 async function init() {
   var params = new URLSearchParams(window.location.search);
+  var contractToken = params.get('contract');
+  if (contractToken) {
+    await loadContractForSigning(contractToken);
+    return;
+  }
+
   var slug = params.get('partner');
   var sectorParam = params.get('sector'); // optional: pre-select specific sector
 
@@ -1418,6 +1472,421 @@ async function init() {
   } catch (err) {
     console.error('Init error:', err);
     showError('Er is een fout opgetreden bij het laden. Probeer de pagina te vernieuwen.');
+  }
+}
+
+// ═══════════════════════════════════════════
+// CONTRACT SIGNING MODE
+// ═══════════════════════════════════════════
+var signingContract = null;
+var signingPartner = null;
+
+async function loadContractForSigning(token) {
+  try {
+    // Fetch contract by teken_token
+    var cRes = await sb.from('contracten').select('*').eq('teken_token', token).single();
+    if (cRes.error || !cRes.data) { showError('Contract niet gevonden of niet beschikbaar. Controleer de link.'); return; }
+    signingContract = cRes.data;
+
+    // Check status
+    if (signingContract.status !== 'concept') {
+      if (signingContract.status === 'actief' || signingContract.status === 'getekend') {
+        showError('Dit contract is al ondertekend.');
+      } else if (signingContract.status === 'geannuleerd') {
+        showError('Dit contract is geannuleerd. Neem contact op met uw partner.');
+      } else {
+        showError('Dit contract is niet beschikbaar voor ondertekening.');
+      }
+      return;
+    }
+
+    // Check verlopen
+    if (signingContract.verlopen_op && new Date() > new Date(signingContract.verlopen_op)) {
+      showError('Dit contract is verlopen. Neem contact op met uw partner voor een nieuw contract.');
+      return;
+    }
+
+    // Fetch partner
+    var pRes = await sb.from('partners').select('*').eq('id', signingContract.partner_id).single();
+    if (pRes.error || !pRes.data) { showError('Partner niet gevonden.'); return; }
+    signingPartner = pRes.data;
+
+    // Apply branding
+    var primary = signingPartner.kleur_primair || '#098979';
+    var dark = signingPartner.kleur_donker || '#066b5e';
+    var r = document.documentElement.style;
+    r.setProperty('--primary', primary);
+    r.setProperty('--primary-dark', dark);
+    r.setProperty('--primary-light', primary + '80');
+    r.setProperty('--primary-bg', primary + '12');
+
+    document.title = (signingPartner.bedrijfsnaam || signingPartner.naam) + ' — Contract ondertekenen';
+    var displayName = esc(signingPartner.bedrijfsnaam || signingPartner.naam);
+    if (/flancco/i.test(displayName)) {
+      displayName = displayName.replace(/O/gi, '<span style="color:#922B21">O</span>');
+    }
+    document.getElementById('signing-header-name').innerHTML = displayName;
+    if (signingPartner.logo_url) {
+      document.getElementById('signing-logo-img').src = signingPartner.logo_url;
+      document.getElementById('signing-logo-img').style.display = 'block';
+    }
+
+    // Render signing UI
+    renderSigningUI();
+
+    // Show signing app
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('signing-app').style.display = 'block';
+
+  } catch (err) {
+    console.error('Signing init error:', err);
+    showError('Er is een fout opgetreden bij het laden van het contract.');
+  }
+}
+
+function renderSigningUI() {
+  var c = signingContract;
+  var p = signingPartner;
+
+  // Parse sectoren from contract
+  var sectoren = c.sectoren || [];
+  var pricing = c.pricing_breakdown || {};
+
+  var html = '';
+
+  // Klantgegevens
+  html += '<div class="card">';
+  html += '<div class="card-title">Uw gegevens</div>';
+  html += '<div class="data-row"><span class="data-label">Naam</span><span class="data-value">' + esc(c.klant_naam || '') + '</span></div>';
+  if (c.klant_contact) html += '<div class="data-row"><span class="data-label">Contactpersoon</span><span class="data-value">' + esc(c.klant_contact) + '</span></div>';
+  if (c.klant_email) html += '<div class="data-row"><span class="data-label">Email</span><span class="data-value">' + esc(c.klant_email) + '</span></div>';
+  if (c.klant_telefoon) html += '<div class="data-row"><span class="data-label">Telefoon</span><span class="data-value">' + esc(c.klant_telefoon) + '</span></div>';
+  var adres = [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', ');
+  if (adres) html += '<div class="data-row"><span class="data-label">Adres</span><span class="data-value">' + esc(adres) + '</span></div>';
+  html += '</div>';
+
+  // Diensten
+  html += '<div class="card">';
+  html += '<div class="card-title">Geselecteerde diensten</div>';
+  var sectorIcons = {
+    zonnepanelen: '\u2600\uFE0F',
+    warmtepomp: '\uD83C\uDF21\uFE0F',
+    ventilatie: '\uD83D\uDCA8',
+    verwarming: '\uD83D\uDD25'
+  };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+
+  if (sectoren.length > 0) {
+    sectoren.forEach(function(s) {
+      var sec = s.sector || s;
+      var icon = sectorIcons[sec] || '';
+      var label = sectorLabels[sec] || sec;
+      html += '<div style="margin-bottom:12px;padding:12px;background:var(--light);border-radius:8px">';
+      html += '<strong>' + icon + ' ' + label + '</strong>';
+      // Show config details
+      if (s.configs && s.configs.length > 0) {
+        s.configs.forEach(function(cfg, idx) {
+          html += '<div style="font-size:13px;color:var(--grey);margin-top:4px">';
+          if (sec === 'zonnepanelen') {
+            var dakTxt = cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling';
+            html += (s.configs.length > 1 ? 'Dak ' + (idx + 1) + ': ' : '') + cfg.pan + ' panelen, ' + dakTxt;
+            if (cfg.hoog) html += ', dakrand > 7,5 m';
+            if (cfg.verv) html += ', vervuiling';
+          } else if (sec === 'warmtepomp') {
+            html += cfg.binnenunits + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic');
+            if (cfg.moeilijk) html += ', moeilijk bereikbaar';
+          } else if (sec === 'ventilatie') {
+            html += 'Systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen';
+            if (cfg.kanaalreiniging) html += ', kanaalreiniging ' + cfg.lm + ' lm';
+          } else if (sec === 'verwarming') {
+            html += cfg.keteltype + 'ketel';
+            if (cfg.rookgas) html += ', rookgasanalyse';
+          }
+          html += '</div>';
+        });
+      }
+      // Show pricing lines from result
+      if (s.result && s.result.lines) {
+        html += '<div style="margin-top:8px;border-top:1px solid var(--rule);padding-top:8px">';
+        s.result.lines.forEach(function(l) {
+          html += '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span>' + l.label + '</span><span>' + fmt(l.amount) + '</span></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+  } else if (c.sector) {
+    // Fallback: single sector from legacy data
+    html += '<div style="padding:12px;background:var(--light);border-radius:8px">';
+    html += '<strong>' + (sectorIcons[c.sector] || '') + ' ' + (sectorLabels[c.sector] || c.sector) + '</strong>';
+    if (c.aantal_panelen) html += '<div style="font-size:13px;color:var(--grey);margin-top:4px">' + c.aantal_panelen + ' panelen</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Prijsoverzicht
+  html += '<div class="card">';
+  html += '<div class="card-title">Prijsoverzicht</div>';
+  if (pricing.lines && pricing.lines.length > 0) {
+    pricing.lines.forEach(function(l) {
+      if (l.type === 'header') {
+        html += '<div style="font-weight:600;color:var(--dark);padding:8px 0 4px;border-top:1px solid var(--rule);margin-top:4px">' + l.label + '</div>';
+      } else {
+        var amtStr = l.amount < 0 ? '- ' + fmt(Math.abs(l.amount)) : fmt(l.amount);
+        html += '<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--grey)"><span>' + l.label + '</span><span>' + amtStr + '</span></div>';
+      }
+    });
+    html += '<div style="border-top:2px solid var(--rule);margin-top:8px;padding-top:8px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600"><span>Subtotaal excl. BTW</span><span>' + fmt(pricing.subtotalExcl) + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--grey);padding:4px 0"><span>BTW ' + (pricing.btwPct || 21) + '%</span><span>' + fmt(pricing.btwBedrag) + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--primary);padding:8px 0;border-top:2px solid var(--primary)"><span>Totaal incl. BTW</span><span>' + fmt(pricing.totaalIncl) + '</span></div>';
+    html += '</div>';
+  } else if (c.totaal_incl_btw) {
+    html += '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--primary);padding:8px 0"><span>Totaal incl. BTW</span><span>' + fmt(parseFloat(c.totaal_incl_btw)) + '</span></div>';
+  }
+  var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
+  html += '<div style="text-align:center;font-size:12px;color:var(--grey);margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)">' + freqTxt + ' | Looptijd: ' + (c.contractduur || 'n.v.t.') + '</div>';
+  html += '</div>';
+
+  // Voorwaarden (uitklapbaar)
+  html += '<div class="card">';
+  html += '<div class="card-title">Voorwaarden</div>';
+  html += '<details style="font-size:13px;color:var(--grey)">';
+  html += '<summary style="cursor:pointer;font-weight:600;color:var(--dark);padding:8px 0">Bekijk de volledige contractvoorwaarden</summary>';
+  html += '<div style="padding:12px 0;line-height:1.8">';
+  html += '<p><strong>1. Voorwerp</strong><br>Dit contract omvat het professioneel onderhoud van de geselecteerde installaties volgens de hierboven vermelde specificaties.</p>';
+  html += '<p style="margin-top:8px"><strong>2. Duur en opzegging</strong><br>Het contract gaat in op de startdatum en loopt voor de aangegeven duur. Opzegging is mogelijk per aangetekend schrijven, minstens 3 maanden voor het einde van de lopende periode.</p>';
+  html += '<p style="margin-top:8px"><strong>3. Prijzen</strong><br>De vermelde prijzen zijn geldig voor de volledige contractduur. Prijsaanpassingen zijn enkel mogelijk bij contractverlenging.</p>';
+  html += '<p style="margin-top:8px"><strong>4. Uitvoering</strong><br>De werken worden uitgevoerd door gekwalificeerde techniekers. De klant zorgt voor vrije toegang tot de installatie(s).</p>';
+  html += '<p style="margin-top:8px"><strong>5. Facturatie</strong><br>Facturatie gebeurt na elke uitgevoerde onderhoudsbeurt. Betalingstermijn: 30 dagen.</p>';
+  html += '</div></details>';
+  html += '</div>';
+
+  // Akkoord + Handtekening
+  html += '<div class="card">';
+  html += '<div class="card-title">Ondertekenen</div>';
+  html += '<div class="accept-box" style="border:2px solid var(--rule);border-radius:8px;padding:12px;margin-bottom:16px">';
+  html += '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">';
+  html += '<input type="checkbox" id="signing-accept" style="width:20px;height:20px;margin-top:2px;accent-color:var(--primary)" onchange="checkSigningReady()">';
+  html += '<span style="font-size:13px;color:var(--grey)">Ik heb de voorwaarden en de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met dit onderhoudscontract.</span>';
+  html += '</label></div>';
+
+  html += '<div style="margin-bottom:12px"><strong style="font-size:13px">Uw handtekening</strong></div>';
+  html += '<div style="position:relative">';
+  html += '<canvas id="signing-canvas" width="560" height="180" style="border:2px solid var(--rule);border-radius:8px;width:100%;cursor:crosshair;touch-action:none"></canvas>';
+  html += '<button onclick="clearSigningCanvas()" style="position:absolute;top:8px;right:8px;background:var(--light);border:1px solid var(--rule);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--grey)">Wissen</button>';
+  html += '</div>';
+  html += '<div style="font-size:11px;color:var(--grey);margin-top:6px">Teken met uw muis of vinger in het vak hierboven</div>';
+  html += '</div>';
+
+  // Submit button
+  html += '<div style="text-align:center;padding:16px 0">';
+  html += '<button class="btn btn-block" id="btn-signing-submit" onclick="submitSigning()" disabled style="opacity:0.5;font-size:16px;padding:16px 32px">&#10003; Onderteken &amp; bevestig</button>';
+  html += '</div>';
+
+  document.getElementById('signing-content').innerHTML = html;
+
+  // Init signature canvas
+  initSigningCanvas();
+}
+
+function initSigningCanvas() {
+  var canvas = document.getElementById('signing-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var drawing = false;
+  var hasSigned = false;
+
+  function getPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    var pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var pos = getPos(e);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1a1a2e';
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    hasSigned = true;
+  }
+
+  function endDraw(e) {
+    if (drawing) { drawing = false; checkSigningReady(); }
+  }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', endDraw);
+
+  // Store reference for checking
+  canvas._hasSigned = function() { return hasSigned; };
+  canvas._reset = function() { hasSigned = false; };
+}
+
+function clearSigningCanvas() {
+  var canvas = document.getElementById('signing-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (canvas._reset) canvas._reset();
+  checkSigningReady();
+}
+
+function checkSigningReady() {
+  var accepted = document.getElementById('signing-accept') && document.getElementById('signing-accept').checked;
+  var canvas = document.getElementById('signing-canvas');
+  var signed = canvas && canvas._hasSigned && canvas._hasSigned();
+  var btn = document.getElementById('btn-signing-submit');
+  if (btn) {
+    btn.disabled = !(accepted && signed);
+    btn.style.opacity = (accepted && signed) ? '1' : '0.5';
+  }
+}
+
+async function submitSigning() {
+  var btn = document.getElementById('btn-signing-submit');
+  btn.disabled = true;
+  btn.textContent = '\u23F3 Bezig met ondertekenen...';
+
+  try {
+    var c = signingContract;
+    var p = signingPartner;
+    var canvas = document.getElementById('signing-canvas');
+
+    // Upload signature to Storage
+    var sigBlob = await new Promise(function(resolve) { canvas.toBlob(resolve, 'image/png'); });
+    var sigPath = 'signatures/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.png';
+    var sigRes = await sb.storage.from('handtekeningen').upload(sigPath, sigBlob, { contentType: 'image/png' });
+    var sigUrl = sigRes.error ? null : SUPA_URL + '/storage/v1/object/public/handtekeningen/' + sigPath;
+
+    // Update contract status
+    var updatePayload = {
+      status: 'actief',
+      handtekening_url: sigUrl,
+      handtekening_data: sigUrl ? null : canvas.toDataURL('image/png'),
+      datum_ondertekening: new Date().toISOString().split('T')[0],
+      signing_user_agent: navigator.userAgent,
+      signing_timestamp: new Date().toISOString(),
+      signing_methode: 'op_afstand',
+      akkoord_voorwaarden: true,
+      privacy_akkoord: true
+    };
+
+    var updateRes = await sb.from('contracten').update(updatePayload).eq('id', c.id).eq('status', 'concept').select();
+    if (updateRes.error) throw updateRes.error;
+
+    // Generate onderhoudsbeurten per sector
+    try {
+      var sectoren = c.sectoren || [];
+      var freq = c.frequentie === 'halfjaarlijks' ? 2 : 1;
+      var duurMatch = (c.contractduur || '').match(/(\d+)/);
+      var duur = duurMatch ? parseInt(duurMatch[1]) : 0;
+      var allBeurten = [];
+
+      var seizoenMap = {
+        zonnepanelen: [3,4,5,6,7,8,9,10],
+        warmtepomp: [9,10,11,3,4,5],
+        ventilatie: [1,2,3,4,5,6,7,8,9,10,11,12],
+        verwarming: [6,7,8,9]
+      };
+
+      sectoren.forEach(function(s) {
+        var sec = s.sector || s;
+        var seizoenMaanden = seizoenMap[sec] || null;
+        var aantalJaren = duur === 0 ? 1 : duur;
+        var beurtenPerJaar = freq;
+        var totaalBeurten = aantalJaren * beurtenPerJaar;
+        var nu = new Date();
+
+        function eersteSeizoensDatum(datum, maanden) {
+          var d = new Date(datum);
+          var m = d.getMonth() + 1;
+          if (maanden.indexOf(m) !== -1) return d;
+          for (var i = 0; i < maanden.length; i++) {
+            if (maanden[i] > m) { d.setMonth(maanden[i] - 1); d.setDate(1); return d; }
+          }
+          d.setFullYear(d.getFullYear() + 1);
+          d.setMonth(maanden[0] - 1);
+          d.setDate(1);
+          return d;
+        }
+
+        var startDatum = seizoenMaanden ? eersteSeizoensDatum(nu, seizoenMaanden) : new Date(nu.getFullYear(), nu.getMonth() + 1, 1);
+
+        for (var i = 0; i < totaalBeurten; i++) {
+          var dueDate;
+          if (beurtenPerJaar === 2) {
+            var jarenVooruit = Math.floor(i / 2);
+            var halverwege = i % 2 === 1;
+            dueDate = new Date(startDatum);
+            dueDate.setFullYear(dueDate.getFullYear() + jarenVooruit);
+            if (halverwege) dueDate.setMonth(dueDate.getMonth() + 6);
+            if (seizoenMaanden) dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
+          } else {
+            dueDate = new Date(startDatum);
+            dueDate.setFullYear(dueDate.getFullYear() + i);
+            if (seizoenMaanden) dueDate = eersteSeizoensDatum(dueDate, seizoenMaanden);
+          }
+
+          allBeurten.push({
+            contract_id: c.id,
+            sector: sec,
+            volgnummer: i + 1,
+            due_date: dueDate.getFullYear() + '-' + String(dueDate.getMonth() + 1).padStart(2, '0') + '-' + String(dueDate.getDate()).padStart(2, '0'),
+            status: i === 0 ? 'in_te_plannen' : 'toekomstig'
+          });
+        }
+      });
+
+      if (allBeurten.length > 0) {
+        await sb.from('onderhoudsbeurten').insert(allBeurten);
+      }
+    } catch (beurtErr) { console.warn('Onderhoudsbeurten generatie mislukt:', beurtErr); }
+
+    // Show success
+    document.getElementById('signing-content').style.display = 'none';
+    document.getElementById('signing-post-submit').style.display = 'block';
+    window.scrollTo(0, 0);
+
+    // Fill post-submit
+    var datumF = new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('signing-post-nr').textContent = c.contract_nummer || '\u2014';
+    document.getElementById('signing-post-datum').textContent = datumF;
+
+    var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+    var dienstenTxt = (c.sectoren || []).map(function(s) { return sectorLabels[s.sector || s] || s.sector || s; }).join(', ');
+    document.getElementById('signing-post-diensten').textContent = dienstenTxt || c.sector || '\u2014';
+    document.getElementById('signing-post-freq').textContent = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x)';
+    document.getElementById('signing-post-duur').textContent = c.contractduur || 'n.v.t.';
+    document.getElementById('signing-post-bedrag').textContent = c.totaal_incl_btw ? fmt(parseFloat(c.totaal_incl_btw)) : '\u2014';
+    document.getElementById('signing-post-contact').textContent = (p.bedrijfsnaam || p.naam) + (p.telefoon ? ' \u2014 ' + p.telefoon : '') + (p.email ? ' \u2014 ' + p.email : '');
+
+  } catch (err) {
+    console.error('Signing error:', err);
+    alert('Er is een fout opgetreden bij het ondertekenen.\n\n' + (err.message || err));
+    btn.disabled = false;
+    btn.textContent = '\u2713 Onderteken & bevestig';
   }
 }
 

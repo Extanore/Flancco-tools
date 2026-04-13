@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flancco — Nieuw Contract</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --navy: #1A1A2E;
+    --navy-light: #2a2a4a;
+    --red: #E74C3C;
+    --green: #27AE60;
+    --blue: #3498DB;
+    --orange: #F39C12;
+    --grey: #6B7280;
+    --light: #F3F4F6;
+    --white: #FFFFFF;
+    --rule: #E5E7EB;
+    --radius: 10px;
+    --primary: #098979;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: #1f2937; }
+
+  /* LOGIN */
+  .login-wrap { display: none; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-wrap.visible { display: flex; }
+  .login-card { background: var(--white); padding: 48px 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 380px; text-align: center; }
+  .login-card h1 { font-size: 22px; color: var(--navy); margin-bottom: 6px; }
+  .login-card p { font-size: 13px; color: var(--grey); margin-bottom: 28px; }
+  .login-card input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--rule); border-radius: 8px; font-size: 14px; margin-bottom: 12px; outline: none; }
+  .login-card input:focus { border-color: var(--navy); }
+  .login-card button { width: 100%; padding: 13px; background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .login-card button:hover { background: var(--navy-light); }
+  .login-error { color: var(--red); font-size: 12px; margin-top: 8px; }
+
+  /* LAYOUT */
+  .app { display: none; }
+  .sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: var(--navy); padding: 24px 0; overflow-y: auto; z-index: 100; }
+  .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px; }
+  .sidebar-logo h2 { color: white; font-size: 18px; }
+  .sidebar-logo span { color: var(--red); }
+  .sidebar-logo small { color: rgba(255,255,255,0.5); font-size: 11px; display: block; margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,0.65); font-size: 13px; cursor: pointer; transition: 0.2s; text-decoration: none; }
+  .nav-item:hover, .nav-item.active { color: white; background: rgba(255,255,255,0.08); }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .nav-section { padding: 16px 20px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.3); }
+  .main { margin-left: 220px; padding: 32px; min-height: 100vh; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
+  .topbar h1 { font-size: 22px; color: var(--navy); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .topbar-user { font-size: 13px; color: var(--grey); }
+  .btn-logout { padding: 7px 14px; background: none; border: 1.5px solid var(--rule); border-radius: 6px; font-size: 12px; color: var(--grey); cursor: pointer; }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+  .role-hidden { display: none !important; }
+
+  /* WIZARD STEP BAR */
+  .wizard-header { margin: 24px 0; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--blue); font-size: 13px; cursor: pointer; background: none; border: none; font-family: inherit; margin-bottom: 20px; }
+  .back-link:hover { text-decoration: underline; }
+  .step-bar { display: flex; gap: 0; background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 28px; }
+  .step-tab { flex: 1; padding: 16px 12px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; color: var(--rule); cursor: default; border-right: 1px solid var(--rule); display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s; }
+  .step-tab:last-child { border-right: none; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--rule); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; transition: all 0.3s; }
+  .step-tab.active { color: var(--navy); background: #eef2ff; }
+  .step-tab.active .step-num { background: var(--navy); }
+  .step-tab.done { color: var(--green); }
+  .step-tab.done .step-num { background: var(--green); }
+
+  /* WIZARD STEPS */
+  .wiz-step { display: none; }
+  .wiz-step.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 24px; margin-bottom: 20px; }
+  .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--navy); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--light); }
+
+  /* TYPE KAARTEN (stap 1) */
+  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .type-card { background: var(--white); border: 2px solid var(--rule); border-radius: var(--radius); padding: 24px; cursor: pointer; text-align: center; transition: all 0.2s; }
+  .type-card:hover { border-color: var(--navy); }
+  .type-card.selected { border-color: var(--navy); background: #f0f0ff; box-shadow: 0 0 0 3px rgba(26,26,46,0.1); }
+  .type-card-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--light); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .type-card-icon svg { width: 24px; height: 24px; stroke: var(--navy); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .type-card h3 { font-size: 14px; color: var(--navy); margin-bottom: 4px; }
+  .type-card p { font-size: 12px; color: var(--grey); }
+
+  /* FORM FIELDS */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--rule); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--navy); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* KLANT PREVIEW CARD */
+  .klant-preview { background: var(--light); border-radius: 8px; padding: 16px; margin-top: 12px; display: none; }
+  .klant-preview h4 { font-size: 14px; color: var(--navy); margin-bottom: 4px; }
+  .klant-preview p { font-size: 13px; color: var(--grey); margin: 0; }
+
+  /* SECTOR TOGGLES (stap 3) */
+  .sector-toggles { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .sector-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 2px solid var(--rule); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--grey); transition: all 0.2s; background: var(--white); }
+  .sector-toggle:hover { border-color: var(--navy); }
+  .sector-toggle.active { border-color: var(--navy); background: #f0f0ff; color: var(--navy); }
+  .sector-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sector-color-zon { --sec-color: #F59E0B; }
+  .sector-color-wp { --sec-color: #3B82F6; }
+  .sector-color-vent { --sec-color: #8B5CF6; }
+  .sector-color-verw { --sec-color: #EF4444; }
+
+  /* 2-KOLOM LAYOUT (stap 3) */
+  .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+  .two-col-left { min-width: 0; }
+  .two-col-right { position: sticky; top: 24px; }
+
+  /* CONFIG CARD */
+  .config-card { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 20px; margin-bottom: 16px; border-left: 4px solid var(--rule); }
+  .config-card.sector-zon { border-left-color: #F59E0B; }
+  .config-card.sector-wp { border-left-color: #3B82F6; }
+  .config-card.sector-vent { border-left-color: #8B5CF6; }
+  .config-card.sector-verw { border-left-color: #EF4444; }
+  .config-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .config-card-title { font-size: 14px; font-weight: 600; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+  .config-card-title svg { width: 20px; height: 20px; }
+  .btn-add-install { padding: 6px 12px; background: none; border: 1.5px dashed var(--rule); border-radius: 6px; font-size: 12px; color: var(--grey); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .btn-add-install:hover { border-color: var(--navy); color: var(--navy); }
+  .btn-remove-install { padding: 4px 8px; background: none; border: none; color: var(--grey); cursor: pointer; font-size: 18px; }
+  .btn-remove-install:hover { color: var(--red); }
+
+  /* CHECKBOX/TOGGLE */
+  .check-group { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+  .check-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--navy); cursor: pointer; }
+  .check-group label { font-size: 13px; color: var(--navy); cursor: pointer; }
+  .check-group small { font-size: 11px; color: var(--grey); }
+
+  /* PRICING SIDEBAR */
+  .pricing-card { background: var(--white); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 20px; }
+  .pricing-card h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--navy); margin-bottom: 16px; }
+  .pricing-line { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: var(--grey); }
+  .pricing-line.sector-header { font-weight: 600; color: var(--navy); padding-top: 12px; border-top: 1px solid var(--light); margin-top: 4px; }
+  .pricing-line.sector-header:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+  .pricing-divider { border-top: 2px solid var(--light); margin: 12px 0; }
+  .pricing-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; color: var(--navy); padding: 4px 0; }
+  .pricing-btw { display: flex; justify-content: space-between; font-size: 12px; color: var(--grey); padding: 4px 0; }
+  .pricing-grand { display: flex; justify-content: space-between; font-size: 20px; font-weight: 700; color: var(--navy); padding: 8px 0; margin-top: 4px; border-top: 2px solid var(--navy); }
+  .pricing-empty { text-align: center; padding: 20px 0; color: var(--grey); font-size: 13px; }
+  .pricing-freq { text-align: center; font-size: 12px; color: var(--grey); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--light); }
+
+  /* FREQUENTIE KAARTEN (stap 4) */
+  .freq-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .freq-card { border: 2px solid var(--rule); border-radius: var(--radius); padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .freq-card:hover { border-color: var(--navy); }
+  .freq-card.selected { border-color: var(--navy); background: #f0f0ff; }
+  .freq-card h4 { font-size: 14px; color: var(--navy); margin-bottom: 2px; }
+  .freq-card p { font-size: 12px; color: var(--grey); }
+  .freq-card .badge-korting { display: inline-block; background: #d1fae5; color: #065f46; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+
+  .duur-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+
+  /* SAMENVATTING (stap 5) */
+  .summary-card { background: var(--light); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .summary-card h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--grey); margin-bottom: 10px; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+  .summary-row .label { color: var(--grey); }
+  .summary-row .value { color: var(--navy); font-weight: 500; }
+  .summary-sector-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-right: 6px; margin-bottom: 4px; }
+  .badge-zon { background: #FEF3C7; color: #92400E; }
+  .badge-wp { background: #DBEAFE; color: #1E40AF; }
+  .badge-vent { background: #EDE9FE; color: #5B21B6; }
+  .badge-verw { background: #FEE2E2; color: #991B1B; }
+
+  /* WIZARD FOOTER */
+  .wizard-footer { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 12px; }
+  .btn { padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-primary:hover { background: var(--navy-light); }
+  .btn-primary:disabled { background: var(--rule); cursor: not-allowed; }
+  .btn-secondary { background: none; border: 1.5px solid var(--rule); color: var(--grey); }
+  .btn-secondary:hover { border-color: var(--navy); color: var(--navy); }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover { opacity: 0.9; }
+  .btn-success:disabled { background: var(--rule); cursor: not-allowed; }
+
+  /* NIEUWE KLANT FORM */
+  .new-client-form { display: none; border: 1.5px dashed var(--rule); border-radius: 8px; padding: 16px; margin-top: 12px; }
+  .new-client-form.visible { display: block; }
+  .inline-add { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .inline-add button { white-space: nowrap; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: white; padding: 14px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+  .toast.visible { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login">
+  <div class="login-card">
+    <h1>FLANCC<span style="color:#E74C3C">O</span></h1>
+    <p>Log in om verder te gaan</p>
+    <input type="email" id="login-email" placeholder="Email">
+    <input type="password" id="login-pass" placeholder="Wachtwoord" onkeyup="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Inloggen</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo" id="sidebar-logo">
+      <h2>FLANCC<span>O</span></h2>
+      <small>Partner Platform</small>
+    </div>
+    <div class="nav-section">Menu</div>
+    <a class="nav-item" href="index.html" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" href="index.html#contracten" data-page="contracten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Contracten</span>
+    </a>
+    <a class="nav-item active" href="contracten-wizard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      <span>Nieuw contract</span>
+    </a>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h1>Nieuw contract</h1>
+      <div class="topbar-right">
+        <span class="topbar-user" id="user-email"></span>
+        <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
+      </div>
+    </div>
+
+    <div class="wizard-header">
+      <button class="back-link" onclick="window.location.href='index.html#contracten'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Terug naar contracten
+      </button>
+
+      <div class="step-bar" id="step-bar">
+        <div class="step-tab active" data-step="1"><span class="step-num">1</span><span>Type</span></div>
+        <div class="step-tab" data-step="2"><span class="step-num">2</span><span>Klant</span></div>
+        <div class="step-tab" data-step="3"><span class="step-num">3</span><span>Diensten & tarieven</span></div>
+        <div class="step-tab" data-step="4"><span class="step-num">4</span><span>Frequentie</span></div>
+        <div class="step-tab" data-step="5"><span class="step-num">5</span><span>Afronden</span></div>
+      </div>
+    </div>
+
+    <!-- STAP 1: TYPE -->
+    <div class="wiz-step active" id="wiz-step-1">
+      <div class="card">
+        <div class="card-title">Klanttype</div>
+        <div class="type-grid">
+          <div class="type-card selected" data-type="eindklant" onclick="selectType('klantType', this)">
+            <div class="type-card-icon">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <h3>Eindklant</h3>
+            <p>Particulier of bedrijf</p>
+          </div>
+          <div class="type-card" data-type="partner" onclick="selectType('klantType', this)">
+            <div class="type-card-icon">
+              <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3>Partner / Installateur</h3>
+            <p>Partner krijgt marge op doorverkoop</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Contracttype</div>
+        <div class="type-grid">
+          <div class="type-card selected" data-type="perklant" onclick="selectType('contractType', this)">
+            <div class="type-card-icon">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <h3>Per klant</h3>
+            <p>Eenmalig contract voor deze klant</p>
+          </div>
+          <div class="type-card" data-type="raam" onclick="selectType('contractType', this)">
+            <div class="type-card-icon">
+              <svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            </div>
+            <h3>Raamcontract</h3>
+            <p>Doorlopend met vaste voorwaarden</p>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <div></div>
+        <button class="btn btn-primary" onclick="goStep(2)">Volgende <span style="margin-left:4px">&rarr;</span></button>
+      </div>
+    </div>
+
+    <!-- STAP 2: KLANT -->
+    <div class="wiz-step" id="wiz-step-2">
+      <div class="card">
+        <div class="card-title">Partner selecteren</div>
+        <div class="field admin-only" id="partner-field">
+          <label>Partner</label>
+          <select id="wiz-partner" onchange="onPartnerChange()">
+            <option value="">Selecteer partner...</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Klant</div>
+        <div class="field">
+          <label>Bestaande klant</label>
+          <select id="wiz-client" onchange="onClientSelect()">
+            <option value="">Selecteer klant...</option>
+            <option value="__new">+ Nieuwe klant aanmaken</option>
+          </select>
+        </div>
+        <div class="klant-preview" id="klant-preview">
+          <h4 id="kp-naam"></h4>
+          <p id="kp-adres"></p>
+          <p id="kp-contact"></p>
+        </div>
+        <div class="new-client-form" id="new-client-form">
+          <div class="field-row" style="margin-bottom:12px">
+            <div class="field"><label>Bedrijfsnaam</label><input type="text" id="nc-bedrijf" placeholder="Optioneel"></div>
+            <div class="field"><label>Contactpersoon *</label><input type="text" id="nc-contact" required></div>
+          </div>
+          <div class="field-row" style="margin-bottom:12px">
+            <div class="field"><label>Email *</label><input type="email" id="nc-email" required></div>
+            <div class="field"><label>Telefoon</label><input type="tel" id="nc-telefoon"></div>
+          </div>
+          <div class="field-row" style="margin-bottom:12px">
+            <div class="field"><label>Straat + nr</label><input type="text" id="nc-straat"></div>
+            <div class="field"><label>Postcode</label><input type="text" id="nc-postcode" maxlength="6"></div>
+          </div>
+          <div class="field">
+            <label>Gemeente</label>
+            <input type="text" id="nc-gemeente">
+          </div>
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" onclick="goStep(1)">&larr; Vorige</button>
+        <button class="btn btn-primary" id="btn-step2-next" onclick="goStep(3)">Volgende &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STAP 3: DIENSTEN & TARIEVEN -->
+    <div class="wiz-step" id="wiz-step-3">
+      <div class="card">
+        <div class="card-title">Sectoren selecteren</div>
+        <div class="sector-toggles" id="sector-toggles"></div>
+      </div>
+      <div class="two-col">
+        <div class="two-col-left" id="sector-configs"></div>
+        <div class="two-col-right">
+          <div class="pricing-card" id="pricing-sidebar">
+            <h3>Prijsoverzicht</h3>
+            <div id="pricing-lines">
+              <div class="pricing-empty">Selecteer een sector om te beginnen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" onclick="goStep(2)">&larr; Vorige</button>
+        <button class="btn btn-primary" id="btn-step3-next" onclick="goStep(4)" disabled>Volgende &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STAP 4: FREQUENTIE & DUUR -->
+    <div class="wiz-step" id="wiz-step-4">
+      <div class="card">
+        <div class="card-title">Frequentie</div>
+        <div class="freq-grid">
+          <div class="freq-card selected" data-freq="1" onclick="selectFreq(this)">
+            <h4>Jaarlijks</h4>
+            <p>1x per jaar</p>
+          </div>
+          <div class="freq-card" data-freq="2" onclick="selectFreq(this)">
+            <h4>Halfjaarlijks</h4>
+            <p>2x per jaar</p>
+          </div>
+          <div class="freq-card" data-freq="0" onclick="selectFreq(this)">
+            <h4>Eenmalig</h4>
+            <p>Eenmalige interventie</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Looptijd</div>
+        <div class="duur-grid">
+          <div class="freq-card" data-duur="0" onclick="selectDuur(this)">
+            <h4>Eenmalig</h4>
+            <p>Geen contract</p>
+          </div>
+          <div class="freq-card selected" data-duur="3" onclick="selectDuur(this)">
+            <h4>3 jaar</h4>
+            <p>Standaard</p>
+          </div>
+          <div class="freq-card" data-duur="5" onclick="selectDuur(this)">
+            <h4>5 jaar</h4>
+            <p>Langetermijn</p>
+            <span class="badge-korting">-5% korting</span>
+          </div>
+          <div class="freq-card" data-duur="10" onclick="selectDuur(this)">
+            <h4>10 jaar</h4>
+            <p>Maximum</p>
+            <span class="badge-korting">-5% korting</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Details</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Startdatum</label>
+            <input type="date" id="wiz-startdatum" onchange="calcEinddatum()">
+          </div>
+          <div class="field">
+            <label>Einddatum (berekend)</label>
+            <input type="date" id="wiz-einddatum" readonly style="background:var(--light)">
+          </div>
+        </div>
+        <div class="field">
+          <label>Afstand partner → klant (km)</label>
+          <input type="number" id="wiz-afstand" min="0" max="200" value="0" oninput="recalcPricing()">
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" onclick="goStep(3)">&larr; Vorige</button>
+        <button class="btn btn-primary" onclick="goStep(5)">Volgende &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STAP 5: AFRONDEN -->
+    <div class="wiz-step" id="wiz-step-5">
+      <div class="card">
+        <div class="card-title">Samenvatting</div>
+        <div id="summary-content"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Extra informatie</div>
+        <div class="field">
+          <label>Beschrijving (optioneel)</label>
+          <textarea id="wiz-beschrijving" rows="3" placeholder="Extra informatie voor het contract..."></textarea>
+        </div>
+        <div class="field">
+          <label>Interne notities (optioneel, niet zichtbaar voor klant)</label>
+          <textarea id="wiz-notities" rows="2" placeholder="Interne opmerkingen..."></textarea>
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" onclick="goStep(4)">&larr; Vorige</button>
+        <button class="btn btn-success" id="btn-save-concept" onclick="saveContract()">Opslaan als concept</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+// SUPABASE INIT
+// =============================================
+const SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// =============================================
+// STATE
+// =============================================
+let currentUser = null;
+let userRole = '';
+let userPartner = null;
+let partners = [];
+let clients = [];
+let allPricing = {};
+let allSupplements = {};
+
+// Wizard state
+let wizState = {
+  klantType: 'eindklant',
+  contractType: 'perklant',
+  partnerId: null,
+  clientId: null,
+  newClient: null,
+  selectedSectors: [],
+  sectorConfigs: {},   // { zonnepanelen: [{ pan: 12, ... }], ... }
+  sectorResults: {},   // calculated results per sector
+  freq: 1,             // 1=jaarlijks, 2=halfjaarlijks, 0=eenmalig
+  duur: 3,             // jaren
+  startDatum: '',
+  afstandKm: 0,
+  beschrijving: '',
+  notities: ''
+};
+
+// =============================================
+// UTILS
+// =============================================
+function round50(n) { return Math.round(n * 2) / 2; }
+function fmt(n) { return '\u20AC ' + n.toFixed(2).replace('.', ','); }
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function getSectorSupplement(sector, type) {
+  var sups = allSupplements[sector] || [];
+  for (var i = 0; i < sups.length; i++) {
+    if (sups[i].type === type) return parseFloat(sups[i].bedrag);
+  }
+  return 0;
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(function() { t.classList.remove('visible'); }, 3000);
+}
+
+// =============================================
+// SECTOR CONFIG (pricing logic from calculator)
+// =============================================
+var SECTORS = {
+  zonnepanelen: {
+    key: 'zonnepanelen',
+    label: 'Zonnepanelen',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+    colorClass: 'sector-zon',
+    badgeClass: 'badge-zon',
+    seizoenMaanden: [3,4,5,6,7,8,9,10],
+
+    defaultConfig: function() {
+      return { pan: 12, daktype: 'hellend', hoog: false, verv: false };
+    },
+
+    renderConfig: function(cfg, idx) {
+      return '<div class="field"><label>Aantal panelen</label>' +
+        '<input type="number" min="1" max="200" value="' + cfg.pan + '" onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'pan\',parseInt(this.value)||1)"></div>' +
+        '<div class="field-row">' +
+        '<div class="field"><label>Type dak</label><select onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'daktype\',this.value)">' +
+        '<option value="hellend"' + (cfg.daktype === 'hellend' ? ' selected' : '') + '>Hellend dak</option>' +
+        '<option value="plat"' + (cfg.daktype === 'plat' ? ' selected' : '') + '>Plat dak</option>' +
+        '<option value="grond"' + (cfg.daktype === 'grond' ? ' selected' : '') + '>Grondopstelling</option>' +
+        '</select></div>' +
+        '<div class="field"><label>Dakhoogte</label><select onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'hoog\',this.value===\'hoog\')">' +
+        '<option value="laag"' + (!cfg.hoog ? ' selected' : '') + '>Lager dan 7,5 m</option>' +
+        '<option value="hoog"' + (cfg.hoog ? ' selected' : '') + '>Hoger dan 7,5 m</option>' +
+        '</select></div></div>' +
+        '<div class="check-group"><input type="checkbox" id="zon-verv-' + idx + '"' + (cfg.verv ? ' checked' : '') + ' onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'verv\',this.checked)">' +
+        '<label for="zon-verv-' + idx + '">Hevige vervuiling of mosvorming</label></div>';
+    },
+
+    calculate: function(configs, pricing, supplements, partner) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var lines = [];
+      var subtotal = 0;
+
+      configs.forEach(function(inputs, idx) {
+        var pan = Math.max(1, inputs.pan || 1);
+        // Find tier
+        var f = { amt: 0, lbl: 'Geen tarief' };
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          var max = pr.staffel_max || 999999;
+          if (pan >= pr.staffel_min && pan <= max) {
+            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+            break;
+          }
+        }
+        if (f.amt === 0 && pricing.length > 0) {
+          var last = pricing[pricing.length - 1];
+          var lastMax = last.staffel_max || 40;
+          var basePrice = parseFloat(last.flancco_forfait) * (1 + marge) + planFee;
+          var extraPP = 5.64 * (1 + marge);
+          f = { amt: basePrice + (pan - lastMax) * extraPP, lbl: (lastMax + 1) + '+ panelen' };
+        }
+
+        var vervPP = getSectorSupplement('zonnepanelen', 'vervuiling') * (1 + marge);
+        var hoogBedrag = getSectorSupplement('zonnepanelen', 'hoogtewerker') * (1 + marge);
+        var vervC = inputs.verv ? pan * vervPP : 0;
+        var hoogC = inputs.hoog ? hoogBedrag : 0;
+        var sub = f.amt + vervC + hoogC;
+        subtotal += sub;
+
+        var prefix = configs.length > 1 ? 'Dak ' + (idx + 1) + ': ' : '';
+        lines.push({ label: prefix + 'Reiniging ' + pan + ' pan. (' + f.lbl + ')', amount: f.amt });
+        if (vervC > 0) lines.push({ label: prefix + 'Vervuiling (' + pan + ' pan.)', amount: vervC });
+        if (hoogC > 0) lines.push({ label: prefix + 'Hoogtewerker', amount: hoogC });
+      });
+
+      return { lines: lines, subtotalExcl: subtotal };
+    },
+
+    summaryDescription: function(configs) {
+      return configs.map(function(c, i) {
+        var prefix = configs.length > 1 ? 'Dak ' + (i + 1) + ': ' : '';
+        var dakTxt = c.daktype === 'hellend' ? 'hellend dak' : c.daktype === 'plat' ? 'plat dak' : 'grondopstelling';
+        return prefix + c.pan + ' panelen, ' + dakTxt;
+      }).join(' | ');
+    }
+  },
+
+  warmtepomp: {
+    key: 'warmtepomp',
+    label: 'Warmtepomp',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 8 4 12.5 4 15.5a8 8 0 0 0 16 0C20 12.5 17.5 8 12 2Z"/></svg>',
+    colorClass: 'sector-wp',
+    badgeClass: 'badge-wp',
+    seizoenMaanden: [9,10,11,3,4,5],
+
+    defaultConfig: function() {
+      return { formule: 'basic', binnenunits: 1, buitenunits: 1, moeilijk: false };
+    },
+
+    renderConfig: function(cfg, idx) {
+      return '<div class="field"><label>Formule</label><select onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'formule\',this.value)">' +
+        '<option value="basic"' + (cfg.formule === 'basic' ? ' selected' : '') + '>Basic</option>' +
+        '<option value="allin"' + (cfg.formule === 'allin' ? ' selected' : '') + '>All-in</option>' +
+        '</select></div>' +
+        '<div class="field-row">' +
+        '<div class="field"><label>Binnenunits</label><input type="number" min="1" max="20" value="' + cfg.binnenunits + '" onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'binnenunits\',parseInt(this.value)||1)"></div>' +
+        '<div class="field"><label>Buitenunits</label><input type="number" min="1" max="10" value="' + cfg.buitenunits + '" onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'buitenunits\',parseInt(this.value)||1)"></div>' +
+        '</div>' +
+        '<div class="check-group"><input type="checkbox" id="wp-moeilijk-' + idx + '"' + (cfg.moeilijk ? ' checked' : '') + ' onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'moeilijk\',this.checked)">' +
+        '<label for="wp-moeilijk-' + idx + '">Moeilijk bereikbaar</label></div>';
+    },
+
+    calculate: function(configs, pricing, supplements, partner) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var lines = [];
+      var subtotal = 0;
+
+      configs.forEach(function(inputs, idx) {
+        var f = { amt: 0, lbl: 'Geen tarief' };
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          var max = pr.staffel_max || 999999;
+          if (inputs.binnenunits >= pr.staffel_min && inputs.binnenunits <= max) {
+            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+            break;
+          }
+        }
+        var basePrice = inputs.formule === 'allin' ? f.amt * 1.65 : f.amt;
+        var extraBuiten = Math.max(0, inputs.buitenunits - 1);
+        var buitenSup = getSectorSupplement('warmtepomp', 'extra_buitenunit') * (1 + marge);
+        var buitenCost = extraBuiten * buitenSup;
+        var moeilijkSup = getSectorSupplement('warmtepomp', 'moeilijk_bereikbaar') * (1 + marge);
+        var moeilijkCost = inputs.moeilijk ? moeilijkSup : 0;
+        var sub = basePrice + buitenCost + moeilijkCost;
+        subtotal += sub;
+
+        var formuleTxt = inputs.formule === 'basic' ? 'basic' : 'all-in';
+        var prefix = configs.length > 1 ? 'Unit ' + (idx + 1) + ': ' : '';
+        lines.push({ label: prefix + 'Onderhoud ' + inputs.binnenunits + ' binnenunit(s) (' + formuleTxt + ')', amount: basePrice });
+        if (buitenCost > 0) lines.push({ label: prefix + 'Extra buitenunit(s) (' + extraBuiten + 'x)', amount: buitenCost });
+        if (moeilijkCost > 0) lines.push({ label: prefix + 'Moeilijk bereikbaar', amount: moeilijkCost });
+      });
+
+      return { lines: lines, subtotalExcl: subtotal };
+    },
+
+    summaryDescription: function(configs) {
+      return configs.map(function(c, i) {
+        var prefix = configs.length > 1 ? 'Unit ' + (i + 1) + ': ' : '';
+        return prefix + c.binnenunits + ' binnenunit(s), ' + (c.formule === 'basic' ? 'basic' : 'all-in');
+      }).join(' | ');
+    }
+  },
+
+  ventilatie: {
+    key: 'ventilatie',
+    label: 'Ventilatie',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>',
+    colorClass: 'sector-vent',
+    badgeClass: 'badge-vent',
+    seizoenMaanden: [1,2,3,4,5,6,7,8,9,10,11,12],
+
+    defaultConfig: function() {
+      return { systeem: 'D', ventielen: 10, kanaalreiniging: false, lm: 0 };
+    },
+
+    renderConfig: function(cfg, idx) {
+      return '<div class="field"><label>Systeem type</label><select onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'systeem\',this.value)">' +
+        '<option value="C"' + (cfg.systeem === 'C' ? ' selected' : '') + '>Systeem C</option>' +
+        '<option value="D"' + (cfg.systeem === 'D' ? ' selected' : '') + '>Systeem D</option>' +
+        '</select></div>' +
+        '<div class="field"><label>Aantal ventielen</label><input type="number" min="1" max="50" value="' + cfg.ventielen + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'ventielen\',parseInt(this.value)||1)"></div>' +
+        '<div class="check-group"><input type="checkbox" id="vent-kanaal-' + idx + '"' + (cfg.kanaalreiniging ? ' checked' : '') + ' onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'kanaalreiniging\',this.checked)">' +
+        '<label for="vent-kanaal-' + idx + '">Kanaalreiniging</label></div>' +
+        (cfg.kanaalreiniging ? '<div class="field"><label>Kanaallengte (lm)</label><input type="number" min="0" max="500" value="' + cfg.lm + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'lm\',parseInt(this.value)||0)"></div>' : '');
+    },
+
+    calculate: function(configs, pricing, supplements, partner) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var lines = [];
+      var subtotal = 0;
+
+      configs.forEach(function(inputs, idx) {
+        var typeCode = inputs.systeem === 'C' ? 1 : 2;
+        var f = { amt: 0, lbl: 'Geen tarief' };
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          if (pr.staffel_min === typeCode) {
+            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+            break;
+          }
+        }
+        var extraVent = Math.max(0, inputs.ventielen - 10);
+        var ventSup = getSectorSupplement('ventilatie', 'extra_ventiel') * (1 + marge);
+        var ventCost = extraVent * ventSup;
+        var kanaalSup = getSectorSupplement('ventilatie', 'kanaalreiniging') * (1 + marge);
+        var kanaalCost = inputs.kanaalreiniging ? inputs.lm * kanaalSup : 0;
+        var sub = f.amt + ventCost + kanaalCost;
+        subtotal += sub;
+
+        var prefix = configs.length > 1 ? 'Systeem ' + (idx + 1) + ': ' : '';
+        lines.push({ label: prefix + 'Ventilatie Systeem ' + inputs.systeem, amount: f.amt });
+        if (ventCost > 0) lines.push({ label: prefix + 'Extra ventielen (' + extraVent + 'x)', amount: ventCost });
+        if (kanaalCost > 0) lines.push({ label: prefix + 'Kanaalreiniging (' + inputs.lm + ' lm)', amount: kanaalCost });
+      });
+
+      return { lines: lines, subtotalExcl: subtotal };
+    },
+
+    summaryDescription: function(configs) {
+      return configs.map(function(c) {
+        return 'Systeem ' + c.systeem + ', ' + c.ventielen + ' ventielen';
+      }).join(' | ');
+    }
+  },
+
+  verwarming: {
+    key: 'verwarming',
+    label: 'Verwarming',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
+    colorClass: 'sector-verw',
+    badgeClass: 'badge-verw',
+    seizoenMaanden: [6,7,8,9],
+
+    defaultConfig: function() {
+      return { keteltype: 'gas', rookgas: false };
+    },
+
+    renderConfig: function(cfg, idx) {
+      return '<div class="field"><label>Type ketel</label><select onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'keteltype\',this.value)">' +
+        '<option value="gas"' + (cfg.keteltype === 'gas' ? ' selected' : '') + '>Gasketel</option>' +
+        '<option value="mazout"' + (cfg.keteltype === 'mazout' ? ' selected' : '') + '>Mazoutketel</option>' +
+        '<option value="pellet"' + (cfg.keteltype === 'pellet' ? ' selected' : '') + '>Pelletketel</option>' +
+        '</select></div>' +
+        '<div class="check-group"><input type="checkbox" id="verw-rookgas-' + idx + '"' + (cfg.rookgas ? ' checked' : '') + ' onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'rookgas\',this.checked)">' +
+        '<label for="verw-rookgas-' + idx + '">Rookgasanalyse</label></div>';
+    },
+
+    calculate: function(configs, pricing, supplements, partner) {
+      var marge = parseFloat(partner.marge_pct) / 100;
+      var planFee = parseFloat(partner.planning_fee);
+      var lines = [];
+      var subtotal = 0;
+
+      configs.forEach(function(inputs, idx) {
+        var f = { amt: 0, lbl: 'Geen tarief' };
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+          break;
+        }
+        var rookgasSup = getSectorSupplement('verwarming', 'rookgasanalyse') * (1 + marge);
+        var rookgasCost = inputs.rookgas ? rookgasSup : 0;
+        var sub = f.amt + rookgasCost;
+        subtotal += sub;
+
+        var prefix = configs.length > 1 ? 'Ketel ' + (idx + 1) + ': ' : '';
+        lines.push({ label: prefix + 'Onderhoud ' + inputs.keteltype + 'ketel', amount: f.amt });
+        if (rookgasCost > 0) lines.push({ label: prefix + 'Rookgasanalyse', amount: rookgasCost });
+      });
+
+      return { lines: lines, subtotalExcl: subtotal };
+    },
+
+    summaryDescription: function(configs) {
+      return configs.map(function(c) {
+        return c.keteltype + 'ketel' + (c.rookgas ? ' + rookgasanalyse' : '');
+      }).join(' | ');
+    }
+  }
+};
+
+// =============================================
+// AUTH
+// =============================================
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await initApp();
+  } else {
+    document.getElementById('login').classList.add('visible');
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    document.getElementById('login-error').textContent = 'Ongeldige inloggegevens';
+  } else {
+    currentUser = data.user;
+    await initApp();
+  }
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+async function initApp() {
+  const { data: roleData } = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
+  if (!roleData) {
+    document.getElementById('login-error').textContent = 'Geen toegang.';
+    await sb.auth.signOut();
+    return;
+  }
+
+  userRole = roleData.role;
+  const hideClass = userRole === 'admin' ? 'partner-only' : 'admin-only';
+  document.querySelectorAll('.' + hideClass).forEach(el => el.classList.add('role-hidden'));
+
+  document.getElementById('login').classList.remove('visible');
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-email').textContent = currentUser.email;
+
+  // Load partners
+  const { data: partnerData } = await sb.from('partners').select('*').order('naam');
+  partners = partnerData || [];
+
+  // Populate partner dropdown
+  var sel = document.getElementById('wiz-partner');
+  partners.forEach(function(p) {
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.bedrijfsnaam || p.naam;
+    sel.appendChild(opt);
+  });
+
+  // If partner role: preselect and lock
+  if (userRole === 'partner' && roleData.partner_id) {
+    userPartner = partners.find(p => p.id === roleData.partner_id);
+    sel.value = roleData.partner_id;
+    sel.disabled = true;
+    wizState.partnerId = roleData.partner_id;
+    await loadPartnerData(roleData.partner_id);
+  }
+
+  // Set default start date to today
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('wiz-startdatum').value = today;
+  wizState.startDatum = today;
+  calcEinddatum();
+}
+
+// =============================================
+// STEP NAVIGATION
+// =============================================
+function goStep(n) {
+  // Validation before advancing
+  if (n === 3 && !wizState.partnerId) {
+    showToast('Selecteer eerst een partner');
+    return;
+  }
+  if (n === 3) {
+    // Ensure client is selected or new client data filled
+    var clientSel = document.getElementById('wiz-client').value;
+    if (clientSel === '' || (clientSel === '__new' && !document.getElementById('nc-contact').value.trim())) {
+      showToast('Selecteer of maak een klant aan');
+      return;
+    }
+    if (clientSel === '__new') {
+      wizState.clientId = null;
+      wizState.newClient = {
+        contact_person: document.getElementById('nc-contact').value.trim(),
+        company_name: document.getElementById('nc-bedrijf').value.trim() || null,
+        email: document.getElementById('nc-email').value.trim(),
+        phone: document.getElementById('nc-telefoon').value.trim(),
+        street: document.getElementById('nc-straat').value.trim(),
+        postal_code: document.getElementById('nc-postcode').value.trim(),
+        city: document.getElementById('nc-gemeente').value.trim()
+      };
+    }
+  }
+  if (n === 4 && wizState.selectedSectors.length === 0) {
+    showToast('Selecteer minstens 1 sector');
+    return;
+  }
+  if (n === 5) {
+    renderSummary();
+  }
+
+  // Show step
+  document.querySelectorAll('.wiz-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('wiz-step-' + n).classList.add('active');
+
+  // Update step bar
+  document.querySelectorAll('.step-tab').forEach(function(tab, i) {
+    tab.classList.remove('active', 'done');
+    if (i < n - 1) tab.classList.add('done');
+    if (i === n - 1) tab.classList.add('active');
+  });
+
+  window.scrollTo(0, 0);
+}
+
+// =============================================
+// STAP 1: TYPE SELECTIE
+// =============================================
+function selectType(field, el) {
+  var parent = el.parentElement;
+  parent.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  wizState[field] = el.dataset.type;
+}
+
+// =============================================
+// STAP 2: PARTNER & KLANT
+// =============================================
+async function onPartnerChange() {
+  var partnerId = document.getElementById('wiz-partner').value;
+  if (!partnerId) {
+    wizState.partnerId = null;
+    clients = [];
+    renderClientDropdown();
+    return;
+  }
+  wizState.partnerId = partnerId;
+  await loadPartnerData(partnerId);
+}
+
+async function loadPartnerData(partnerId) {
+  // Load clients for this partner
+  const { data: clientData } = await sb.from('clients').select('*').eq('partner_id', partnerId).order('company_name,contact_person');
+  clients = clientData || [];
+  renderClientDropdown();
+
+  // Load pricing + supplements
+  const { data: prData } = await sb.from('pricing').select('*').eq('partner_id', partnerId).eq('actief', true).order('staffel_min');
+  const { data: supData } = await sb.from('supplementen').select('*').eq('partner_id', partnerId).eq('actief', true);
+
+  allPricing = {};
+  allSupplements = {};
+  (prData || []).forEach(function(pr) {
+    if (!allPricing[pr.sector]) allPricing[pr.sector] = [];
+    allPricing[pr.sector].push(pr);
+  });
+  (supData || []).forEach(function(s) {
+    if (!allSupplements[s.sector]) allSupplements[s.sector] = [];
+    allSupplements[s.sector].push(s);
+  });
+
+  // Load partner sectors
+  const { data: secData } = await sb.from('partner_sectors').select('sector').eq('partner_id', partnerId).eq('actief', true);
+  var partnerSectors = (secData || []).map(s => s.sector);
+  renderSectorToggles(partnerSectors);
+}
+
+function renderClientDropdown() {
+  var sel = document.getElementById('wiz-client');
+  sel.innerHTML = '<option value="">Selecteer klant...</option><option value="__new">+ Nieuwe klant aanmaken</option>';
+  clients.forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = (c.company_name ? c.company_name + ' — ' : '') + (c.contact_person || c.email);
+    sel.appendChild(opt);
+  });
+}
+
+function onClientSelect() {
+  var val = document.getElementById('wiz-client').value;
+  var preview = document.getElementById('klant-preview');
+  var form = document.getElementById('new-client-form');
+
+  if (val === '__new') {
+    preview.style.display = 'none';
+    form.classList.add('visible');
+    wizState.clientId = null;
+    wizState.newClient = null;
+  } else if (val) {
+    var client = clients.find(c => c.id === val);
+    if (client) {
+      document.getElementById('kp-naam').textContent = (client.company_name ? client.company_name + ' — ' : '') + (client.contact_person || '');
+      document.getElementById('kp-adres').textContent = [client.street, client.house_number, client.postal_code, client.city].filter(Boolean).join(' ');
+      document.getElementById('kp-contact').textContent = [client.email, client.phone].filter(Boolean).join(' — ');
+      preview.style.display = 'block';
+      form.classList.remove('visible');
+      wizState.clientId = client.id;
+      wizState.newClient = null;
+    }
+  } else {
+    preview.style.display = 'none';
+    form.classList.remove('visible');
+  }
+}
+
+// =============================================
+// STAP 3: SECTOR TOGGLES & CONFIG
+// =============================================
+var availableSectors = [];
+
+function renderSectorToggles(partnerSectors) {
+  availableSectors = partnerSectors;
+  var container = document.getElementById('sector-toggles');
+  container.innerHTML = partnerSectors.map(function(sec) {
+    var cfg = SECTORS[sec];
+    if (!cfg) return '';
+    return '<div class="sector-toggle" data-sector="' + sec + '" onclick="toggleSector(\'' + sec + '\')">' +
+      cfg.icon + ' <span>' + cfg.label + '</span></div>';
+  }).join('');
+}
+
+function toggleSector(sector) {
+  var idx = wizState.selectedSectors.indexOf(sector);
+  if (idx === -1) {
+    wizState.selectedSectors.push(sector);
+    // Initialize config if not present
+    if (!wizState.sectorConfigs[sector]) {
+      wizState.sectorConfigs[sector] = [SECTORS[sector].defaultConfig()];
+    }
+  } else {
+    wizState.selectedSectors.splice(idx, 1);
+  }
+
+  // Update toggle visuals
+  document.querySelectorAll('.sector-toggle').forEach(function(el) {
+    el.classList.toggle('active', wizState.selectedSectors.indexOf(el.dataset.sector) !== -1);
+  });
+
+  document.getElementById('btn-step3-next').disabled = wizState.selectedSectors.length === 0;
+  renderSectorConfigs();
+  recalcPricing();
+}
+
+function renderSectorConfigs() {
+  var container = document.getElementById('sector-configs');
+  var html = '';
+
+  wizState.selectedSectors.forEach(function(sec) {
+    var cfg = SECTORS[sec];
+    var configs = wizState.sectorConfigs[sec] || [cfg.defaultConfig()];
+
+    configs.forEach(function(c, idx) {
+      html += '<div class="config-card ' + cfg.colorClass + '">' +
+        '<div class="config-card-header">' +
+        '<div class="config-card-title">' + cfg.icon + ' ' + cfg.label + (configs.length > 1 ? ' #' + (idx + 1) : '') + '</div>' +
+        '<div>';
+      if (configs.length > 1) {
+        html += '<button class="btn-remove-install" onclick="removeInstallation(\'' + sec + '\',' + idx + ')" title="Verwijderen">&times;</button>';
+      }
+      html += '</div></div>';
+      html += cfg.renderConfig(c, idx);
+      html += '</div>';
+    });
+
+    html += '<button class="btn-add-install" onclick="addInstallation(\'' + sec + '\')" style="margin-bottom:20px">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' +
+      'Extra ' + cfg.label.toLowerCase() + ' toevoegen</button>';
+  });
+
+  container.innerHTML = html;
+}
+
+function addInstallation(sector) {
+  var cfg = SECTORS[sector];
+  if (!wizState.sectorConfigs[sector]) wizState.sectorConfigs[sector] = [];
+  wizState.sectorConfigs[sector].push(cfg.defaultConfig());
+  renderSectorConfigs();
+  recalcPricing();
+}
+
+function removeInstallation(sector, idx) {
+  wizState.sectorConfigs[sector].splice(idx, 1);
+  if (wizState.sectorConfigs[sector].length === 0) {
+    wizState.sectorConfigs[sector] = [SECTORS[sector].defaultConfig()];
+  }
+  renderSectorConfigs();
+  recalcPricing();
+}
+
+function updateSectorConfig(sector, idx, field, value) {
+  if (!wizState.sectorConfigs[sector]) return;
+  wizState.sectorConfigs[sector][idx][field] = value;
+
+  // Re-render if kanaalreiniging toggle changed (shows/hides lm field)
+  if (field === 'kanaalreiniging') {
+    renderSectorConfigs();
+  }
+
+  recalcPricing();
+}
+
+// =============================================
+// PRICING CALCULATION
+// =============================================
+function recalcPricing() {
+  var partner = partners.find(p => p.id === wizState.partnerId);
+  if (!partner) {
+    document.getElementById('pricing-lines').innerHTML = '<div class="pricing-empty">Selecteer een partner</div>';
+    return;
+  }
+  if (wizState.selectedSectors.length === 0) {
+    document.getElementById('pricing-lines').innerHTML = '<div class="pricing-empty">Selecteer een sector om te beginnen</div>';
+    return;
+  }
+
+  var allLines = [];
+  var grandSubtotal = 0;
+  wizState.sectorResults = {};
+
+  wizState.selectedSectors.forEach(function(sec) {
+    var cfg = SECTORS[sec];
+    var configs = wizState.sectorConfigs[sec] || [cfg.defaultConfig()];
+    var sectorPricing = allPricing[sec] || [];
+    var sectorSupp = allSupplements[sec] || [];
+
+    var result = cfg.calculate(configs, sectorPricing, sectorSupp, partner);
+    wizState.sectorResults[sec] = result;
+    grandSubtotal += result.subtotalExcl;
+
+    allLines.push({ type: 'header', label: cfg.label });
+    result.lines.forEach(function(l) {
+      allLines.push({ type: 'line', label: l.label, amount: l.amount });
+    });
+  });
+
+  // Transport
+  var afstand = parseInt(document.getElementById('wiz-afstand') ? document.getElementById('wiz-afstand').value : 0) || 0;
+  wizState.afstandKm = afstand;
+  var transportSup = getSectorSupplement(wizState.selectedSectors[0], 'transport') || 0;
+  var marge = parseFloat(partner.marge_pct) / 100;
+  var freeKm = 20;
+  var extraKm = Math.max(0, afstand - freeKm);
+  var transportCost = extraKm * transportSup * (1 + marge);
+  if (transportCost > 0) {
+    allLines.push({ type: 'line', label: 'Verplaatsing (' + extraKm + ' km)', amount: transportCost });
+    grandSubtotal += transportCost;
+  }
+
+  // Korting (5% bij 5+ jaar)
+  var korting = 0;
+  if (wizState.duur >= 5) {
+    korting = grandSubtotal * 0.05;
+    allLines.push({ type: 'line', label: 'Contractkorting (-5%)', amount: -korting });
+    grandSubtotal -= korting;
+  }
+
+  // BTW
+  var btwPct = 21; // default, could be 6% for renovatie
+  var btwBedrag = grandSubtotal * (btwPct / 100);
+  var totaalIncl = grandSubtotal + btwBedrag;
+
+  // Render pricing sidebar
+  var html = '';
+  allLines.forEach(function(l) {
+    if (l.type === 'header') {
+      html += '<div class="pricing-line sector-header"><span>' + l.label + '</span><span></span></div>';
+    } else {
+      var amtStr = l.amount < 0 ? '- ' + fmt(Math.abs(l.amount)) : fmt(l.amount);
+      html += '<div class="pricing-line"><span>' + l.label + '</span><span>' + amtStr + '</span></div>';
+    }
+  });
+  html += '<div class="pricing-divider"></div>';
+  html += '<div class="pricing-total"><span>Subtotaal excl. BTW</span><span>' + fmt(grandSubtotal) + '</span></div>';
+  html += '<div class="pricing-btw"><span>BTW ' + btwPct + '%</span><span>' + fmt(btwBedrag) + '</span></div>';
+  html += '<div class="pricing-grand"><span>Totaal incl. BTW</span><span>' + fmt(round50(totaalIncl)) + '</span></div>';
+
+  // Frequentie info
+  var freqTxt = wizState.freq === 0 ? 'Eenmalig' : wizState.freq === 1 ? 'Jaarlijks' : 'Halfjaarlijks';
+  var duurTxt = wizState.duur === 0 ? 'Eenmalig' : wizState.duur + ' jaar';
+  html += '<div class="pricing-freq">' + freqTxt + ' | ' + duurTxt + '</div>';
+
+  document.getElementById('pricing-lines').innerHTML = html;
+
+  // Store totals in state for save
+  wizState._subtotalExcl = grandSubtotal;
+  wizState._btwPct = btwPct;
+  wizState._btwBedrag = btwBedrag;
+  wizState._totaalIncl = round50(totaalIncl);
+  wizState._transportCost = transportCost;
+  wizState._korting = korting;
+  wizState._allLines = allLines;
+}
+
+// =============================================
+// STAP 4: FREQUENTIE & DUUR
+// =============================================
+function selectFreq(el) {
+  el.parentElement.querySelectorAll('.freq-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  wizState.freq = parseInt(el.dataset.freq);
+  recalcPricing();
+}
+
+function selectDuur(el) {
+  el.parentElement.querySelectorAll('.freq-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  wizState.duur = parseInt(el.dataset.duur);
+  calcEinddatum();
+  recalcPricing();
+}
+
+function calcEinddatum() {
+  var start = document.getElementById('wiz-startdatum').value;
+  wizState.startDatum = start;
+  if (!start || wizState.duur === 0) {
+    document.getElementById('wiz-einddatum').value = '';
+    return;
+  }
+  var d = new Date(start);
+  d.setFullYear(d.getFullYear() + wizState.duur);
+  document.getElementById('wiz-einddatum').value = d.toISOString().split('T')[0];
+}
+
+// =============================================
+// STAP 5: SAMENVATTING
+// =============================================
+function renderSummary() {
+  recalcPricing();
+  var partner = partners.find(p => p.id === wizState.partnerId);
+  var client = wizState.clientId ? clients.find(c => c.id === wizState.clientId) : null;
+  var nc = wizState.newClient;
+
+  var html = '';
+
+  // Klantgegevens
+  html += '<div class="summary-card"><h4>Klantgegevens</h4>';
+  if (client) {
+    html += '<div class="summary-row"><span class="label">Naam</span><span class="value">' + esc(client.company_name || client.contact_person) + '</span></div>';
+    html += '<div class="summary-row"><span class="label">Contact</span><span class="value">' + esc(client.contact_person || '') + '</span></div>';
+    html += '<div class="summary-row"><span class="label">Email</span><span class="value">' + esc(client.email || '') + '</span></div>';
+    html += '<div class="summary-row"><span class="label">Adres</span><span class="value">' + esc([client.street, client.house_number, client.postal_code, client.city].filter(Boolean).join(' ')) + '</span></div>';
+  } else if (nc) {
+    html += '<div class="summary-row"><span class="label">Naam</span><span class="value">' + esc(nc.company_name || nc.contact_person) + '</span></div>';
+    html += '<div class="summary-row"><span class="label">Contact</span><span class="value">' + esc(nc.contact_person) + '</span></div>';
+    html += '<div class="summary-row"><span class="label">Email</span><span class="value">' + esc(nc.email || '') + '</span></div>';
+    html += '<div class="summary-row"><span class="label">Adres</span><span class="value">' + esc([nc.street, nc.postal_code, nc.city].filter(Boolean).join(' ')) + '</span></div>';
+  }
+  if (partner) {
+    html += '<div class="summary-row"><span class="label">Partner</span><span class="value">' + esc(partner.bedrijfsnaam || partner.naam) + '</span></div>';
+  }
+  html += '</div>';
+
+  // Diensten
+  html += '<div class="summary-card"><h4>Diensten</h4>';
+  wizState.selectedSectors.forEach(function(sec) {
+    var cfg = SECTORS[sec];
+    var configs = wizState.sectorConfigs[sec] || [];
+    html += '<div style="margin-bottom:8px"><span class="summary-sector-badge ' + cfg.badgeClass + '">' + cfg.label + '</span> ';
+    html += '<span style="font-size:13px;color:var(--navy)">' + cfg.summaryDescription(configs) + '</span></div>';
+  });
+  html += '</div>';
+
+  // Prijsoverzicht
+  html += '<div class="summary-card"><h4>Prijsoverzicht</h4>';
+  if (wizState._allLines) {
+    wizState._allLines.forEach(function(l) {
+      if (l.type === 'header') {
+        html += '<div class="summary-row" style="font-weight:600;padding-top:8px"><span class="label" style="color:var(--navy)">' + l.label + '</span><span></span></div>';
+      } else {
+        var amtStr = l.amount < 0 ? '- ' + fmt(Math.abs(l.amount)) : fmt(l.amount);
+        html += '<div class="summary-row"><span class="label">' + l.label + '</span><span class="value">' + amtStr + '</span></div>';
+      }
+    });
+    html += '<div style="border-top:2px solid var(--rule);margin-top:8px;padding-top:8px">';
+    html += '<div class="summary-row"><span class="label" style="font-weight:600">Subtotaal excl. BTW</span><span class="value" style="font-weight:600">' + fmt(wizState._subtotalExcl) + '</span></div>';
+    html += '<div class="summary-row"><span class="label">BTW ' + wizState._btwPct + '%</span><span class="value">' + fmt(wizState._btwBedrag) + '</span></div>';
+    html += '<div class="summary-row" style="font-size:16px"><span class="label" style="font-weight:700;color:var(--navy)">Totaal incl. BTW</span><span class="value" style="font-weight:700;color:var(--navy)">' + fmt(wizState._totaalIncl) + '</span></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Contract details
+  var freqTxt = wizState.freq === 0 ? 'Eenmalig' : wizState.freq === 1 ? 'Jaarlijks (1x/jaar)' : 'Halfjaarlijks (2x/jaar)';
+  var duurTxt = wizState.duur === 0 ? 'Eenmalig' : wizState.duur + ' jaar';
+  html += '<div class="summary-card"><h4>Contractdetails</h4>';
+  html += '<div class="summary-row"><span class="label">Type</span><span class="value">' + (wizState.contractType === 'raam' ? 'Raamcontract' : 'Per klant') + '</span></div>';
+  html += '<div class="summary-row"><span class="label">Klanttype</span><span class="value">' + (wizState.klantType === 'partner' ? 'Partner/installateur' : 'Eindklant') + '</span></div>';
+  html += '<div class="summary-row"><span class="label">Frequentie</span><span class="value">' + freqTxt + '</span></div>';
+  html += '<div class="summary-row"><span class="label">Looptijd</span><span class="value">' + duurTxt + '</span></div>';
+  html += '<div class="summary-row"><span class="label">Startdatum</span><span class="value">' + (wizState.startDatum || '—') + '</span></div>';
+  var eindDatum = document.getElementById('wiz-einddatum').value;
+  if (eindDatum) {
+    html += '<div class="summary-row"><span class="label">Einddatum</span><span class="value">' + eindDatum + '</span></div>';
+  }
+  html += '</div>';
+
+  document.getElementById('summary-content').innerHTML = html;
+}
+
+// =============================================
+// SAVE CONTRACT
+// =============================================
+async function saveContract() {
+  var btn = document.getElementById('btn-save-concept');
+  btn.disabled = true;
+  btn.textContent = 'Opslaan...';
+
+  try {
+    var partner = partners.find(p => p.id === wizState.partnerId);
+    if (!partner) throw new Error('Geen partner geselecteerd');
+
+    // Create new client if needed
+    var clientId = wizState.clientId;
+    if (!clientId && wizState.newClient) {
+      var clientPayload = Object.assign({}, wizState.newClient, { partner_id: wizState.partnerId });
+      var { data: newClient, error: clientErr } = await sb.from('clients').insert([clientPayload]).select();
+      if (clientErr) throw clientErr;
+      clientId = newClient[0].id;
+    }
+
+    // Get client data for contract fields
+    var client = clientId ? clients.find(c => c.id === clientId) : null;
+    var nc = wizState.newClient;
+    var klantNaam = client ? (client.company_name || client.contact_person) : (nc ? (nc.company_name || nc.contact_person) : '');
+    var klantAdres = client ? [client.street, client.house_number].filter(Boolean).join(' ') : (nc ? nc.street : '');
+    var klantPostcode = client ? client.postal_code : (nc ? nc.postal_code : '');
+    var klantGemeente = client ? client.city : (nc ? nc.city : '');
+    var klantEmail = client ? client.email : (nc ? nc.email : '');
+    var klantTelefoon = client ? client.phone : (nc ? nc.phone : '');
+    var klantContact = client ? client.contact_person : (nc ? nc.contact_person : '');
+
+    var freqTxt = wizState.freq === 0 ? 'eenmalig' : wizState.freq === 1 ? 'jaarlijks' : 'halfjaarlijks';
+    var duurTxt = wizState.duur === 0 ? 'eenmalig' : wizState.duur + ' jaar';
+
+    // Build sectoren JSONB
+    var sectorenJson = wizState.selectedSectors.map(function(sec) {
+      return {
+        sector: sec,
+        configs: wizState.sectorConfigs[sec] || [],
+        result: wizState.sectorResults[sec] || {}
+      };
+    });
+
+    // Build pricing breakdown
+    var pricingBreakdown = {
+      lines: wizState._allLines || [],
+      subtotalExcl: wizState._subtotalExcl,
+      btwPct: wizState._btwPct,
+      btwBedrag: wizState._btwBedrag,
+      totaalIncl: wizState._totaalIncl,
+      transport: wizState._transportCost,
+      korting: wizState._korting
+    };
+
+    var eindDatum = document.getElementById('wiz-einddatum').value || null;
+
+    var payload = {
+      partner_id: wizState.partnerId,
+      client_id: clientId,
+      contract_type: wizState.contractType,
+      klant_type: wizState.klantType,
+      klant_naam: klantNaam,
+      klant_adres: klantAdres,
+      klant_postcode: klantPostcode,
+      klant_gemeente: klantGemeente,
+      klant_email: klantEmail,
+      klant_telefoon: klantTelefoon,
+      klant_contact: klantContact,
+      sector: wizState.selectedSectors[0],
+      sectoren: sectorenJson,
+      pricing_breakdown: pricingBreakdown,
+      frequentie: freqTxt,
+      contractduur: duurTxt,
+      korting_pct: wizState.duur >= 5 ? 5 : 0,
+      totaal_incl_btw: wizState._totaalIncl,
+      btw_type: wizState._btwPct + '%',
+      forfait_bedrag: wizState._subtotalExcl,
+      contract_start: wizState.startDatum || null,
+      contract_einde: eindDatum,
+      verlopen_op: eindDatum,
+      afstand_km: wizState.afstandKm || null,
+      beschrijving: document.getElementById('wiz-beschrijving').value.trim() || null,
+      status: 'concept',
+      aangemaakt_door: currentUser.id
+    };
+
+    // Solar backward-compat fields
+    if (wizState.sectorConfigs.zonnepanelen && wizState.sectorConfigs.zonnepanelen[0]) {
+      var sc = wizState.sectorConfigs.zonnepanelen[0];
+      payload.aantal_panelen = sc.pan;
+      payload.daktype = sc.daktype;
+      payload.dakhoogte = sc.hoog ? '> 7,5 m' : '< 7,5 m';
+    }
+
+    var { data: inserted, error: insertErr } = await sb.from('contracten').insert([payload]).select();
+    if (insertErr) throw insertErr;
+
+    var contractId = inserted[0].id;
+    var tekenToken = inserted[0].teken_token;
+
+    showToast('Contract opgeslagen als concept');
+
+    // Redirect to contracten page
+    setTimeout(function() {
+      window.location.href = 'index.html#contracten';
+    }, 1000);
+
+  } catch (err) {
+    console.error('Save error:', err);
+    showToast('Fout bij opslaan: ' + (err.message || err));
+    btn.disabled = false;
+    btn.textContent = 'Opslaan als concept';
+  }
+}
+
+// =============================================
+// INIT
+// =============================================
+checkAuth();
+</script>
+</body>
+</html>

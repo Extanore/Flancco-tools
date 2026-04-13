@@ -76,6 +76,14 @@
   .badge-orange { background: #fef3c7; color: #92400e; }
   .badge-red { background: #fee2e2; color: #991b1b; }
   .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-grey { background: #f3f4f6; color: #4b5563; }
+  .badge-zon { background: #FEF3C7; color: #92400E; }
+  .badge-wp { background: #DBEAFE; color: #1E40AF; }
+  .badge-vent { background: #EDE9FE; color: #5B21B6; }
+  .badge-verw { background: #FEE2E2; color: #991B1B; }
+  .btn-action { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid var(--rule); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 14px; color: var(--grey); text-decoration: none; margin-right: 4px; transition: 0.2s; }
+  .btn-action:hover { border-color: var(--navy); color: var(--navy); }
+  .btn-action-red:hover { border-color: var(--red); color: var(--red); }
 
   /* PAGE SECTIONS */
   .page { display: none; }
@@ -325,10 +333,10 @@
           <select id="filter-partner" class="admin-only" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
             <option value="">Alle partners</option>
           </select>
-          <button class="btn-save admin-only" onclick="openNewContract()" style="margin:0;font-size:12px">+ Nieuw contract</button>
+          <button class="btn-save admin-only" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
         </div>
         <table>
-          <thead><tr><th>Klant</th><th>Partner</th><th>Panelen</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Datum</th><th>Status</th></tr></thead>
+          <thead><tr><th>Klant</th><th>Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
           <tbody id="all-contracts"></tbody>
         </table>
         <p id="no-all-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen contracten gevonden.</p>
@@ -1283,15 +1291,26 @@ function renderContracten() {
     noEl.style.display = 'none';
     tbody.innerHTML = filtered.map(c => {
       const partner = partners.find(p => p.id === c.partner_id);
+      const dispStatus = computeStatus(c);
+      // Sector badges: use sectoren array if available, else fallback to single sector
+      let sectorHtml = '';
+      if (c.sectoren && Array.isArray(c.sectoren) && c.sectoren.length > 0) {
+        sectorHtml = c.sectoren.map(s => sectorBadge(s.sector || s)).join(' ');
+      } else if (c.sector) {
+        sectorHtml = sectorBadge(c.sector);
+      } else {
+        sectorHtml = '—';
+      }
+      const totaal = c.totaal_incl_btw ? '€ ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') : '—';
       return `<tr>
         <td><strong>${c.klant_naam}</strong><br><small style="color:var(--grey)">${c.klant_gemeente || ''}</small></td>
-        <td>${partner?.naam || '—'}</td>
-        <td>${c.aantal_panelen}</td>
+        <td>${partner?.bedrijfsnaam || partner?.naam || '—'}</td>
+        <td>${sectorHtml}</td>
         <td>${c.frequentie || '—'}</td>
         <td>${c.contractduur || '—'}</td>
-        <td>€ ${parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',')}</td>
-        <td>${fmtDate(c.datum_ondertekening)}</td>
-        <td><span class="badge ${statusBadge(c.status)}">${c.status}</span></td>
+        <td>${totaal}</td>
+        <td><span class="badge ${statusBadge(dispStatus)}">${dispStatus}</span></td>
+        <td style="white-space:nowrap">${contractActions(c)}</td>
       </tr>`;
     }).join('');
   }
@@ -1438,9 +1457,55 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function computeStatus(c) {
+  if (c.status === 'geannuleerd') return 'geannuleerd';
+  if (c.status === 'actief' || c.status === 'getekend') {
+    if (c.verlopen_op && new Date() > new Date(c.verlopen_op)) return 'verlopen';
+    return 'actief';
+  }
+  if (c.status === 'concept') {
+    if (c.verlopen_op && new Date() > new Date(c.verlopen_op)) return 'verlopen';
+    return 'concept';
+  }
+  return c.status;
+}
+
 function statusBadge(s) {
-  const map = { getekend: 'badge-blue', actief: 'badge-green', uitgevoerd: 'badge-green', geannuleerd: 'badge-red' };
+  const map = { concept: 'badge-grey', getekend: 'badge-blue', actief: 'badge-green', uitgevoerd: 'badge-green', geannuleerd: 'badge-red', verlopen: 'badge-orange' };
   return map[s] || 'badge-blue';
+}
+
+function sectorBadge(sector) {
+  const map = { zonnepanelen: 'badge-zon', warmtepomp: 'badge-wp', ventilatie: 'badge-vent', verwarming: 'badge-verw' };
+  const labels = { zonnepanelen: 'Zon', warmtepomp: 'WP', ventilatie: 'Vent', verwarming: 'Verw' };
+  return '<span class="badge ' + (map[sector] || '') + '">' + (labels[sector] || sector) + '</span>';
+}
+
+function contractActions(c) {
+  var st = computeStatus(c);
+  var btns = '';
+  if (st === 'concept') {
+    var tekenUrl = 'https://extanore.github.io/Flancco-tools/calculator/?contract=' + c.teken_token;
+    btns += '<button class="btn-action" onclick="copyTekenLink(\'' + c.teken_token + '\')" title="Kopieer tekenlink">&#128279;</button>';
+    btns += '<a class="btn-action" href="contracten-wizard.html?edit=' + c.id + '" title="Bewerken">&#9998;</a>';
+    btns += '<button class="btn-action btn-action-red" onclick="annuleerContract(\'' + c.id + '\')" title="Annuleren">&times;</button>';
+  }
+  return btns;
+}
+
+function copyTekenLink(token) {
+  var url = 'https://extanore.github.io/Flancco-tools/calculator/?contract=' + token;
+  navigator.clipboard.writeText(url).then(function() {
+    showToast('Tekenlink gekopieerd!');
+  });
+}
+
+async function annuleerContract(id) {
+  if (!confirm('Contract annuleren? Dit kan niet ongedaan worden.')) return;
+  await sb.from('contracten').update({ status: 'geannuleerd' }).eq('id', id);
+  await loadAllData();
+  renderContracten();
+  showToast('Contract geannuleerd');
 }
 
 // =============================================
