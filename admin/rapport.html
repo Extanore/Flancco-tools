@@ -49,11 +49,12 @@
   .checklist-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
   .checklist-item:last-child { border-bottom: none; }
   .check-status { display: flex; gap: 4px; flex-shrink: 0; }
-  .check-btn { width: 32px; height: 32px; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--white); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-  .check-btn:hover { border-color: var(--navy); }
+  .check-btn { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--white); cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; color: #9CA3AF; }
+  .check-btn:hover { border-color: var(--navy); color: var(--navy); }
   .check-btn.ok { background: #DEF7EC; border-color: var(--green); color: var(--green); }
   .check-btn.nok { background: #FDE8E8; border-color: var(--red); color: var(--red); }
-  .check-btn.na { background: var(--light); border-color: var(--grey); color: var(--grey); font-size: 10px; }
+  .check-btn.na { background: var(--light); border-color: var(--grey); color: var(--grey); }
+  .checklist-item.has-value .check-btn:not(.ok):not(.nok):not(.na) { opacity: 0.35; }
   .check-label { flex: 1; font-size: 13px; padding-top: 6px; }
   .check-label small { display: block; color: var(--grey); margin-top: 2px; }
   .check-note { width: 100%; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; font-size: 12px; font-family: inherit; resize: none; display: none; }
@@ -552,9 +553,9 @@ function initChecklist() {
   document.getElementById('checklist-items').innerHTML = items.map(function(item) {
     return '<div class="checklist-item" data-key="' + item.key + '">' +
       '<div class="check-status">' +
-        '<button class="check-btn" onclick="setCheck(this,\'ok\')" title="OK">&#10003;</button>' +
-        '<button class="check-btn" onclick="setCheck(this,\'nok\')" title="Niet OK">&#10007;</button>' +
-        '<button class="check-btn" onclick="setCheck(this,\'na\')" title="N.v.t.">—</button>' +
+        '<button class="check-btn" onclick="setCheck(this,\'ok\')" title="OK">&#10003; OK</button>' +
+        '<button class="check-btn" onclick="setCheck(this,\'nok\')" title="Niet OK">&#10007; NOK</button>' +
+        '<button class="check-btn" onclick="setCheck(this,\'na\')" title="Niet van toepassing">— N.v.t.</button>' +
       '</div>' +
       '<div class="check-label">' + esc(item.label) + '<small>' + esc(item.hint || '') + '</small>' +
         '<textarea class="check-note" placeholder="Opmerking bij dit punt..." rows="2"></textarea>' +
@@ -566,6 +567,7 @@ function setCheck(btn, value) {
   var row = btn.closest('.checklist-item');
   row.querySelectorAll('.check-btn').forEach(function(b) { b.className = 'check-btn'; });
   btn.classList.add(value);
+  row.classList.add('has-value');
   row.dataset.value = value;
   var note = row.querySelector('.check-note');
   if (value === 'nok') { note.classList.add('visible'); note.focus(); }
