@@ -679,6 +679,49 @@
   </div>
 </div>
 
+<!-- BEURT BEWERKEN MODAL -->
+<div class="modal-overlay" id="modal-edit-beurt">
+  <div class="modal" style="max-width:480px">
+    <h2 id="edit-beurt-title">Beurt inplannen</h2>
+    <input type="hidden" id="edit-beurt-id">
+    <input type="hidden" id="edit-beurt-tech-id">
+    <input type="hidden" id="edit-beurt-date">
+
+    <!-- Info preview -->
+    <div id="edit-beurt-info" style="background:var(--light);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px"></div>
+
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Datum</label>
+        <input type="date" id="edit-beurt-datum">
+      </div>
+      <div class="modal-field">
+        <label>Starttijd</label>
+        <input type="time" id="edit-beurt-start" step="900" value="08:00">
+      </div>
+      <div class="modal-field">
+        <label>Duur (minuten)</label>
+        <input type="number" id="edit-beurt-duur" min="15" step="15" value="60">
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <label>Technieker</label>
+      <select id="edit-beurt-technieker"></select>
+    </div>
+
+    <div class="modal-field">
+      <label>Notities</label>
+      <textarea id="edit-beurt-notities" rows="2" placeholder="Optioneel..."></textarea>
+    </div>
+
+    <div class="modal-buttons">
+      <button onclick="closeEditBeurtModal()">Annuleren</button>
+      <button class="btn-save" onclick="saveEditBeurt()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctx-menu">
   <button class="ctx-item" onclick="ctxUnplan()">
@@ -1320,7 +1363,9 @@ function renderApptCard(b, info) {
   }
   return '<div class="appt-card ' + getSectorClass(info.sector) + '" ' +
     'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')" ' +
+    'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
     'oncontextmenu="onCardContext(event, \'' + b.id + '\')" ' +
+    'style="cursor:pointer" ' +
     'title="' + esc(info.naam) + ' - ' + esc(info.sector) + '">' +
     '<div class="appt-sector">' + getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</div>' +
     '<div class="appt-klant">' + esc(info.naam) + '</div>' +
@@ -1500,7 +1545,9 @@ function renderSidebar() {
 // =============================================
 // DRAG & DROP
 // =============================================
+var isDragging = false;
 function onDragStart(e, beurtId) {
+  isDragging = true;
   dragBeurtId = beurtId;
   e.dataTransfer.setData('text/plain', beurtId);
   e.dataTransfer.effectAllowed = 'move';
@@ -1528,6 +1575,7 @@ document.addEventListener('dragleave', function(e) {
 
 document.addEventListener('dragend', function(e) {
   dragBeurtId = null;
+  setTimeout(function() { isDragging = false; }, 100);
   document.querySelectorAll('.dragging').forEach(function(el) { el.classList.remove('dragging'); });
   document.querySelectorAll('.drop-hover').forEach(function(el) { el.classList.remove('drop-hover'); });
 });
@@ -1539,7 +1587,7 @@ async function onDrop(e, techId, dateStr) {
   var beurtId = e.dataTransfer.getData('text/plain') || dragBeurtId;
   if (!beurtId) return;
 
-  await planBeurt(beurtId, techId, dateStr, null);
+  openEditBeurtModal(beurtId, techId, dateStr, null);
 }
 
 async function onDropDay(e, techId, dateStr, timeSlot) {
@@ -1549,7 +1597,7 @@ async function onDropDay(e, techId, dateStr, timeSlot) {
   var beurtId = e.dataTransfer.getData('text/plain') || dragBeurtId;
   if (!beurtId) return;
 
-  await planBeurt(beurtId, techId, dateStr, timeSlot);
+  openEditBeurtModal(beurtId, techId, dateStr, timeSlot);
 }
 
 async function planBeurt(beurtId, techId, planDatum, startTijd) {
@@ -1700,6 +1748,134 @@ async function ctxCancel() {
     renderSidebar();
   }
   ctxBeurtId = null;
+}
+
+// =============================================
+// BEURT EDIT MODAL
+// =============================================
+function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
+  // Don't open if we just finished dragging (click fires after dragend)
+  if (isDragging && !dropTechId) return;
+
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+
+  var info = getClientInfo(beurt);
+  var isNew = !beurt.plan_datum && !beurt.technieker_id;
+
+  document.getElementById('edit-beurt-id').value = beurtId;
+  document.getElementById('edit-beurt-title').textContent = isNew || dropTechId ? 'Beurt inplannen' : 'Beurt bewerken';
+
+  // Info preview
+  var sectorIcons = { zonnepanelen: '&#9728;', warmtepomp: '&#127777;', ventilatie: '&#9741;', verwarming: '&#128293;' };
+  var infoHtml = '<div style="display:flex;gap:12px;align-items:flex-start">' +
+    '<div style="flex:1">' +
+      '<strong>' + esc(info.naam) + '</strong><br>' +
+      '<span style="color:var(--grey);font-size:12px">' + esc(info.adres || '') + ', ' + esc(info.postcode || '') + ' ' + esc(info.gemeente || '') + '</span><br>' +
+      '<span style="font-size:12px">' + (sectorIcons[info.sector] || '') + ' ' + esc(info.sector || '') + '</span>' +
+    '</div>' +
+    '<span class="appt-badge" style="background:' + getSectorColor(info.sector) + '20;color:' + getSectorColor(info.sector) + '">' + esc(info.sector || '') + '</span>' +
+  '</div>';
+  document.getElementById('edit-beurt-info').innerHTML = infoHtml;
+
+  // Set date: prefer drop target, then existing, then today
+  var datumVal = dropDate || beurt.plan_datum || new Date().toISOString().split('T')[0];
+  document.getElementById('edit-beurt-datum').value = datumVal;
+
+  // Set time
+  var timeVal = dropTime || (beurt.start_tijd ? beurt.start_tijd.substring(0,5) : '08:00');
+  document.getElementById('edit-beurt-start').value = timeVal;
+
+  // Set duration
+  document.getElementById('edit-beurt-duur').value = beurt.duur_minuten || 60;
+
+  // Set notities
+  document.getElementById('edit-beurt-notities').value = beurt.notities || '';
+
+  // Populate technieker dropdown
+  var techSel = document.getElementById('edit-beurt-technieker');
+  techSel.innerHTML = '<option value="">— Kies technieker —</option>';
+  allTechniekers.forEach(function(t) {
+    if (!t.actief) return;
+    var selected = (dropTechId && t.id === dropTechId) || (!dropTechId && beurt.technieker_id === t.id);
+    techSel.innerHTML += '<option value="' + t.id + '"' + (selected ? ' selected' : '') + '>' +
+      esc(t.voornaam + ' ' + t.naam) + '</option>';
+  });
+
+  document.getElementById('modal-edit-beurt').classList.add('open');
+}
+
+function closeEditBeurtModal() {
+  document.getElementById('modal-edit-beurt').classList.remove('open');
+}
+
+function getSectorColor(sector) {
+  var colors = { zonnepanelen: '#F39C12', warmtepomp: '#E74C3C', ventilatie: '#1A1A2E', verwarming: '#8B5CF6' };
+  return colors[(sector || '').toLowerCase()] || '#6B7280';
+}
+
+async function saveEditBeurt() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var techId = document.getElementById('edit-beurt-technieker').value;
+  var datum = document.getElementById('edit-beurt-datum').value;
+  var startTijd = document.getElementById('edit-beurt-start').value;
+  var duur = parseInt(document.getElementById('edit-beurt-duur').value) || 60;
+  var notities = document.getElementById('edit-beurt-notities').value.trim();
+
+  if (!techId) { showToast('Kies een technieker', 'error'); return; }
+  if (!datum) { showToast('Kies een datum', 'error'); return; }
+
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+
+  // Validations
+  var date = parseDate(datum);
+  if (isTechAbsent(techId, date)) {
+    showToast('Technieker is afwezig op deze dag', 'error');
+    return;
+  }
+
+  var info = getClientInfo(beurt);
+  if (info.sector && !techHasSector(techId, info.sector)) {
+    var tech = allTechniekers.find(function(t) { return t.id === techId; });
+    showToast((tech ? tech.voornaam + ' ' + tech.naam : 'Technieker') +
+      ' is niet toegewezen aan sector ' + info.sector, 'error');
+    return;
+  }
+
+  var updateData = {
+    technieker_id: techId,
+    plan_datum: datum,
+    start_tijd: startTijd || null,
+    duur_minuten: duur,
+    notities: notities || null,
+    status: 'ingepland',
+    updated_at: new Date().toISOString()
+  };
+
+  var result = await sb.from('onderhoudsbeurten').update(updateData).eq('id', beurtId);
+  if (result.error) {
+    showToast('Fout: ' + result.error.message, 'error');
+    return;
+  }
+
+  // Update local state
+  var oldStatus = beurt.status;
+  beurt.technieker_id = techId;
+  beurt.plan_datum = datum;
+  beurt.start_tijd = startTijd || null;
+  beurt.duur_minuten = duur;
+  beurt.notities = notities || null;
+  beurt.status = 'ingepland';
+
+  if (oldStatus !== 'ingepland') {
+    auditLog('onderhoudsbeurten', beurtId, 'status_wijziging', oldStatus, 'ingepland');
+  }
+
+  closeEditBeurtModal();
+  showToast(esc(info.naam) + ' ingepland');
+  renderView();
+  renderSidebar();
 }
 
 // =============================================
