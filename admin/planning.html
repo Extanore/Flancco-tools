@@ -1823,15 +1823,11 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
     techSel.innerHTML += '<option value="' + t.id + '"' + (selected ? ' selected' : '') + '>' +
       esc(t.voornaam + ' ' + t.naam) + '</option>';
   });
+  techSel.onchange = updateExtraTechDropdown;
 
-  // Populate extra technieker dropdown
-  var extraSel = document.getElementById('edit-beurt-extra-select');
-  extraSel.innerHTML = '<option value="">+ Extra technieker toevoegen...</option>';
+  // Populate extra technieker dropdown (excluding hoofdtechnieker)
   document.getElementById('edit-beurt-extra-techs').innerHTML = '';
-  allTechniekers.forEach(function(t) {
-    if (!t.actief) return;
-    extraSel.innerHTML += '<option value="' + t.id + '">' + esc(t.voornaam + ' ' + t.naam) + '</option>';
-  });
+  updateExtraTechDropdown();
 
   // Show/hide uitplannen button (only for already planned beurten)
   var unplanBtn = document.getElementById('edit-beurt-unplan-btn');
@@ -1868,6 +1864,20 @@ function getProvincie(postcode) {
   return '';
 }
 
+function updateExtraTechDropdown() {
+  var hoofdTechId = document.getElementById('edit-beurt-technieker').value;
+  var extraSel = document.getElementById('edit-beurt-extra-select');
+  extraSel.innerHTML = '<option value="">+ Extra technieker toevoegen...</option>';
+  allTechniekers.forEach(function(t) {
+    if (!t.actief || t.id === hoofdTechId) return;
+    extraSel.innerHTML += '<option value="' + t.id + '">' + esc(t.voornaam + ' ' + t.naam) + '</option>';
+  });
+  // Verwijder chips van de hoofdtechnieker als die net werd geselecteerd
+  var container = document.getElementById('edit-beurt-extra-techs');
+  var existing = container.querySelector('[data-tech="' + hoofdTechId + '"]');
+  if (existing) existing.remove();
+}
+
 function syncDuurLabel() {
   // Placeholder for future duration label updates
 }
@@ -1876,6 +1886,13 @@ function addExtraTechnieker() {
   var sel = document.getElementById('edit-beurt-extra-select');
   var techId = sel.value;
   if (!techId) return;
+  // Blokkeer als dit de hoofdtechnieker is
+  var hoofdTechId = document.getElementById('edit-beurt-technieker').value;
+  if (techId === hoofdTechId) {
+    showToast('Deze technieker is al de hoofdtechnieker', 'error');
+    sel.value = '';
+    return;
+  }
   var tech = allTechniekers.find(function(t) { return t.id === techId; });
   if (!tech) return;
   var container = document.getElementById('edit-beurt-extra-techs');
