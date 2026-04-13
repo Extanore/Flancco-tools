@@ -1494,6 +1494,18 @@ async function saveNewContract() {
 // =============================================
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+function showToast(msg, type) {
+  var existing = document.getElementById('admin-toast');
+  if (existing) existing.remove();
+  var el = document.createElement('div');
+  el.id = 'admin-toast';
+  var bg = type === 'error' ? '#EF4444' : '#27AE60';
+  el.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;background:' + bg + ';color:#fff;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 300); }, 3000);
+}
+
 function populateKlantFilterDropdown() {
   var sel = document.getElementById('filter-klant-partner');
   if (!sel) return;
@@ -1980,6 +1992,7 @@ async function saveTechnieker() {
   }
 
   closeTechModal();
+  showToast(editId ? 'Technieker bijgewerkt' : 'Technieker aangemaakt');
   await loadAllData();
 }
 
