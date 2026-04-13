@@ -652,23 +652,6 @@ async function loadRapportView(beurtId) {
     fotoHtml += '</div>';
   }
 
-  // Uren & materiaal
-  var uren = rapport.uren_data || [];
-  var materiaal = rapport.materiaal_data || [];
-  var urenHtml = '';
-  if (uren.length > 0) {
-    var totUren = 0, totKost = 0;
-    urenHtml += '<table class="rp-uren-table"><thead><tr><th>Technieker</th><th>Datum</th><th>Uren</th><th>Tarief</th><th>Km</th></tr></thead><tbody>';
-    uren.forEach(function(u) { totUren += (u.uren||0); totKost += (u.uren||0) * (u.uurtarief||0); urenHtml += '<tr><td>' + esc(u.technieker) + '</td><td>' + esc(u.datum) + '</td><td>' + (u.uren||0).toFixed(1) + '</td><td>\u20AC ' + (u.uurtarief||0).toFixed(0) + '</td><td>' + (u.km||0) + '</td></tr>'; });
-    urenHtml += '</tbody></table><div class="rp-uren-total">' + totUren.toFixed(1) + ' uur \u2014 \u20AC ' + totKost.toFixed(2) + '</div>';
-  }
-  if (materiaal.length > 0) {
-    var totMat = 0;
-    urenHtml += '<table class="rp-uren-table" style="margin-top:12px"><thead><tr><th>Materiaal</th><th>Aantal</th><th>Stukprijs</th><th>Totaal</th></tr></thead><tbody>';
-    materiaal.forEach(function(m) { var t = (m.aantal||0) * (m.stukprijs||0); totMat += t; urenHtml += '<tr><td>' + esc(m.omschrijving) + '</td><td>' + (m.aantal||0) + '</td><td>\u20AC ' + (m.stukprijs||0).toFixed(2) + '</td><td>\u20AC ' + t.toFixed(2) + '</td></tr>'; });
-    urenHtml += '</tbody></table><div class="rp-uren-total">Materiaal totaal: \u20AC ' + totMat.toFixed(2) + '</div>';
-  }
-
   // Klant snapshot
   var klant = rapport.klant_snapshot || {};
   var klantNaam = klant.naam || contract.klant_naam || '';
@@ -722,8 +705,6 @@ async function loadRapportView(beurtId) {
       '</div>' +
 
       (fotoHtml ? '<div class="rp-section"><div class="rp-section-title">Foto\'s</div>' + fotoHtml + '</div>' : '') +
-
-      (urenHtml ? '<div class="rp-section"><div class="rp-section-title">Uren & materiaal</div>' + urenHtml + '</div>' : '') +
 
       (opmerkingen ? '<div class="rp-section"><div class="rp-section-title">Opmerkingen</div><div class="rp-opmerkingen">' + esc(opmerkingen) + '</div></div>' : '') +
 
@@ -1240,23 +1221,6 @@ function renderSamenvatting() {
     }
   });
 
-  // Uren & materiaal
-  var uren = getUrenData();
-  var materiaal = getMateriaalData();
-  var urenHtml = '';
-  if (uren.length > 0) {
-    var totUren = 0, totKost = 0;
-    urenHtml += '<table class="rp-uren-table"><thead><tr><th>Technieker</th><th>Datum</th><th>Uren</th><th>Tarief</th><th>Km</th></tr></thead><tbody>';
-    uren.forEach(function(u) { totUren += u.uren; totKost += u.uren * u.uurtarief; urenHtml += '<tr><td>' + esc(u.technieker) + '</td><td>' + esc(u.datum) + '</td><td>' + u.uren.toFixed(1) + '</td><td>\u20AC ' + u.uurtarief.toFixed(0) + '</td><td>' + u.km + '</td></tr>'; });
-    urenHtml += '</tbody></table><div class="rp-uren-total">' + totUren.toFixed(1) + ' uur \u2014 \u20AC ' + totKost.toFixed(2) + '</div>';
-  }
-  if (materiaal.length > 0) {
-    var totMat = 0;
-    urenHtml += '<table class="rp-uren-table" style="margin-top:12px"><thead><tr><th>Materiaal</th><th>Aantal</th><th>Stukprijs</th><th>Totaal</th></tr></thead><tbody>';
-    materiaal.forEach(function(m) { var t = m.aantal * m.stukprijs; totMat += t; urenHtml += '<tr><td>' + esc(m.omschrijving) + '</td><td>' + m.aantal + '</td><td>\u20AC ' + m.stukprijs.toFixed(2) + '</td><td>\u20AC ' + t.toFixed(2) + '</td></tr>'; });
-    urenHtml += '</tbody></table><div class="rp-uren-total">Materiaal totaal: \u20AC ' + totMat.toFixed(2) + '</div>';
-  }
-
   // Interventies
   var ints = getInterventies();
   var intHtml = '';
@@ -1319,8 +1283,6 @@ function renderSamenvatting() {
       '</div>' +
 
       (fotoHtml ? '<div class="rp-section"><div class="rp-section-title">Foto\'s</div>' + fotoHtml + '</div>' : '') +
-
-      (urenHtml ? '<div class="rp-section"><div class="rp-section-title">Uren & materiaal</div>' + urenHtml + '</div>' : '') +
 
       (opmerkingen ? '<div class="rp-section"><div class="rp-section-title">Opmerkingen</div><div class="rp-opmerkingen">' + esc(opmerkingen) + '</div></div>' : '') +
 
@@ -1592,69 +1554,6 @@ function buildPDF(doc) {
     y += 5.5;
   });
   y += 3;
-
-  // Uren & materiaal
-  var uren = getUrenData();
-  var materiaal = getMateriaalData();
-  if (uren.length > 0 || materiaal.length > 0) {
-    checkPage(20);
-    doc.setTextColor(headerColor.r, headerColor.g, headerColor.b);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Uren & materiaal', margin, y); y += 7;
-
-    if (uren.length > 0) {
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(60, 60, 60);
-      doc.text('Technieker', margin, y);
-      doc.text('Datum', margin + 45, y);
-      doc.text('Uren', margin + 80, y);
-      doc.text('Tarief', margin + 100, y);
-      doc.text('Km', margin + 125, y);
-      y += 5;
-      doc.setFont('helvetica', 'normal');
-      var totUren = 0, totKost = 0;
-      uren.forEach(function(u) {
-        checkPage(6);
-        doc.text(u.technieker || '\u2014', margin, y);
-        doc.text(u.datum || '', margin + 45, y);
-        doc.text(u.uren.toFixed(1), margin + 80, y);
-        doc.text(u.uurtarief > 0 ? '\u20AC ' + u.uurtarief.toFixed(2) : '', margin + 100, y);
-        doc.text(u.km > 0 ? u.km + ' km' : '', margin + 125, y);
-        totUren += u.uren;
-        totKost += u.uren * u.uurtarief;
-        y += 4.5;
-      });
-      doc.setFont('helvetica', 'bold');
-      doc.text('Totaal: ' + totUren.toFixed(1) + ' uur' + (totKost > 0 ? ' / \u20AC ' + totKost.toFixed(2) : ''), margin, y);
-      y += 6;
-    }
-
-    if (materiaal.length > 0) {
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(60, 60, 60);
-      doc.text('Materiaal', margin, y);
-      doc.text('Aantal', margin + 80, y);
-      doc.text('Prijs', margin + 100, y);
-      y += 5;
-      doc.setFont('helvetica', 'normal');
-      var totMat = 0;
-      materiaal.forEach(function(m) {
-        checkPage(6);
-        doc.text(m.naam, margin, y);
-        doc.text(String(m.aantal), margin + 80, y);
-        doc.text(m.stukprijs > 0 ? '\u20AC ' + m.stukprijs.toFixed(2) : '', margin + 100, y);
-        totMat += m.aantal * m.stukprijs;
-        y += 4.5;
-      });
-      doc.setFont('helvetica', 'bold');
-      doc.text('Totaal materiaal: \u20AC ' + totMat.toFixed(2), margin, y);
-      y += 6;
-    }
-    y += 3;
-  }
 
   // Opmerkingen
   var opmerkingen = document.getElementById('rapport-opmerkingen').value.trim();
