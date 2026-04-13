@@ -1898,11 +1898,11 @@ async function unplanFromModal() {
   var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
   if (!beurt) return;
   var res = await sb.from('onderhoudsbeurten').update({
-    status: 'gepland', technieker_id: null, plan_datum: null,
+    status: 'in_te_plannen', technieker_id: null, plan_datum: null,
     start_tijd: null, updated_at: new Date().toISOString()
   }).eq('id', beurtId);
   if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
-  beurt.status = 'gepland';
+  beurt.status = 'in_te_plannen';
   beurt.technieker_id = null;
   beurt.plan_datum = null;
   beurt.start_tijd = null;
