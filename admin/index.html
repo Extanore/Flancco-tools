@@ -3824,6 +3824,11 @@ async function saveKlant() {
 
   closeKlantModal();
   await loadAllData();
+
+  // Re-open dossier if it was open, so user sees updated data
+  if (currentDossierClientId) {
+    await showKlantDossier(currentDossierClientId);
+  }
 }
 
 async function deleteKlant() {
