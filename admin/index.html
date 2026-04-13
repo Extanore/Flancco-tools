@@ -169,6 +169,20 @@
   .install-card-detail { font-size:12px; color:var(--text-secondary); margin-top:4px; }
   .install-card-meta { font-size:11px; color:var(--text-muted); margin-top:6px; font-style:italic; }
 
+  /* WORKFLOW CARDS (rapporten, etc.) */
+  .wf-card { background:var(--bg-card); border-radius:10px; padding:16px 20px; margin-bottom:10px; box-shadow:var(--shadow-sm); border:var(--border-light); display:flex; align-items:center; gap:16px; transition:box-shadow var(--transition-fast), border-color var(--transition-fast); }
+  .wf-card:hover { box-shadow:var(--shadow-md); border-color:rgba(0,0,0,0.16); }
+  .wf-card-sector { width:4px; height:48px; border-radius:2px; flex-shrink:0; }
+  .wf-card-info { flex:1; min-width:0; }
+  .wf-card-title { font-size:14px; font-weight:600; color:var(--text-primary); }
+  .wf-card-meta { font-size:12px; color:var(--text-secondary); margin-top:3px; }
+  .wf-card-meta span { margin-right:12px; }
+  .wf-card-detail { font-size:11px; color:var(--text-muted); font-style:italic; margin-top:3px; }
+  .wf-card-ref { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .wf-card-actions { display:flex; gap:6px; flex-shrink:0; }
+  .wf-btn { padding:7px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid var(--rule); background:var(--bg-card); color:var(--navy); transition:var(--transition-fast); }
+  .wf-btn:hover { background:var(--bg-hover); border-color:var(--navy); }
+
   /* HISTORIEK TIMELINE */
   .historiek-item { display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--rule); }
   .historiek-item:last-child { border-bottom:none; }
@@ -824,8 +838,9 @@
     </div>
 
     <div class="page admin-only" id="page-rapporten">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="padding:20px 28px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="font-size:16px;font-weight:700;color:var(--navy);margin:0">Rapporten</h2>
           <div style="display:flex;gap:12px;align-items:center">
             <input type="text" id="rpt-search" placeholder="Zoek op klant, referentie..." oninput="renderRapportenPage()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:240px">
             <select id="rpt-sector-filter" onchange="renderRapportenPage()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
@@ -838,24 +853,11 @@
               <option value="ic">Industrial Cleaning</option>
               <option value="klussen">Klussen</option>
             </select>
+            <span id="rpt-count" style="font-size:13px;color:var(--grey)"></span>
           </div>
-          <span id="rpt-count" style="font-size:12px;color:var(--grey)"></span>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Referentie</th>
-              <th>Datum</th>
-              <th>Klant</th>
-              <th>Sector</th>
-              <th>Checklist</th>
-              <th>PDF</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="rpt-tbody"></tbody>
-        </table>
-        <p id="no-rapporten" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen rapporten gevonden.</p>
+        <div id="rpt-cards"></div>
+        <p id="no-rapporten" style="color:var(--grey);font-size:14px;text-align:center;padding:48px 20px;display:none">Geen rapporten gevonden.</p>
       </div>
     </div>
 
@@ -5881,7 +5883,7 @@ async function sendInterventieBericht() {
 function renderRapportenPage() {
   var search = (document.getElementById('rpt-search').value || '').toLowerCase();
   var sectorF = document.getElementById('rpt-sector-filter').value;
-  var tbody = document.getElementById('rpt-tbody');
+  var container = document.getElementById('rpt-cards');
   var noEl = document.getElementById('no-rapporten');
 
   var filtered = allRapporten.filter(function(r) {
@@ -5897,7 +5899,7 @@ function renderRapportenPage() {
   document.getElementById('rpt-count').textContent = filtered.length + ' rapport(en)';
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '';
+    container.innerHTML = '';
     noEl.style.display = 'block';
     return;
   }
@@ -5905,33 +5907,81 @@ function renderRapportenPage() {
 
   var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
 
-  tbody.innerHTML = filtered.map(function(r) {
+  container.innerHTML = filtered.map(function(r) {
     var snap = r.klant_snapshot || {};
     var klantNaam = snap.naam || '—';
+    var gemeente = snap.gemeente || '';
+    var sector = r.sector || '';
+    var color = sectorStrokeColors[sector] || '#6B7280';
+
+    // Technieker
+    var tech = allTechniekers.find(function(t) { return t.id === r.technieker_id; });
+    var techNaam = tech ? ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() : '';
+
+    // Installatie detail from snapshot
+    var instDetail = '';
+    var inst = r.installatie_snapshot;
+    if (inst) {
+      var parts = [inst.brand, inst.model].filter(Boolean);
+      if (inst.installation_type === 'zonnepanelen' && inst.roof_surfaces) {
+        var surfaces = typeof inst.roof_surfaces === 'string' ? JSON.parse(inst.roof_surfaces) : inst.roof_surfaces;
+        var total = surfaces.reduce(function(s, x) { return s + (x.panel_count || 0); }, 0);
+        if (total > 0) parts.push(total + ' panelen');
+        surfaces.forEach(function(s) { if (s.orientation) parts.push('dakvlak ' + s.orientation); });
+      } else if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+        parts.push(inst.indoor_unit_count + ' binnenunit(s)');
+      } else if (inst.installation_type === 'ventilatie' && inst.ventilation_system_type) {
+        parts.push(inst.ventilation_system_type === 'd_system' ? 'Systeem D' : 'Systeem C');
+      }
+      instDetail = parts.join(' — ');
+    }
+
     // Checklist summary
-    var chkSummary = '—';
+    var chkBadge = '';
     if (r.checklist_data) {
-      var ok = 0, nok = 0, na = 0;
+      var ok = 0, nok = 0;
       Object.values(r.checklist_data).forEach(function(v) {
         if (v.status === 'ok') ok++;
         else if (v.status === 'nok') nok++;
-        else if (v.status === 'na') na++;
       });
-      chkSummary = '<span style="color:var(--green);font-weight:600">' + ok + '</span>';
-      if (nok > 0) chkSummary += ' / <span style="color:var(--red);font-weight:600">' + nok + '</span>';
-      if (na > 0) chkSummary += ' / <span style="color:var(--grey)">' + na + '</span>';
+      chkBadge = '<span style="font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;' +
+        (nok > 0 ? 'background:#FEE2E2;color:#991B1B' : 'background:#ECFDF5;color:#059669') + '">' +
+        ok + ' OK' + (nok > 0 ? ' / ' + nok + ' NOK' : '') + '</span>';
     }
 
-    return '<tr>' +
-      '<td><strong style="font-size:12px;color:var(--navy)">' + esc(r.referentie || '—') + '</strong></td>' +
-      '<td>' + (r.datum_onderhoud || '—') + '</td>' +
-      '<td>' + esc(klantNaam) + '<br><small style="color:var(--grey)">' + esc((snap.gemeente || '') + (snap.postcode ? ' ' + snap.postcode : '')) + '</small></td>' +
-      '<td><span class="sector-badge sector-' + (r.sector || '') + '">' + (sectorLabels[r.sector] || r.sector || '—') + '</span></td>' +
-      '<td style="font-size:12px">' + chkSummary + '</td>' +
-      '<td>' + (r.pdf_url ? '<a href="' + r.pdf_url + '" target="_blank" style="color:var(--blue);font-size:12px;text-decoration:none">Download</a>' : '<span style="color:var(--grey);font-size:12px">—</span>') + '</td>' +
-      '<td><button class="btn-action" onclick="showRapportDetail(\'' + r.id + '\')" title="Bekijk details" style="font-size:11px;padding:3px 8px;border:1px solid var(--rule);border-radius:4px;background:white;cursor:pointer">Details</button></td>' +
-    '</tr>';
+    return '<div class="wf-card">' +
+      '<div class="wf-card-sector" style="background:' + color + '"></div>' +
+      '<div class="wf-card-info">' +
+        '<div class="wf-card-title">' + esc(klantNaam) + '</div>' +
+        '<div class="wf-card-meta">' +
+          '<span>' + esc(sectorLabels[sector] || sector) + '</span>' +
+          '<span>' + esc(gemeente) + '</span>' +
+          (techNaam ? '<span>Technieker: ' + esc(techNaam) + '</span>' : '') +
+          '<span>Datum: ' + fmtDate(r.datum_onderhoud) + '</span>' +
+        '</div>' +
+        (instDetail ? '<div class="wf-card-detail">' + esc(instDetail) + '</div>' : '') +
+        '<div class="wf-card-ref">' + esc(r.referentie || '') + ' ' + chkBadge + '</div>' +
+      '</div>' +
+      '<div class="wf-card-actions">' +
+        (r.pdf_url ? '<a href="' + esc(r.pdf_url) + '" target="_blank" class="wf-btn" style="text-decoration:none">Download PDF</a>' : '') +
+        '<button class="wf-btn" onclick="window.open(\'rapport.html?beurt=' + r.onderhoudsbeurt_id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
+        '<button class="wf-btn" onclick="window.open(\'rapport.html?beurt=' + r.onderhoudsbeurt_id + '\',\'_blank\')">Bewerken</button>' +
+        '<button class="wf-btn" style="color:var(--red);border-color:var(--red)" onclick="deleteRapport(\'' + r.id + '\',\'' + (r.onderhoudsbeurt_id || '') + '\')">Verwijderen</button>' +
+      '</div>' +
+    '</div>';
   }).join('');
+}
+
+async function deleteRapport(rapportId, beurtId) {
+  if (!confirm('Ben je zeker dat je dit rapport wilt verwijderen? Dit kan niet ongedaan gemaakt worden.')) return;
+  var res = await sb.from('rapporten').delete().eq('id', rapportId);
+  if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+  // Reset beurt status back to 'uitgevoerd' so it appears in rapportage tab
+  if (beurtId) {
+    await sb.from('onderhoudsbeurten').update({ status: 'uitgevoerd', updated_at: new Date().toISOString() }).eq('id', beurtId);
+  }
+  allRapporten = allRapporten.filter(function(r) { return r.id !== rapportId; });
+  renderRapportenPage();
 }
 
 // =============================================
