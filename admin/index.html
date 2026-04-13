@@ -23,7 +23,8 @@
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: #1f2937; }
 
   /* LOGIN */
-  .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-wrap { display: none; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-wrap.visible { display: flex; }
   .login-card { background: var(--white); padding: 48px 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 380px; text-align: center; }
   .login-card h1 { font-size: 22px; color: var(--navy); margin-bottom: 6px; }
   .login-card p { font-size: 13px; color: var(--grey); margin-bottom: 28px; }
@@ -829,6 +830,8 @@ async function checkAuth() {
   if (session) {
     currentUser = session.user;
     await initApp();
+  } else {
+    document.getElementById('login').classList.add('visible');
   }
 }
 
@@ -860,6 +863,7 @@ async function initApp() {
   const hideClass = userRole === 'admin' ? 'partner-only' : 'admin-only';
   document.querySelectorAll('.' + hideClass).forEach(el => el.classList.add('role-hidden'));
 
+  document.getElementById('login').classList.remove('visible');
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('user-email').textContent = currentUser.email;
