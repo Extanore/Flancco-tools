@@ -599,15 +599,7 @@
           <option value="">Alle techniekers</option>
         </select>
       </div>
-      <div class="legend" style="margin-top:16px;">
-        <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span> Zon</span>
-        <span class="legend-item"><span class="legend-dot" style="background:var(--red)"></span> Warmtepomp</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#06B6D4"></span> Airco</span>
-        <span class="legend-item"><span class="legend-dot" style="background:var(--navy)"></span> Ventilatie</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#8B5CF6"></span> Verwarming</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#10B981"></span> IC</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#D97706"></span> Klussen</span>
-      </div>
+      <div class="legend" id="sector-legend" style="margin-top:16px;"></div>
     </div>
 
     <!-- MAIN GRID -->
@@ -1114,6 +1106,22 @@ async function checkAuth() {
   await loadPlanningData();
   renderView();
   renderSidebar();
+  // Populate sector legend with SVG icons
+  var legendEl = document.getElementById('sector-legend');
+  if (legendEl) {
+    var sectors = [
+      { key: 'zonnepanelen', label: 'Zon' },
+      { key: 'warmtepomp', label: 'Warmtepomp' },
+      { key: 'airco', label: 'Airco' },
+      { key: 'ventilatie', label: 'Ventilatie' },
+      { key: 'verwarming', label: 'Verwarming' },
+      { key: 'ic', label: 'IC' },
+      { key: 'klussen', label: 'Klussen' }
+    ];
+    legendEl.innerHTML = sectors.map(function(s) {
+      return '<span class="legend-item">' + getSectorIcon(s.key) + ' ' + s.label + '</span>';
+    }).join('');
+  }
 }
 
 async function doLogout() {
