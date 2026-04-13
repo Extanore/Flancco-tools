@@ -280,19 +280,19 @@
       <div class="card">
         <div class="card-title">Contracttype</div>
         <div class="type-grid">
-          <div class="type-card selected" data-type="perklant" onclick="selectType('contractType', this)">
+          <div class="type-card selected" data-type="standaard" onclick="selectType('contractType', this)">
             <div class="type-card-icon">
               <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
-            <h3>Per klant</h3>
-            <p>Eenmalig contract voor deze klant</p>
+            <h3>Standaard</h3>
+            <p>Vaste tarieven per sector</p>
           </div>
-          <div class="type-card" data-type="raam" onclick="selectType('contractType', this)">
+          <div class="type-card" data-type="opmaat" onclick="selectType('contractType', this)">
             <div class="type-card-icon">
-              <svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             </div>
-            <h3>Raamcontract</h3>
-            <p>Doorlopend met vaste voorwaarden</p>
+            <h3>Op maat</h3>
+            <p>Grotere projecten, offerte op maat</p>
           </div>
         </div>
       </div>
@@ -486,7 +486,7 @@ let allSupplements = {};
 // Wizard state
 let wizState = {
   klantType: 'eindklant',
-  contractType: 'perklant',
+  contractType: 'standaard',
   partnerId: null,
   clientId: null,
   newClient: null,
@@ -1291,7 +1291,7 @@ function renderSummary() {
   var freqTxt = wizState.freq === 0 ? 'Eenmalig' : wizState.freq === 1 ? 'Jaarlijks (1x/jaar)' : 'Halfjaarlijks (2x/jaar)';
   var duurTxt = wizState.duur === 0 ? 'Eenmalig' : wizState.duur + ' jaar';
   html += '<div class="summary-card"><h4>Contractdetails</h4>';
-  html += '<div class="summary-row"><span class="label">Type</span><span class="value">' + (wizState.contractType === 'raam' ? 'Raamcontract' : 'Per klant') + '</span></div>';
+  html += '<div class="summary-row"><span class="label">Type</span><span class="value">' + (wizState.contractType === 'opmaat' ? 'Op maat' : 'Standaard') + '</span></div>';
   html += '<div class="summary-row"><span class="label">Klanttype</span><span class="value">' + (wizState.klantType === 'partner' ? 'Partner/installateur' : 'Eindklant') + '</span></div>';
   html += '<div class="summary-row"><span class="label">Frequentie</span><span class="value">' + freqTxt + '</span></div>';
   html += '<div class="summary-row"><span class="label">Looptijd</span><span class="value">' + duurTxt + '</span></div>';
