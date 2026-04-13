@@ -278,7 +278,7 @@
     </div>
     <div class="header-right">
       <button class="btn-header btn-sidebar-toggle" onclick="toggleSidebar()">Te plannen</button>
-      <a href="/admin/" class="btn-header">&larr; Dashboard</a>
+      <a href="./" class="btn-header">&larr; Dashboard</a>
       <button class="btn-header" onclick="doLogout()">Uitloggen</button>
     </div>
   </div>
@@ -584,14 +584,14 @@ async function checkAuth() {
   var sess = await sb.auth.getSession();
   var session = sess.data.session;
   if (!session) {
-    window.location.href = '/admin/';
+    window.location.href = './';
     return;
   }
   currentUser = session.user;
   // Check admin role
   var roleQ = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
   if (roleQ.error || !roleQ.data || roleQ.data.role !== 'admin') {
-    window.location.href = '/admin/';
+    window.location.href = './';
     return;
   }
   document.getElementById('loading').style.display = 'none';
@@ -603,7 +603,7 @@ async function checkAuth() {
 
 async function doLogout() {
   await sb.auth.signOut();
-  window.location.href = '/admin/';
+  window.location.href = './';
 }
 
 // =============================================
