@@ -2100,12 +2100,16 @@ function quickAdd(techId, datum) {
       esc(kl) + ' — ' + esc(c.sector || 'zonnepanelen') + (c.contract_nummer ? ' (' + c.contract_nummer + ')' : '') + '</option>';
   });
 
-  // Populate partner dropdown
+  // Populate partner dropdown — Flancco Direct als standaard
   var partnerSel = document.getElementById('qa-partner');
   partnerSel.innerHTML = '';
+  var flanccoId = '';
   allPartners.forEach(function(p) {
+    var naam = (p.bedrijfsnaam || p.naam || '').toLowerCase();
+    if (naam.indexOf('flancco') >= 0 && !flanccoId) flanccoId = p.id;
     partnerSel.innerHTML += '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam) + '</option>';
   });
+  if (flanccoId) partnerSel.value = flanccoId;
 
   // Reset new client fields
   document.getElementById('qa-new-client-fields').style.display = 'none';
