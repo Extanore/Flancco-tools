@@ -275,7 +275,10 @@ var CHECKLISTS = {
 // AUTH
 // ═══════════════════════════════
 async function init() {
-  var session = (await sb.auth.getSession()).data.session;
+  // Use onAuthStateChange for reliable session detection
+  var session = await new Promise(function(resolve) {
+    sb.auth.onAuthStateChange(function(event, s) { resolve(s); });
+  });
   if (!session) { window.location.href = './'; return; }
   currentUser = session.user;
 

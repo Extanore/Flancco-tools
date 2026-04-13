@@ -581,24 +581,27 @@ function showToast(msg, type) {
 // AUTH
 // =============================================
 async function checkAuth() {
-  var sess = await sb.auth.getSession();
-  var session = sess.data.session;
-  if (!session) {
-    window.location.href = './';
-    return;
-  }
-  currentUser = session.user;
-  // Check admin role
-  var roleQ = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
-  if (roleQ.error || !roleQ.data || roleQ.data.role !== 'admin') {
-    window.location.href = './';
-    return;
-  }
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  await loadPlanningData();
-  renderView();
-  renderSidebar();
+  // Use onAuthStateChange for reliable session detection
+  var handled = false;
+  sb.auth.onAuthStateChange(async function(event, session) {
+    if (handled) return;
+    handled = true;
+    if (!session) {
+      window.location.href = './';
+      return;
+    }
+    currentUser = session.user;
+    var roleQ = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
+    if (roleQ.error || !roleQ.data || roleQ.data.role !== 'admin') {
+      window.location.href = './';
+      return;
+    }
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await loadPlanningData();
+    renderView();
+    renderSidebar();
+  });
 }
 
 async function doLogout() {
