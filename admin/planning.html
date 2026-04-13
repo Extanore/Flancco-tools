@@ -1034,7 +1034,7 @@ function getBeurtenForTechDay(techId, date) {
   var ds = formatDateISO(date);
   return allBeurten.filter(function(b) {
     return b.technieker_id === techId && b.plan_datum === ds &&
-      (b.status === 'ingepland' || b.status === 'uitgevoerd');
+      (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
   });
 }
 
@@ -1049,7 +1049,7 @@ function getWeekBeurten(dates) {
   var end = formatDateISO(dates[dates.length - 1]);
   return allBeurten.filter(function(b) {
     return b.plan_datum && b.plan_datum >= start && b.plan_datum <= end &&
-      (b.status === 'ingepland' || b.status === 'uitgevoerd');
+      (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
   });
 }
 
@@ -1311,8 +1311,8 @@ function renderStats() {
     if (b.status === 'ingepland') ingepland++;
     if (b.status === 'uitgevoerd') afgewerkt++;
     if (b.plan_datum === todayStr && b.status === 'ingepland') vandaag++;
-    if (weekStrs.indexOf(b.plan_datum) !== -1 && (b.status === 'ingepland' || b.status === 'uitgevoerd')) week++;
-    if (b.due_date && b.due_date < todayStr && b.status !== 'uitgevoerd' && b.status !== 'geannuleerd') verlopen++;
+    if (weekStrs.indexOf(b.plan_datum) !== -1 && (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt')) week++;
+    if (b.due_date && b.due_date < todayStr && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt' && b.status !== 'geannuleerd') verlopen++;
   });
 
   // Verlof: techniekers die vandaag afwezig zijn
@@ -1435,7 +1435,7 @@ function renderWeekView() {
         // Also show ghost cards for duo-beurten where this tech is extra
         var ghostBeurten = allBeurten.filter(function(b) {
           return b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1 &&
-            b.plan_datum === formatDateISO(dates[d]) && b.status === 'ingepland';
+            b.plan_datum === formatDateISO(dates[d]) && (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
         }).filter(passesFilters);
 
         html += '<td class="' + (isToday ? 'today-col' : '') + '" ' +
@@ -1461,7 +1461,8 @@ function renderWeekView() {
             '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
             (dTimeStr ? '<div class="appt-time">' + dTimeStr + (dDuurStr ? '<span class="appt-duur">· ' + dDuurStr + '</span>' : '') + '</div>' : '') +
             '<div class="appt-meta">' + esc(info.gemeente) + '</div>' +
-            (b.status === 'uitgevoerd' ? '<span class="appt-badge" style="background:#DCFCE7;color:#166534;">\u2713 Uitgevoerd</span>' : '') +
+            (b.status === 'afgewerkt' ? '<span class="appt-badge" style="background:#DCFCE7;color:#166534;">\u2713 Afgewerkt</span>' :
+             b.status === 'uitgevoerd' ? '<span class="appt-badge" style="background:#FEF3C7;color:#92400E;">\u25CB Uitgevoerd</span>' : '') +
             '<div class="appt-extra-label">' +
             '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ' +
             'Duo met ' + esc(hoofdNaam) + '</div>' +
@@ -1587,7 +1588,8 @@ function renderApptCard(b, info) {
     (timeStr ? '<div class="appt-time">' + timeStr + (duurStr ? '<span class="appt-duur">· ' + duurStr + '</span>' : '') + '</div>' : '') +
     '<div class="appt-meta">' + esc(info.gemeente) + '</div>' +
     (installStr ? '<div class="appt-install">' + esc(installStr) + '</div>' : '') +
-    (b.status === 'uitgevoerd' ? '<span class="appt-badge" style="background:#DCFCE7;color:#166534;">\u2713 Uitgevoerd</span>' : '') +
+    (b.status === 'afgewerkt' ? '<span class="appt-badge" style="background:#DCFCE7;color:#166534;">\u2713 Afgewerkt</span>' :
+     b.status === 'uitgevoerd' ? '<span class="appt-badge" style="background:#FEF3C7;color:#92400E;">\u25CB Uitgevoerd</span>' : '') +
     extraHtml +
     '</div>';
 }
@@ -1631,7 +1633,7 @@ function renderDayView() {
           var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
           return (isPri || isExt) && b.plan_datum === dateStr &&
             b.start_tijd && b.start_tijd.substring(0,5) === slot &&
-            (b.status === 'ingepland' || b.status === 'uitgevoerd');
+            (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
         }).filter(passesFilters);
 
         html += '<td ondragover="onDragOver(event)" ondrop="onDropDay(event, \'' + tech.id + '\', \'' + dateStr + '\', \'' + slot + '\')">';
@@ -1650,7 +1652,7 @@ function renderDayView() {
   // Also show unscheduled beurten for this day (no start_tijd)
   var unscheduled = allBeurten.filter(function(b) {
     return b.plan_datum === dateStr && !b.start_tijd &&
-      (b.status === 'ingepland' || b.status === 'uitgevoerd');
+      (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
   }).filter(passesFilters);
 
   if (unscheduled.length > 0) {
@@ -2306,7 +2308,7 @@ function renderMonthView() {
         var ds = formatDateISO(d);
 
         var dayBeurten = allBeurten.filter(function(b) {
-          return b.plan_datum === ds && (b.status === 'ingepland' || b.status === 'uitgevoerd');
+          return b.plan_datum === ds && (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
         });
 
         html += '<td class="' + (isOther ? 'other-month' : '') + (isToday ? ' today-cell' : '') + '" ' +
