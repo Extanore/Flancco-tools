@@ -504,6 +504,14 @@ function renderSamenvatting() {
 // OPSLAAN
 // ═══════════════════════════════
 async function saveRapport() {
+  // Validate checklist — at least one item must be checked
+  var checkData = getChecklistData();
+  var hasChecked = Object.values(checkData).some(function(item) { return item.status !== null; });
+  if (!hasChecked) {
+    alert('Vul minstens één checklist-item in voordat je het rapport opslaat.');
+    return;
+  }
+
   var btn = document.getElementById('btn-save');
   btn.disabled = true; btn.textContent = 'Opslaan...';
 

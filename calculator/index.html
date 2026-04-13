@@ -1644,9 +1644,12 @@ function calculateAll() {
 
   // Read shared inputs
   var afst = Math.max(0, parseInt(document.getElementById('afstand').value) || 0);
-  var btwPct = parseInt(document.querySelector('input[name="btw"]:checked').value);
-  var freq = parseInt(document.querySelector('input[name="freq"]:checked').value);
-  var duur = parseInt(document.querySelector('input[name="duur"]:checked').value);
+  var btwEl = document.querySelector('input[name="btw"]:checked');
+  var freqEl = document.querySelector('input[name="freq"]:checked');
+  var duurEl = document.querySelector('input[name="duur"]:checked');
+  var btwPct = btwEl ? parseInt(btwEl.value) : 21;
+  var freq = freqEl ? parseInt(freqEl.value) : 1;
+  var duur = duurEl ? parseInt(duurEl.value) : 0;
   var korting = duur >= 3 ? 0.05 : 0;
   var freeKm = parseInt(partner.transport_gratis_km) || 30;
   var extraKm = Math.max(0, afst - freeKm);
@@ -2224,7 +2227,7 @@ async function submitContract() {
     var payload = {
       partner_id: partner.id,
       client_id: clientId,
-      sector: selectedSectors.length === 1 ? selectedSectors[0] : selectedSectors[0], // primary sector
+      sector: selectedSectors[0], // primary sector
       klant_naam: document.getElementById('klant-naam').value,
       klant_adres: document.getElementById('klant-straat').value + ' ' + document.getElementById('klant-huisnr').value,
       klant_postcode: document.getElementById('klant-postcode').value,

@@ -2217,9 +2217,9 @@ function globalSearch(q) {
 
   // Zoek klanten
   (allClients || []).forEach(function(c) {
-    var haystack = ((c.naam || '') + ' ' + (c.bedrijf || '') + ' ' + (c.gemeente || '') + ' ' + (c.email || '') + ' ' + (c.telefoon || '')).toLowerCase();
+    var haystack = ((c.contact_person || '') + ' ' + (c.company_name || '') + ' ' + (c.city || '') + ' ' + (c.email || '') + ' ' + (c.phone || '')).toLowerCase();
     if (haystack.indexOf(term) !== -1) {
-      results.push({ type: 'Klant', label: esc(c.naam) + (c.bedrijf ? ' — ' + esc(c.bedrijf) : ''), sub: esc(c.gemeente || ''), action: "showKlantDossier('" + c.id + "')" });
+      results.push({ type: 'Klant', label: esc(c.contact_person || '') + (c.company_name ? ' — ' + esc(c.company_name) : ''), sub: esc(c.city || ''), action: "showKlantDossier('" + c.id + "')" });
     }
   });
 
@@ -2233,7 +2233,7 @@ function globalSearch(q) {
 
   // Zoek partners (admin only)
   if (userRole === 'admin') {
-    (allPartners || []).forEach(function(p) {
+    (partners || []).forEach(function(p) {
       if ((p.naam || '').toLowerCase().indexOf(term) !== -1) {
         results.push({ type: 'Partner', label: esc(p.naam), sub: esc(p.slug || ''), action: "showPage('partners')" });
       }

@@ -1026,68 +1026,8 @@ function renderDayView() {
 }
 
 // =============================================
-// MONTH VIEW
+// MONTH VIEW (see second definition below)
 // =============================================
-function renderMonthView() {
-  var dates = getMonthDates(currentDate);
-  var today = new Date(); today.setHours(0,0,0,0);
-  var monthNames = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
-  var month = currentDate.getMonth();
-  var year = currentDate.getFullYear();
-
-  document.getElementById('period-label').textContent = monthNames[month] + ' ' + year;
-
-  var dayNames = getDayNames();
-  var html = '<table class="month-grid"><thead><tr>';
-  dayNames.forEach(function(n) { html += '<th>' + n + '</th>'; });
-  html += '</tr></thead><tbody>';
-
-  for (var w = 0; w < 6; w++) {
-    html += '<tr>';
-    for (var d = 0; d < 5; d++) { // Only weekdays
-      var idx = w * 7 + d; // Mon-Fri from the 7-day grid
-      // Actually we need to map properly: dates array has all 7 days per week
-      var actualIdx = w * 7 + d;
-      if (actualIdx >= dates.length) {
-        html += '<td class="other-month"></td>';
-        continue;
-      }
-      var date = dates[actualIdx];
-      var isOther = date.getMonth() !== month;
-      var isToday = isSameDay(date, today);
-      var ds = formatDateISO(date);
-
-      // Count beurten for this day
-      var dayBeurten = allBeurten.filter(function(b) {
-        return b.plan_datum === ds && (b.status === 'ingepland' || b.status === 'uitgevoerd');
-      });
-
-      html += '<td class="' + (isOther ? 'other-month' : '') + (isToday ? ' today-cell' : '') + '" ' +
-        'onclick="monthDayClick(\'' + ds + '\')">';
-      html += '<div class="month-day-num">' + date.getDate() + '</div>';
-      if (dayBeurten.length > 0) {
-        html += '<div class="month-count">' + dayBeurten.length + ' beurt' + (dayBeurten.length > 1 ? 'en' : '') + '</div>';
-        html += '<div class="month-dots">';
-        // Show dots for unique sectors
-        var sectors = {};
-        dayBeurten.forEach(function(b) {
-          var info = getClientInfo(b);
-          sectors[info.sector] = true;
-        });
-        Object.keys(sectors).forEach(function(s) {
-          html += '<div class="month-dot" style="background:' + getSectorColor(s) + ';"></div>';
-        });
-        html += '</div>';
-      }
-      html += '</td>';
-    }
-    // Skip weekend columns in display
-    html += '</tr>';
-  }
-
-  html += '</tbody></table>';
-  document.getElementById('grid-area').innerHTML = html;
-}
 
 function monthDayClick(dateStr) {
   currentDate = parseDate(dateStr);
@@ -1344,6 +1284,7 @@ async function ctxMarkDone() {
   if (!ctxBeurtId) return;
   var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
   if (!beurt) return;
+  var oldStatus = beurt.status;
 
   var result = await sb.from('onderhoudsbeurten').update({
     status: 'uitgevoerd',
@@ -1356,9 +1297,10 @@ async function ctxMarkDone() {
   } else {
     beurt.status = 'uitgevoerd';
     beurt.uitvoer_datum = formatDateISO(new Date());
-    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_wijziging', 'ingepland', 'uitgevoerd');
+    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_wijziging', oldStatus, 'uitgevoerd');
     showToast('Beurt gemarkeerd als uitgevoerd');
     renderView();
+    renderSidebar();
   }
   ctxBeurtId = null;
 }
@@ -1369,6 +1311,7 @@ async function ctxCancel() {
 
   var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
   if (!beurt) return;
+  var oldStatus = beurt.status;
 
   var result = await sb.from('onderhoudsbeurten').update({
     status: 'geannuleerd',
@@ -1379,7 +1322,7 @@ async function ctxCancel() {
     showToast('Fout: ' + result.error.message, 'error');
   } else {
     beurt.status = 'geannuleerd';
-    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_wijziging', beurt.status, 'geannuleerd');
+    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_wijziging', oldStatus, 'geannuleerd');
     showToast('Beurt geannuleerd');
     renderView();
     renderSidebar();
