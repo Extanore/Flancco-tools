@@ -1432,11 +1432,13 @@ function renderWeekView() {
           '<span class="absent-label" style="color:' + afwInfo.kleur + '">' + esc(afwInfo.type_naam) + '</span></td>';
       } else {
         var beurten = getBeurtenForTechDay(tech.id, dates[d]).filter(passesFilters);
+        beurten.sort(function(a, b) { return (a.start_tijd || '99:99').localeCompare(b.start_tijd || '99:99'); });
         // Also show ghost cards for duo-beurten where this tech is extra
         var ghostBeurten = allBeurten.filter(function(b) {
           return b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1 &&
             b.plan_datum === formatDateISO(dates[d]) && (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
         }).filter(passesFilters);
+        ghostBeurten.sort(function(a, b) { return (a.start_tijd || '99:99').localeCompare(b.start_tijd || '99:99'); });
 
         html += '<td class="' + (isToday ? 'today-col' : '') + '" ' +
           'ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')">';
