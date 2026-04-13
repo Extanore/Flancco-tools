@@ -657,8 +657,18 @@ async function loadRapportView(beurtId) {
   var klantNaam = klant.naam || contract.klant_naam || '';
   var klantAdres = (klant.adres || contract.klant_adres || '') + ', ' + (klant.postcode || contract.klant_postcode || '') + ' ' + (klant.gemeente || contract.klant_gemeente || '');
 
-  // Installatie snapshot
-  var instHtml = buildInstallatieHtml(rapport.installatie_snapshot);
+  // Installatie snapshot (fallback: ophalen via installatie_id als snapshot ontbreekt)
+  var instData = rapport.installatie_snapshot;
+  if (!instData && rapport.installatie_id) {
+    var instRes = await sb.from('klant_installaties').select('*').eq('id', rapport.installatie_id).single();
+    if (instRes.data) instData = instRes.data;
+  }
+  if (!instData && contract.client_id) {
+    // Laatste fallback: zoek installatie op client + sector
+    var instRes2 = await sb.from('klant_installaties').select('*').eq('client_id', contract.client_id).eq('installation_type', sector).limit(1);
+    if (instRes2.data && instRes2.data.length > 0) instData = instRes2.data[0];
+  }
+  var instHtml = buildInstallatieHtml(instData);
 
   // Opmerkingen
   var opmerkingen = rapport.opmerkingen || '';
