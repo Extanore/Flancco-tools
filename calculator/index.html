@@ -1796,6 +1796,25 @@ async function submitSigning() {
     var updateRes = await sb.from('contracten').update(updatePayload).eq('id', c.id).eq('status', 'concept').select();
     if (updateRes.error) throw updateRes.error;
 
+    // Create client in clients table and link to contract
+    try {
+      if (c.klant_naam && c.partner_id) {
+        var ins = await sb.from('clients').insert({
+          partner_id: c.partner_id,
+          contact_person: c.klant_naam,
+          email: c.klant_email || 'geen@email.be',
+          phone: c.klant_telefoon || null,
+          street: c.klant_adres || null,
+          postal_code: c.klant_postcode || null,
+          city: c.klant_gemeente || null,
+          notes: 'Aangemaakt bij contractondertekening'
+        }).select('id').single();
+        if (ins.data && ins.data.id) {
+          await sb.from('contracten').update({ client_id: ins.data.id }).eq('id', c.id);
+        }
+      }
+    } catch (clientErr) { console.warn('Klant aanmaken mislukt:', clientErr); }
+
     // Generate onderhoudsbeurten per sector
     try {
       var sectoren = c.sectoren || [];

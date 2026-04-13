@@ -517,6 +517,12 @@
     <!-- FILTERS -->
     <div class="filters-sidebar">
       <div class="filter-group">
+        <label>Partner</label>
+        <select id="filter-partner" onchange="applyFilters()">
+          <option value="">Alle partners</option>
+        </select>
+      </div>
+      <div class="filter-group">
         <label>Sector</label>
         <select id="filter-sector" onchange="applyFilters()">
           <option value="">Alle sectoren</option>
@@ -1029,6 +1035,13 @@ function populateFilterDropdowns() {
   allTechniekers.forEach(function(t) {
     techSel.innerHTML += '<option value="' + t.id + '">' + esc(t.voornaam + ' ' + t.naam) + '</option>';
   });
+
+  // Partner filter
+  var partnerSel = document.getElementById('filter-partner');
+  partnerSel.innerHTML = '<option value="">Alle partners</option>';
+  allPartners.forEach(function(p) {
+    partnerSel.innerHTML += '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam) + '</option>';
+  });
 }
 
 // =============================================
@@ -1044,9 +1057,14 @@ function passesFilters(beurt) {
   var sectorFilter = document.getElementById('filter-sector').value;
   var regioFilter = document.getElementById('filter-regio').value;
   var techFilter = document.getElementById('filter-tech').value;
+  var partnerFilter = document.getElementById('filter-partner').value;
 
   var info = getClientInfo(beurt);
 
+  if (partnerFilter) {
+    var contract = allContracten.find(function(c) { return c.id === beurt.contract_id; });
+    if (!contract || contract.partner_id !== partnerFilter) return false;
+  }
   if (sectorFilter && info.sector.toLowerCase() !== sectorFilter) return false;
   if (regioFilter && !(info.postcode || '').startsWith(regioFilter)) return false;
   if (techFilter && beurt.technieker_id !== techFilter) return false;
@@ -1410,8 +1428,13 @@ function renderSidebar() {
   var sectorFilter = document.getElementById('sb-filter-sector').value;
   var regioFilter = document.getElementById('sb-filter-regio').value;
 
+  var partnerFilter = document.getElementById('filter-partner').value;
   items = items.filter(function(b) {
     var info = getClientInfo(b);
+    if (partnerFilter) {
+      var contract = allContracten.find(function(c) { return c.id === b.contract_id; });
+      if (!contract || contract.partner_id !== partnerFilter) return false;
+    }
     if (sectorFilter && info.sector.toLowerCase() !== sectorFilter) return false;
     if (regioFilter && !(info.postcode || '').startsWith(regioFilter)) return false;
     return true;
