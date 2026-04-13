@@ -337,6 +337,57 @@ var steps = ['checklist','fotos','uren','opmerkingen','samenvatting','success'];
 function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function hexToRgb(hex) { var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16); return {r:r,g:g,b:b}; }
 
+function getSelectedInstallatie() {
+  var id = document.getElementById('installatie-select').value;
+  if (!id || !currentInstallaties) return null;
+  return currentInstallaties.find(function(i) { return i.id === id; }) || null;
+}
+
+function buildInstallatieHtml(inst) {
+  if (!inst) return '';
+  var rows = '';
+  function addRow(label, val) { if (val) rows += '<div class="rp-field" style="flex:0 0 50%"><div class="rp-field-label">' + esc(label) + '</div><div class="rp-field-value">' + esc(val) + '</div></div>'; }
+
+  addRow('Merk', inst.brand);
+  addRow('Model', inst.model);
+  if (inst.installation_date) addRow('Installatiedatum', inst.installation_date);
+  if (inst.location_description) addRow('Locatie', inst.location_description);
+
+  var type = inst.installation_type;
+  if (type === 'zonnepanelen') {
+    var surfaces = inst.roof_surfaces || [];
+    if (surfaces.length > 0) {
+      var totalPanels = 0;
+      var surfaceDescs = surfaces.map(function(s, idx) {
+        totalPanels += (s.panel_count || 0);
+        return (s.panel_count || '?') + ' panelen' + (s.orientation ? ' (' + s.orientation + ')' : '') + (s.roof_type ? ' — ' + s.roof_type : '');
+      });
+      addRow('Totaal panelen', totalPanels + '');
+      surfaceDescs.forEach(function(desc, idx) { addRow('Dakvlak ' + (idx + 1), desc); });
+    }
+    if (inst.gutter_height) addRow('Goothoogte', inst.gutter_height);
+  }
+
+  if (type === 'warmtepomp' || type === 'airco') {
+    if (inst.indoor_unit_count) addRow('Binnenunits', inst.indoor_unit_count + '');
+    var unitTypes = inst.indoor_unit_types || [];
+    if (unitTypes.length > 0) addRow('Type binnenunits', unitTypes.join(', '));
+    var unitLocs = inst.indoor_unit_locations || [];
+    if (unitLocs.length > 0) addRow('Locaties binnenunits', unitLocs.join(', '));
+    if (inst.outdoor_unit_count) addRow('Buitenunits', inst.outdoor_unit_count + '');
+  }
+
+  if (type === 'ventilatie' && inst.ventilation_system_type) {
+    var sysLabel = inst.ventilation_system_type === 'c_system' ? 'Systeem C' : inst.ventilation_system_type === 'd_system' ? 'Systeem D' : inst.ventilation_system_type;
+    addRow('Systeemtype', sysLabel);
+  }
+
+  if (type === 'verwarming' && inst.heating_type) addRow('Verwarmingstype', inst.heating_type);
+
+  if (!rows) return '';
+  return '<div class="rp-section"><div class="rp-section-title">Installatiegegevens</div><div class="rp-row" style="flex-wrap:wrap">' + rows + '</div></div>';
+}
+
 // ═══════════════════════════════
 // CHECKLISTS PER SECTOR (fallback)
 // ═══════════════════════════════
@@ -623,6 +674,9 @@ async function loadRapportView(beurtId) {
   var klantNaam = klant.naam || contract.klant_naam || '';
   var klantAdres = (klant.adres || contract.klant_adres || '') + ', ' + (klant.postcode || contract.klant_postcode || '') + ' ' + (klant.gemeente || contract.klant_gemeente || '');
 
+  // Installatie snapshot
+  var instHtml = buildInstallatieHtml(rapport.installatie_snapshot);
+
   // Opmerkingen
   var opmerkingen = rapport.opmerkingen || '';
 
@@ -659,6 +713,8 @@ async function loadRapportView(beurtId) {
           '<div class="rp-field"><div class="rp-field-label">Adres</div><div class="rp-field-value">' + esc(klantAdres) + '</div></div>' +
         '</div>' +
       '</div>' +
+
+      instHtml +
 
       '<div class="rp-section">' +
         '<div class="rp-section-title">Uitgevoerde werkzaamheden</div>' +
@@ -1230,6 +1286,9 @@ function renderSamenvatting() {
     logoHtml = '<div><div class="rp-logo" style="color:' + brandColor + '">' + esc(brandName.toUpperCase()) + '</div><div class="rp-tagline">' + esc(brandTagline) + '</div></div>';
   }
 
+  // Installatie sectie
+  var instHtml = buildInstallatieHtml(getSelectedInstallatie());
+
   // Build full preview
   document.getElementById('rapport-preview').innerHTML =
     '<div class="rp">' +
@@ -1251,6 +1310,8 @@ function renderSamenvatting() {
           '<div class="rp-field"><div class="rp-field-label">Adres</div><div class="rp-field-value">' + esc((currentContract.klant_adres||'') + ', ' + (currentContract.klant_postcode||'') + ' ' + (currentContract.klant_gemeente||'')) + '</div></div>' +
         '</div>' +
       '</div>' +
+
+      instHtml +
 
       '<div class="rp-section">' +
         '<div class="rp-section-title">Uitgevoerde werkzaamheden</div>' +
@@ -1299,8 +1360,9 @@ async function saveRapport() {
     if (currentBeurt.sector === 'warmtepomp' && details.warmtepomp) formule = details.warmtepomp.formule || null;
     if (currentBeurt.sector === 'ventilatie' && details.ventilatie) systeem = details.ventilatie.type || null;
 
-    // Selected installatie
+    // Selected installatie + snapshot
     var installatieId = document.getElementById('installatie-select').value || null;
+    var installatieSnapshot = getSelectedInstallatie();
 
     // Uren & materiaal
     var urenData = getUrenData();
@@ -1320,6 +1382,7 @@ async function saveRapport() {
       datum_onderhoud: datum,
       klant_snapshot: { naam: currentContract.klant_naam, adres: currentContract.klant_adres, postcode: currentContract.klant_postcode, gemeente: currentContract.klant_gemeente, telefoon: currentContract.klant_telefoon, email: currentContract.klant_email },
       installatie_id: installatieId,
+      installatie_snapshot: installatieSnapshot,
       uren_data: urenData.length > 0 ? urenData : null,
       materiaal_data: materiaalData.length > 0 ? materiaalData : null
     }]).select();
@@ -1445,13 +1508,57 @@ function buildPDF(doc) {
   doc.text('Datum: ' + (currentBeurt.plan_datum || '\u2014'), margin + 80, y + 5);
   doc.text('Contract: ' + (klant.contract_nummer || '\u2014'), margin + 4, y + 13);
 
-  // Installatie info
-  var instSelect = document.getElementById('installatie-select');
-  if (instSelect && instSelect.value) {
-    var instLabel = instSelect.options[instSelect.selectedIndex].textContent;
-    doc.text('Installatie: ' + instLabel, margin + 80, y + 13);
+  // Installatie info (compact line in beurt block)
+  var pdfInst = getSelectedInstallatie();
+  if (pdfInst) {
+    var instLine = (pdfInst.brand || '') + ' ' + (pdfInst.model || '');
+    doc.text('Installatie: ' + instLine.trim(), margin + 80, y + 13);
   }
   y += 28;
+
+  // Installatiegegevens detail section
+  if (pdfInst) {
+    checkPage(30);
+    doc.setTextColor(headerColor.r, headerColor.g, headerColor.b);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Installatiegegevens', margin, y); y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+
+    var instRows = [];
+    if (pdfInst.brand) instRows.push('Merk: ' + pdfInst.brand);
+    if (pdfInst.model) instRows.push('Model: ' + pdfInst.model);
+    if (pdfInst.installation_date) instRows.push('Installatiedatum: ' + pdfInst.installation_date);
+    if (pdfInst.location_description) instRows.push('Locatie: ' + pdfInst.location_description);
+
+    var type = pdfInst.installation_type;
+    if (type === 'zonnepanelen') {
+      var surfaces = pdfInst.roof_surfaces || [];
+      if (surfaces.length > 0) {
+        var tp = 0; surfaces.forEach(function(s) { tp += (s.panel_count || 0); });
+        instRows.push('Totaal panelen: ' + tp);
+        surfaces.forEach(function(s, idx) {
+          instRows.push('Dakvlak ' + (idx+1) + ': ' + (s.panel_count||'?') + ' panelen' + (s.orientation ? ' (' + s.orientation + ')' : '') + (s.roof_type ? ' \u2014 ' + s.roof_type : ''));
+        });
+      }
+      if (pdfInst.gutter_height) instRows.push('Goothoogte: ' + pdfInst.gutter_height);
+    }
+    if ((type === 'warmtepomp' || type === 'airco')) {
+      if (pdfInst.indoor_unit_count) instRows.push('Binnenunits: ' + pdfInst.indoor_unit_count);
+      if (pdfInst.indoor_unit_types && pdfInst.indoor_unit_types.length) instRows.push('Type: ' + pdfInst.indoor_unit_types.join(', '));
+      if (pdfInst.indoor_unit_locations && pdfInst.indoor_unit_locations.length) instRows.push('Locaties: ' + pdfInst.indoor_unit_locations.join(', '));
+      if (pdfInst.outdoor_unit_count) instRows.push('Buitenunits: ' + pdfInst.outdoor_unit_count);
+    }
+    if (type === 'ventilatie' && pdfInst.ventilation_system_type) {
+      instRows.push('Systeemtype: ' + (pdfInst.ventilation_system_type === 'c_system' ? 'Systeem C' : pdfInst.ventilation_system_type === 'd_system' ? 'Systeem D' : pdfInst.ventilation_system_type));
+    }
+    if (type === 'verwarming' && pdfInst.heating_type) instRows.push('Verwarmingstype: ' + pdfInst.heating_type);
+
+    instRows.forEach(function(r) { checkPage(5); doc.text(r, margin, y); y += 5; });
+    y += 4;
+  }
 
   // Checklist
   doc.setTextColor(headerColor.r, headerColor.g, headerColor.b);
