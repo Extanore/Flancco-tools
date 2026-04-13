@@ -77,10 +77,55 @@
   .capacity-track { width: 180px; height: 10px; background: var(--light); border-radius: 5px; overflow: hidden; border: 1px solid var(--rule); }
   .capacity-fill { height: 100%; border-radius: 5px; transition: width 0.4s var(--ease), background 0.3s; }
 
+  /* STATS BAR */
+  .stats-bar {
+    display: flex; gap: 0; padding: 0 28px; background: var(--white);
+    border-bottom: 1px solid var(--rule); overflow-x: auto;
+  }
+  .stat-item {
+    display: flex; flex-direction: column; align-items: center; padding: 10px 20px;
+    border-right: 1px solid var(--rule); flex-shrink: 0;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-value { font-size: 18px; font-weight: 700; color: var(--navy); line-height: 1.2; }
+  .stat-label { font-size: 11px; color: var(--grey); font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+  .stat-value.warn { color: var(--orange); }
+  .stat-value.danger { color: var(--red); }
+
   /* LEGEND */
   .legend { display: flex; gap: 14px; align-items: center; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--grey); font-weight: 500; }
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* BESCHIKBAARHEID */
+  .beschikbaarheid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 4px; }
+  .beschikbaar-card {
+    background: var(--white); border-radius: var(--radius); padding: 20px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--rule); transition: all 0.2s var(--ease);
+  }
+  .beschikbaar-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .beschikbaar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .beschikbaar-naam { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .beschikbaar-badge {
+    padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  }
+  .werkdruk-bar { margin: 10px 0; }
+  .werkdruk-label { font-size: 11px; color: var(--grey); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .werkdruk-track { height: 8px; background: var(--light); border-radius: 4px; overflow: hidden; border: 1px solid var(--rule); }
+  .werkdruk-fill { height: 100%; border-radius: 4px; transition: width 0.4s var(--ease); }
+  .mini-week { display: flex; gap: 6px; margin: 10px 0; }
+  .mini-day {
+    flex: 1; text-align: center; padding: 6px 0; border-radius: 6px; font-size: 11px; font-weight: 600;
+  }
+  .mini-day-label { font-size: 9px; color: var(--grey); text-transform: uppercase; display: block; margin-bottom: 2px; }
+  .taken-vandaag { margin-top: 12px; border-top: 1px solid var(--rule); padding-top: 10px; }
+  .taken-vandaag-title { font-size: 11px; color: var(--grey); font-weight: 600; text-transform: uppercase; margin-bottom: 6px; }
+  .taak-chip {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    background: var(--light); border-radius: 6px; font-size: 12px; margin-bottom: 4px;
+  }
+  .taak-chip-sector { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .taak-chip-tijd { color: var(--grey); font-size: 11px; margin-left: auto; }
 
   /* LAYOUT */
   .planning-layout { display: flex; height: calc(100vh - 108px); overflow: hidden; }
@@ -160,6 +205,24 @@
   .appt-card .appt-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700;
     padding: 2px 6px; border-radius: 4px; margin-top: 3px; }
   .appt-card.dragging { opacity: 0.4; transform: scale(0.95); }
+  .appt-card .appt-extra-techs { display: flex; gap: 3px; margin-top: 3px; }
+  .extra-tech-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; font-size: 9px; font-weight: 700;
+    background: var(--navy); color: var(--white); opacity: 0.7;
+  }
+
+  /* QUICK-ADD */
+  .quick-add-btn {
+    opacity: 0; position: absolute; bottom: 2px; right: 2px;
+    width: 22px; height: 22px; border-radius: 50%; background: var(--navy);
+    color: white; border: none; font-size: 14px; cursor: pointer;
+    transition: 0.2s var(--ease); display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  td:hover .quick-add-btn { opacity: 0.6; }
+  .quick-add-btn:hover { opacity: 1 !important; transform: scale(1.1); }
+  td { position: relative; }
 
   /* SECTOR COLORS */
   .sector-zonnepanelen { border-left-color: var(--orange); background: linear-gradient(135deg, #fff8f0 0%, var(--white) 100%); }
@@ -274,6 +337,67 @@
   .ctx-menu .ctx-item:hover { background: var(--light); }
   .ctx-menu .ctx-item.danger { color: var(--red); }
   .ctx-menu .ctx-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* MODALS */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 300;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 16px; padding: 28px; width: 90%;
+    box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 18px; color: var(--navy); margin-bottom: 4px; }
+  .modal h3 { font-size: 14px; color: var(--navy); margin-bottom: 8px; }
+  .modal-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .modal-row > * { flex: 1; }
+  .modal-field { margin-bottom: 12px; }
+  .modal-field label { display: block; font-size: 12px; font-weight: 600; color: var(--grey); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .modal-field input, .modal-field select, .modal-field textarea {
+    width: 100%; padding: 8px 12px; border: 1.5px solid var(--rule); border-radius: 8px;
+    font-size: 13px; font-family: inherit; transition: border-color 0.2s;
+  }
+  .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus {
+    outline: none; border-color: var(--navy);
+  }
+  .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .modal-buttons button {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 1.5px solid var(--rule); background: var(--white); color: var(--navy);
+    font-family: inherit; transition: all 0.2s;
+  }
+  .modal-buttons button:hover { background: var(--light); }
+  .modal-buttons .btn-save {
+    background: var(--navy); color: var(--white); border-color: var(--navy);
+  }
+  .modal-buttons .btn-save:hover { background: var(--navy-light); }
+  .tech-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .tech-chip {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    border: 1.5px solid var(--rule); cursor: pointer; transition: all 0.15s;
+    background: var(--white); color: var(--navy);
+  }
+  .tech-chip.selected { background: var(--navy); color: var(--white); border-color: var(--navy); }
+  .tech-chip:hover { border-color: var(--navy); }
+
+  /* WERKBON */
+  .werkbon-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; padding: 8px; background: var(--light); border-radius: 8px; }
+  .werkbon-row input, .werkbon-row select { padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; font-size: 12px; font-family: inherit; }
+  .werkbon-row .wb-remove { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px; }
+  .btn-add-row {
+    background: none; border: 1.5px dashed var(--rule); border-radius: 8px;
+    padding: 8px 16px; font-size: 12px; color: var(--grey); cursor: pointer;
+    font-family: inherit; width: 100%; transition: all 0.2s;
+  }
+  .btn-add-row:hover { border-color: var(--navy); color: var(--navy); }
+  .werkbon-totaal {
+    margin-top: 16px; padding: 16px; background: var(--light); border-radius: 10px;
+    display: grid; grid-template-columns: 1fr auto; gap: 6px; font-size: 13px;
+  }
+  .werkbon-totaal .totaal-label { font-weight: 700; font-size: 14px; color: var(--navy); }
+  .werkbon-totaal .totaal-value { font-weight: 700; font-size: 14px; color: var(--navy); text-align: right; }
   .ctx-separator { height: 1px; background: var(--rule); margin: 4px 8px; }
 
   /* EMPTY STATE */
@@ -351,11 +475,22 @@
     </div>
   </div>
 
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-item"><span class="stat-value" id="stat-ingepland">0/0</span><span class="stat-label">ingepland</span></div>
+    <div class="stat-item"><span class="stat-value" id="stat-verlof">0</span><span class="stat-label">op verlof</span></div>
+    <div class="stat-item"><span class="stat-value" id="stat-vandaag">0</span><span class="stat-label">vandaag</span></div>
+    <div class="stat-item"><span class="stat-value" id="stat-week">0</span><span class="stat-label">deze week</span></div>
+    <div class="stat-item"><span class="stat-value" id="stat-afgewerkt">0</span><span class="stat-label">afgewerkt</span></div>
+    <div class="stat-item"><span class="stat-value" id="stat-verlopen">0</span><span class="stat-label">verlopen</span></div>
+    <div class="stat-item"><span class="stat-value" id="stat-overbezet">0</span><span class="stat-label">overbezet</span></div>
+  </div>
+
   <div class="secondary-bar">
     <div class="view-toggle">
       <button class="btn-view active" data-view="week" onclick="switchView('week')">Week</button>
       <button class="btn-view" data-view="dag" onclick="switchView('dag')">Dag</button>
       <button class="btn-view" data-view="maand" onclick="switchView('maand')">Maand</button>
+      <button class="btn-view" data-view="beschikbaarheid" onclick="switchView('beschikbaarheid')">Beschikbaarheid</button>
     </div>
     <div class="capacity-bar">
       <span class="capacity-label" id="capacity-label">0/25 ingepland</span>
@@ -425,6 +560,86 @@
   </div>
 </div>
 
+<!-- QUICK-ADD MODAL -->
+<div class="modal-overlay" id="modal-quickadd">
+  <div class="modal" style="max-width:520px">
+    <h2>Taak toevoegen</h2>
+    <p id="qa-info" style="color:var(--grey);font-size:12px;margin-bottom:16px"></p>
+    <input type="hidden" id="qa-tech-id">
+    <input type="hidden" id="qa-datum">
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Type</label>
+        <select id="qa-type">
+          <option value="onderhoud">Onderhoud</option>
+          <option value="interventie">Interventie</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Sector</label>
+        <select id="qa-sector">
+          <option value="zonnepanelen">Zonnepanelen</option>
+          <option value="warmtepomp">Warmtepomp</option>
+          <option value="ventilatie">Ventilatie</option>
+          <option value="verwarming">Verwarming</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Klant / Contract</label>
+      <select id="qa-contract" onchange="qaContractChanged()">
+        <option value="">Selecteer een contract...</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Starttijd</label>
+        <input type="time" id="qa-start" value="09:00">
+      </div>
+      <div class="modal-field">
+        <label>Duur (min)</label>
+        <input type="number" id="qa-duur" value="60" min="15" step="15">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Extra techniekers (duo-beurt)</label>
+      <div class="tech-chip-grid" id="qa-extra-techs"></div>
+    </div>
+    <div class="modal-field">
+      <label>Notities</label>
+      <textarea id="qa-notities" rows="2" placeholder="Optionele notities..." style="resize:vertical"></textarea>
+    </div>
+    <div class="modal-buttons">
+      <button onclick="closeQuickAdd()">Annuleren</button>
+      <button class="btn-save" onclick="saveQuickAdd()">Inplannen</button>
+    </div>
+  </div>
+</div>
+
+<!-- WERKBON MODAL -->
+<div class="modal-overlay" id="modal-werkbon">
+  <div class="modal" style="max-width:700px">
+    <h2>Beurt voltooien — Werkbon</h2>
+    <p id="werkbon-info" style="color:var(--grey);font-size:12px;margin-bottom:16px"></p>
+    <input type="hidden" id="werkbon-beurt-id">
+
+    <h3>Gewerkte uren</h3>
+    <div id="werkbon-uren-rows"></div>
+    <button class="btn-add-row" onclick="addWerkbonUrenRij()">+ Uren toevoegen</button>
+
+    <h3 style="margin-top:16px">Materialen</h3>
+    <div id="werkbon-materiaal-rows"></div>
+    <button class="btn-add-row" onclick="addWerkbonMateriaalRij()">+ Materiaal toevoegen</button>
+
+    <div class="werkbon-totaal" id="werkbon-totaal"></div>
+
+    <div class="modal-buttons">
+      <button onclick="closeWerkbonModal()">Annuleren</button>
+      <button class="btn-save" onclick="saveWerkbon()">Voltooien &amp; werkbon aanmaken</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctx-menu">
   <button class="ctx-item" onclick="ctxUnplan()">
@@ -469,6 +684,7 @@ var allContracten = [];
 var allClients = [];
 var allDuurInstellingen = [];
 var allPartners = [];
+var allVerlofTypes = [];
 var dragBeurtId = null;
 var ctxBeurtId = null;
 
@@ -629,12 +845,13 @@ function isTechAbsent(techId, date) {
   });
 }
 
-function techHasCert(techId, sector) {
+function techHasSector(techId, sector) {
   if (!sector) return true;
   return allTechSectoren.some(function(ts) {
     return ts.technieker_id === techId && ts.sector.toLowerCase() === sector.toLowerCase();
   });
 }
+var techHasCert = techHasSector; // backward compat
 
 function getBeurtenForTechDay(techId, date) {
   var ds = formatDateISO(date);
@@ -739,7 +956,8 @@ async function loadPlanningData() {
     sb.from('contracten').select('*'),
     sb.from('clients').select('*'),
     sb.from('duur_instellingen').select('*'),
-    sb.from('partners').select('id, naam, slug, bedrijfsnaam')
+    sb.from('partners').select('id, naam, slug, bedrijfsnaam'),
+    sb.from('verlof_types').select('*')
   ]);
 
   allBeurten = results[0].data || [];
@@ -750,6 +968,7 @@ async function loadPlanningData() {
   allClients = results[5].data || [];
   allDuurInstellingen = results[6].data || [];
   allPartners = results[7].data || [];
+  allVerlofTypes = results[8].data || [];
 
   populateFilterDropdowns();
 }
@@ -852,8 +1071,10 @@ function toggleSidebar() {
 function renderView() {
   if (currentView === 'week') renderWeekView();
   else if (currentView === 'dag') renderDayView();
+  else if (currentView === 'beschikbaarheid') renderBeschikbaarheid();
   else renderMonthView();
   renderCapacity();
+  renderStats();
 }
 
 function renderCapacity() {
@@ -868,6 +1089,66 @@ function renderCapacity() {
   if (pct >= 100) fill.style.background = 'var(--red)';
   else if (pct >= 80) fill.style.background = 'var(--orange)';
   else fill.style.background = 'var(--green)';
+}
+
+function renderStats() {
+  var dates = getWeekDates(currentDate);
+  var todayStr = formatDateISO(new Date());
+  var weekStrs = dates.map(formatDateISO);
+
+  var ingepland = 0, totaal = 0, verlof = 0, vandaag = 0, week = 0, afgewerkt = 0, verlopen = 0, overbezet = 0;
+
+  allBeurten.forEach(function(b) {
+    if (b.status === 'geannuleerd') return;
+    totaal++;
+    if (b.status === 'ingepland') ingepland++;
+    if (b.status === 'uitgevoerd') afgewerkt++;
+    if (b.plan_datum === todayStr && b.status === 'ingepland') vandaag++;
+    if (weekStrs.indexOf(b.plan_datum) !== -1 && (b.status === 'ingepland' || b.status === 'uitgevoerd')) week++;
+    if (b.due_date && b.due_date < todayStr && b.status !== 'uitgevoerd' && b.status !== 'geannuleerd') verlopen++;
+  });
+
+  // Verlof: techniekers die vandaag afwezig zijn
+  var todayDate = new Date(); todayDate.setHours(0,0,0,0);
+  allTechniekers.forEach(function(t) {
+    if (isTechAbsent(t.id, todayDate)) verlof++;
+  });
+
+  // Overbezet: techniekers met >100% weekuren
+  allTechniekers.forEach(function(t) {
+    var weekMin = 0;
+    allBeurten.forEach(function(b) {
+      if (b.technieker_id === t.id && weekStrs.indexOf(b.plan_datum) !== -1 && b.status === 'ingepland') {
+        weekMin += b.duur_minuten || 60;
+      }
+    });
+    var contractMin = (t.contract_uren_week || 38) * 60;
+    if (weekMin > contractMin) overbezet++;
+  });
+
+  document.getElementById('stat-ingepland').textContent = ingepland + '/' + totaal;
+  document.getElementById('stat-verlof').textContent = verlof;
+  document.getElementById('stat-verlof').className = 'stat-value' + (verlof > 0 ? ' warn' : '');
+  document.getElementById('stat-vandaag').textContent = vandaag;
+  document.getElementById('stat-week').textContent = week;
+  document.getElementById('stat-afgewerkt').textContent = afgewerkt;
+  document.getElementById('stat-verlopen').textContent = verlopen;
+  document.getElementById('stat-verlopen').className = 'stat-value' + (verlopen > 0 ? ' danger' : '');
+  document.getElementById('stat-overbezet').textContent = overbezet;
+  document.getElementById('stat-overbezet').className = 'stat-value' + (overbezet > 0 ? ' danger' : '');
+}
+
+function getAfwezigheidInfo(techId, date) {
+  var dateStr = formatDateISO(date);
+  var afw = allAfwezigheden.find(function(a) {
+    return a.technieker_id === techId && a.van_datum <= dateStr && a.tot_datum >= dateStr;
+  });
+  if (!afw) return { type_naam: 'Afwezig', kleur: '#6B7280' };
+  if (afw.verlof_type_id) {
+    var vt = allVerlofTypes.find(function(v) { return v.id === afw.verlof_type_id; });
+    if (vt) return { type_naam: vt.naam, kleur: vt.kleur };
+  }
+  return { type_naam: afw.reden || 'Afwezig', kleur: '#6B7280' };
 }
 
 // =============================================
@@ -904,25 +1185,65 @@ function renderWeekView() {
 
   techniekers.forEach(function(tech) {
     html += '<tr>';
+
+    // C3: Uren naast technieker-naam
+    var weekMin = 0;
+    allBeurten.forEach(function(b) {
+      if (b.technieker_id === tech.id && b.status === 'ingepland') {
+        var pd = b.plan_datum;
+        for (var wd = 0; wd < 5; wd++) {
+          if (formatDateISO(dates[wd]) === pd) { weekMin += b.duur_minuten || 60; break; }
+        }
+      }
+    });
+    var geplandUren = weekMin / 60;
+    var contractUren = tech.contract_uren_week || 38;
+    var pct = geplandUren / contractUren;
+    var urenKleur = pct > 1 ? 'var(--red)' : pct > 0.8 ? 'var(--orange)' : 'var(--green)';
+
     html += '<td><div class="tech-name-cell">' +
       '<div class="tech-avatar">' + esc(getTechInitials(tech)) + '</div>' +
-      '<span class="tech-name-text">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</span></div></td>';
+      '<div style="display:flex;flex-direction:column">' +
+        '<span class="tech-name-text">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</span>' +
+        '<span style="font-size:11px;font-weight:600;color:' + urenKleur + '">' +
+          geplandUren.toFixed(1) + 'u/' + contractUren + 'u' +
+        '</span>' +
+      '</div></div></td>';
 
     for (var d = 0; d < 5; d++) {
       var isToday = isSameDay(dates[d], today);
       var absent = isTechAbsent(tech.id, dates[d]);
 
       if (absent) {
-        html += '<td class="absent-cell ' + (isToday ? 'today-col' : '') + '">' +
-          '<span class="absent-label">Afwezig</span></td>';
+        // C5: Verloftypes met kleur
+        var afwInfo = getAfwezigheidInfo(tech.id, dates[d]);
+        html += '<td class="absent-cell ' + (isToday ? 'today-col' : '') + '" style="background:' + afwInfo.kleur + '12">' +
+          '<span class="absent-label" style="color:' + afwInfo.kleur + '">' + esc(afwInfo.type_naam) + '</span></td>';
       } else {
         var beurten = getBeurtenForTechDay(tech.id, dates[d]).filter(passesFilters);
+        // Also show ghost cards for duo-beurten where this tech is extra
+        var ghostBeurten = allBeurten.filter(function(b) {
+          return b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1 &&
+            b.plan_datum === formatDateISO(dates[d]) && b.status === 'ingepland';
+        }).filter(passesFilters);
+
         html += '<td class="' + (isToday ? 'today-col' : '') + '" ' +
           'ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')">';
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
           html += renderApptCard(b, info);
         });
+        // Ghost cards for duo-beurten
+        ghostBeurten.forEach(function(b) {
+          var info = getClientInfo(b);
+          html += '<div class="appt-card ' + getSectorClass(info.sector) + '" style="opacity:0.5;border-style:dashed" ' +
+            'title="Duo-beurt met ' + esc(info.naam) + '">' +
+            '<div class="appt-sector">' + getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</div>' +
+            '<div class="appt-klant">\uD83D\uDD17 ' + esc(info.naam) + '</div>' +
+            '</div>';
+        });
+        // C4: Quick-add button
+        html += '<button class="quick-add-btn" onclick="event.stopPropagation();quickAdd(\'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')" title="Taak toevoegen">+</button>';
         html += '</td>';
       }
     }
@@ -934,6 +1255,15 @@ function renderWeekView() {
 }
 
 function renderApptCard(b, info) {
+  var extraHtml = '';
+  if (b.extra_technieker_ids && b.extra_technieker_ids.length > 0) {
+    extraHtml = '<div class="appt-extra-techs">';
+    b.extra_technieker_ids.forEach(function(tid) {
+      var et = allTechniekers.find(function(t) { return t.id === tid; });
+      if (et) extraHtml += '<span class="extra-tech-badge" title="' + esc(et.voornaam + ' ' + et.naam) + '">' + esc(getTechInitials(et)) + '</span>';
+    });
+    extraHtml += '</div>';
+  }
   return '<div class="appt-card ' + getSectorClass(info.sector) + '" ' +
     'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')" ' +
     'oncontextmenu="onCardContext(event, \'' + b.id + '\')" ' +
@@ -944,6 +1274,7 @@ function renderApptCard(b, info) {
     (b.duur_minuten ? ' \u00B7 ' + b.duur_minuten + 'min' : '') + '</div>' +
     (b.status === 'uitgevoerd' ? '<span class="appt-badge" style="background:#DCFCE7;color:#166534;">\u2713 Uitgevoerd</span>' : '') +
     (b.status === 'ingepland' ? '<span class="appt-badge" style="background:#DBEAFE;color:#1E40AF;">Ingepland</span>' : '') +
+    extraHtml +
     '</div>';
 }
 
@@ -977,7 +1308,8 @@ function renderDayView() {
     techniekers.forEach(function(tech) {
       var absent = isTechAbsent(tech.id, viewDate);
       if (absent) {
-        html += '<td class="absent-cell"><span class="absent-label">Afwezig</span></td>';
+        var dayAfwInfo = getAfwezigheidInfo(tech.id, viewDate);
+        html += '<td class="absent-cell" style="background:' + dayAfwInfo.kleur + '12"><span class="absent-label" style="color:' + dayAfwInfo.kleur + '">' + esc(dayAfwInfo.type_naam) + '</span></td>';
       } else {
         // Find beurten that start at this time slot
         var beurten = allBeurten.filter(function(b) {
@@ -1174,11 +1506,11 @@ async function planBeurt(beurtId, techId, planDatum, startTijd) {
     return;
   }
 
-  // Validation: check sector certification
-  if (info.sector && !techHasCert(techId, info.sector)) {
+  // Validation: check sector assignment
+  if (info.sector && !techHasSector(techId, info.sector)) {
     var tech = allTechniekers.find(function(t) { return t.id === techId; });
     showToast((tech ? tech.voornaam + ' ' + tech.naam : 'Technieker') +
-      ' heeft geen certificaat voor ' + info.sector, 'error');
+      ' is niet toegewezen aan sector ' + info.sector, 'error');
     return;
   }
 
@@ -1280,28 +1612,9 @@ function ctxUnplan() {
   ctxBeurtId = null;
 }
 
-async function ctxMarkDone() {
+function ctxMarkDone() {
   if (!ctxBeurtId) return;
-  var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
-  if (!beurt) return;
-  var oldStatus = beurt.status;
-
-  var result = await sb.from('onderhoudsbeurten').update({
-    status: 'uitgevoerd',
-    uitvoer_datum: formatDateISO(new Date()),
-    updated_at: new Date().toISOString()
-  }).eq('id', ctxBeurtId);
-
-  if (result.error) {
-    showToast('Fout: ' + result.error.message, 'error');
-  } else {
-    beurt.status = 'uitgevoerd';
-    beurt.uitvoer_datum = formatDateISO(new Date());
-    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_wijziging', oldStatus, 'uitgevoerd');
-    showToast('Beurt gemarkeerd als uitgevoerd');
-    renderView();
-    renderSidebar();
-  }
+  openWerkbonModal(ctxBeurtId);
   ctxBeurtId = null;
 }
 
@@ -1409,6 +1722,403 @@ async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
       user_id: userId
     });
   } catch(e) { console.warn('Audit log failed:', e); }
+}
+
+// =============================================
+// QUICK-ADD
+// =============================================
+function quickAdd(techId, datum) {
+  document.getElementById('qa-tech-id').value = techId;
+  document.getElementById('qa-datum').value = datum;
+
+  var tech = allTechniekers.find(function(t) { return t.id === techId; });
+  document.getElementById('qa-info').textContent = (tech ? tech.voornaam + ' ' + tech.naam : '') + ' — ' + datum;
+
+  // Populate contract dropdown
+  var sel = document.getElementById('qa-contract');
+  sel.innerHTML = '<option value="">Selecteer een contract...</option>';
+  allContracten.forEach(function(c) {
+    if (c.status === 'geannuleerd') return;
+    var kl = c.klant_naam || '';
+    var cl = allClients.find(function(cl) { return cl.id === c.client_id; });
+    if (cl) kl = cl.contact_person || kl;
+    sel.innerHTML += '<option value="' + c.id + '" data-sector="' + (c.sector || 'zonnepanelen') + '">' +
+      esc(kl) + ' — ' + esc(c.sector || 'zonnepanelen') + (c.contract_nummer ? ' (' + c.contract_nummer + ')' : '') + '</option>';
+  });
+
+  // Extra techniekers chips
+  var chipHtml = '';
+  allTechniekers.forEach(function(t) {
+    if (t.id === techId) return;
+    chipHtml += '<span class="tech-chip" data-id="' + t.id + '" onclick="toggleTechChip(this)">' +
+      esc(t.voornaam + ' ' + t.naam) + '</span>';
+  });
+  document.getElementById('qa-extra-techs').innerHTML = chipHtml;
+
+  document.getElementById('qa-notities').value = '';
+  document.getElementById('modal-quickadd').classList.add('open');
+}
+
+function qaContractChanged() {
+  var sel = document.getElementById('qa-contract');
+  var opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.sector) {
+    document.getElementById('qa-sector').value = opt.dataset.sector;
+  }
+}
+
+function toggleTechChip(el) {
+  el.classList.toggle('selected');
+}
+
+function closeQuickAdd() {
+  document.getElementById('modal-quickadd').classList.remove('open');
+}
+
+async function saveQuickAdd() {
+  var contractId = document.getElementById('qa-contract').value;
+  if (!contractId) { alert('Selecteer een contract'); return; }
+
+  var techId = document.getElementById('qa-tech-id').value;
+  var datum = document.getElementById('qa-datum').value;
+  var sector = document.getElementById('qa-sector').value;
+  var startTijd = document.getElementById('qa-start').value || null;
+  var duur = parseInt(document.getElementById('qa-duur').value) || 60;
+  var notities = document.getElementById('qa-notities').value.trim() || null;
+
+  var extraIds = [];
+  document.querySelectorAll('#qa-extra-techs .tech-chip.selected').forEach(function(el) {
+    extraIds.push(el.dataset.id);
+  });
+
+  var payload = {
+    contract_id: contractId,
+    sector: sector,
+    technieker_id: techId,
+    plan_datum: datum,
+    start_tijd: startTijd,
+    duur_minuten: duur,
+    status: 'ingepland',
+    notities: notities,
+    extra_technieker_ids: extraIds
+  };
+
+  var res = await sb.from('onderhoudsbeurten').insert([payload]).select();
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+
+  await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, 'ingepland via quick-add');
+  showToast('Taak ingepland');
+  closeQuickAdd();
+  await loadPlanningData();
+  renderView();
+  renderSidebar();
+}
+
+// =============================================
+// BESCHIKBAARHEID TAB
+// =============================================
+function renderBeschikbaarheid() {
+  var dates = getWeekDates(currentDate);
+  var todayDate = new Date(); todayDate.setHours(0,0,0,0);
+  var todayStr = formatDateISO(todayDate);
+  var dayLabels = ['Ma','Di','Wo','Do','Vr'];
+
+  document.getElementById('period-label').textContent =
+    'Beschikbaarheid — Week ' + getWeekNumber(dates[0]);
+
+  var html = '<div class="beschikbaarheid-grid">';
+
+  allTechniekers.forEach(function(tech) {
+    var isAbsentToday = isTechAbsent(tech.id, todayDate);
+
+    // Calculate week workload
+    var weekMin = 0;
+    var dayTaken = [0,0,0,0,0];
+    var dayAbsent = [false,false,false,false,false];
+    var dayAfwInfo = [];
+
+    for (var d = 0; d < 5; d++) {
+      dayAbsent[d] = isTechAbsent(tech.id, dates[d]);
+      dayAfwInfo[d] = dayAbsent[d] ? getAfwezigheidInfo(tech.id, dates[d]) : null;
+      allBeurten.forEach(function(b) {
+        if (b.technieker_id === tech.id && b.plan_datum === formatDateISO(dates[d]) && b.status === 'ingepland') {
+          weekMin += b.duur_minuten || 60;
+          dayTaken[d]++;
+        }
+      });
+    }
+
+    var contractMin = (tech.contract_uren_week || 38) * 60;
+    var werkdrukPct = contractMin > 0 ? Math.round((weekMin / contractMin) * 100) : 0;
+    var werkdrukKleur = werkdrukPct > 80 ? 'var(--red)' : werkdrukPct > 50 ? 'var(--orange)' : 'var(--green)';
+
+    // Badge
+    var badgeStyle, badgeText;
+    if (isAbsentToday) {
+      var aInfo = getAfwezigheidInfo(tech.id, todayDate);
+      badgeStyle = 'background:' + aInfo.kleur + '20;color:' + aInfo.kleur;
+      badgeText = aInfo.type_naam;
+    } else {
+      var todayTaken = dayTaken[todayDate.getDay() - 1] || 0;
+      if (todayTaken === 0) {
+        badgeStyle = 'background:#DCFCE7;color:#166534';
+        badgeText = 'Beschikbaar';
+      } else {
+        badgeStyle = 'background:#DBEAFE;color:#1E40AF';
+        badgeText = todayTaken + ' ' + (todayTaken === 1 ? 'taak' : 'taken');
+      }
+    }
+
+    html += '<div class="beschikbaar-card">';
+    html += '<div class="beschikbaar-header">' +
+      '<span class="beschikbaar-naam">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</span>' +
+      '<span class="beschikbaar-badge" style="' + badgeStyle + '">' + esc(badgeText) + '</span>' +
+      '</div>';
+
+    // Werkdruk bar
+    html += '<div class="werkdruk-bar">' +
+      '<div class="werkdruk-label"><span>Werkdruk</span><span>' + werkdrukPct + '%</span></div>' +
+      '<div class="werkdruk-track"><div class="werkdruk-fill" style="width:' + Math.min(100, werkdrukPct) + '%;background:' + werkdrukKleur + '"></div></div>' +
+      '</div>';
+
+    // Mini week blocks
+    html += '<div class="mini-week">';
+    for (var d = 0; d < 5; d++) {
+      var bgColor, textColor;
+      if (dayAbsent[d]) {
+        bgColor = dayAfwInfo[d].kleur + '20';
+        textColor = dayAfwInfo[d].kleur;
+      } else if (dayTaken[d] === 0) {
+        bgColor = '#DCFCE720'; textColor = '#166534';
+      } else if (dayTaken[d] <= 2) {
+        bgColor = '#DBEAFE'; textColor = '#1E40AF';
+      } else {
+        bgColor = '#FEF3C7'; textColor = '#92400E';
+      }
+      var dayContent = dayAbsent[d] ? (dayAfwInfo[d].type_naam.substring(0,3)) : (dayTaken[d] + 't');
+      html += '<div class="mini-day" style="background:' + bgColor + ';color:' + textColor + '">' +
+        '<span class="mini-day-label">' + dayLabels[d] + '</span>' + dayContent + '</div>';
+    }
+    html += '</div>';
+
+    // Taken vandaag
+    var todayIdx = todayDate.getDay() - 1; // 0=ma
+    if (todayIdx >= 0 && todayIdx < 5 && !dayAbsent[todayIdx]) {
+      var todayBeurten = allBeurten.filter(function(b) {
+        return b.technieker_id === tech.id && b.plan_datum === todayStr && b.status === 'ingepland';
+      });
+      if (todayBeurten.length > 0) {
+        html += '<div class="taken-vandaag">';
+        html += '<div class="taken-vandaag-title">Taken vandaag</div>';
+        todayBeurten.forEach(function(b) {
+          var info = getClientInfo(b);
+          var sectorColors = { zonnepanelen: 'var(--orange)', warmtepomp: 'var(--red)', ventilatie: 'var(--blue)', verwarming: '#8B5CF6' };
+          var sc = sectorColors[info.sector] || 'var(--grey)';
+          html += '<div class="taak-chip">' +
+            '<span class="taak-chip-sector" style="background:' + sc + '"></span>' +
+            '<span>' + esc(info.naam) + ' — ' + esc(info.sector) + '</span>' +
+            (b.start_tijd ? '<span class="taak-chip-tijd">' + b.start_tijd.substring(0,5) + '</span>' : '') +
+            '</div>';
+        });
+        html += '</div>';
+      }
+    }
+
+    html += '</div>'; // card
+  });
+
+  html += '</div>';
+  document.getElementById('grid-area').innerHTML = html;
+}
+
+// =============================================
+// WERKBON
+// =============================================
+var werkbonUrenCount = 0;
+var werkbonMatCount = 0;
+
+function openWerkbonModal(beurtId) {
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+
+  document.getElementById('werkbon-beurt-id').value = beurtId;
+  var info = getClientInfo(beurt);
+  document.getElementById('werkbon-info').textContent =
+    info.naam + ' — ' + info.sector + (beurt.plan_datum ? ' — ' + beurt.plan_datum : '');
+
+  werkbonUrenCount = 0;
+  werkbonMatCount = 0;
+  document.getElementById('werkbon-uren-rows').innerHTML = '';
+  document.getElementById('werkbon-materiaal-rows').innerHTML = '';
+
+  // Add default uren row with assigned tech
+  addWerkbonUrenRij(beurt.technieker_id, beurt.plan_datum);
+
+  updateWerkbonTotaal();
+  document.getElementById('modal-werkbon').classList.add('open');
+}
+
+function addWerkbonUrenRij(defaultTechId, defaultDatum) {
+  werkbonUrenCount++;
+  var container = document.getElementById('werkbon-uren-rows');
+  var div = document.createElement('div');
+  div.className = 'werkbon-row';
+  div.id = 'wb-uren-' + werkbonUrenCount;
+
+  var techOpts = '<option value="">Technieker</option>';
+  allTechniekers.forEach(function(t) {
+    var sel = (defaultTechId && t.id === defaultTechId) ? ' selected' : '';
+    techOpts += '<option value="' + t.id + '"' + sel + '>' + esc(t.voornaam + ' ' + t.naam) + '</option>';
+  });
+
+  div.innerHTML =
+    '<select class="wb-tech" style="width:140px">' + techOpts + '</select>' +
+    '<input type="date" class="wb-datum" value="' + (defaultDatum || formatDateISO(new Date())) + '" style="width:120px">' +
+    '<input type="time" class="wb-start" value="09:00" style="width:90px">' +
+    '<input type="time" class="wb-eind" value="10:00" style="width:90px" onchange="calcWerkbonUren(this)">' +
+    '<input type="number" class="wb-uren" value="1" min="0" step="0.25" style="width:60px" onchange="updateWerkbonTotaal()">' +
+    '<input type="number" class="wb-tarief" value="55" min="0" step="1" style="width:70px" placeholder="€/u" onchange="updateWerkbonTotaal()">' +
+    '<input type="number" class="wb-km" value="0" min="0" style="width:60px" placeholder="km" onchange="updateWerkbonTotaal()">' +
+    '<button class="wb-remove" onclick="this.parentElement.remove();updateWerkbonTotaal()">&times;</button>';
+
+  container.appendChild(div);
+}
+
+function calcWerkbonUren(el) {
+  var row = el.closest('.werkbon-row');
+  var start = row.querySelector('.wb-start').value;
+  var eind = row.querySelector('.wb-eind').value;
+  if (start && eind) {
+    var s = start.split(':'), e = eind.split(':');
+    var diff = (parseInt(e[0]) * 60 + parseInt(e[1])) - (parseInt(s[0]) * 60 + parseInt(s[1]));
+    if (diff > 0) row.querySelector('.wb-uren').value = (diff / 60).toFixed(2);
+  }
+  updateWerkbonTotaal();
+}
+
+function addWerkbonMateriaalRij() {
+  werkbonMatCount++;
+  var container = document.getElementById('werkbon-materiaal-rows');
+  var div = document.createElement('div');
+  div.className = 'werkbon-row';
+  div.id = 'wb-mat-' + werkbonMatCount;
+  div.innerHTML =
+    '<input type="text" class="wb-mat-naam" placeholder="Materiaal" style="flex:2">' +
+    '<input type="number" class="wb-mat-aantal" value="1" min="0" step="1" style="width:60px" onchange="updateWerkbonTotaal()">' +
+    '<input type="number" class="wb-mat-prijs" value="0" min="0" step="0.01" style="width:80px" placeholder="€/stuk" onchange="updateWerkbonTotaal()">' +
+    '<input type="text" class="wb-mat-leverancier" placeholder="Leverancier" style="flex:1">' +
+    '<button class="wb-remove" onclick="this.parentElement.remove();updateWerkbonTotaal()">&times;</button>';
+  container.appendChild(div);
+}
+
+function updateWerkbonTotaal() {
+  var totaalUren = 0, totaalArbeid = 0, totaalReis = 0, totaalMateriaal = 0;
+  var kmTarief = 0.35;
+
+  document.querySelectorAll('#werkbon-uren-rows .werkbon-row').forEach(function(row) {
+    var uren = parseFloat(row.querySelector('.wb-uren').value) || 0;
+    var tarief = parseFloat(row.querySelector('.wb-tarief').value) || 0;
+    var km = parseFloat(row.querySelector('.wb-km').value) || 0;
+    totaalUren += uren;
+    totaalArbeid += uren * tarief;
+    totaalReis += km * kmTarief;
+  });
+
+  document.querySelectorAll('#werkbon-materiaal-rows .werkbon-row').forEach(function(row) {
+    var aantal = parseFloat(row.querySelector('.wb-mat-aantal').value) || 0;
+    var prijs = parseFloat(row.querySelector('.wb-mat-prijs').value) || 0;
+    totaalMateriaal += aantal * prijs;
+  });
+
+  var totaal = totaalArbeid + totaalReis + totaalMateriaal;
+  document.getElementById('werkbon-totaal').innerHTML =
+    '<span>Arbeidskost</span><span style="text-align:right">\u20AC ' + totaalArbeid.toFixed(2) + '</span>' +
+    '<span>Reiskosten</span><span style="text-align:right">\u20AC ' + totaalReis.toFixed(2) + '</span>' +
+    '<span>Materiaalkosten</span><span style="text-align:right">\u20AC ' + totaalMateriaal.toFixed(2) + '</span>' +
+    '<span class="totaal-label">Totaal</span><span class="totaal-value">\u20AC ' + totaal.toFixed(2) + '</span>';
+}
+
+function closeWerkbonModal() {
+  document.getElementById('modal-werkbon').classList.remove('open');
+}
+
+async function saveWerkbon() {
+  var beurtId = document.getElementById('werkbon-beurt-id').value;
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+
+  var oldStatus = beurt.status;
+  var totaalUren = 0, totaalArbeid = 0, totaalReis = 0, totaalMateriaal = 0;
+  var kmTarief = 0.35;
+
+  // Save werk_entries
+  var werkRows = [];
+  document.querySelectorAll('#werkbon-uren-rows .werkbon-row').forEach(function(row) {
+    var uren = parseFloat(row.querySelector('.wb-uren').value) || 0;
+    var tarief = parseFloat(row.querySelector('.wb-tarief').value) || 0;
+    var km = parseFloat(row.querySelector('.wb-km').value) || 0;
+    totaalUren += uren;
+    totaalArbeid += uren * tarief;
+    totaalReis += km * kmTarief;
+    werkRows.push({
+      onderhoudsbeurt_id: beurtId,
+      technieker_id: row.querySelector('.wb-tech').value || null,
+      datum: row.querySelector('.wb-datum').value,
+      start_tijd: row.querySelector('.wb-start').value || null,
+      eind_tijd: row.querySelector('.wb-eind').value || null,
+      uren: uren,
+      uurtarief: tarief,
+      reis_km: km,
+      reis_kost: km * kmTarief
+    });
+  });
+
+  // Save materiaal_entries
+  var matRows = [];
+  document.querySelectorAll('#werkbon-materiaal-rows .werkbon-row').forEach(function(row) {
+    var aantal = parseFloat(row.querySelector('.wb-mat-aantal').value) || 0;
+    var prijs = parseFloat(row.querySelector('.wb-mat-prijs').value) || 0;
+    totaalMateriaal += aantal * prijs;
+    var naam = row.querySelector('.wb-mat-naam').value.trim();
+    if (naam) {
+      matRows.push({
+        onderhoudsbeurt_id: beurtId,
+        naam: naam,
+        aantal: aantal,
+        stukprijs: prijs,
+        leverancier: row.querySelector('.wb-mat-leverancier').value.trim() || null
+      });
+    }
+  });
+
+  // Insert entries
+  if (werkRows.length > 0) {
+    var r1 = await sb.from('werk_entries').insert(werkRows);
+    if (r1.error) { alert('Fout bij uren opslaan: ' + r1.error.message); return; }
+  }
+  if (matRows.length > 0) {
+    var r2 = await sb.from('materiaal_entries').insert(matRows);
+    if (r2.error) { alert('Fout bij materialen opslaan: ' + r2.error.message); return; }
+  }
+
+  // Update onderhoudsbeurt
+  var res = await sb.from('onderhoudsbeurten').update({
+    status: 'uitgevoerd',
+    uitvoer_datum: formatDateISO(new Date()),
+    totaal_uren: totaalUren,
+    totaal_arbeidskost: totaalArbeid,
+    totaal_reiskost: totaalReis,
+    totaal_materiaalkost: totaalMateriaal
+  }).eq('id', beurtId);
+
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+
+  await auditLog('onderhoudsbeurten', beurtId, 'status_wijziging', oldStatus, 'uitgevoerd');
+  showToast('Beurt voltooien — werkbon aangemaakt');
+  closeWerkbonModal();
+  await loadPlanningData();
+  renderView();
+  renderSidebar();
 }
 
 // INIT

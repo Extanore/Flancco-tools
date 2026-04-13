@@ -454,10 +454,11 @@
           <thead>
             <tr>
               <th>Naam</th>
+              <th>Rol</th>
               <th>Telefoon</th>
               <th>Email</th>
               <th>Sectoren</th>
-              <th>Max/dag</th>
+              <th>Uren/week</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -692,6 +693,27 @@
       <div class="modal-field"><label>E-mail</label><input id="tech-email" type="email" placeholder="email@voorbeeld.be"></div>
     </div>
     <div class="modal-row">
+      <div class="modal-field"><label>Rol</label>
+        <select id="tech-rol" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100%">
+          <option value="technieker">Technieker</option>
+          <option value="leerling">Leerling</option>
+          <option value="onderaannemer">Onderaannemer</option>
+        </select>
+      </div>
+      <div class="modal-field"><label>Contract-uren/week</label>
+        <input id="tech-uren-week" type="number" min="0" max="50" step="0.5" value="38" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100%">
+        <small id="tech-uren-dag-label" style="color:var(--grey);font-size:11px;margin-top:4px;display:block">= 7.60 uur/dag</small>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>In dienst sinds</label><input id="tech-startdatum" type="date" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100%"></div>
+      <div class="modal-field"><label>Voertuig</label>
+        <select id="tech-voertuig" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100%">
+          <option value="">Geen</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
       <div class="modal-field"><label>Max beurten/dag</label><input id="tech-maxdag" type="number" min="1" max="20" value="5"></div>
       <div class="modal-field"><label>Status</label>
         <select id="tech-actief">
@@ -703,28 +725,12 @@
     <div class="modal-field"><label>Notities</label><textarea id="tech-notities" rows="2" placeholder="Optionele notities..." style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea></div>
 
     <hr style="border:none;border-top:1px solid var(--rule);margin:20px 0">
-    <h3 style="font-size:14px;margin-bottom:12px">Sector-certificeringen</h3>
-    <div id="tech-sectoren-container">
-      <div class="tech-sector-row" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <label style="width:130px;font-size:13px"><input type="checkbox" id="tech-sec-zonnepanelen"> Zonnepanelen</label>
-        <input id="tech-cert-zonnepanelen" placeholder="Certificaatnr" style="flex:1;padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-        <input id="tech-certdate-zonnepanelen" type="date" style="padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-      </div>
-      <div class="tech-sector-row" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <label style="width:130px;font-size:13px"><input type="checkbox" id="tech-sec-warmtepomp"> Warmtepomp</label>
-        <input id="tech-cert-warmtepomp" placeholder="Certificaatnr" style="flex:1;padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-        <input id="tech-certdate-warmtepomp" type="date" style="padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-      </div>
-      <div class="tech-sector-row" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <label style="width:130px;font-size:13px"><input type="checkbox" id="tech-sec-ventilatie"> Ventilatie</label>
-        <input id="tech-cert-ventilatie" placeholder="Certificaatnr" style="flex:1;padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-        <input id="tech-certdate-ventilatie" type="date" style="padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-      </div>
-      <div class="tech-sector-row" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <label style="width:130px;font-size:13px"><input type="checkbox" id="tech-sec-verwarming"> Verwarming</label>
-        <input id="tech-cert-verwarming" placeholder="Certificaatnr" style="flex:1;padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-        <input id="tech-certdate-verwarming" type="date" style="padding:6px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px">
-      </div>
+    <h3 style="font-size:14px;margin-bottom:12px">Sectoren</h3>
+    <div id="tech-sectoren-container" style="display:flex;flex-wrap:wrap;gap:12px">
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="tech-sec-zonnepanelen"> Zonnepanelen</label>
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="tech-sec-warmtepomp"> Warmtepomp</label>
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="tech-sec-ventilatie"> Ventilatie</label>
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="tech-sec-verwarming"> Verwarming</label>
     </div>
 
     <div class="modal-buttons">
@@ -1034,15 +1040,6 @@ function renderDashboard() {
     var alerts = [];
     var today = new Date();
     var warn2m = new Date(today); warn2m.setMonth(warn2m.getMonth() + 2);
-    // Technieker certificaten
-    allTechSectoren.forEach(function(ts) {
-      if (!ts.certificaat_verloopt) return;
-      var d = new Date(ts.certificaat_verloopt);
-      var tech = allTechniekers.find(function(t) { return t.id === ts.technieker_id; });
-      var name = tech ? (tech.voornaam || '') + ' ' + tech.naam : '?';
-      if (d < today) alerts.push({ level: 'red', msg: 'Certificaat <strong>' + esc(ts.sector) + '</strong> van ' + esc(name) + ' is <strong>verlopen</strong> (' + ts.certificaat_verloopt + ')' });
-      else if (d < warn2m) alerts.push({ level: 'orange', msg: 'Certificaat <strong>' + esc(ts.sector) + '</strong> van ' + esc(name) + ' verloopt binnenkort (' + ts.certificaat_verloopt + ')' });
-    });
     // Voertuig keuringen
     allVoertuigen.forEach(function(v) {
       if (v.keuring_verval) {
@@ -1846,7 +1843,7 @@ function renderTechniekers() {
     return !search || name.includes(search) || (t.email || '').toLowerCase().includes(search);
   });
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--grey);padding:40px">Geen techniekers gevonden</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--grey);padding:40px">Geen techniekers gevonden</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(function(t) {
@@ -1854,17 +1851,21 @@ function renderTechniekers() {
     var secBadges = secs.map(function(s) {
       var colors = { zonnepanelen: '#F39C12', warmtepomp: '#E74C3C', ventilatie: '#1A1A2E', verwarming: '#6B7280' };
       var c = colors[s.sector] || '#6B7280';
-      var expired = s.certificaat_verloopt && new Date(s.certificaat_verloopt) < new Date();
-      return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:' + c + '20;color:' + c + ';margin-right:4px' + (expired ? ';text-decoration:line-through' : '') + '">' + esc(s.sector) + '</span>';
+      return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:' + c + '20;color:' + c + ';margin-right:4px">' + esc(s.sector) + '</span>';
     }).join('');
     var statusColor = t.actief ? 'var(--green)' : 'var(--grey)';
     var statusText = t.actief ? 'Actief' : 'Inactief';
+    var rolLabels = { technieker: 'Technieker', leerling: 'Leerling', onderaannemer: 'Onderaannemer' };
+    var rolColors = { technieker: '#1A1A2E', leerling: '#3B82F6', onderaannemer: '#8B5CF6' };
+    var rol = t.rol || 'technieker';
+    var uren = t.contract_uren_week || 38;
     return '<tr style="cursor:pointer" onclick="editTechnieker(\'' + t.id + '\')">' +
       '<td><strong>' + esc((t.voornaam || '') + ' ' + t.naam) + '</strong></td>' +
+      '<td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:' + (rolColors[rol] || '#6B7280') + '18;color:' + (rolColors[rol] || '#6B7280') + ';font-weight:600">' + (rolLabels[rol] || rol) + '</span></td>' +
       '<td>' + (t.telefoon ? '<a href="tel:' + esc(t.telefoon) + '" onclick="event.stopPropagation()">' + esc(t.telefoon) + '</a>' : '—') + '</td>' +
       '<td>' + (t.email ? '<a href="mailto:' + esc(t.email) + '" onclick="event.stopPropagation()">' + esc(t.email) + '</a>' : '—') + '</td>' +
       '<td>' + (secBadges || '—') + '</td>' +
-      '<td>' + (t.max_beurten_per_dag || 5) + '</td>' +
+      '<td>' + uren + 'u</td>' +
       '<td><span style="color:' + statusColor + ';font-weight:600;font-size:12px">● ' + statusText + '</span></td>' +
       '</tr>';
   }).join('');
@@ -1877,17 +1878,32 @@ function openTechModal(editData) {
   document.getElementById('tech-naam').value = editData ? editData.naam || '' : '';
   document.getElementById('tech-telefoon').value = editData ? editData.telefoon || '' : '';
   document.getElementById('tech-email').value = editData ? editData.email || '' : '';
+  document.getElementById('tech-rol').value = editData ? editData.rol || 'technieker' : 'technieker';
+  var urenWeek = editData ? editData.contract_uren_week || 38 : 38;
+  document.getElementById('tech-uren-week').value = urenWeek;
+  document.getElementById('tech-uren-dag-label').textContent = '= ' + (urenWeek / 5).toFixed(2) + ' uur/dag';
+  document.getElementById('tech-startdatum').value = editData ? editData.start_datum || '' : '';
   document.getElementById('tech-maxdag').value = editData ? editData.max_beurten_per_dag || 5 : 5;
   document.getElementById('tech-actief').value = editData ? String(editData.actief !== false) : 'true';
   document.getElementById('tech-notities').value = editData ? editData.notities || '' : '';
   document.getElementById('tech-delete-btn').style.display = editData ? 'inline-flex' : 'none';
 
+  // Voertuig dropdown vullen
+  var voertuigSelect = document.getElementById('tech-voertuig');
+  voertuigSelect.innerHTML = '<option value="">Geen</option>';
+  allVoertuigen.forEach(function(v) {
+    var inUse = v.technieker_id && (!editData || v.technieker_id !== editData.id);
+    var label = v.merk + ' ' + v.model + ' (' + v.nummerplaat + ')' + (inUse ? ' — in gebruik' : '');
+    voertuigSelect.innerHTML += '<option value="' + v.id + '"' + (inUse ? ' disabled' : '') + '>' + esc(label) + '</option>';
+  });
+  var currentVoertuig = editData ? allVoertuigen.find(function(v) { return v.technieker_id === editData.id; }) : null;
+  voertuigSelect.value = currentVoertuig ? currentVoertuig.id : '';
+
+  // Sectoren (zonder certificaten)
   var secs = editData ? allTechSectoren.filter(function(s) { return s.technieker_id === editData.id; }) : [];
   ['zonnepanelen','warmtepomp','ventilatie','verwarming'].forEach(function(sec) {
     var match = secs.find(function(s) { return s.sector === sec; });
     document.getElementById('tech-sec-' + sec).checked = !!match;
-    document.getElementById('tech-cert-' + sec).value = match ? match.certificaat_nummer || '' : '';
-    document.getElementById('tech-certdate-' + sec).value = match ? match.certificaat_verloopt || '' : '';
   });
 
   document.getElementById('modal-tech').classList.add('open');
@@ -1896,6 +1912,12 @@ function openTechModal(editData) {
 function closeTechModal() {
   document.getElementById('modal-tech').classList.remove('open');
 }
+
+// Auto-berekening uren/dag
+document.getElementById('tech-uren-week').addEventListener('input', function() {
+  var dag = (parseFloat(this.value) || 0) / 5;
+  document.getElementById('tech-uren-dag-label').textContent = '= ' + dag.toFixed(2) + ' uur/dag';
+});
 
 function editTechnieker(id) {
   var t = allTechniekers.find(function(x) { return x.id === id; });
@@ -1907,11 +1929,16 @@ async function saveTechnieker() {
   var voornaam = document.getElementById('tech-voornaam').value.trim();
   if (!naam) { alert('Naam is verplicht'); return; }
 
+  var urenWeek = parseFloat(document.getElementById('tech-uren-week').value) || 38;
   var payload = {
     naam: naam,
     voornaam: voornaam,
     telefoon: document.getElementById('tech-telefoon').value.trim() || null,
     email: document.getElementById('tech-email').value.trim() || null,
+    rol: document.getElementById('tech-rol').value,
+    contract_uren_week: urenWeek,
+    contract_uren_dag: urenWeek / 5,
+    start_datum: document.getElementById('tech-startdatum').value || null,
     max_beurten_per_dag: parseInt(document.getElementById('tech-maxdag').value) || 5,
     actief: document.getElementById('tech-actief').value === 'true',
     notities: document.getElementById('tech-notities').value.trim() || null
@@ -1928,22 +1955,28 @@ async function saveTechnieker() {
 
   var techId = res.data[0].id;
 
+  // Sectoren opslaan (zonder certificaten)
   if (editId) {
     await sb.from('technieker_sectoren').delete().eq('technieker_id', techId);
   }
   var secRows = [];
   ['zonnepanelen','warmtepomp','ventilatie','verwarming'].forEach(function(sec) {
     if (document.getElementById('tech-sec-' + sec).checked) {
-      secRows.push({
-        technieker_id: techId,
-        sector: sec,
-        certificaat_nummer: document.getElementById('tech-cert-' + sec).value.trim() || null,
-        certificaat_verloopt: document.getElementById('tech-certdate-' + sec).value || null
-      });
+      secRows.push({ technieker_id: techId, sector: sec });
     }
   });
   if (secRows.length > 0) {
     await sb.from('technieker_sectoren').insert(secRows);
+  }
+
+  // Voertuig-koppeling bijwerken
+  var newVoertuigId = document.getElementById('tech-voertuig').value;
+  var oldVoertuig = allVoertuigen.find(function(v) { return v.technieker_id === techId; });
+  if (oldVoertuig && oldVoertuig.id !== newVoertuigId) {
+    await sb.from('voertuigen').update({ technieker_id: null }).eq('id', oldVoertuig.id);
+  }
+  if (newVoertuigId && (!oldVoertuig || oldVoertuig.id !== newVoertuigId)) {
+    await sb.from('voertuigen').update({ technieker_id: techId }).eq('id', newVoertuigId);
   }
 
   closeTechModal();
