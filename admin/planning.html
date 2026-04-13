@@ -1848,6 +1848,21 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   document.getElementById('edit-beurt-extra-techs').innerHTML = '';
   updateExtraTechDropdown();
 
+  // Pre-populate existing extra techniekers as chips
+  if (beurt.extra_technieker_ids && beurt.extra_technieker_ids.length) {
+    beurt.extra_technieker_ids.forEach(function(etId) {
+      var tech = allTechniekers.find(function(t) { return t.id === etId; });
+      if (!tech) return;
+      var container = document.getElementById('edit-beurt-extra-techs');
+      var chip = document.createElement('span');
+      chip.setAttribute('data-tech', etId);
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:var(--light);padding:4px 10px;border-radius:12px;font-size:13px';
+      chip.innerHTML = esc(tech.voornaam + ' ' + tech.naam) +
+        ' <span onclick="removeExtraTechnieker(this)" style="cursor:pointer;color:var(--red)">&times;</span>';
+      container.appendChild(chip);
+    });
+  }
+
   // Show/hide uitplannen button (only for already planned beurten)
   var unplanBtn = document.getElementById('edit-beurt-unplan-btn');
   if (unplanBtn) unplanBtn.style.display = (beurt.status === 'ingepland') ? '' : 'none';
@@ -1980,12 +1995,19 @@ async function saveEditBeurt() {
     return;
   }
 
+  // Collect extra technieker IDs from chips
+  var extraIds = [];
+  document.querySelectorAll('#edit-beurt-extra-techs [data-tech]').forEach(function(chip) {
+    extraIds.push(chip.getAttribute('data-tech'));
+  });
+
   var updateData = {
     technieker_id: techId,
     plan_datum: datum,
     start_tijd: startTijd || null,
     duur_minuten: duur,
     notities: notities || null,
+    extra_technieker_ids: extraIds,
     status: 'ingepland',
     updated_at: new Date().toISOString()
   };
@@ -2003,6 +2025,7 @@ async function saveEditBeurt() {
   beurt.start_tijd = startTijd || null;
   beurt.duur_minuten = duur;
   beurt.notities = notities || null;
+  beurt.extra_technieker_ids = extraIds;
   beurt.status = 'ingepland';
 
   if (oldStatus !== 'ingepland') {
