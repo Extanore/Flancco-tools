@@ -394,7 +394,11 @@ function buildInstallatieHtml(inst) {
 
   if (type === 'verwarming' && inst.heating_type) addRow('Verwarmingstype', inst.heating_type);
 
-  if (!rows) return '';
+  // Always show sector type as minimum info
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var typeLabel = sectorLabels[type] || type || '';
+  if (!rows && !typeLabel) return '';
+  if (!rows) rows = '<div class="rp-field" style="flex:0 0 50%"><div class="rp-field-label">Type</div><div class="rp-field-value">' + esc(typeLabel) + '</div></div>';
   return '<div class="rp-section"><div class="rp-section-title">Installatiegegevens</div><div class="rp-row" style="flex-wrap:wrap">' + rows + '</div></div>';
 }
 
