@@ -490,7 +490,7 @@ async function init() {
 
   // Load beurten: ingepland, in_te_plannen EN uitgevoerd (voor rapportage-tab flow)
   var beurtenRes = await sb.from('onderhoudsbeurten')
-    .select('*, contracten(id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_telefoon, klant_email, sector, sector_details, partner_id, client_id)')
+    .select('*, contracten(id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_telefoon, klant_email, sector, sector_details, partner_id, client_id), techniekers(voornaam, naam)')
     .in('status', ['ingepland', 'in_te_plannen', 'uitgevoerd'])
     .order('plan_datum');
 
@@ -804,12 +804,21 @@ function removeFoto(i) { fotos.splice(i, 1); renderFotoCategories(); }
 // ═══════════════════════════════
 // UREN & MATERIAAL
 // ═══════════════════════════════
+function getTechNaam() {
+  if (currentBeurt && currentBeurt.techniekers) {
+    var t = currentBeurt.techniekers;
+    return ((t.voornaam || '') + ' ' + (t.naam || '')).trim();
+  }
+  return '';
+}
+
 function addUrenRij() {
   urenCount++;
   var datum = currentBeurt.plan_datum || new Date().toISOString().split('T')[0];
+  var techNaam = urenCount === 1 ? getTechNaam() : '';
   document.getElementById('uren-body').insertAdjacentHTML('beforeend',
     '<tr id="uren-' + urenCount + '">' +
-      '<td><input type="text" class="uur-tech" placeholder="Naam"></td>' +
+      '<td><input type="text" class="uur-tech" placeholder="Naam" value="' + esc(techNaam) + '"></td>' +
       '<td><input type="date" class="uur-datum" value="' + datum + '"></td>' +
       '<td><input type="time" class="uur-start" value="08:00"></td>' +
       '<td><input type="time" class="uur-eind" value="12:00" onchange="berekenUren(this)"></td>' +
