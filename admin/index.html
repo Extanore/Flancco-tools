@@ -4076,7 +4076,45 @@ function renderDossierOverzicht(client, contracts) {
     shareHtml += '</div>';
   }
 
-  panel.innerHTML = statsHtml + locHtml + shareHtml;
+  // Installaties section
+  var instHtml = '<div class="dossier-section" style="box-shadow:var(--shadow-sm);margin-top:16px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+      '<h3 class="dossier-section-title" style="margin:0">Installaties (' + data.installaties.length + ')</h3>' +
+      '<button class="btn-action" onclick="openInstallatieModal(\'' + client.id + '\')" title="Installatie toevoegen" style="font-size:16px;width:28px;height:28px">+</button>' +
+    '</div>';
+  if (data.installaties.length === 0) {
+    instHtml += '<p class="placeholder-msg">Nog geen installaties geregistreerd.</p>';
+  } else {
+    instHtml += '<div class="install-grid">' + data.installaties.map(function(inst) {
+      var color = sectorStrokeColors[inst.installation_type] || '#666';
+      var icon = sectorSvgIcons[inst.installation_type] || '';
+      var label = allSectorLabels[inst.installation_type] || inst.installation_type;
+      var summary = '';
+      if (inst.installation_type === 'zonnepanelen' && inst.roof_surfaces) {
+        try {
+          var surfaces = typeof inst.roof_surfaces === 'string' ? JSON.parse(inst.roof_surfaces) : inst.roof_surfaces;
+          var total = surfaces.reduce(function(s, r) { return s + (r.panel_count || 0); }, 0);
+          summary = total + ' panelen' + (surfaces.length > 1 ? ' (' + surfaces.length + ' dakvlakken)' : '');
+        } catch(e) {}
+      } else if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+        summary = inst.indoor_unit_count + ' binnenunit(s)' + (inst.outdoor_unit_count ? ', ' + inst.outdoor_unit_count + ' buitenunit(s)' : '');
+      } else if (inst.installation_type === 'ventilatie' && inst.ventilation_system_type) {
+        summary = inst.ventilation_system_type === 'd_system' ? 'Systeem D (gebalanceerd)' : 'Systeem C (mechanisch)';
+      }
+      return '<div class="install-card" style="border-left:3px solid ' + color + '" onclick="openInstallatieModal(\'' + client.id + '\', \'' + inst.id + '\')">' +
+        '<div class="install-card-header">' +
+          '<span class="install-card-type" style="color:' + color + '">' + esc(label) + '</span>' +
+          '<span style="color:' + color + '">' + icon.replace(/stroke="currentColor"/g, 'stroke="' + color + '"') + '</span>' +
+        '</div>' +
+        '<div class="install-card-title">' + esc([inst.brand, inst.model].filter(Boolean).join(' ') || 'Niet opgegeven') + '</div>' +
+        (summary ? '<div class="install-card-detail">' + esc(summary) + '</div>' : '') +
+        (inst.installation_date ? '<div class="install-card-meta">' + fmtDate(inst.installation_date) + '</div>' : '') +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  instHtml += '</div>';
+
+  panel.innerHTML = statsHtml + instHtml + locHtml + shareHtml;
 }
 
 function renderDossierInstallaties(clientId) {
