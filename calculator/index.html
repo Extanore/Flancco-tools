@@ -2967,6 +2967,40 @@ async function submitContract() {
       }
     } catch (beurtErr) { console.warn('Onderhoudsbeurten generatie mislukt:', beurtErr); }
 
+    // Auto-create klant_installaties per sector
+    if (clientId) {
+      try {
+        for (var si = 0; si < selectedSectors.length; si++) {
+          var sec = selectedSectors[si];
+          var secResult = sectorResults[sec];
+          var secInputs = secResult ? secResult.inputs : {};
+          var instPayload = {
+            client_id: clientId,
+            installation_type: sec,
+            installation_date: datum
+          };
+
+          if (sec === 'zonnepanelen') {
+            instPayload.roof_surfaces = [{ panel_count: secInputs.pan || 0, roof_type: secInputs.daktype || null, orientation: null }];
+            instPayload.gutter_height = secInputs.hoog ? '> 7,5 m' : '< 7,5 m';
+          } else if (sec === 'warmtepomp' || sec === 'airco') {
+            instPayload.indoor_unit_count = secInputs.binnenunits || 1;
+            instPayload.outdoor_unit_count = secInputs.buitenunits || 1;
+          } else if (sec === 'ventilatie') {
+            instPayload.ventilation_system_type = secInputs.systeem === 'D' ? 'd_system' : 'c_system';
+          } else if (sec === 'verwarming') {
+            instPayload.heating_type = secInputs.ketelType || null;
+          }
+
+          // Check if installatie already exists for this client + sector
+          var existInst = await sb.from('klant_installaties').select('id').eq('client_id', clientId).eq('installation_type', sec).limit(1);
+          if (!existInst.data || existInst.data.length === 0) {
+            await sb.from('klant_installaties').insert([instPayload]);
+          }
+        }
+      } catch (instErr) { console.warn('Installatie aanmaken mislukt:', instErr); }
+    }
+
     // Send confirmation email (non-blocking)
     try {
       fetch(SUPA_URL + '/functions/v1/send-confirmation', {

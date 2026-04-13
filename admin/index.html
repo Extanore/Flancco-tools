@@ -3608,6 +3608,27 @@ async function saveNewContract() {
     return;
   }
 
+  // Auto-create installatie for the client if contract has client_id
+  var contract = data && data[0];
+  if (contract && contract.client_id) {
+    try {
+      var instSector = contract.sector || 'zonnepanelen';
+      var existInst = await sb.from('klant_installaties').select('id').eq('client_id', contract.client_id).eq('installation_type', instSector).limit(1);
+      if (!existInst.data || existInst.data.length === 0) {
+        var instPayload = {
+          client_id: contract.client_id,
+          installation_type: instSector,
+          installation_date: new Date().toISOString().split('T')[0]
+        };
+        if (instSector === 'zonnepanelen' && ncState.pan) {
+          instPayload.roof_surfaces = [{ panel_count: ncState.pan, roof_type: document.getElementById('nc-daktype').value || null, orientation: null }];
+          instPayload.gutter_height = document.getElementById('nc-hoogte').value === 'hoog' ? '> 7,5 m' : '< 7,5 m';
+        }
+        await sb.from('klant_installaties').insert([instPayload]);
+      }
+    } catch (instErr) { console.warn('Installatie aanmaken mislukt:', instErr); }
+  }
+
   closeModal();
   await loadAllData();
 }
