@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flancco — Partner Platform</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -333,10 +334,10 @@
           <select id="filter-partner" class="admin-only" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
             <option value="">Alle partners</option>
           </select>
-          <button class="btn-save admin-only" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
+          <button class="btn-save" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
         </div>
         <table>
-          <thead><tr><th>Klant</th><th>Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
+          <thead><tr><th>Klant</th><th class="admin-only">Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
           <tbody id="all-contracts"></tbody>
         </table>
         <p id="no-all-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen contracten gevonden.</p>
@@ -1304,7 +1305,7 @@ function renderContracten() {
       const totaal = c.totaal_incl_btw ? '€ ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') : '—';
       return `<tr>
         <td><strong>${c.klant_naam}</strong><br><small style="color:var(--grey)">${c.klant_gemeente || ''}</small></td>
-        <td>${partner?.bedrijfsnaam || partner?.naam || '—'}</td>
+        <td class="admin-only">${partner?.bedrijfsnaam || partner?.naam || '—'}</td>
         <td>${sectorHtml}</td>
         <td>${c.frequentie || '—'}</td>
         <td>${c.contractduur || '—'}</td>
@@ -1484,9 +1485,12 @@ function sectorBadge(sector) {
 function contractActions(c) {
   var st = computeStatus(c);
   var btns = '';
+  // Preview + PDF for all statuses
+  btns += '<button class="btn-action" onclick="previewContract(\'' + c.id + '\')" title="Preview">&#128065;</button>';
+  btns += '<button class="btn-action" onclick="downloadContractPDF(\'' + c.id + '\')" title="Download PDF">&#128196;</button>';
   if (st === 'concept') {
-    var tekenUrl = 'https://extanore.github.io/Flancco-tools/calculator/?contract=' + c.teken_token;
     btns += '<button class="btn-action" onclick="copyTekenLink(\'' + c.teken_token + '\')" title="Kopieer tekenlink">&#128279;</button>';
+    btns += '<button class="btn-action" onclick="sendContractMail(\'' + c.id + '\')" title="Verstuur per mail">&#9993;</button>';
     btns += '<a class="btn-action" href="contracten-wizard.html?edit=' + c.id + '" title="Bewerken">&#9998;</a>';
     btns += '<button class="btn-action btn-action-red" onclick="annuleerContract(\'' + c.id + '\')" title="Annuleren">&times;</button>';
   }
@@ -1506,6 +1510,337 @@ async function annuleerContract(id) {
   await loadAllData();
   renderContracten();
   showToast('Contract geannuleerd');
+}
+
+// =============================================
+// CONTRACT PREVIEW (HTML in nieuw venster)
+// =============================================
+function previewContract(contractId) {
+  var c = allContracten.find(x => x.id === contractId);
+  if (!c) { showToast('Contract niet gevonden', 'error'); return; }
+  var p = partners.find(x => x.id === c.partner_id);
+  var pName = p ? (p.bedrijfsnaam || p.naam) : 'Partner';
+  var primary = p ? (p.kleur_primair || '#098979') : '#098979';
+
+  var sectoren = c.sectoren || [];
+  var pricing = c.pricing_breakdown || {};
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contract Preview</title>';
+  html += '<style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:40px 20px;color:#1f2937}';
+  html += '.header{background:' + primary + ';color:white;padding:32px;border-radius:12px;margin-bottom:32px;text-align:center}';
+  html += '.header h1{font-size:24px;margin:0 0 4px}.header p{opacity:0.8;font-size:14px;margin:0}';
+  html += '.card{background:white;border:1px solid #e5e7eb;border-radius:10px;padding:24px;margin-bottom:16px}';
+  html += '.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:' + primary + ';margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #f3f4f6}';
+  html += '.row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid #f3f4f6}';
+  html += '.row .lbl{color:#6b7280}.row .val{font-weight:600}';
+  html += '.sector-badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-right:6px}';
+  html += '.total-row{display:flex;justify-content:space-between;font-size:20px;font-weight:700;color:' + primary + ';padding:12px 0;border-top:2px solid ' + primary + ';margin-top:8px}';
+  html += '.status{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600}';
+  html += '@media print{body{padding:20px}.header{page-break-after:auto}}</style></head><body>';
+
+  // Header
+  html += '<div class="header"><h1>' + pName + '</h1><p>Onderhoudscontract</p></div>';
+
+  // Status
+  var st = computeStatus(c);
+  var statusColor = { concept:'#9CA3AF', actief:'#059669', verlopen:'#D97706', geannuleerd:'#DC2626' };
+  var statusBg = { concept:'#F3F4F6', actief:'#D1FAE5', verlopen:'#FEF3C7', geannuleerd:'#FEE2E2' };
+  html += '<div style="text-align:right;margin-bottom:16px"><span class="status" style="background:' + (statusBg[st]||'#F3F4F6') + ';color:' + (statusColor[st]||'#6B7280') + '">' + st.charAt(0).toUpperCase() + st.slice(1) + '</span></div>';
+
+  // Klantgegevens
+  html += '<div class="card"><div class="card-title">Klantgegevens</div>';
+  html += '<div class="row"><span class="lbl">Naam</span><span class="val">' + (c.klant_naam || '') + '</span></div>';
+  if (c.klant_contact) html += '<div class="row"><span class="lbl">Contact</span><span class="val">' + c.klant_contact + '</span></div>';
+  if (c.klant_email) html += '<div class="row"><span class="lbl">Email</span><span class="val">' + c.klant_email + '</span></div>';
+  if (c.klant_telefoon) html += '<div class="row"><span class="lbl">Telefoon</span><span class="val">' + c.klant_telefoon + '</span></div>';
+  var adres = [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', ');
+  if (adres) html += '<div class="row"><span class="lbl">Adres</span><span class="val">' + adres + '</span></div>';
+  html += '</div>';
+
+  // Diensten
+  html += '<div class="card"><div class="card-title">Diensten</div>';
+  if (sectoren.length > 0) {
+    sectoren.forEach(function(s) {
+      var sec = s.sector || s;
+      var badgeColors = { zonnepanelen:'background:#FEF3C7;color:#92400E', warmtepomp:'background:#DBEAFE;color:#1E40AF', ventilatie:'background:#EDE9FE;color:#5B21B6', verwarming:'background:#FEE2E2;color:#991B1B' };
+      html += '<span class="sector-badge" style="' + (badgeColors[sec] || '') + '">' + (sectorLabels[sec] || sec) + '</span>';
+    });
+    html += '<br><br>';
+    sectoren.forEach(function(s) {
+      var sec = s.sector || s;
+      if (s.configs) {
+        s.configs.forEach(function(cfg, i) {
+          html += '<div style="font-size:13px;color:#6b7280;margin-bottom:4px">';
+          if (sec === 'zonnepanelen') html += cfg.pan + ' panelen, ' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling');
+          else if (sec === 'warmtepomp') html += cfg.binnenunits + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic');
+          else if (sec === 'ventilatie') html += 'Systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen';
+          else if (sec === 'verwarming') html += cfg.keteltype + 'ketel';
+          html += '</div>';
+        });
+      }
+    });
+  } else if (c.sector) {
+    html += '<span class="sector-badge">' + (sectorLabels[c.sector] || c.sector) + '</span>';
+    if (c.aantal_panelen) html += '<div style="font-size:13px;color:#6b7280;margin-top:8px">' + c.aantal_panelen + ' panelen</div>';
+  }
+  html += '</div>';
+
+  // Prijsoverzicht
+  html += '<div class="card"><div class="card-title">Prijsoverzicht</div>';
+  if (pricing.lines) {
+    pricing.lines.forEach(function(l) {
+      if (l.type === 'header') html += '<div style="font-weight:600;padding:8px 0 4px;margin-top:8px">' + l.label + '</div>';
+      else {
+        var amt = l.amount < 0 ? '- \u20AC ' + Math.abs(l.amount).toFixed(2).replace('.',',') : '\u20AC ' + l.amount.toFixed(2).replace('.',',');
+        html += '<div class="row"><span class="lbl">' + l.label + '</span><span class="val">' + amt + '</span></div>';
+      }
+    });
+    html += '<div class="row" style="font-weight:600;border-top:2px solid #e5e7eb;padding-top:8px;margin-top:8px"><span>Subtotaal excl. BTW</span><span>\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',',') + '</span></div>';
+    html += '<div class="row"><span class="lbl">BTW ' + (pricing.btwPct || 21) + '%</span><span class="val">\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',',') + '</span></div>';
+    html += '<div class="total-row"><span>Totaal incl. BTW</span><span>\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',',') + '</span></div>';
+  } else if (c.totaal_incl_btw) {
+    html += '<div class="total-row"><span>Totaal incl. BTW</span><span>\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') + '</span></div>';
+  }
+  html += '<div style="text-align:center;font-size:12px;color:#6b7280;margin-top:12px">' + freqTxt + ' | Looptijd: ' + (c.contractduur || 'n.v.t.') + '</div>';
+  html += '</div>';
+
+  // Contract details
+  html += '<div class="card"><div class="card-title">Contractdetails</div>';
+  html += '<div class="row"><span class="lbl">Type</span><span class="val">' + (c.contract_type === 'raam' ? 'Raamcontract' : 'Per klant') + '</span></div>';
+  html += '<div class="row"><span class="lbl">Frequentie</span><span class="val">' + freqTxt + '</span></div>';
+  html += '<div class="row"><span class="lbl">Looptijd</span><span class="val">' + (c.contractduur || 'n.v.t.') + '</span></div>';
+  if (c.contract_start) html += '<div class="row"><span class="lbl">Startdatum</span><span class="val">' + fmtDate(c.contract_start) + '</span></div>';
+  if (c.contract_einde) html += '<div class="row"><span class="lbl">Einddatum</span><span class="val">' + fmtDate(c.contract_einde) + '</span></div>';
+  if (c.contract_nummer) html += '<div class="row"><span class="lbl">Contractnummer</span><span class="val">' + c.contract_nummer + '</span></div>';
+  if (c.datum_ondertekening) html += '<div class="row"><span class="lbl">Ondertekend op</span><span class="val">' + fmtDate(c.datum_ondertekening) + '</span></div>';
+  html += '</div>';
+
+  if (c.beschrijving) {
+    html += '<div class="card"><div class="card-title">Beschrijving</div><p style="font-size:14px;color:#6b7280">' + c.beschrijving + '</p></div>';
+  }
+
+  html += '<div style="text-align:center;padding:24px 0;color:#9CA3AF;font-size:12px">Gegenereerd door ' + pName + ' via Flancco Platform</div>';
+  html += '</body></html>';
+
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+// =============================================
+// CONTRACT PDF (jsPDF)
+// =============================================
+function downloadContractPDF(contractId) {
+  var c = allContracten.find(x => x.id === contractId);
+  if (!c) { showToast('Contract niet gevonden', 'error'); return; }
+  var p = partners.find(x => x.id === c.partner_id);
+  var pName = p ? (p.bedrijfsnaam || p.naam) : 'Partner';
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF('p', 'mm', 'a4');
+  var y = 20;
+  var lm = 20; // left margin
+  var pw = 170; // printable width
+
+  // Header
+  doc.setFillColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.rect(0, 0, 210, 40, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont(undefined, 'bold');
+  doc.text(pName, 105, 18, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'normal');
+  doc.text('Onderhoudscontract', 105, 28, { align: 'center' });
+
+  y = 50;
+  doc.setTextColor(30, 30, 30);
+
+  // Status
+  var st = computeStatus(c);
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'bold');
+  doc.text('Status: ' + st.charAt(0).toUpperCase() + st.slice(1), 190, y, { align: 'right' });
+
+  // Klantgegevens
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.text('KLANTGEGEVENS', lm, y);
+  y += 2;
+  doc.setDrawColor(230, 230, 230);
+  doc.line(lm, y, lm + pw, y);
+  y += 7;
+  doc.setTextColor(80, 80, 80);
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+
+  function addRow(label, value) {
+    if (!value) return;
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(120, 120, 120);
+    doc.text(label, lm, y);
+    doc.setTextColor(30, 30, 30);
+    doc.setFont(undefined, 'bold');
+    doc.text(String(value), 190, y, { align: 'right' });
+    y += 6;
+  }
+
+  addRow('Naam', c.klant_naam);
+  addRow('Contact', c.klant_contact);
+  addRow('Email', c.klant_email);
+  addRow('Telefoon', c.klant_telefoon);
+  addRow('Adres', [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', '));
+  y += 4;
+
+  // Diensten
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.text('DIENSTEN', lm, y);
+  y += 2;
+  doc.line(lm, y, lm + pw, y);
+  y += 7;
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(10);
+
+  var sectoren = c.sectoren || [];
+  if (sectoren.length > 0) {
+    sectoren.forEach(function(s) {
+      var sec = s.sector || s;
+      doc.setFont(undefined, 'bold');
+      doc.text(sectorLabels[sec] || sec, lm, y);
+      y += 5;
+      if (s.configs) {
+        s.configs.forEach(function(cfg) {
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(120, 120, 120);
+          var desc = '';
+          if (sec === 'zonnepanelen') desc = cfg.pan + ' panelen, ' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grond');
+          else if (sec === 'warmtepomp') desc = cfg.binnenunits + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic');
+          else if (sec === 'ventilatie') desc = 'Systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen';
+          else if (sec === 'verwarming') desc = cfg.keteltype + 'ketel';
+          doc.text(desc, lm + 4, y);
+          y += 5;
+        });
+      }
+      doc.setTextColor(30, 30, 30);
+    });
+  } else if (c.sector) {
+    doc.setFont(undefined, 'bold');
+    doc.text(sectorLabels[c.sector] || c.sector, lm, y);
+    y += 5;
+    if (c.aantal_panelen) { doc.setFont(undefined, 'normal'); doc.text(c.aantal_panelen + ' panelen', lm + 4, y); y += 5; }
+  }
+  y += 4;
+
+  // Prijsoverzicht
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+  doc.text('PRIJSOVERZICHT', lm, y);
+  y += 2;
+  doc.line(lm, y, lm + pw, y);
+  y += 7;
+
+  var pricing = c.pricing_breakdown || {};
+  doc.setFontSize(10);
+  if (pricing.lines) {
+    pricing.lines.forEach(function(l) {
+      if (l.type === 'header') {
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text(l.label, lm, y);
+        y += 6;
+      } else {
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(120, 120, 120);
+        doc.text(l.label, lm, y);
+        var amt = l.amount < 0 ? '- \u20AC ' + Math.abs(l.amount).toFixed(2).replace('.',',') : '\u20AC ' + l.amount.toFixed(2).replace('.',',');
+        doc.text(amt, 190, y, { align: 'right' });
+        y += 5;
+      }
+    });
+    y += 2;
+    doc.setDrawColor(180, 180, 180);
+    doc.line(lm, y, lm + pw, y);
+    y += 6;
+    doc.setTextColor(30, 30, 30);
+    doc.setFont(undefined, 'bold');
+    doc.text('Subtotaal excl. BTW', lm, y);
+    doc.text('\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',','), 190, y, { align: 'right' });
+    y += 5;
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(120, 120, 120);
+    doc.text('BTW ' + (pricing.btwPct || 21) + '%', lm, y);
+    doc.text('\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',','), 190, y, { align: 'right' });
+    y += 7;
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+    doc.text('Totaal incl. BTW', lm, y);
+    doc.text('\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',','), 190, y, { align: 'right' });
+    y += 4;
+    doc.setDrawColor(p ? p.kleur_primair || '#098979' : '#098979');
+    doc.setLineWidth(0.8);
+    doc.line(lm, y, lm + pw, y);
+  } else if (c.totaal_incl_btw) {
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(p ? p.kleur_primair || '#098979' : '#098979');
+    doc.text('Totaal incl. BTW', lm, y);
+    doc.text('\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',','), 190, y, { align: 'right' });
+  }
+
+  y += 12;
+  doc.setFontSize(10);
+  doc.setTextColor(120, 120, 120);
+  doc.setFont(undefined, 'normal');
+  var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
+  doc.text(freqTxt + '  |  Looptijd: ' + (c.contractduur || 'n.v.t.'), 105, y, { align: 'center' });
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(180, 180, 180);
+  doc.text('Gegenereerd via Flancco Platform  |  ' + new Date().toLocaleDateString('nl-BE'), 105, 285, { align: 'center' });
+
+  var filename = 'Contract_' + (c.klant_naam || '').replace(/\s+/g, '_') + '_' + (c.contract_nummer || c.id.substring(0, 8)) + '.pdf';
+  doc.save(filename);
+  showToast('PDF gedownload');
+}
+
+// =============================================
+// SEND CONTRACT MAIL
+// =============================================
+async function sendContractMail(contractId) {
+  var c = allContracten.find(x => x.id === contractId);
+  if (!c) return;
+  if (!c.klant_email) { showToast('Geen email adres bij deze klant', 'error'); return; }
+  if (!confirm('Tekenlink versturen naar ' + c.klant_email + '?')) return;
+
+  try {
+    var res = await fetch(SUPA_URL + '/functions/v1/send-contract-link', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (await sb.auth.getSession()).data.session.access_token
+      },
+      body: JSON.stringify({ contract_id: contractId })
+    });
+    var data = await res.json();
+    if (data.success) {
+      showToast('Tekenlink verzonden naar ' + c.klant_email);
+      await loadAllData();
+      renderContracten();
+    } else {
+      showToast('Verzending mislukt: ' + (data.error || 'onbekend'), 'error');
+    }
+  } catch (err) {
+    showToast('Verzending mislukt: ' + err.message, 'error');
+  }
 }
 
 // =============================================
