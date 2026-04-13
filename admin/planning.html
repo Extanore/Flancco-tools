@@ -624,7 +624,10 @@
     <div id="qa-new-client-fields" style="display:none;background:var(--light);border-radius:10px;padding:16px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:10px">NIEUWE KLANT</div>
       <div class="modal-row">
-        <div class="modal-field"><label>Naam *</label><input id="qa-klant-naam" placeholder="Jan Janssen"></div>
+        <div class="modal-field"><label>Voornaam *</label><input id="qa-klant-voornaam" placeholder="Jan"></div>
+        <div class="modal-field"><label>Achternaam *</label><input id="qa-klant-achternaam" placeholder="Janssen"></div>
+      </div>
+      <div class="modal-row">
         <div class="modal-field"><label>Telefoon</label><input id="qa-klant-tel" placeholder="+32 4..."></div>
       </div>
       <div class="modal-row">
@@ -2113,7 +2116,8 @@ function quickAdd(techId, datum) {
 
   // Reset new client fields
   document.getElementById('qa-new-client-fields').style.display = 'none';
-  document.getElementById('qa-klant-naam').value = '';
+  document.getElementById('qa-klant-voornaam').value = '';
+  document.getElementById('qa-klant-achternaam').value = '';
   document.getElementById('qa-klant-tel').value = '';
   document.getElementById('qa-klant-email').value = '';
   document.getElementById('qa-klant-straat').value = '';
@@ -2175,8 +2179,10 @@ async function saveQuickAdd() {
 
   // Create new client + contract if needed
   if (contractVal === '__new__') {
-    var klantNaam = document.getElementById('qa-klant-naam').value.trim();
-    if (!klantNaam) { alert('Naam van de klant is verplicht'); return; }
+    var klantVoornaam = document.getElementById('qa-klant-voornaam').value.trim();
+    var klantAchternaam = document.getElementById('qa-klant-achternaam').value.trim();
+    if (!klantVoornaam || !klantAchternaam) { alert('Voornaam en achternaam zijn verplicht'); return; }
+    var klantNaam = klantVoornaam + ' ' + klantAchternaam;
 
     var partnerId = document.getElementById('qa-partner').value;
 

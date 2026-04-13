@@ -618,8 +618,11 @@
       <select id="nc-partner" onchange="ncCalc()"></select>
     </div>
     <div class="modal-row">
-      <div class="modal-field"><label>Klantnaam *</label><input id="nc-naam" placeholder="Jan Janssen of Bedrijf BV"></div>
-      <div class="modal-field"><label>Contactpersoon *</label><input id="nc-contact" placeholder="Naam"></div>
+      <div class="modal-field"><label>Voornaam *</label><input id="nc-voornaam" placeholder="Jan"></div>
+      <div class="modal-field"><label>Achternaam *</label><input id="nc-achternaam" placeholder="Janssen"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Bedrijfsnaam</label><input id="nc-naam" placeholder="Optioneel"></div>
     </div>
     <div class="modal-row">
       <div class="modal-field"><label>Adres *</label><input id="nc-adres" placeholder="Straat + huisnr"></div>
@@ -694,8 +697,11 @@
     <h2 id="klant-modal-title">Nieuwe klant</h2>
     <input type="hidden" id="kl-id">
     <div class="modal-row">
-      <div class="modal-field"><label>Contactpersoon *</label><input id="kl-contact"></div>
-      <div class="modal-field"><label>Bedrijfsnaam</label><input id="kl-bedrijf"></div>
+      <div class="modal-field"><label>Voornaam *</label><input id="kl-voornaam" placeholder="Jan"></div>
+      <div class="modal-field"><label>Achternaam *</label><input id="kl-achternaam" placeholder="Janssen"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Bedrijfsnaam</label><input id="kl-bedrijf" placeholder="Optioneel"></div>
     </div>
     <div class="modal-row">
       <div class="modal-field"><label>Email *</label><input type="email" id="kl-email"></div>
@@ -1987,14 +1993,16 @@ function ncCalc() {
 
 async function saveNewContract() {
   const partnerId = document.getElementById('nc-partner').value;
-  const naam = document.getElementById('nc-naam').value.trim();
-  const contact = document.getElementById('nc-contact').value.trim();
+  const voornaam = document.getElementById('nc-voornaam').value.trim();
+  const achternaam = document.getElementById('nc-achternaam').value.trim();
+  const naam = document.getElementById('nc-naam').value.trim() || (voornaam + ' ' + achternaam).trim();
+  const contact = (voornaam + ' ' + achternaam).trim();
   const adres = document.getElementById('nc-adres').value.trim();
   const pcgem = document.getElementById('nc-pcgem').value.trim();
   const tel = document.getElementById('nc-tel').value.trim();
   const email = document.getElementById('nc-email').value.trim();
 
-  if (!partnerId || !naam || !contact || !adres || !pcgem || !tel || !email) {
+  if (!partnerId || !voornaam || !achternaam || !adres || !pcgem || !tel || !email) {
     alert('Vul alle verplichte velden in.');
     return;
   }
@@ -2117,7 +2125,9 @@ function renderKlanten() {
 function openKlantModal(editData) {
   document.getElementById('klant-modal-title').textContent = editData ? 'Klant bewerken' : 'Nieuwe klant';
   document.getElementById('kl-id').value = editData ? editData.id : '';
-  document.getElementById('kl-contact').value = editData ? editData.contact_person || '' : '';
+  var nameParts = (editData ? editData.contact_person || '' : '').split(' ');
+  document.getElementById('kl-voornaam').value = editData ? nameParts[0] || '' : '';
+  document.getElementById('kl-achternaam').value = editData ? nameParts.slice(1).join(' ') || '' : '';
   document.getElementById('kl-bedrijf').value = editData ? editData.company_name || '' : '';
   document.getElementById('kl-email').value = editData ? editData.email || '' : '';
   document.getElementById('kl-telefoon').value = editData ? editData.phone || '' : '';
@@ -2156,7 +2166,9 @@ function closeKlantModal() {
 
 async function saveKlant() {
   var id = document.getElementById('kl-id').value;
-  var contact = document.getElementById('kl-contact').value.trim();
+  var voornaam = document.getElementById('kl-voornaam').value.trim();
+  var achternaam = document.getElementById('kl-achternaam').value.trim();
+  var contact = (voornaam + ' ' + achternaam).trim();
   var email = document.getElementById('kl-email').value.trim();
   var telefoon = document.getElementById('kl-telefoon').value.trim();
   var straat = document.getElementById('kl-straat').value.trim();
@@ -2165,7 +2177,7 @@ async function saveKlant() {
   var gemeente = document.getElementById('kl-gemeente').value.trim();
   var partnerId = document.getElementById('kl-partner').value;
 
-  if (!contact || !email || !telefoon || !straat || !huisnr || !postcode || !gemeente) {
+  if (!voornaam || !achternaam || !email || !telefoon || !straat || !huisnr || !postcode || !gemeente) {
     alert('Vul alle verplichte velden in.');
     return;
   }
@@ -2243,10 +2255,11 @@ function exportKlantenExcel() {
   var list = getFilteredKlanten();
   if (list.length === 0) { alert('Geen klanten om te exporteren.'); return; }
 
-  var header = ['Contactpersoon','Bedrijf','Email','Telefoon','Straat','Nr','Postcode','Gemeente','Land','Partner','Notities'];
+  var header = ['Voornaam','Achternaam','Bedrijf','Email','Telefoon','Straat','Nr','Postcode','Gemeente','Land','Partner','Notities'];
   var rows = list.map(function(c) {
     var partner = partners.find(function(p) { return p.id === c.partner_id; });
-    return [c.contact_person, c.company_name, c.email, c.phone, c.street, c.house_number, c.postal_code, c.city, c.country, partner ? partner.naam : '', c.notes]
+    var np = (c.contact_person || '').split(' ');
+    return [np[0] || '', np.slice(1).join(' ') || '', c.company_name, c.email, c.phone, c.street, c.house_number, c.postal_code, c.city, c.country, partner ? partner.naam : '', c.notes]
       .map(function(v) { return '"' + (v || '').replace(/"/g, '""') + '"'; });
   });
   var csv = '\uFEFF' + [header.join(';')].concat(rows.map(function(r) { return r.join(';'); })).join('\n');
