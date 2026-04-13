@@ -851,6 +851,7 @@ var allClients = [];
 var allDuurInstellingen = [];
 var allPartners = [];
 var allVerlofTypes = [];
+var allInstallaties = [];
 var dragBeurtId = null;
 var ctxBeurtId = null;
 
@@ -1134,7 +1135,8 @@ async function loadPlanningData() {
     sb.from('duur_instellingen').select('*'),
     sb.from('partners').select('id, naam, slug, bedrijfsnaam'),
     sb.from('verlof_types').select('*'),
-    sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)')
+    sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)'),
+    sb.from('klant_installaties').select('*')
   ]);
 
   allBeurten = results[0].data || [];
@@ -1147,6 +1149,7 @@ async function loadPlanningData() {
   allPartners = results[7].data || [];
   allVerlofTypes = results[8].data || [];
   allInterventies = results[9].data || [];
+  allInstallaties = results[10].data || [];
 
   populateFilterDropdowns();
 }
@@ -1518,6 +1521,41 @@ function getInstallationSummary(beurt) {
   }
   if (sector === 'zonnepanelen' && contract.aantal_panelen) return contract.aantal_panelen + ' panelen';
   return '';
+}
+
+function getInstallatieDetail(beurt) {
+  // Try to find linked installatie via installatie_id or by client+sector match
+  var inst = null;
+  if (beurt.installatie_id) {
+    inst = allInstallaties.find(function(i) { return i.id === beurt.installatie_id; });
+  }
+  if (!inst) {
+    var contract = allContracten.find(function(c) { return c.id === beurt.contract_id; });
+    if (contract && contract.client_id) {
+      inst = allInstallaties.find(function(i) { return i.client_id === contract.client_id && i.installation_type === beurt.sector; });
+    }
+  }
+  if (!inst) return '';
+  var parts = [];
+  if (inst.brand) parts.push(inst.brand + (inst.model ? ' ' + inst.model : ''));
+  var sector = (inst.installation_type || '').toLowerCase();
+  if (sector === 'zonnepanelen') {
+    if (inst.roof_surfaces && Array.isArray(inst.roof_surfaces)) {
+      var totalPanels = 0;
+      var orientations = [];
+      inst.roof_surfaces.forEach(function(rs) { totalPanels += (rs.panel_count || 0); if (rs.orientation) orientations.push(rs.orientation); });
+      if (totalPanels) parts.push(totalPanels + ' panelen');
+      if (orientations.length) parts.push('dakvlak ' + orientations.join(', '));
+    }
+  } else if (sector === 'airco' || sector === 'warmtepomp') {
+    if (inst.indoor_unit_count) parts.push(inst.indoor_unit_count + ' binnenunit(s)');
+    if (inst.outdoor_unit_count) parts.push(inst.outdoor_unit_count + ' buitenunit');
+  } else if (sector === 'ventilatie') {
+    if (inst.ventilation_system_type) parts.push('Systeem ' + inst.ventilation_system_type.toUpperCase().replace('_SYSTEM',''));
+  } else if (sector === 'verwarming') {
+    if (inst.heating_type) parts.push(inst.heating_type);
+  }
+  return parts.join(' — ');
 }
 
 function renderApptCard(b, info) {
@@ -2638,6 +2676,8 @@ function renderRapportageLijst() {
       var dagenGeleden = b.uitvoer_datum ? Math.floor((Date.now() - new Date(b.uitvoer_datum).getTime()) / 86400000) : '?';
       var urgencyClass = dagenGeleden > 7 ? 'high' : dagenGeleden > 3 ? 'medium' : 'low';
 
+      var instDetail = getInstallatieDetail(b) || getInstallationSummary(b);
+
       return '<div class="workflow-card">' +
         '<div class="workflow-card-sector" style="background:' + color + '"></div>' +
         '<div class="workflow-card-info">' +
@@ -2648,6 +2688,7 @@ function renderRapportageLijst() {
             '<span>Technieker: ' + esc(techNaam) + '</span>' +
             '<span>Uitgevoerd: ' + fmtDate(b.uitvoer_datum) + '</span>' +
           '</div>' +
+          (instDetail ? '<div style="font-size:11px;color:#9CA3AF;font-style:italic;margin-top:3px">' + esc(instDetail) + '</div>' : '') +
         '</div>' +
         '<span class="workflow-card-urgency ' + urgencyClass + '">' + dagenGeleden + 'd geleden</span>' +
         '<div class="workflow-card-actions">' +
@@ -2680,6 +2721,8 @@ function renderAfgewerkLijst() {
       var tech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
       var techNaam = tech ? ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() : '—';
 
+      var instDetail = getInstallatieDetail(b) || getInstallationSummary(b);
+
       return '<div class="workflow-card">' +
         '<div class="workflow-card-sector" style="background:' + color + '"></div>' +
         '<div class="workflow-card-info">' +
@@ -2690,6 +2733,7 @@ function renderAfgewerkLijst() {
             '<span>Technieker: ' + esc(techNaam) + '</span>' +
             '<span>Afgewerkt: ' + fmtDate(b.uitvoer_datum) + '</span>' +
           '</div>' +
+          (instDetail ? '<div style="font-size:11px;color:#9CA3AF;font-style:italic;margin-top:3px">' + esc(instDetail) + '</div>' : '') +
         '</div>' +
         '<div class="workflow-card-actions">' +
           '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
