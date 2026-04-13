@@ -2409,7 +2409,7 @@ function renderTechniekers() {
     var rol = t.rol || 'technieker';
     var uren = t.contract_uren_week || 38;
     return '<tr>' +
-      '<td><strong>' + esc((t.voornaam || '') + ' ' + t.naam) + '</strong></td>' +
+      '<td><a href="#" onclick="event.preventDefault();previewTechnieker(\'' + t.id + '\')" style="color:inherit;text-decoration:none"><strong>' + esc((t.voornaam || '') + ' ' + t.naam) + '</strong></a></td>' +
       '<td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:' + (rolColors[rol] || '#6B7280') + '18;color:' + (rolColors[rol] || '#6B7280') + ';font-weight:600">' + (rolLabels[rol] || rol) + '</span></td>' +
       '<td>' + (t.telefoon ? '<a href="tel:' + esc(t.telefoon) + '">' + esc(t.telefoon) + '</a>' : '—') + '</td>' +
       '<td>' + (t.email ? '<a href="mailto:' + esc(t.email) + '">' + esc(t.email) + '</a>' : '—') + '</td>' +
@@ -2500,6 +2500,105 @@ document.getElementById('tech-uren-week').addEventListener('input', function() {
 function editTechnieker(id) {
   var t = allTechniekers.find(function(x) { return x.id === id; });
   if (t) openTechModal(t);
+}
+
+function previewTechnieker(id) {
+  var t = allTechniekers.find(function(x) { return x.id === id; });
+  if (!t) return;
+
+  var rolLabels = { technieker: 'Technieker', projectleider: 'Projectleider', leerling: 'Leerling', onderaannemer: 'Onderaannemer' };
+  var rol = t.rol || 'technieker';
+  var uren = t.contract_uren_week || 38;
+
+  // Sectoren
+  var secs = allTechSectoren.filter(function(s) { return s.technieker_id === t.id; });
+  var secHtml = secs.length > 0 ? secs.map(function(s) {
+    return '<span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;background:#f3f4f6;margin-right:4px">' + esc(s.sector) + '</span>';
+  }).join(' ') : '<span style="color:var(--grey)">Geen sectoren</span>';
+
+  // Kwalificaties
+  var kwHtml = '';
+  if (t.kwalificaties && t.kwalificaties.length > 0) {
+    kwHtml = t.kwalificaties.map(function(k) {
+      return '<span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;background:#f3f4f6;margin-right:4px">' + esc(k.replace('_',' ')) + '</span>';
+    }).join(' ');
+  } else {
+    kwHtml = '<span style="color:var(--grey)">Geen kwalificaties</span>';
+  }
+
+  // Voertuig
+  var voertuig = allVoertuigen.find(function(v) { return v.technieker_id === t.id; });
+  var voertuigHtml = voertuig
+    ? '<strong>' + esc(voertuig.nummerplaat) + '</strong> — ' + esc(voertuig.merk + ' ' + voertuig.model)
+    : '<span style="color:var(--grey)">Geen voertuig toegewezen</span>';
+
+  // Geplande beurten count
+  var beurten = allBeurten ? allBeurten.filter(function(b) { return b.technieker_id === t.id && b.status === 'ingepland'; }) : [];
+
+  var overlay = document.createElement('div');
+  overlay.id = 'tech-preview-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:520px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">' +
+    '<div style="padding:24px">' +
+      // Header
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">' +
+        '<div>' +
+          '<h2 style="margin:0;font-size:20px;color:var(--navy)">' + esc((t.voornaam || '') + ' ' + t.naam) + '</h2>' +
+          '<span style="font-size:13px;color:var(--grey)">' + (rolLabels[rol] || rol) + '</span>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'tech-preview-overlay\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--grey);padding:0">&times;</button>' +
+      '</div>' +
+
+      // Contact
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">' +
+        '<div style="background:#f8f9fa;border-radius:8px;padding:12px">' +
+          '<div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:4px">Telefoon</div>' +
+          '<div style="font-size:14px">' + (t.telefoon ? '<a href="tel:' + esc(t.telefoon) + '">' + esc(t.telefoon) + '</a>' : '—') + '</div>' +
+        '</div>' +
+        '<div style="background:#f8f9fa;border-radius:8px;padding:12px">' +
+          '<div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:4px">Email</div>' +
+          '<div style="font-size:14px">' + (t.email ? '<a href="mailto:' + esc(t.email) + '">' + esc(t.email) + '</a>' : '—') + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Details
+      '<div style="margin-bottom:16px">' +
+        '<div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:6px">Contract</div>' +
+        '<div style="font-size:13px">' + uren + ' uur/week (' + (uren / 5).toFixed(1) + ' uur/dag)' +
+          (t.start_datum ? ' · In dienst sinds ' + t.start_datum : '') + '</div>' +
+      '</div>' +
+
+      '<div style="margin-bottom:16px">' +
+        '<div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:6px">Installatiesectoren</div>' +
+        '<div>' + secHtml + '</div>' +
+      '</div>' +
+
+      '<div style="margin-bottom:16px">' +
+        '<div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:6px">Kwalificaties</div>' +
+        '<div>' + kwHtml + '</div>' +
+      '</div>' +
+
+      '<div style="margin-bottom:16px">' +
+        '<div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:6px">Voertuig</div>' +
+        '<div style="font-size:13px">' + voertuigHtml + '</div>' +
+      '</div>' +
+
+      '<div style="margin-bottom:20px">' +
+        '<div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:6px">Planning</div>' +
+        '<div style="font-size:13px">' + beurten.length + ' ingeplande beurten · max ' + (t.max_beurten_per_dag || 5) + ' per dag</div>' +
+      '</div>' +
+
+      (t.notities ? '<div style="margin-bottom:20px"><div style="font-size:10px;text-transform:uppercase;color:var(--grey);font-weight:700;margin-bottom:6px">Notities</div><div style="font-size:13px;color:var(--grey);font-style:italic">' + esc(t.notities) + '</div></div>' : '') +
+
+      // Actions
+      '<div style="display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--rule);padding-top:16px">' +
+        '<button onclick="document.getElementById(\'tech-preview-overlay\').remove();editTechnieker(\'' + t.id + '\')" style="padding:8px 20px;border:none;border-radius:8px;background:var(--navy,#1A1A2E);color:#fff;cursor:pointer;font-size:13px;font-weight:600">Bewerken</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
 
 async function saveTechnieker() {
