@@ -2737,6 +2737,8 @@ function renderAfgewerkLijst() {
         '</div>' +
         '<div class="workflow-card-actions">' +
           '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
+          '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '\',\'_blank\')">Bewerken</button>' +
+          '<button class="workflow-btn" style="color:#E74C3C;border-color:#E74C3C" onclick="deleteAfgewerkRapport(\'' + b.id + '\')">Verwijderen</button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -2744,6 +2746,22 @@ function renderAfgewerkLijst() {
 
   html += '</div>';
   container.innerHTML = html;
+}
+
+async function deleteAfgewerkRapport(beurtId) {
+  if (!confirm('Ben je zeker dat je dit rapport wilt verwijderen? Dit kan niet ongedaan gemaakt worden.')) return;
+  // Find and delete rapport linked to this beurt
+  var rapRes = await sb.from('rapporten').select('id').eq('onderhoudsbeurt_id', beurtId).limit(1);
+  if (rapRes.data && rapRes.data.length > 0) {
+    await sb.from('rapporten').delete().eq('id', rapRes.data[0].id);
+  }
+  // Reset beurt status to 'uitgevoerd'
+  await sb.from('onderhoudsbeurten').update({ status: 'uitgevoerd', updated_at: new Date().toISOString() }).eq('id', beurtId);
+  // Update local data and re-render
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (beurt) beurt.status = 'uitgevoerd';
+  renderAfgewerkLijst();
+  updateStats();
 }
 
 function renderInterventiesLijst() {
