@@ -72,6 +72,31 @@
   }
   .view-toggle .btn-view:hover { color: var(--navy); }
   .view-toggle .btn-view.active { background: var(--white); color: var(--navy); box-shadow: var(--shadow-sm); }
+  .tab-badge { position:absolute; top:-4px; right:-4px; background:var(--red); color:white; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 5px; }
+
+  /* RAPPORTAGE / AFGEWERKT / INTERVENTIE LIJSTEN */
+  .workflow-list { padding:20px 28px; }
+  .workflow-list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .workflow-list-header h2 { font-size:16px; font-weight:700; color:var(--navy); }
+  .workflow-list-count { font-size:13px; color:var(--grey); }
+  .workflow-card { background:var(--white); border-radius:10px; padding:16px 20px; margin-bottom:10px; box-shadow:var(--shadow-sm); border:1px solid var(--rule); display:flex; align-items:center; gap:16px; transition:box-shadow 0.15s, border-color 0.15s; }
+  .workflow-card:hover { box-shadow:var(--shadow-md); border-color:rgba(0,0,0,0.16); }
+  .workflow-card-sector { width:4px; height:48px; border-radius:2px; flex-shrink:0; }
+  .workflow-card-info { flex:1; }
+  .workflow-card-title { font-size:14px; font-weight:600; color:var(--navy); }
+  .workflow-card-meta { font-size:12px; color:var(--grey); margin-top:3px; }
+  .workflow-card-meta span { margin-right:12px; }
+  .workflow-card-urgency { font-size:11px; padding:3px 8px; border-radius:10px; font-weight:600; }
+  .workflow-card-urgency.low { background:#ECFDF5; color:#059669; }
+  .workflow-card-urgency.medium { background:#FEF3C7; color:#92400E; }
+  .workflow-card-urgency.high { background:#FEE2E2; color:#991B1B; }
+  .workflow-card-actions { display:flex; gap:6px; flex-shrink:0; }
+  .workflow-btn { padding:7px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid var(--rule); background:var(--white); color:var(--navy); transition:0.15s; }
+  .workflow-btn:hover { background:var(--light); border-color:var(--navy); }
+  .workflow-btn-primary { background:var(--navy); color:white; border-color:var(--navy); }
+  .workflow-btn-primary:hover { background:var(--navy-light); }
+  .workflow-empty { text-align:center; padding:48px 20px; color:var(--grey); font-size:14px; }
+
   .capacity-bar { display: flex; align-items: center; gap: 12px; }
   .capacity-label { font-size: 12px; color: var(--grey); font-weight: 600; white-space: nowrap; }
   .capacity-track { width: 180px; height: 10px; background: var(--light); border-radius: 5px; overflow: hidden; border: 1px solid var(--rule); }
@@ -511,6 +536,10 @@
       <button class="btn-view" data-view="dag" onclick="switchView('dag')">Dag</button>
       <button class="btn-view" data-view="maand" onclick="switchView('maand')">Maand</button>
       <button class="btn-view" data-view="beschikbaarheid" onclick="switchView('beschikbaarheid')">Beschikbaarheid</button>
+      <span style="width:1px;height:24px;background:rgba(0,0,0,0.12);margin:0 4px"></span>
+      <button class="btn-view" data-view="rapportage" onclick="switchView('rapportage')" style="position:relative">Rapportage <span class="tab-badge" id="badge-rapportage" style="display:none"></span></button>
+      <button class="btn-view" data-view="afgewerkt" onclick="switchView('afgewerkt')">Afgewerkt</button>
+      <button class="btn-view" data-view="interventies-tab" onclick="switchView('interventies-tab')" style="position:relative">Interventies <span class="tab-badge" id="badge-interventies" style="display:none"></span></button>
     </div>
     <div class="capacity-bar">
       <span class="capacity-label" id="capacity-label">0/25 ingepland</span>
@@ -795,6 +824,7 @@ var currentView = 'week'; // week | dag | maand
 var currentDate = new Date(); // reference date for navigation
 var allBeurten = [];
 var allTechniekers = [];
+var allInterventies = [];
 var allTechSectoren = [];
 var allAfwezigheden = [];
 var allContracten = [];
@@ -821,6 +851,12 @@ function formatDateFull(d) {
 
 function formatDateISO(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(s) {
+  if (!s) return '—';
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return String(s);
+  return d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
 }
 
 function parseDate(s) {
@@ -1074,7 +1110,8 @@ async function loadPlanningData() {
     sb.from('clients').select('*'),
     sb.from('duur_instellingen').select('*'),
     sb.from('partners').select('id, naam, slug, bedrijfsnaam'),
-    sb.from('verlof_types').select('*')
+    sb.from('verlof_types').select('*'),
+    sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)')
   ]);
 
   allBeurten = results[0].data || [];
@@ -1086,6 +1123,7 @@ async function loadPlanningData() {
   allDuurInstellingen = results[6].data || [];
   allPartners = results[7].data || [];
   allVerlofTypes = results[8].data || [];
+  allInterventies = results[9].data || [];
 
   populateFilterDropdowns();
 }
@@ -1191,12 +1229,33 @@ function toggleSidebar() {
 // RENDERING
 // =============================================
 function renderView() {
-  if (currentView === 'week') renderWeekView();
-  else if (currentView === 'dag') renderDayView();
-  else if (currentView === 'beschikbaarheid') renderBeschikbaarheid();
-  else renderMonthView();
-  renderCapacity();
+  var calendarViews = ['week','dag','maand','beschikbaarheid'];
+  var workflowViews = ['rapportage','afgewerkt','interventies-tab'];
+  var planningLayout = document.querySelector('.planning-layout');
+  var workflowContainer = document.getElementById('workflow-container');
+
+  if (calendarViews.indexOf(currentView) >= 0) {
+    if (planningLayout) planningLayout.style.display = '';
+    if (workflowContainer) workflowContainer.style.display = 'none';
+    if (currentView === 'week') renderWeekView();
+    else if (currentView === 'dag') renderDayView();
+    else if (currentView === 'beschikbaarheid') renderBeschikbaarheid();
+    else renderMonthView();
+    renderCapacity();
+  } else {
+    if (planningLayout) planningLayout.style.display = 'none';
+    if (!workflowContainer) {
+      workflowContainer = document.createElement('div');
+      workflowContainer.id = 'workflow-container';
+      planningLayout.parentNode.insertBefore(workflowContainer, planningLayout.nextSibling);
+    }
+    workflowContainer.style.display = 'block';
+    if (currentView === 'rapportage') renderRapportageLijst();
+    else if (currentView === 'afgewerkt') renderAfgewerkLijst();
+    else if (currentView === 'interventies-tab') renderInterventiesLijst();
+  }
   renderStats();
+  updateWorkflowBadges();
 }
 
 function renderCapacity() {
@@ -1816,9 +1875,38 @@ function ctxUnplan() {
   ctxBeurtId = null;
 }
 
-function ctxMarkDone() {
+async function ctxMarkDone() {
   if (!ctxBeurtId) return;
-  openWerkbonModal(ctxBeurtId);
+  var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
+  if (!beurt) { ctxBeurtId = null; return; }
+
+  // Check if it's an interventie task — those go to werkbon
+  var contract = allContracten.find(function(c) { return c.id === beurt.contract_id; });
+  var isInterventie = false; // TODO: detect interventie tasks in future
+
+  if (isInterventie) {
+    openWerkbonModal(ctxBeurtId);
+    ctxBeurtId = null;
+    return;
+  }
+
+  // Onderhoudstaak: markeer als uitgevoerd (rapport nog nodig)
+  if (!confirm('Markeer als uitgevoerd? De beurt verschijnt in de Rapportage-tab voor rapportopmaak.')) {
+    ctxBeurtId = null; return;
+  }
+  try {
+    await sb.from('onderhoudsbeurten').update({
+      status: 'uitgevoerd',
+      uitvoer_datum: formatDateISO(new Date()),
+      updated_at: new Date().toISOString()
+    }).eq('id', ctxBeurtId);
+    beurt.status = 'uitgevoerd';
+    beurt.uitvoer_datum = formatDateISO(new Date());
+    auditLog('onderhoudsbeurten', ctxBeurtId, 'status_update', 'ingepland', 'uitgevoerd');
+    renderView();
+  } catch(e) {
+    alert('Fout: ' + (e.message || e));
+  }
   ctxBeurtId = null;
 }
 
@@ -2462,6 +2550,152 @@ function renderBeschikbaarheid() {
 
   html += '</div>';
   document.getElementById('grid-area').innerHTML = html;
+}
+
+// =============================================
+// WORKFLOW TABS (Rapportage, Afgewerkt, Interventies)
+// =============================================
+var sectorStrokeColors = { zonnepanelen:'#D97706', warmtepomp:'#DC2626', ventilatie:'#7C3AED', verwarming:'#EF4444', airco:'#0891B2', ic:'#059669', klussen:'#D97706' };
+var sectorLabelsMap2 = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', airco:'Airco', ic:'Industrial Cleaning', klussen:'Klussen' };
+
+function updateWorkflowBadges() {
+  var rapCount = allBeurten.filter(function(b) { return b.status === 'uitgevoerd'; }).length;
+  var intCount = (typeof allInterventies !== 'undefined' ? allInterventies : []).filter(function(i) { return i.status === 'open'; }).length;
+  var badgeRap = document.getElementById('badge-rapportage');
+  var badgeInt = document.getElementById('badge-interventies');
+  if (badgeRap) { badgeRap.style.display = rapCount > 0 ? 'flex' : 'none'; badgeRap.textContent = rapCount; }
+  if (badgeInt) { badgeInt.style.display = intCount > 0 ? 'flex' : 'none'; badgeInt.textContent = intCount; }
+}
+
+function renderRapportageLijst() {
+  var container = document.getElementById('workflow-container');
+  var beurten = allBeurten.filter(function(b) { return b.status === 'uitgevoerd'; });
+  // Sort by uitvoer_datum ascending (oldest first = most urgent)
+  beurten.sort(function(a, b) { return (a.uitvoer_datum || '').localeCompare(b.uitvoer_datum || ''); });
+
+  var html = '<div class="workflow-list">' +
+    '<div class="workflow-list-header"><h2>Rapportage op te maken</h2><span class="workflow-list-count">' + beurten.length + ' taken</span></div>';
+
+  if (beurten.length === 0) {
+    html += '<div class="workflow-empty">Alle uitgevoerde taken hebben een rapport. Goed bezig!</div>';
+  } else {
+    html += beurten.map(function(b) {
+      var info = getClientInfo(b);
+      var sector = b.sector || (info.sector || '');
+      var color = sectorStrokeColors[sector] || '#6B7280';
+      var label = sectorLabelsMap2[sector] || sector;
+      var tech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
+      var techNaam = tech ? ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() : '—';
+      var dagenGeleden = b.uitvoer_datum ? Math.floor((Date.now() - new Date(b.uitvoer_datum).getTime()) / 86400000) : '?';
+      var urgencyClass = dagenGeleden > 7 ? 'high' : dagenGeleden > 3 ? 'medium' : 'low';
+
+      return '<div class="workflow-card">' +
+        '<div class="workflow-card-sector" style="background:' + color + '"></div>' +
+        '<div class="workflow-card-info">' +
+          '<div class="workflow-card-title">' + esc(info.naam) + '</div>' +
+          '<div class="workflow-card-meta">' +
+            '<span>' + esc(label) + '</span>' +
+            '<span>' + esc(info.gemeente || '') + '</span>' +
+            '<span>Technieker: ' + esc(techNaam) + '</span>' +
+            '<span>Uitgevoerd: ' + fmtDate(b.uitvoer_datum) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="workflow-card-urgency ' + urgencyClass + '">' + dagenGeleden + 'd geleden</span>' +
+        '<div class="workflow-card-actions">' +
+          '<a href="rapport.html?beurt=' + b.id + '" class="workflow-btn workflow-btn-primary">Rapport opmaken</a>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderAfgewerkLijst() {
+  var container = document.getElementById('workflow-container');
+  var beurten = allBeurten.filter(function(b) { return b.status === 'afgewerkt'; });
+  beurten.sort(function(a, b) { return (b.uitvoer_datum || '').localeCompare(a.uitvoer_datum || ''); });
+
+  var html = '<div class="workflow-list">' +
+    '<div class="workflow-list-header"><h2>Afgewerkte taken</h2><span class="workflow-list-count">' + beurten.length + ' taken</span></div>';
+
+  if (beurten.length === 0) {
+    html += '<div class="workflow-empty">Nog geen afgewerkte taken met rapport.</div>';
+  } else {
+    html += beurten.map(function(b) {
+      var info = getClientInfo(b);
+      var sector = b.sector || (info.sector || '');
+      var color = sectorStrokeColors[sector] || '#6B7280';
+      var label = sectorLabelsMap2[sector] || sector;
+      var tech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
+      var techNaam = tech ? ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() : '—';
+
+      return '<div class="workflow-card">' +
+        '<div class="workflow-card-sector" style="background:' + color + '"></div>' +
+        '<div class="workflow-card-info">' +
+          '<div class="workflow-card-title">' + esc(info.naam) + '</div>' +
+          '<div class="workflow-card-meta">' +
+            '<span>' + esc(label) + '</span>' +
+            '<span>' + esc(info.gemeente || '') + '</span>' +
+            '<span>Technieker: ' + esc(techNaam) + '</span>' +
+            '<span>Afgewerkt: ' + fmtDate(b.uitvoer_datum) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="workflow-card-actions">' +
+          '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderInterventiesLijst() {
+  var container = document.getElementById('workflow-container');
+  var interventies = typeof allInterventies !== 'undefined' ? allInterventies : [];
+  // Show open first, then rest
+  interventies = interventies.slice().sort(function(a, b) {
+    if (a.status === 'open' && b.status !== 'open') return -1;
+    if (a.status !== 'open' && b.status === 'open') return 1;
+    return (b.created_at || '').localeCompare(a.created_at || '');
+  });
+
+  var html = '<div class="workflow-list">' +
+    '<div class="workflow-list-header"><h2>Interventies</h2><span class="workflow-list-count">' + interventies.length + ' totaal</span></div>';
+
+  if (interventies.length === 0) {
+    html += '<div class="workflow-empty">Geen interventies.</div>';
+  } else {
+    html += interventies.map(function(iv) {
+      var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+      var klantNaam = contract ? (contract.klant_naam || '—') : '—';
+      var gemeente = contract ? (contract.klant_gemeente || '') : '';
+      var sector = contract ? (contract.sector || '') : '';
+      var color = sectorStrokeColors[sector] || '#6B7280';
+      var ernstClass = iv.ernst === 'urgent' ? 'high' : iv.ernst === 'normaal' ? 'medium' : 'low';
+      var statusBdg = iv.status === 'open' ? 'badge-orange' : iv.status === 'afgehandeld' ? 'badge-green' : 'badge-grey';
+
+      return '<div class="workflow-card">' +
+        '<div class="workflow-card-sector" style="background:' + color + '"></div>' +
+        '<div class="workflow-card-info">' +
+          '<div class="workflow-card-title">' + esc(klantNaam) + '</div>' +
+          '<div class="workflow-card-meta">' +
+            '<span>' + esc(iv.omschrijving || '—') + '</span>' +
+            '<span>' + esc(gemeente) + '</span>' +
+            '<span>' + fmtDate(iv.created_at) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="workflow-card-urgency ' + ernstClass + '">' + esc(iv.ernst) + '</span>' +
+        '<span class="badge ' + statusBdg + '" style="margin-left:8px">' + esc(iv.status) + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 // =============================================

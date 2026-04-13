@@ -20,6 +20,22 @@
     --white: #FFFFFF;
     --rule: #E5E7EB;
     --radius: 10px;
+    /* Stripe-stijl design tokens */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --border-light: 1px solid rgba(0,0,0,0.08);
+    --border-default: 1px solid rgba(0,0,0,0.12);
+    --text-primary: #1A1A2E;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --bg-page: #F9FAFB;
+    --bg-card: #FFFFFF;
+    --bg-hover: #F3F4F6;
+    --transition-fast: 0.15s ease;
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: #1f2937; }
 
@@ -123,6 +139,54 @@
   .contract-card-row span { white-space:nowrap; }
   .contract-card-label { color:var(--grey); font-size:11px; display:block; margin-bottom:2px; }
   .placeholder-msg { color:var(--grey); font-size:13px; font-style:italic; }
+
+  /* DOSSIER TABS */
+  .dossier-tabs { display:flex; gap:0; border-bottom:2px solid var(--rule); margin-bottom:20px; background:var(--bg-card); border-radius:var(--radius-md) var(--radius-md) 0 0; padding:0 8px; box-shadow:var(--shadow-sm); }
+  .dossier-tab { padding:12px 20px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; transition:color var(--transition-fast); }
+  .dossier-tab:hover { color:var(--text-secondary); }
+  .dossier-tab.active { color:var(--text-primary); border-bottom-color:var(--navy); }
+  .dossier-tab-count { font-size:11px; color:var(--text-muted); margin-left:4px; font-weight:400; }
+  .dossier-tab-panel { display:none; }
+  .dossier-tab-panel.active { display:block; }
+
+  /* INSTALLATIE CARDS */
+  .install-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
+  .install-card { background:var(--bg-card); border-radius:var(--radius-md); padding:16px; border:var(--border-light); cursor:pointer; transition:box-shadow var(--transition-fast), border-color var(--transition-fast); }
+  .install-card:hover { box-shadow:var(--shadow-md); border-color:rgba(0,0,0,0.16); }
+  .install-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .install-card-type { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; }
+  .install-card-title { font-size:14px; font-weight:600; color:var(--text-primary); }
+  .install-card-detail { font-size:12px; color:var(--text-secondary); margin-top:4px; }
+  .install-card-meta { font-size:11px; color:var(--text-muted); margin-top:6px; font-style:italic; }
+
+  /* HISTORIEK TIMELINE */
+  .historiek-item { display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--rule); }
+  .historiek-item:last-child { border-bottom:none; }
+  .historiek-dot { width:10px; height:10px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+  .historiek-dot.afgewerkt { background:#059669; }
+  .historiek-dot.uitgevoerd { background:var(--orange); }
+  .historiek-dot.ingepland { background:var(--blue); }
+  .historiek-dot.geannuleerd { background:var(--text-muted); }
+  .historiek-content { flex:1; }
+  .historiek-date { font-size:12px; color:var(--text-muted); }
+  .historiek-title { font-size:13px; font-weight:600; color:var(--text-primary); margin-top:2px; }
+  .historiek-meta { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+  .historiek-summary { display:flex; gap:16px; margin-bottom:16px; font-size:13px; color:var(--text-secondary); padding:10px 16px; background:var(--bg-hover); border-radius:var(--radius-sm); }
+
+  /* LOCATION CARDS */
+  .location-list { display:flex; flex-direction:column; gap:8px; }
+  .location-card { display:flex; justify-content:space-between; align-items:center; background:var(--bg-hover); border-radius:var(--radius-md); padding:12px 16px; }
+  .location-card-info { flex:1; }
+  .location-card-label { font-size:13px; font-weight:600; color:var(--text-primary); }
+  .location-card-address { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+  .location-primary-badge { font-size:10px; background:var(--navy); color:white; padding:2px 8px; border-radius:10px; margin-left:8px; }
+  .location-card-actions { display:flex; gap:4px; }
+
+  /* DOSSIER OVERVIEW STATS */
+  .dossier-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:12px; margin-bottom:20px; }
+  .dossier-stat { background:var(--bg-hover); border-radius:var(--radius-sm); padding:12px 16px; text-align:center; }
+  .dossier-stat-value { font-size:20px; font-weight:700; color:var(--text-primary); }
+  .dossier-stat-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px; margin-top:2px; }
 
   /* PRICING EDIT */
   .pricing-grid { display:flex;flex-direction:column;gap:24px; }
@@ -903,6 +967,124 @@
       <button class="btn-cancel" onclick="closeKlantModal()">Annuleren</button>
       <button class="btn-submit" id="btn-delete-klant" onclick="deleteKlant()" style="background:var(--red);display:none">Verwijderen</button>
       <button class="btn-submit" onclick="saveKlant()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALLATIE MODAL -->
+<div class="modal-overlay" id="modal-installatie">
+  <div class="modal" style="max-width:640px">
+    <h2 id="inst-modal-title">Nieuwe installatie</h2>
+    <input type="hidden" id="inst-id">
+    <input type="hidden" id="inst-client-id">
+    <div class="modal-row">
+      <div class="modal-field" style="flex:1">
+        <label>Type installatie *</label>
+        <select id="inst-type" onchange="toggleInstFields()" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+          <option value="">Kies sector...</option>
+          <option value="zonnepanelen">Zonnepanelen</option>
+          <option value="warmtepomp">Warmtepomp</option>
+          <option value="airco">Airco</option>
+          <option value="ventilatie">Ventilatie</option>
+          <option value="verwarming">Verwarming</option>
+          <option value="ic">Industrial Cleaning</option>
+          <option value="klussen">Klussen</option>
+        </select>
+      </div>
+      <div class="modal-field" style="flex:1">
+        <label>Locatie</label>
+        <select id="inst-location-id" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+          <option value="">— Geen —</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Merk</label><input id="inst-brand" placeholder="bijv. Daikin, SMA"></div>
+      <div class="modal-field"><label>Model</label><input id="inst-model" placeholder="bijv. Stylish FTXA"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Installatiedatum</label><input type="date" id="inst-date"></div>
+      <div class="modal-field"><label>Locatiebeschrijving</label><input id="inst-loc-desc" placeholder="bijv. Dak achter, garage"></div>
+    </div>
+    <!-- ZONNEPANELEN velden -->
+    <div id="inst-fields-zon" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px">
+        <label style="font-size:13px;font-weight:600;color:var(--text-primary)">Dakvlakken</label>
+        <button type="button" class="btn-action" onclick="addRoofSurface()" style="font-size:14px">+</button>
+      </div>
+      <div id="roof-surfaces-container"></div>
+      <div class="modal-field" style="margin-top:8px">
+        <label>Goothoogte / dakrand</label>
+        <input id="inst-gutter" placeholder="bijv. 6m, lage goot">
+      </div>
+    </div>
+    <!-- AIRCO / WARMTEPOMP velden -->
+    <div id="inst-fields-airco" style="display:none">
+      <div class="modal-row" style="margin-top:12px">
+        <div class="modal-field"><label>Aantal binnenunits</label><input type="number" id="inst-indoor-count" min="0" value="0" onchange="updateUnitFields()"></div>
+        <div class="modal-field"><label>Aantal buitenunits</label><input type="number" id="inst-outdoor-count" min="0" value="1"></div>
+      </div>
+      <div id="indoor-units-container"></div>
+    </div>
+    <!-- VENTILATIE velden -->
+    <div id="inst-fields-vent" style="display:none;margin-top:12px">
+      <div class="modal-field">
+        <label>Systeemtype *</label>
+        <select id="inst-vent-type" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+          <option value="">Kies...</option>
+          <option value="c_system">Systeem C (mechanische afzuiging)</option>
+          <option value="d_system">Systeem D (gebalanceerde ventilatie)</option>
+        </select>
+      </div>
+    </div>
+    <!-- VERWARMING velden -->
+    <div id="inst-fields-verw" style="display:none;margin-top:12px">
+      <div class="modal-field">
+        <label>Type verwarming</label>
+        <input id="inst-heating-type" placeholder="bijv. Condensatieketel, Warmtepomp, Pelletketel">
+      </div>
+    </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label>Notities</label>
+      <textarea id="inst-notes" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;resize:vertical;font-family:inherit;font-size:13px"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeInstallatieModal()">Annuleren</button>
+      <button class="btn-submit" id="btn-delete-inst" onclick="deleteInstallatie()" style="background:var(--red);display:none">Verwijderen</button>
+      <button class="btn-submit" onclick="saveInstallatie()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOCATIE MODAL -->
+<div class="modal-overlay" id="modal-locatie">
+  <div class="modal" style="max-width:480px">
+    <h2 id="loc-modal-title">Nieuwe locatie</h2>
+    <input type="hidden" id="loc-id">
+    <input type="hidden" id="loc-client-id">
+    <div class="modal-field">
+      <label>Label *</label>
+      <input id="loc-label" placeholder="bijv. Hoofdadres, Filiaal Gent, Werfadres">
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Straat *</label><input id="loc-straat"></div>
+      <div class="modal-field"><label>Huisnr *</label><input id="loc-huisnr"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Postcode *</label><input id="loc-postcode"></div>
+      <div class="modal-field"><label>Gemeente *</label><input id="loc-gemeente"></div>
+    </div>
+    <div class="modal-field">
+      <label>Land</label>
+      <select id="loc-land" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+        <option value="BE">België</option><option value="NL">Nederland</option>
+      </select>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:12px 0"><input type="checkbox" id="loc-primary"> Dit is het hoofdadres</label>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeLocatieModal()">Annuleren</button>
+      <button class="btn-submit" id="btn-delete-loc" onclick="deleteLocatieFromModal()" style="background:var(--red);display:none">Verwijderen</button>
+      <button class="btn-submit" onclick="saveLocatie()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -3423,38 +3605,67 @@ function exportKlantenExcel() {
 // =============================================
 // KLANT DOSSIER
 // =============================================
-function showKlantDossier(clientId) {
+// Sector SVG iconen (outlined, stroke only)
+var sectorSvgIcons = {
+  zonnepanelen: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  warmtepomp: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  ventilatie: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>',
+  verwarming: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>',
+  airco: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>',
+  ic: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  klussen: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+};
+var sectorBgColors = { zonnepanelen:'#FEF9E7', warmtepomp:'#FEF2F2', ventilatie:'#F0F0FF', verwarming:'#FEE2E2', airco:'#ECFEFF', ic:'#ECFDF5', klussen:'#FFFBEB' };
+var sectorStrokeColors = { zonnepanelen:'#D97706', warmtepomp:'#DC2626', ventilatie:'#7C3AED', verwarming:'#EF4444', airco:'#0891B2', ic:'#059669', klussen:'#D97706' };
+
+// Current dossier state
+var currentDossierClientId = null;
+var currentDossierData = null;
+
+async function loadDossierData(clientId) {
+  var contractIds = allContracten.filter(function(c) { return c.client_id === clientId; }).map(function(c) { return c.id; });
+  var promises = [
+    sb.from('klant_installaties').select('*').eq('client_id', clientId).order('created_at', { ascending: false }),
+    sb.from('client_locations').select('*').eq('client_id', clientId).order('is_primary', { ascending: false })
+  ];
+  if (contractIds.length > 0) {
+    promises.push(sb.from('onderhoudsbeurten').select('*').in('contract_id', contractIds).order('plan_datum', { ascending: false }));
+  } else {
+    promises.push(Promise.resolve({ data: [] }));
+  }
+  var results = await Promise.all(promises);
+  return {
+    installaties: results[0].data || [],
+    locations: results[1].data || [],
+    beurten: results[2].data || []
+  };
+}
+
+async function showKlantDossier(clientId) {
   var client = allClients.find(function(c) { return c.id === clientId; });
   if (!client) return;
+  currentDossierClientId = clientId;
 
   var partner = partners.find(function(p) { return p.id === client.partner_id; });
   var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
 
-  // Build address
   var adres = [client.street, client.house_number].filter(Boolean).join(' ');
-  var plaats = [client.postal_code, client.city].filter(Boolean).join(' ');
+  var plaats = [client.postal_code, client.city].filter(Boolean).join(', ');
   var volledigAdres = [adres, plaats].filter(Boolean).join(', ');
 
-  // Build contracts HTML
-  var contractsHtml = '';
-  if (contracts.length === 0) {
-    contractsHtml = '<p class="placeholder-msg">Geen contracten gekoppeld aan deze klant.</p>';
-  } else {
-    contractsHtml = contracts.map(function(ct) {
-      return '<div class="contract-card">' +
-        '<div class="contract-card-row">' +
-          '<span><span class="contract-card-label">Contract</span>' + esc(ct.contract_nummer || ct.id.slice(0,8)) + '</span>' +
-          '<span><span class="contract-card-label">Sector</span>' + esc(ct.sector || 'Zonnepanelen') + '</span>' +
-          (ct.aantal_panelen ? '<span><span class="contract-card-label">Panelen</span>' + ct.aantal_panelen + '</span>' : '') +
-          '<span><span class="contract-card-label">Frequentie</span>' + esc(ct.frequentie || '—') + '</span>' +
-          '<span><span class="contract-card-label">Duur</span>' + esc(ct.contractduur || '—') + '</span>' +
-          '<span><span class="contract-card-label">Bedrag/beurt</span>&euro; ' + (ct.totaal_incl_btw ? parseFloat(ct.totaal_incl_btw).toFixed(2).replace('.',',') : '—') + '</span>' +
-          '<span><span class="contract-card-label">Status</span><span class="badge ' + statusBadge(ct.status) + '">' + esc(ct.status || '—') + '</span></span>' +
-          '<span><span class="contract-card-label">Datum</span>' + fmtDate(ct.datum_ondertekening) + '</span>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-  }
+  // Show dossier container with loading state
+  document.getElementById('klanten-lijst').style.display = 'none';
+  var dossier = document.getElementById('klant-dossier');
+  dossier.style.display = 'block';
+  dossier.innerHTML =
+    '<button class="dossier-back" onclick="closeKlantDossier()">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="15 18 9 12 15 6"/></svg>' +
+      'Terug naar klanten' +
+    '</button>' +
+    '<div class="dossier-header"><p style="color:var(--text-muted);font-size:13px">Dossier laden...</p></div>';
+
+  // Load data async
+  currentDossierData = await loadDossierData(clientId);
 
   var html =
     '<button class="dossier-back" onclick="closeKlantDossier()">' +
@@ -3462,7 +3673,7 @@ function showKlantDossier(clientId) {
       'Terug naar klanten' +
     '</button>' +
 
-    '<div class="dossier-header">' +
+    '<div class="dossier-header" style="box-shadow:var(--shadow-sm)">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
         '<div>' +
           '<h2 class="dossier-name">' + esc(client.contact_person || '') + '</h2>' +
@@ -3475,7 +3686,7 @@ function showKlantDossier(clientId) {
         (client.phone ? '<span><a href="tel:' + esc(client.phone) + '">' + esc(client.phone) + '</a></span>' : '') +
         (client.email ? '<span><a href="mailto:' + esc(client.email) + '">' + esc(client.email) + '</a></span>' : '') +
       '</div>' +
-      (client.notes ? '<p style="font-size:13px;color:var(--grey);margin:8px 0 0"><em>' + esc(client.notes) + '</em></p>' : '') +
+      (client.notes ? '<p style="font-size:13px;color:var(--text-muted);margin:8px 0 0"><em>' + esc(client.notes) + '</em></p>' : '') +
       '<div class="dossier-actions">' +
         '<button onclick="editKlant(\'' + client.id + '\')">Bewerken</button>' +
         '<button onclick="copyPortalLink(\'' + esc(client.portal_token) + '\')">Portaallink kopiëren</button>' +
@@ -3484,25 +3695,238 @@ function showKlantDossier(clientId) {
       '</div>' +
     '</div>' +
 
-    '<div class="dossier-section">' +
-      '<h3 class="dossier-section-title">Contracten (' + contracts.length + ')</h3>' +
-      contractsHtml +
+    // Tab bar
+    '<div class="dossier-tabs">' +
+      '<button class="dossier-tab active" onclick="switchDossierTab(\'overzicht\')" data-tab="overzicht">Overzicht</button>' +
+      '<button class="dossier-tab" onclick="switchDossierTab(\'installaties\')" data-tab="installaties">Installaties<span class="dossier-tab-count">(' + currentDossierData.installaties.length + ')</span></button>' +
+      '<button class="dossier-tab" onclick="switchDossierTab(\'contracten\')" data-tab="contracten">Contracten<span class="dossier-tab-count">(' + contracts.length + ')</span></button>' +
+      '<button class="dossier-tab" onclick="switchDossierTab(\'historiek\')" data-tab="historiek">Historiek<span class="dossier-tab-count">(' + currentDossierData.beurten.length + ')</span></button>' +
+      '<button class="dossier-tab" onclick="switchDossierTab(\'interventies\')" data-tab="interventies">Interventies</button>' +
     '</div>' +
 
-    '<div class="dossier-section">' +
-      '<h3 class="dossier-section-title">Onderhoudsbeurten</h3>' +
-      '<p class="placeholder-msg">Wordt beschikbaar zodra onderhoudsbeurten zijn ingepland.</p>' +
-    '</div>' +
+    // Tab panels
+    '<div class="dossier-tab-panel active" id="dossier-panel-overzicht"></div>' +
+    '<div class="dossier-tab-panel" id="dossier-panel-installaties"></div>' +
+    '<div class="dossier-tab-panel" id="dossier-panel-contracten"></div>' +
+    '<div class="dossier-tab-panel" id="dossier-panel-historiek"></div>' +
+    '<div class="dossier-tab-panel" id="dossier-panel-interventies"></div>';
 
-    '<div class="dossier-section">' +
-      '<h3 class="dossier-section-title">Interventies</h3>' +
-      '<p class="placeholder-msg">Geen openstaande interventies.</p>' +
-    '</div>';
-
-  document.getElementById('klanten-lijst').style.display = 'none';
-  var dossier = document.getElementById('klant-dossier');
   dossier.innerHTML = html;
-  dossier.style.display = 'block';
+
+  // Render default tab
+  renderDossierOverzicht(client, contracts);
+}
+
+function switchDossierTab(tabName) {
+  // Update tab buttons
+  document.querySelectorAll('.dossier-tab').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
+  });
+  // Update panels
+  document.querySelectorAll('.dossier-tab-panel').forEach(function(p) {
+    p.classList.remove('active');
+  });
+  var panel = document.getElementById('dossier-panel-' + tabName);
+  if (panel) panel.classList.add('active');
+
+  // Lazy render content
+  var clientId = currentDossierClientId;
+  var client = allClients.find(function(c) { return c.id === clientId; });
+  var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
+
+  if (tabName === 'overzicht') renderDossierOverzicht(client, contracts);
+  else if (tabName === 'installaties') renderDossierInstallaties(clientId);
+  else if (tabName === 'contracten') renderDossierContracten(clientId, contracts);
+  else if (tabName === 'historiek') renderDossierHistoriek(clientId);
+  else if (tabName === 'interventies') renderDossierInterventies(clientId);
+}
+
+function renderDossierOverzicht(client, contracts) {
+  var data = currentDossierData;
+  var panel = document.getElementById('dossier-panel-overzicht');
+  var beurtenAfgewerkt = data.beurten.filter(function(b) { return b.status === 'afgewerkt' || b.status === 'uitgevoerd'; }).length;
+  var beurtenIngepland = data.beurten.filter(function(b) { return b.status === 'ingepland'; }).length;
+
+  var statsHtml = '<div class="dossier-stats">' +
+    '<div class="dossier-stat"><div class="dossier-stat-value">' + contracts.length + '</div><div class="dossier-stat-label">Contracten</div></div>' +
+    '<div class="dossier-stat"><div class="dossier-stat-value">' + data.installaties.length + '</div><div class="dossier-stat-label">Installaties</div></div>' +
+    '<div class="dossier-stat"><div class="dossier-stat-value">' + beurtenIngepland + '</div><div class="dossier-stat-label">Ingepland</div></div>' +
+    '<div class="dossier-stat"><div class="dossier-stat-value">' + beurtenAfgewerkt + '</div><div class="dossier-stat-label">Afgewerkt</div></div>' +
+  '</div>';
+
+  // Locations
+  var locHtml = '<div class="dossier-section" style="box-shadow:var(--shadow-sm)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+      '<h3 class="dossier-section-title" style="margin:0">Locaties (' + data.locations.length + ')</h3>' +
+      '<button class="btn-action" onclick="openLocatieModal(\'' + client.id + '\')" title="Locatie toevoegen" style="font-size:16px;width:28px;height:28px">+</button>' +
+    '</div>';
+  if (data.locations.length === 0) {
+    locHtml += '<p class="placeholder-msg">Geen locaties. Voeg een locatie toe.</p>';
+  } else {
+    locHtml += '<div class="location-list">' + data.locations.map(function(loc) {
+      var addr = [loc.street, loc.house_number].filter(Boolean).join(' ');
+      var place = [loc.postal_code, loc.city].filter(Boolean).join(' ');
+      var full = [addr, place].filter(Boolean).join(', ');
+      return '<div class="location-card">' +
+        '<div class="location-card-info">' +
+          '<span class="location-card-label">' + esc(loc.label || 'Locatie') + (loc.is_primary ? '<span class="location-primary-badge">Hoofdadres</span>' : '') + '</span>' +
+          '<div class="location-card-address">' + esc(full) + '</div>' +
+        '</div>' +
+        '<div class="location-card-actions">' +
+          '<button class="btn-action" onclick="openLocatieModal(\'' + client.id + '\', ' + JSON.stringify(loc).replace(/'/g,"\\'").replace(/"/g,'&quot;') + ')" title="Bewerken">&#9998;</button>' +
+          '<button class="btn-action btn-action-red" onclick="deleteLocatie(\'' + loc.id + '\')" title="Verwijderen">&times;</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  locHtml += '</div>';
+
+  panel.innerHTML = statsHtml + locHtml;
+}
+
+function renderDossierInstallaties(clientId) {
+  var panel = document.getElementById('dossier-panel-installaties');
+  var instData = currentDossierData.installaties;
+  var addBtn = '<button class="btn-save" onclick="openInstallatieModal(\'' + clientId + '\')" style="margin-bottom:12px;font-size:12px">+ Installatie toevoegen</button>';
+
+  if (instData.length === 0) {
+    panel.innerHTML = addBtn + '<p class="placeholder-msg">Nog geen installaties geregistreerd.</p>';
+    return;
+  }
+
+  var cardsHtml = instData.map(function(inst) {
+    var color = sectorStrokeColors[inst.installation_type] || '#666';
+    var bg = sectorBgColors[inst.installation_type] || '#f9fafb';
+    var icon = sectorSvgIcons[inst.installation_type] || '';
+    var label = allSectorLabels[inst.installation_type] || inst.installation_type;
+
+    // Build summary
+    var summary = '';
+    if (inst.installation_type === 'zonnepanelen' && inst.roof_surfaces) {
+      try {
+        var surfaces = typeof inst.roof_surfaces === 'string' ? JSON.parse(inst.roof_surfaces) : inst.roof_surfaces;
+        var total = surfaces.reduce(function(s, r) { return s + (r.panel_count || 0); }, 0);
+        summary = total + ' panelen' + (surfaces.length > 1 ? ' (' + surfaces.length + ' dakvlakken)' : '');
+      } catch(e) {}
+    } else if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+      summary = inst.indoor_unit_count + ' binnenunit(s)' + (inst.outdoor_unit_count ? ', ' + inst.outdoor_unit_count + ' buitenunit(s)' : '');
+    } else if (inst.installation_type === 'ventilatie' && inst.ventilation_system_type) {
+      summary = inst.ventilation_system_type === 'd_system' ? 'Systeem D (gebalanceerd)' : 'Systeem C (mechanisch)';
+    }
+
+    return '<div class="install-card" style="border-left:3px solid ' + color + '" onclick="openInstallatieModal(\'' + clientId + '\', \'' + inst.id + '\')">' +
+      '<div class="install-card-header">' +
+        '<span class="install-card-type" style="color:' + color + '">' + esc(label) + '</span>' +
+        '<span style="color:' + color + '">' + icon.replace(/stroke="currentColor"/g, 'stroke="' + color + '"') + '</span>' +
+      '</div>' +
+      '<div class="install-card-title">' + esc([inst.brand, inst.model].filter(Boolean).join(' ') || 'Niet opgegeven') + '</div>' +
+      (summary ? '<div class="install-card-detail">' + esc(summary) + '</div>' : '') +
+      (inst.installation_date ? '<div class="install-card-meta">' + fmtDate(inst.installation_date) + '</div>' : '') +
+    '</div>';
+  }).join('');
+
+  panel.innerHTML = addBtn + '<div class="install-grid">' + cardsHtml + '</div>';
+}
+
+function renderDossierContracten(clientId, contracts) {
+  var panel = document.getElementById('dossier-panel-contracten');
+  if (contracts.length === 0) {
+    panel.innerHTML = '<p class="placeholder-msg">Geen contracten gekoppeld aan deze klant.</p>';
+    return;
+  }
+  panel.innerHTML = contracts.map(function(ct) {
+    var sectorKey = ct.sector || 'zonnepanelen';
+    var color = sectorStrokeColors[sectorKey] || '#666';
+    return '<div class="contract-card" style="border-left:3px solid ' + color + ';box-shadow:var(--shadow-sm)">' +
+      '<div class="contract-card-row">' +
+        '<span><span class="contract-card-label">Contract</span>' + esc(ct.contract_nummer || ct.id.slice(0,8)) + '</span>' +
+        '<span><span class="contract-card-label">Sector</span>' + esc(ct.sector || 'Zonnepanelen') + '</span>' +
+        (ct.aantal_panelen ? '<span><span class="contract-card-label">Panelen</span>' + ct.aantal_panelen + '</span>' : '') +
+        '<span><span class="contract-card-label">Frequentie</span>' + esc(ct.frequentie || '—') + '</span>' +
+        '<span><span class="contract-card-label">Duur</span>' + esc(ct.contractduur || '—') + '</span>' +
+        '<span><span class="contract-card-label">Bedrag/beurt</span>&euro; ' + (ct.totaal_incl_btw ? parseFloat(ct.totaal_incl_btw).toFixed(2).replace('.',',') : '—') + '</span>' +
+        '<span><span class="contract-card-label">Status</span><span class="badge ' + statusBadge(ct.status) + '">' + esc(ct.status || '—') + '</span></span>' +
+        '<span><span class="contract-card-label">Datum</span>' + fmtDate(ct.datum_ondertekening) + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderDossierHistoriek(clientId) {
+  var panel = document.getElementById('dossier-panel-historiek');
+  var beurten = currentDossierData.beurten;
+
+  // For partners: only show afgewerkt
+  var visibleBeurten = beurten;
+  if (userRole === 'partner') {
+    visibleBeurten = beurten.filter(function(b) { return b.status === 'afgewerkt'; });
+  }
+
+  var uitgevoerd = visibleBeurten.filter(function(b) { return b.status === 'uitgevoerd' || b.status === 'afgewerkt'; }).length;
+  var ingepland = visibleBeurten.filter(function(b) { return b.status === 'ingepland'; }).length;
+  var geannuleerd = visibleBeurten.filter(function(b) { return b.status === 'geannuleerd'; }).length;
+
+  var summaryHtml = '<div class="historiek-summary">' +
+    '<span><strong>' + visibleBeurten.length + '</strong> totaal</span>' +
+    '<span style="color:#059669"><strong>' + uitgevoerd + '</strong> uitgevoerd</span>' +
+    '<span style="color:var(--blue)"><strong>' + ingepland + '</strong> ingepland</span>' +
+    (geannuleerd ? '<span style="color:var(--text-muted)"><strong>' + geannuleerd + '</strong> geannuleerd</span>' : '') +
+  '</div>';
+
+  if (visibleBeurten.length === 0) {
+    panel.innerHTML = '<p class="placeholder-msg">Nog geen onderhoudsbeurten gepland of uitgevoerd.</p>';
+    return;
+  }
+
+  var itemsHtml = visibleBeurten.map(function(b) {
+    var contract = allContracten.find(function(c) { return c.id === b.contract_id; });
+    var tech = (typeof allTechniekers !== 'undefined' ? allTechniekers : []).find(function(t) { return t.id === b.technieker_id; });
+    var techNaam = tech ? ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() : '—';
+    var sector = b.sector || (contract ? contract.sector : '—');
+    var sLabel = allSectorLabels[sector] || sector;
+    var dotClass = (b.status === 'afgewerkt' || b.status === 'uitgevoerd') ? 'afgewerkt' : b.status === 'ingepland' ? 'ingepland' : 'geannuleerd';
+
+    return '<div class="historiek-item">' +
+      '<div class="historiek-dot ' + dotClass + '"></div>' +
+      '<div class="historiek-content">' +
+        '<div class="historiek-date">' + fmtDate(b.uitvoer_datum || b.plan_datum) + '</div>' +
+        '<div class="historiek-title">' + esc(sLabel) + ' <span class="badge ' + (b.status === 'afgewerkt' ? 'badge-green' : b.status === 'ingepland' ? 'badge-blue' : b.status === 'uitgevoerd' ? 'badge-orange' : 'badge-grey') + '">' + esc(b.status) + '</span></div>' +
+        '<div class="historiek-meta">Technieker: ' + esc(techNaam) +
+          (b.totaal_uren ? ' &middot; ' + b.totaal_uren + ' uur' : '') +
+          (b.notities ? ' &middot; ' + esc(b.notities.substring(0, 80)) : '') + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  panel.innerHTML = summaryHtml + '<div>' + itemsHtml + '</div>';
+}
+
+function renderDossierInterventies(clientId) {
+  var panel = document.getElementById('dossier-panel-interventies');
+  var contractIds = allContracten.filter(function(c) { return c.client_id === clientId; }).map(function(c) { return c.id; });
+  var clientInterventies = (typeof allInterventies !== 'undefined' ? allInterventies : []).filter(function(i) {
+    return contractIds.indexOf(i.contract_id) >= 0;
+  });
+
+  if (clientInterventies.length === 0) {
+    panel.innerHTML = '<p class="placeholder-msg">Geen interventies voor deze klant.</p>';
+    return;
+  }
+
+  var html = clientInterventies.map(function(iv) {
+    var ernstBadge = iv.ernst === 'urgent' ? 'badge-red' : iv.ernst === 'normaal' ? 'badge-orange' : 'badge-blue';
+    var statusBdg = iv.status === 'open' ? 'badge-orange' : iv.status === 'afgehandeld' ? 'badge-green' : 'badge-grey';
+    return '<div class="contract-card" style="box-shadow:var(--shadow-sm)">' +
+      '<div class="contract-card-row">' +
+        '<span><span class="contract-card-label">Omschrijving</span>' + esc(iv.omschrijving || '—') + '</span>' +
+        '<span><span class="contract-card-label">Ernst</span><span class="badge ' + ernstBadge + '">' + esc(iv.ernst) + '</span></span>' +
+        '<span><span class="contract-card-label">Status</span><span class="badge ' + statusBdg + '">' + esc(iv.status) + '</span></span>' +
+        '<span><span class="contract-card-label">Datum</span>' + fmtDate(iv.created_at) + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  panel.innerHTML = html;
 }
 
 function closeKlantDossier() {
@@ -3544,6 +3968,8 @@ async function deleteKlantFromDossier(id, gdpr) {
       await sb.from('contracten').delete().in('id', contractIds);
     }
 
+    // Delete installaties
+    await sb.from('klant_installaties').delete().eq('client_id', id);
     // Delete client locations
     await sb.from('client_locations').delete().eq('client_id', id);
     // Delete client
@@ -3557,6 +3983,314 @@ async function deleteKlantFromDossier(id, gdpr) {
   } catch (err) {
     alert('Fout bij verwijderen: ' + (err.message || err));
   }
+}
+
+// =============================================
+// INSTALLATIE CRUD
+// =============================================
+function toggleInstFields() {
+  var type = document.getElementById('inst-type').value;
+  document.getElementById('inst-fields-zon').style.display = type === 'zonnepanelen' ? 'block' : 'none';
+  document.getElementById('inst-fields-airco').style.display = (type === 'warmtepomp' || type === 'airco') ? 'block' : 'none';
+  document.getElementById('inst-fields-vent').style.display = type === 'ventilatie' ? 'block' : 'none';
+  document.getElementById('inst-fields-verw').style.display = type === 'verwarming' ? 'block' : 'none';
+  // Init roof surfaces if empty
+  if (type === 'zonnepanelen' && document.getElementById('roof-surfaces-container').children.length === 0) {
+    addRoofSurface();
+  }
+}
+
+function addRoofSurface() {
+  var container = document.getElementById('roof-surfaces-container');
+  var idx = container.children.length;
+  var div = document.createElement('div');
+  div.className = 'modal-row';
+  div.style.marginBottom = '6px';
+  div.style.alignItems = 'flex-end';
+  div.innerHTML =
+    '<div class="modal-field" style="flex:1"><label style="font-size:11px">Panelen</label><input type="number" class="rs-count" min="1" placeholder="0"></div>' +
+    '<div class="modal-field" style="flex:1"><label style="font-size:11px">Daktype</label><select class="rs-type" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px"><option value="">—</option><option value="plat">Plat dak</option><option value="schuin">Schuin dak</option><option value="lessenaarsdak">Lessenaarsdak</option></select></div>' +
+    '<div class="modal-field" style="flex:1"><label style="font-size:11px">Oriëntatie</label><select class="rs-orient" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px"><option value="">—</option><option value="N">N</option><option value="NO">NO</option><option value="O">O</option><option value="ZO">ZO</option><option value="Z">Z</option><option value="ZW">ZW</option><option value="W">W</option><option value="NW">NW</option></select></div>' +
+    '<button type="button" class="btn-action btn-action-red" onclick="this.parentElement.remove()" style="margin-bottom:10px" title="Verwijder">&times;</button>';
+  container.appendChild(div);
+}
+
+function updateUnitFields() {
+  var count = parseInt(document.getElementById('inst-indoor-count').value) || 0;
+  var container = document.getElementById('indoor-units-container');
+  container.innerHTML = '';
+  for (var i = 0; i < count && i < 20; i++) {
+    var div = document.createElement('div');
+    div.className = 'modal-row';
+    div.style.marginBottom = '4px';
+    div.innerHTML =
+      '<div class="modal-field" style="flex:1"><label style="font-size:11px">Unit ' + (i+1) + ' type</label><select class="iu-type" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px"><option value="">—</option><option value="muur">Muur</option><option value="cassette">4-weg cassette</option><option value="vloer">Vloer/console</option><option value="kanaal">Kanaalmodel</option><option value="plafond">Plafond</option></select></div>' +
+      '<div class="modal-field" style="flex:1"><label style="font-size:11px">Unit ' + (i+1) + ' locatie</label><input class="iu-loc" placeholder="bijv. Woonkamer" style="font-size:12px"></div>';
+    container.appendChild(div);
+  }
+}
+
+async function openInstallatieModal(clientId, editIdOrData) {
+  document.getElementById('inst-client-id').value = clientId;
+  document.getElementById('inst-id').value = '';
+  document.getElementById('inst-type').value = '';
+  document.getElementById('inst-brand').value = '';
+  document.getElementById('inst-model').value = '';
+  document.getElementById('inst-date').value = '';
+  document.getElementById('inst-loc-desc').value = '';
+  document.getElementById('inst-gutter').value = '';
+  document.getElementById('inst-indoor-count').value = '0';
+  document.getElementById('inst-outdoor-count').value = '1';
+  document.getElementById('inst-vent-type').value = '';
+  document.getElementById('inst-heating-type').value = '';
+  document.getElementById('inst-notes').value = '';
+  document.getElementById('roof-surfaces-container').innerHTML = '';
+  document.getElementById('indoor-units-container').innerHTML = '';
+  document.getElementById('btn-delete-inst').style.display = 'none';
+  document.getElementById('inst-modal-title').textContent = 'Nieuwe installatie';
+
+  // Populate location dropdown
+  var locSelect = document.getElementById('inst-location-id');
+  var locs = currentDossierData ? currentDossierData.locations : [];
+  locSelect.innerHTML = '<option value="">— Geen —</option>' + locs.map(function(l) {
+    return '<option value="' + l.id + '">' + esc(l.label || 'Locatie') + ' (' + esc([l.postal_code, l.city].filter(Boolean).join(' ')) + ')</option>';
+  }).join('');
+
+  // If editing
+  if (editIdOrData) {
+    var inst = typeof editIdOrData === 'string'
+      ? (currentDossierData ? currentDossierData.installaties.find(function(i) { return i.id === editIdOrData; }) : null)
+      : editIdOrData;
+    if (inst) {
+      document.getElementById('inst-modal-title').textContent = 'Installatie bewerken';
+      document.getElementById('inst-id').value = inst.id;
+      document.getElementById('inst-type').value = inst.installation_type || '';
+      document.getElementById('inst-brand').value = inst.brand || '';
+      document.getElementById('inst-model').value = inst.model || '';
+      document.getElementById('inst-date').value = inst.installation_date || '';
+      document.getElementById('inst-loc-desc').value = inst.location_description || '';
+      document.getElementById('inst-notes').value = inst.notes || '';
+      document.getElementById('inst-gutter').value = inst.gutter_height || '';
+      document.getElementById('inst-indoor-count').value = inst.indoor_unit_count || '0';
+      document.getElementById('inst-outdoor-count').value = inst.outdoor_unit_count || '1';
+      document.getElementById('inst-vent-type').value = inst.ventilation_system_type || '';
+      document.getElementById('inst-heating-type').value = inst.heating_type || '';
+      locSelect.value = inst.location_id || '';
+      document.getElementById('btn-delete-inst').style.display = 'inline-block';
+
+      // Restore roof surfaces
+      if (inst.installation_type === 'zonnepanelen' && inst.roof_surfaces) {
+        var rs = typeof inst.roof_surfaces === 'string' ? JSON.parse(inst.roof_surfaces) : inst.roof_surfaces;
+        rs.forEach(function(s) {
+          addRoofSurface();
+          var rows = document.getElementById('roof-surfaces-container').children;
+          var lastRow = rows[rows.length - 1];
+          lastRow.querySelector('.rs-count').value = s.panel_count || '';
+          lastRow.querySelector('.rs-type').value = s.roof_type || '';
+          lastRow.querySelector('.rs-orient').value = s.orientation || '';
+        });
+      }
+
+      // Restore indoor units
+      if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+        updateUnitFields();
+        var types = inst.indoor_unit_types ? (typeof inst.indoor_unit_types === 'string' ? JSON.parse(inst.indoor_unit_types) : inst.indoor_unit_types) : [];
+        var locs2 = inst.indoor_unit_locations ? (typeof inst.indoor_unit_locations === 'string' ? JSON.parse(inst.indoor_unit_locations) : inst.indoor_unit_locations) : [];
+        document.querySelectorAll('#indoor-units-container .iu-type').forEach(function(sel, i) { sel.value = types[i] || ''; });
+        document.querySelectorAll('#indoor-units-container .iu-loc').forEach(function(inp, i) { inp.value = locs2[i] || ''; });
+      }
+    }
+  }
+
+  toggleInstFields();
+  document.getElementById('modal-installatie').classList.add('open');
+}
+
+function closeInstallatieModal() {
+  document.getElementById('modal-installatie').classList.remove('open');
+}
+
+async function saveInstallatie() {
+  var clientId = document.getElementById('inst-client-id').value;
+  var instId = document.getElementById('inst-id').value;
+  var type = document.getElementById('inst-type').value;
+  if (!type) { alert('Kies een installatietype.'); return; }
+
+  var payload = {
+    client_id: clientId,
+    installation_type: type,
+    location_id: document.getElementById('inst-location-id').value || null,
+    brand: document.getElementById('inst-brand').value.trim() || null,
+    model: document.getElementById('inst-model').value.trim() || null,
+    installation_date: document.getElementById('inst-date').value || null,
+    location_description: document.getElementById('inst-loc-desc').value.trim() || null,
+    notes: document.getElementById('inst-notes').value.trim() || null
+  };
+
+  // Sector-specific fields
+  if (type === 'zonnepanelen') {
+    var surfaces = [];
+    document.querySelectorAll('#roof-surfaces-container > div').forEach(function(row) {
+      surfaces.push({
+        panel_count: parseInt(row.querySelector('.rs-count').value) || 0,
+        roof_type: row.querySelector('.rs-type').value || '',
+        orientation: row.querySelector('.rs-orient').value || ''
+      });
+    });
+    payload.roof_surfaces = surfaces.length ? surfaces : null;
+    payload.gutter_height = document.getElementById('inst-gutter').value.trim() || null;
+  } else if (type === 'warmtepomp' || type === 'airco') {
+    payload.indoor_unit_count = parseInt(document.getElementById('inst-indoor-count').value) || null;
+    payload.outdoor_unit_count = parseInt(document.getElementById('inst-outdoor-count').value) || null;
+    var unitTypes = []; var unitLocs = [];
+    document.querySelectorAll('#indoor-units-container .iu-type').forEach(function(sel) { unitTypes.push(sel.value); });
+    document.querySelectorAll('#indoor-units-container .iu-loc').forEach(function(inp) { unitLocs.push(inp.value); });
+    payload.indoor_unit_types = unitTypes.length ? unitTypes : null;
+    payload.indoor_unit_locations = unitLocs.length ? unitLocs : null;
+  } else if (type === 'ventilatie') {
+    payload.ventilation_system_type = document.getElementById('inst-vent-type').value || null;
+  } else if (type === 'verwarming') {
+    payload.heating_type = document.getElementById('inst-heating-type').value.trim() || null;
+  }
+
+  try {
+    if (instId) {
+      payload.updated_at = new Date().toISOString();
+      var { error } = await sb.from('klant_installaties').update(payload).eq('id', instId);
+      if (error) throw error;
+    } else {
+      var { error } = await sb.from('klant_installaties').insert([payload]);
+      if (error) throw error;
+    }
+    closeInstallatieModal();
+    currentDossierData = await loadDossierData(clientId);
+    renderDossierInstallaties(clientId);
+    // Update tab count
+    var instTab = document.querySelector('.dossier-tab[data-tab="installaties"] .dossier-tab-count');
+    if (instTab) instTab.textContent = '(' + currentDossierData.installaties.length + ')';
+  } catch (err) {
+    alert('Fout bij opslaan: ' + (err.message || err));
+  }
+}
+
+async function deleteInstallatie() {
+  var instId = document.getElementById('inst-id').value;
+  var clientId = document.getElementById('inst-client-id').value;
+  if (!instId || !confirm('Weet je zeker dat je deze installatie wilt verwijderen?')) return;
+  try {
+    var { error } = await sb.from('klant_installaties').delete().eq('id', instId);
+    if (error) throw error;
+    closeInstallatieModal();
+    currentDossierData = await loadDossierData(clientId);
+    renderDossierInstallaties(clientId);
+    var instTab = document.querySelector('.dossier-tab[data-tab="installaties"] .dossier-tab-count');
+    if (instTab) instTab.textContent = '(' + currentDossierData.installaties.length + ')';
+  } catch (err) {
+    alert('Fout bij verwijderen: ' + (err.message || err));
+  }
+}
+
+// =============================================
+// LOCATIE CRUD
+// =============================================
+function openLocatieModal(clientId, editData) {
+  document.getElementById('loc-client-id').value = clientId;
+  document.getElementById('loc-id').value = '';
+  document.getElementById('loc-label').value = '';
+  document.getElementById('loc-straat').value = '';
+  document.getElementById('loc-huisnr').value = '';
+  document.getElementById('loc-postcode').value = '';
+  document.getElementById('loc-gemeente').value = '';
+  document.getElementById('loc-land').value = 'BE';
+  document.getElementById('loc-primary').checked = false;
+  document.getElementById('btn-delete-loc').style.display = 'none';
+  document.getElementById('loc-modal-title').textContent = 'Nieuwe locatie';
+
+  if (editData) {
+    // editData comes as HTML-escaped JSON from onclick, parse it
+    var loc = typeof editData === 'string' ? JSON.parse(editData) : editData;
+    document.getElementById('loc-modal-title').textContent = 'Locatie bewerken';
+    document.getElementById('loc-id').value = loc.id;
+    document.getElementById('loc-label').value = loc.label || '';
+    document.getElementById('loc-straat').value = loc.street || '';
+    document.getElementById('loc-huisnr').value = loc.house_number || '';
+    document.getElementById('loc-postcode').value = loc.postal_code || '';
+    document.getElementById('loc-gemeente').value = loc.city || '';
+    document.getElementById('loc-land').value = loc.country || 'BE';
+    document.getElementById('loc-primary').checked = !!loc.is_primary;
+    document.getElementById('btn-delete-loc').style.display = 'inline-block';
+  }
+
+  document.getElementById('modal-locatie').classList.add('open');
+}
+
+function closeLocatieModal() {
+  document.getElementById('modal-locatie').classList.remove('open');
+}
+
+async function saveLocatie() {
+  var clientId = document.getElementById('loc-client-id').value;
+  var locId = document.getElementById('loc-id').value;
+  var label = document.getElementById('loc-label').value.trim();
+  var straat = document.getElementById('loc-straat').value.trim();
+  var huisnr = document.getElementById('loc-huisnr').value.trim();
+  var postcode = document.getElementById('loc-postcode').value.trim();
+  var gemeente = document.getElementById('loc-gemeente').value.trim();
+  if (!label || !straat || !huisnr || !postcode || !gemeente) { alert('Vul alle verplichte velden in.'); return; }
+
+  var isPrimary = document.getElementById('loc-primary').checked;
+  var payload = {
+    client_id: clientId,
+    label: label,
+    street: straat,
+    house_number: huisnr,
+    postal_code: postcode,
+    city: gemeente,
+    country: document.getElementById('loc-land').value,
+    is_primary: isPrimary
+  };
+
+  try {
+    // If setting as primary, unset others first
+    if (isPrimary) {
+      await sb.from('client_locations').update({ is_primary: false }).eq('client_id', clientId);
+    }
+    if (locId) {
+      var { error } = await sb.from('client_locations').update(payload).eq('id', locId);
+      if (error) throw error;
+    } else {
+      var { error } = await sb.from('client_locations').insert([payload]);
+      if (error) throw error;
+    }
+    closeLocatieModal();
+    currentDossierData = await loadDossierData(clientId);
+    var client = allClients.find(function(c) { return c.id === clientId; });
+    var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
+    renderDossierOverzicht(client, contracts);
+  } catch (err) {
+    alert('Fout bij opslaan: ' + (err.message || err));
+  }
+}
+
+async function deleteLocatie(locId) {
+  if (!locId || !confirm('Weet je zeker dat je deze locatie wilt verwijderen?')) return;
+  try {
+    var { error } = await sb.from('client_locations').delete().eq('id', locId);
+    if (error) throw error;
+    var clientId = currentDossierClientId;
+    currentDossierData = await loadDossierData(clientId);
+    var client = allClients.find(function(c) { return c.id === clientId; });
+    var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
+    renderDossierOverzicht(client, contracts);
+  } catch (err) {
+    alert('Fout bij verwijderen: ' + (err.message || err));
+  }
+}
+
+async function deleteLocatieFromModal() {
+  var locId = document.getElementById('loc-id').value;
+  closeLocatieModal();
+  await deleteLocatie(locId);
 }
 
 // =============================================
