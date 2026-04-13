@@ -487,11 +487,12 @@ async function init() {
 
   var params = new URLSearchParams(window.location.search);
   var beurtId = params.get('beurt');
+  var viewMode = params.get('view') === '1';
 
-  // Load beurten: ingepland, in_te_plannen EN uitgevoerd (voor rapportage-tab flow)
+  // Load beurten: alle relevante statussen inclusief afgewerkt (voor bekijk-rapport flow)
   var beurtenRes = await sb.from('onderhoudsbeurten')
     .select('*, contracten(id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_telefoon, klant_email, sector, sector_details, partner_id, client_id), techniekers(voornaam, naam)')
-    .in('status', ['ingepland', 'in_te_plannen', 'uitgevoerd'])
+    .in('status', ['ingepland', 'in_te_plannen', 'uitgevoerd', 'afgewerkt'])
     .order('plan_datum');
 
   var beurten = beurtenRes.data || [];
@@ -500,19 +501,181 @@ async function init() {
     var c = b.contracten;
     var opt = document.createElement('option');
     opt.value = b.id;
-    var statusTag = b.status === 'uitgevoerd' ? ' [rapport nodig]' : '';
+    var statusTag = b.status === 'uitgevoerd' ? ' [rapport nodig]' : (b.status === 'afgewerkt' ? ' [afgewerkt]' : '');
     opt.textContent = (b.plan_datum || b.due_date || '?') + ' — ' + (c ? c.klant_naam : '?') + ' — ' + b.sector + statusTag;
     select.appendChild(opt);
   });
   window._beurten = beurten;
 
-  if (beurtId) { select.value = beurtId; selectBeurt(); }
+  // View mode: load saved rapport as read-only preview
+  if (viewMode && beurtId) {
+    select.value = beurtId;
+    await loadRapportView(beurtId);
+  } else if (beurtId) {
+    select.value = beurtId;
+    selectBeurt();
+  }
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
 
 function doLogout() { sb.auth.signOut().then(function() { window.location.href = './'; }); }
+
+// ═══════════════════════════════
+// VIEW MODE — read-only rapport preview
+// ═══════════════════════════════
+async function loadRapportView(beurtId) {
+  var beurt = window._beurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) { alert('Onderhoudsbeurt niet gevonden.'); return; }
+
+  var contract = beurt.contracten;
+  if (!contract) { alert('Contract niet gevonden.'); return; }
+
+  // Load rapport from DB
+  var rapportRes = await sb.from('rapporten').select('*').eq('onderhoudsbeurt_id', beurtId).order('created_at', { ascending: false }).limit(1).single();
+  if (rapportRes.error || !rapportRes.data) { alert('Geen rapport gevonden voor deze beurt.'); return; }
+  var rapport = rapportRes.data;
+
+  // Load partner branding
+  var partner = null;
+  if (contract.partner_id) {
+    var pRes = await sb.from('partners').select('*').eq('id', contract.partner_id).single();
+    partner = pRes.data;
+  }
+
+  // Load technieker name
+  var techNaam = '';
+  if (beurt.techniekers) {
+    techNaam = ((beurt.techniekers.voornaam || '') + ' ' + (beurt.techniekers.naam || '')).trim();
+  }
+
+  // Build read-only preview
+  var p = partner || {};
+  var brandColor = p.kleur_primair || '#1A1A2E';
+  var brandName = p.bedrijfsnaam || p.naam || 'FLANCCO';
+  var brandLogo = p.logo_url || '';
+  var brandTagline = 'Uw partner in onderhoud';
+
+  var datumFormatted = (rapport.datum_onderhoud || '').split('-').reverse().join('/');
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen — Reiniging & controle', warmtepomp: 'Warmtepomp — Onderhoud & controle', ventilatie: 'Ventilatie — Onderhoud & controle', verwarming: 'Verwarming — Onderhoud & controle', airco: 'Airco — Onderhoud & controle', ic: 'Industrial Cleaning — Reiniging', klussen: 'Klussen — Uitvoering' };
+  var sector = rapport.sector || beurt.sector;
+
+  var logoHtml = '';
+  if (brandLogo) {
+    logoHtml = '<div><img src="' + esc(brandLogo) + '" style="max-height:40px;max-width:180px;object-fit:contain" alt="' + esc(brandName) + '"><div class="rp-tagline">' + esc(brandTagline) + '</div></div>';
+  } else {
+    logoHtml = '<div><div class="rp-logo" style="color:' + brandColor + '">' + esc(brandName.toUpperCase()) + '</div><div class="rp-tagline">' + esc(brandTagline) + '</div></div>';
+  }
+
+  // Checklist table
+  var chk = rapport.checklist_data || {};
+  var items = activeChecklistItems.length > 0 ? activeChecklistItems : (CHECKLISTS[sector] || []);
+  var categories = []; var catMap = {};
+  items.forEach(function(item) {
+    var cat = item.category || 'Algemeen';
+    if (!catMap[cat]) { catMap[cat] = []; categories.push(cat); }
+    catMap[cat].push(item);
+  });
+
+  var clHtml = '<table class="rp-cl-table"><thead><tr><th style="width:30px"></th><th>Werkzaamheid</th><th style="width:140px">Opmerking</th></tr></thead><tbody>';
+  categories.forEach(function(cat) {
+    clHtml += '<tr><td colspan="3" class="rp-cl-cat">' + esc(cat) + '</td></tr>';
+    catMap[cat].forEach(function(item) {
+      var val = chk[item.key] || {};
+      var icon = '';
+      if (val.status === 'ok') icon = '<span class="rp-cl-check ok">&#10003;</span>';
+      else if (val.status === 'nok') icon = '<span class="rp-cl-check nok">&#10007;</span>';
+      else icon = '<span class="rp-cl-check empty">—</span>';
+      clHtml += '<tr><td style="text-align:center">' + icon + '</td><td>' + esc(item.label) + '</td><td style="color:var(--grey);font-size:12px">' + esc(val.note || '—') + '</td></tr>';
+    });
+  });
+  clHtml += '</tbody></table>';
+
+  // Foto's
+  var fotoUrls = rapport.foto_urls || [];
+  var fotoHtml = '';
+  if (fotoUrls.length > 0) {
+    fotoHtml = '<div class="rp-foto-grid">';
+    fotoUrls.forEach(function(url) { fotoHtml += '<img src="' + esc(url) + '" style="max-width:180px;max-height:140px;border-radius:6px;object-fit:cover">'; });
+    fotoHtml += '</div>';
+  }
+
+  // Uren & materiaal
+  var uren = rapport.uren_data || [];
+  var materiaal = rapport.materiaal_data || [];
+  var urenHtml = '';
+  if (uren.length > 0) {
+    var totUren = 0, totKost = 0;
+    urenHtml += '<table class="rp-uren-table"><thead><tr><th>Technieker</th><th>Datum</th><th>Uren</th><th>Tarief</th><th>Km</th></tr></thead><tbody>';
+    uren.forEach(function(u) { totUren += (u.uren||0); totKost += (u.uren||0) * (u.uurtarief||0); urenHtml += '<tr><td>' + esc(u.technieker) + '</td><td>' + esc(u.datum) + '</td><td>' + (u.uren||0).toFixed(1) + '</td><td>\u20AC ' + (u.uurtarief||0).toFixed(0) + '</td><td>' + (u.km||0) + '</td></tr>'; });
+    urenHtml += '</tbody></table><div class="rp-uren-total">' + totUren.toFixed(1) + ' uur \u2014 \u20AC ' + totKost.toFixed(2) + '</div>';
+  }
+  if (materiaal.length > 0) {
+    var totMat = 0;
+    urenHtml += '<table class="rp-uren-table" style="margin-top:12px"><thead><tr><th>Materiaal</th><th>Aantal</th><th>Stukprijs</th><th>Totaal</th></tr></thead><tbody>';
+    materiaal.forEach(function(m) { var t = (m.aantal||0) * (m.stukprijs||0); totMat += t; urenHtml += '<tr><td>' + esc(m.omschrijving) + '</td><td>' + (m.aantal||0) + '</td><td>\u20AC ' + (m.stukprijs||0).toFixed(2) + '</td><td>\u20AC ' + t.toFixed(2) + '</td></tr>'; });
+    urenHtml += '</tbody></table><div class="rp-uren-total">Materiaal totaal: \u20AC ' + totMat.toFixed(2) + '</div>';
+  }
+
+  // Klant snapshot
+  var klant = rapport.klant_snapshot || {};
+  var klantNaam = klant.naam || contract.klant_naam || '';
+  var klantAdres = (klant.adres || contract.klant_adres || '') + ', ' + (klant.postcode || contract.klant_postcode || '') + ' ' + (klant.gemeente || contract.klant_gemeente || '');
+
+  // Opmerkingen
+  var opmerkingen = rapport.opmerkingen || '';
+
+  // PDF download button
+  var pdfBtn = '';
+  if (rapport.pdf_url) {
+    pdfBtn = '<div style="text-align:center;margin-top:20px"><a href="' + esc(rapport.pdf_url) + '" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-block">Download PDF</a></div>';
+  }
+
+  // Hide beurt picker, show read-only view
+  document.getElementById('beurt-picker').style.display = 'none';
+  document.getElementById('wizard').style.display = 'block';
+
+  // Use the wizard container but replace content with read-only preview
+  var wizardEl = document.getElementById('wizard');
+  wizardEl.innerHTML =
+    '<div id="rapport-preview">' +
+    '<div class="rp">' +
+      '<div class="rp-header">' +
+        logoHtml +
+        '<div class="rp-meta"><strong>Onderhoudsrapport</strong>Ref: ' + esc(rapport.referentie) + '<br>Datum: ' + datumFormatted + (techNaam ? '<br>Technieker: ' + esc(techNaam) : '') + '</div>' +
+      '</div>' +
+      '<div class="rp-divider" style="background:' + brandColor + '"></div>' +
+
+      '<div class="rp-section">' +
+        '<div class="rp-section-title">Type onderhoud</div>' +
+        '<div class="rp-field-value" style="font-size:14px;font-weight:500">' + esc(sectorLabels[sector] || sector) + '</div>' +
+      '</div>' +
+
+      '<div class="rp-section">' +
+        '<div class="rp-section-title">Klantgegevens</div>' +
+        '<div class="rp-row">' +
+          '<div class="rp-field"><div class="rp-field-label">Naam</div><div class="rp-field-value">' + esc(klantNaam) + '</div></div>' +
+          '<div class="rp-field"><div class="rp-field-label">Adres</div><div class="rp-field-value">' + esc(klantAdres) + '</div></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="rp-section">' +
+        '<div class="rp-section-title">Uitgevoerde werkzaamheden</div>' +
+        clHtml +
+      '</div>' +
+
+      (fotoHtml ? '<div class="rp-section"><div class="rp-section-title">Foto\'s</div>' + fotoHtml + '</div>' : '') +
+
+      (urenHtml ? '<div class="rp-section"><div class="rp-section-title">Uren & materiaal</div>' + urenHtml + '</div>' : '') +
+
+      (opmerkingen ? '<div class="rp-section"><div class="rp-section-title">Opmerkingen</div><div class="rp-opmerkingen">' + esc(opmerkingen) + '</div></div>' : '') +
+
+    '</div>' +
+    pdfBtn +
+    '<div style="text-align:center;margin:16px 0"><a href="planning.html" class="btn btn-secondary" style="text-decoration:none;display:inline-block">\u2190 Terug naar planning</a></div>' +
+    '</div>';
+}
 
 // ═══════════════════════════════
 // BEURT SELECTIE
