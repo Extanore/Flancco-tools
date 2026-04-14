@@ -336,6 +336,17 @@
     font-family: inherit; width: calc(100% - 32px);
   }
   .sb-new-int-btn:hover { background: #2c2c4e; }
+  .sidebar-overdue-header {
+    display:flex; align-items:center; gap:8px; padding:12px 16px 8px;
+    margin-top: 12px; border-top: 1px solid var(--rule);
+    font-size: 11px; font-weight:700; text-transform: uppercase; letter-spacing: 0.5px;
+    color: #DC2626; background: #FEF2F2;
+  }
+  .sidebar-overdue-header .overdue-count {
+    margin-left: auto; background: #DC2626; color: #fff; font-size: 10px;
+    padding: 2px 7px; border-radius: 10px; font-weight: 700;
+  }
+  .sidebar-card.overdue-card { border-left: 3px solid #DC2626; background: #FFF8F8; }
   .sidebar-filters { padding: 12px 20px; border-bottom: 1px solid var(--rule); display: flex; gap: 8px; }
   .sidebar-filters select {
     flex: 1; padding: 7px 10px; border: 1.5px solid var(--rule); border-radius: 8px;
@@ -763,6 +774,41 @@
     <div class="modal-buttons">
       <button onclick="closeWerkbonModal()">Annuleren</button>
       <button class="btn-save" onclick="saveWerkbon()">Voltooien &amp; werkbon aanmaken</button>
+    </div>
+  </div>
+</div>
+
+<!-- INTERVENTIE INPLANNEN MODAL -->
+<div class="modal-overlay" id="modal-plan-interventie">
+  <div class="modal" style="max-width:520px">
+    <h2>Interventie inplannen</h2>
+    <input type="hidden" id="pi-interventie-id">
+    <div id="pi-info" style="background:var(--light);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;line-height:1.6"></div>
+
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Technieker *</label>
+        <select id="pi-tech"></select>
+      </div>
+      <div class="modal-field">
+        <label>Datum *</label>
+        <input type="date" id="pi-datum">
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Starttijd</label>
+        <input type="time" id="pi-start" value="08:00">
+      </div>
+      <div class="modal-field">
+        <label>Duur (min)</label>
+        <input type="number" id="pi-duur" value="60" min="15" step="15">
+      </div>
+    </div>
+
+    <div class="modal-buttons">
+      <button onclick="closePlanInterventieModal()">Annuleren</button>
+      <button class="btn-save" onclick="savePlanInterventie()">Inplannen</button>
     </div>
   </div>
 </div>
@@ -1860,51 +1906,94 @@ function renderSidebar() {
     return;
   }
 
-  var html = '';
-  items.forEach(function(b) {
-    var info = getClientInfo(b);
-    var urg = getUrgencyColor(b);
-    var dueClass = urg === 'rood' ? 'due-overdue' : (urg === 'oranje' ? 'due-warning' : 'due-normal');
-    var sectorBg = getSectorColor(info.sector);
+  var html = items.map(renderSidebarCard).join('');
 
-    html += '<div class="sidebar-card ' + getSectorClass(info.sector) + '" ' +
-      'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')">' +
-      '<div class="sc-header">' +
-        '<span class="urgency-dot urgency-' + urg + '"></span>' +
-        '<span class="sc-klant">' + esc(info.naam) + '</span>' +
-      '</div>' +
-      '<div><span class="sc-sector" style="background:' + sectorBg + '22; color:' + sectorBg + ';">' +
-      getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</span></div>' +
-      '<div class="sc-detail">' +
-        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' +
-        esc(info.postcode) + ' ' + esc(info.gemeente) +
-      '</div>';
-
-    if (info.sectorDetails) {
-      html += '<div class="sc-detail">' + esc(info.sectorDetails) + '</div>';
+  // Overdue-sectie: enkel in interventie-tab.
+  // Toon interventies waarvan de gekoppelde beurt plan_datum < vandaag én beurt.status === 'ingepland'.
+  if (sidebarType === 'interventie') {
+    var todayIso = formatDateISO(new Date());
+    var overdueIvs = (allInterventies || []).filter(function(iv) {
+      if (!iv.onderhoudsbeurt_id) return false;
+      var b = allBeurten.find(function(x) { return x.id === iv.onderhoudsbeurt_id; });
+      return b && b.status === 'ingepland' && b.plan_datum && b.plan_datum < todayIso;
+    });
+    if (overdueIvs.length > 0) {
+      html += '<div class="sidebar-overdue-header">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+        '<span>Niet uitgevoerd — vereist herplanning</span>' +
+        '<span class="overdue-count">' + overdueIvs.length + '</span>' +
+        '</div>';
+      html += overdueIvs.map(function(iv) {
+        var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+        var card = {
+          id: 'int-' + iv.id,
+          _isInterventie: true,
+          _interventie: iv,
+          _overdue: true,
+          _beurtId: iv.onderhoudsbeurt_id,
+          contract_id: iv.contract_id,
+          sector: contract ? contract.sector : '',
+          duur_minuten: iv.geschatte_duur || 60
+        };
+        return renderSidebarCard(card);
+      }).join('');
     }
-
-    if (b._isInterventie && b._interventie) {
-      var iv = b._interventie;
-      var ernstColor = iv.ernst === 'urgent' ? 'var(--red)' : iv.ernst === 'normaal' ? 'var(--orange)' : 'var(--grey)';
-      html += '<div class="sc-detail" style="font-style:italic">' + esc(iv.omschrijving || '') + '</div>';
-      html += '<div class="sc-detail"><span style="color:' + ernstColor + ';font-weight:600;text-transform:uppercase;font-size:10px">' + esc(iv.ernst || 'normaal') + '</span></div>';
-    }
-
-    html += '<div class="sc-footer">';
-    if (b.due_date) {
-      var due = parseDate(b.due_date);
-      html += '<span class="sc-due ' + dueClass + '">' +
-        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ' +
-        formatDateFull(due) + '</span>';
-    }
-    if (b.duur_minuten) {
-      html += '<span class="sc-duration">\u23F1 ' + b.duur_minuten + ' min</span>';
-    }
-    html += '</div></div>';
-  });
+  }
 
   document.getElementById('sidebar-list').innerHTML = html;
+}
+
+// Herbruikbare card-renderer — gebruikt door beide sidebar-secties (open + overdue)
+function renderSidebarCard(b) {
+  var info = getClientInfo(b);
+  var urg = getUrgencyColor(b);
+  var dueClass = urg === 'rood' ? 'due-overdue' : (urg === 'oranje' ? 'due-warning' : 'due-normal');
+  var sectorBg = getSectorColor(info.sector);
+  var clickHandler = b._isInterventie ? ' onclick="openPlanInterventieModal(\'' + b._interventie.id + '\')"' : '';
+  var overdueClass = b._overdue ? ' overdue-card' : '';
+
+  var html = '<div class="sidebar-card ' + getSectorClass(info.sector) + overdueClass + '" ' +
+    'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')"' + clickHandler + '>' +
+    '<div class="sc-header">' +
+      '<span class="urgency-dot urgency-' + urg + '"></span>' +
+      '<span class="sc-klant">' + esc(info.naam) + '</span>' +
+    '</div>' +
+    '<div><span class="sc-sector" style="background:' + sectorBg + '22; color:' + sectorBg + ';">' +
+    getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</span></div>' +
+    '<div class="sc-detail">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' +
+      esc(info.postcode) + ' ' + esc(info.gemeente) +
+    '</div>';
+
+  if (info.sectorDetails) {
+    html += '<div class="sc-detail">' + esc(info.sectorDetails) + '</div>';
+  }
+
+  if (b._isInterventie && b._interventie) {
+    var iv = b._interventie;
+    var ernstColor = iv.ernst === 'urgent' ? 'var(--red)' : iv.ernst === 'normaal' ? 'var(--orange)' : 'var(--grey)';
+    html += '<div class="sc-detail" style="font-style:italic">' + esc(iv.omschrijving || '') + '</div>';
+    html += '<div class="sc-detail"><span style="color:' + ernstColor + ';font-weight:600;text-transform:uppercase;font-size:10px">' + esc(iv.ernst || 'normaal') + '</span></div>';
+    if (b._overdue) {
+      var beurt = allBeurten.find(function(x) { return x.id === b._beurtId; });
+      if (beurt && beurt.plan_datum) {
+        html += '<div class="sc-detail" style="color:var(--red);font-weight:600">Ingepland op ' + esc(beurt.plan_datum) + ' \u2014 niet uitgevoerd</div>';
+      }
+    }
+  }
+
+  html += '<div class="sc-footer">';
+  if (b.due_date) {
+    var due = parseDate(b.due_date);
+    html += '<span class="sc-due ' + dueClass + '">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ' +
+      formatDateFull(due) + '</span>';
+  }
+  if (b.duur_minuten) {
+    html += '<span class="sc-duration">\u23F1 ' + b.duur_minuten + ' min</span>';
+  }
+  html += '</div></div>';
+  return html;
 }
 
 function switchSidebarType(type) {
@@ -1940,6 +2029,81 @@ function openNieuweInterventieModal() {
 
 function closeNieuweInterventieModal() {
   document.getElementById('modal-nieuwe-interventie').classList.remove('open');
+}
+
+function openPlanInterventieModal(ivId, techId, dateStr, startTijd) {
+  var iv = (allInterventies || []).find(function(x) { return x.id === ivId; });
+  if (!iv) { alert('Interventie niet gevonden'); return; }
+  var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+  var klantNaam = contract ? (contract.klant_naam || '—') : '—';
+  var sector = contract ? (contract.sector || '') : '';
+
+  document.getElementById('pi-interventie-id').value = ivId;
+  document.getElementById('pi-info').innerHTML =
+    '<strong>' + esc(klantNaam) + '</strong>' +
+    (sector ? ' <span style="color:var(--grey)">\u2014 ' + esc(sector) + '</span>' : '') +
+    '<div style="margin-top:6px;color:var(--grey)">' + esc(iv.omschrijving || '') + '</div>';
+
+  var techSel = document.getElementById('pi-tech');
+  techSel.innerHTML = '<option value="">Kies technieker...</option>';
+  (allTechniekers || []).forEach(function(t) {
+    var sel = (t.id === techId) ? ' selected' : '';
+    techSel.innerHTML += '<option value="' + t.id + '"' + sel + '>' + esc(t.voornaam + ' ' + t.naam) + '</option>';
+  });
+  document.getElementById('pi-datum').value = dateStr || iv.gewenste_datum || formatDateISO(new Date());
+  document.getElementById('pi-start').value = startTijd || '08:00';
+  document.getElementById('pi-duur').value = iv.geschatte_duur || 60;
+
+  document.getElementById('modal-plan-interventie').classList.add('open');
+}
+
+function closePlanInterventieModal() {
+  document.getElementById('modal-plan-interventie').classList.remove('open');
+}
+
+async function savePlanInterventie() {
+  var ivId = document.getElementById('pi-interventie-id').value;
+  var techId = document.getElementById('pi-tech').value;
+  var datum = document.getElementById('pi-datum').value;
+  var start = document.getElementById('pi-start').value || null;
+  var duur = parseInt(document.getElementById('pi-duur').value, 10) || 60;
+
+  if (!ivId) { alert('Geen interventie geselecteerd'); return; }
+  if (!techId) { alert('Kies een technieker.'); return; }
+  if (!datum) { alert('Kies een datum.'); return; }
+
+  var iv = (allInterventies || []).find(function(x) { return x.id === ivId; });
+  if (!iv) { alert('Interventie niet gevonden'); return; }
+  var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+
+  // 1. Maak onderhoudsbeurt aan
+  var beurtPayload = {
+    contract_id: iv.contract_id,
+    sector: contract ? contract.sector : null,
+    technieker_id: techId,
+    plan_datum: datum,
+    start_tijd: start,
+    duur_minuten: duur,
+    status: 'ingepland',
+    notities: 'Interventie: ' + (iv.omschrijving || '').slice(0, 200)
+  };
+  var bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select();
+  if (bRes.error) { alert('Fout bij aanmaken beurt: ' + bRes.error.message); return; }
+  var newBeurtId = bRes.data[0].id;
+
+  // 2. Koppel interventie aan beurt + update status/plan_datum
+  var ivRes = await sb.from('interventies').update({
+    onderhoudsbeurt_id: newBeurtId,
+    status: 'ingepland',
+    plan_datum: datum
+  }).eq('id', ivId);
+  if (ivRes.error) { alert('Fout bij bijwerken interventie: ' + ivRes.error.message); return; }
+
+  closePlanInterventieModal();
+  showToast('Interventie ingepland', 'success');
+  await loadPlanningData();
+  renderView();
+  renderSidebar();
 }
 
 async function saveNieuweInterventie() {
@@ -2020,6 +2184,10 @@ async function onDrop(e, techId, dateStr) {
   var beurtId = e.dataTransfer.getData('text/plain') || dragBeurtId;
   if (!beurtId) return;
 
+  if (beurtId.indexOf('int-') === 0) {
+    openPlanInterventieModal(beurtId.slice(4), techId, dateStr, null);
+    return;
+  }
   openEditBeurtModal(beurtId, techId, dateStr, null);
 }
 
@@ -2030,6 +2198,10 @@ async function onDropDay(e, techId, dateStr, timeSlot) {
   var beurtId = e.dataTransfer.getData('text/plain') || dragBeurtId;
   if (!beurtId) return;
 
+  if (beurtId.indexOf('int-') === 0) {
+    openPlanInterventieModal(beurtId.slice(4), techId, dateStr, timeSlot);
+    return;
+  }
   openEditBeurtModal(beurtId, techId, dateStr, timeSlot);
 }
 
