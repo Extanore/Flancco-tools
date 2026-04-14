@@ -85,6 +85,9 @@
   }
   .view-toggle .btn-view:hover { color: var(--navy); }
   .view-toggle .btn-view.active { background: var(--white); color: var(--navy); box-shadow: var(--shadow-sm); }
+  .secondary-bar-right { display: flex; align-items: center; gap: 16px; }
+  .view-toggle-workflow { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); }
+  .view-toggle-workflow .btn-view { padding: 6px 14px; font-size: 12px; }
   .tab-badge { position:absolute; top:-4px; right:-4px; background:var(--red); color:white; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 5px; }
 
   /* RAPPORTAGE / AFGEWERKT / INTERVENTIE LIJSTEN */
@@ -314,6 +317,25 @@
     font-size: 11px; color: var(--white); background: linear-gradient(135deg, var(--red) 0%, #c0392b 100%);
     padding: 3px 10px; border-radius: 12px; font-weight: 700; min-width: 24px; text-align: center;
   }
+  .sidebar-type-toggle { display:flex; padding:10px 16px 0; gap:6px; }
+  .sb-type-btn {
+    flex:1; padding:7px 8px; font-size:12px; font-weight:600;
+    background:transparent; border:1px solid var(--rule); border-radius:6px;
+    color:var(--grey); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+    font-family: inherit; transition: all 0.2s var(--ease);
+  }
+  .sb-type-btn:hover { color: var(--navy); }
+  .sb-type-btn.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .sb-type-count {
+    background:var(--red); color:#fff; font-size:10px; padding:1px 6px; border-radius:8px; min-width:16px; font-weight:700;
+  }
+  .sb-type-btn.active .sb-type-count { background:#fff; color:var(--navy); }
+  .sb-new-int-btn {
+    margin: 0 16px 12px; padding: 9px 12px; background: var(--navy); color: #fff;
+    border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; width: calc(100% - 32px);
+  }
+  .sb-new-int-btn:hover { background: #2c2c4e; }
   .sidebar-filters { padding: 12px 20px; border-bottom: 1px solid var(--rule); display: flex; gap: 8px; }
   .sidebar-filters select {
     flex: 1; padding: 7px 10px; border: 1.5px solid var(--rule); border-radius: 8px;
@@ -549,19 +571,22 @@
   </div>
 
   <div class="secondary-bar">
-    <div class="view-toggle">
+    <div class="view-toggle view-toggle-calendar">
       <button class="btn-view active" data-view="week" onclick="switchView('week')">Week</button>
       <button class="btn-view" data-view="dag" onclick="switchView('dag')">Dag</button>
       <button class="btn-view" data-view="maand" onclick="switchView('maand')">Maand</button>
       <button class="btn-view" data-view="beschikbaarheid" onclick="switchView('beschikbaarheid')">Beschikbaarheid</button>
-      <span style="width:1px;height:24px;background:rgba(0,0,0,0.12);margin:0 4px"></span>
-      <button class="btn-view" data-view="rapportage" onclick="switchView('rapportage')" style="position:relative">Rapportage <span class="tab-badge" id="badge-rapportage" style="display:none"></span></button>
-      <button class="btn-view" data-view="afgewerkt" onclick="switchView('afgewerkt')">Afgewerkt</button>
-      <button class="btn-view" data-view="interventies-tab" onclick="switchView('interventies-tab')" style="position:relative">Interventies <span class="tab-badge" id="badge-interventies" style="display:none"></span></button>
     </div>
-    <div class="capacity-bar">
-      <span class="capacity-label" id="capacity-label">0/25 ingepland</span>
-      <div class="capacity-track"><div class="capacity-fill" id="capacity-fill"></div></div>
+    <div class="secondary-bar-right">
+      <div class="view-toggle view-toggle-workflow">
+        <button class="btn-view" data-view="rapportage" onclick="switchView('rapportage')" style="position:relative">Rapportage <span class="tab-badge" id="badge-rapportage" style="display:none"></span></button>
+        <button class="btn-view" data-view="afgewerkt" onclick="switchView('afgewerkt')">Afgewerkt</button>
+        <button class="btn-view" data-view="interventies-tab" onclick="switchView('interventies-tab')" style="position:relative">Interventies <span class="tab-badge" id="badge-interventies" style="display:none"></span></button>
+      </div>
+      <div class="capacity-bar">
+        <span class="capacity-label" id="capacity-label">0/25 ingepland</span>
+        <div class="capacity-track"><div class="capacity-fill" id="capacity-fill"></div></div>
+      </div>
     </div>
   </div>
 
@@ -608,9 +633,16 @@
     <!-- IN TE PLANNEN -->
     <div class="planning-sidebar" id="planning-sidebar">
       <div class="sidebar-header">
-        <h3>In te plannen</h3>
+        <h3 id="sidebar-title">In te plannen</h3>
         <span class="sidebar-count" id="sidebar-count">0</span>
       </div>
+      <div class="sidebar-type-toggle" role="tablist">
+        <button type="button" class="sb-type-btn active" data-sbtype="onderhoud" onclick="switchSidebarType('onderhoud')">Onderhoud</button>
+        <button type="button" class="sb-type-btn" data-sbtype="interventie" onclick="switchSidebarType('interventie')">
+          Interventie <span class="sb-type-count" id="sb-int-count">0</span>
+        </button>
+      </div>
+      <button type="button" id="sb-new-int-btn" class="sb-new-int-btn" style="display:none" onclick="openNieuweInterventieModal()">+ Nieuwe interventie</button>
       <div class="sidebar-filters">
         <select id="sb-filter-sector" onchange="renderSidebar()">
           <option value="">Sector</option>
@@ -735,6 +767,46 @@
   </div>
 </div>
 
+<!-- NIEUWE INTERVENTIE MODAL -->
+<div class="modal-overlay" id="modal-nieuwe-interventie">
+  <div class="modal" style="max-width:520px">
+    <h2>Nieuwe interventie</h2>
+    <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Meld een interventie aan zodat de planner ze kan inplannen.</p>
+
+    <div class="modal-field">
+      <label>Klant / Contract *</label>
+      <select id="ni-contract"></select>
+    </div>
+    <div class="modal-field">
+      <label>Omschrijving *</label>
+      <textarea id="ni-omschrijving" rows="3" placeholder="Wat is het probleem? Locatie binnen installatie, foutmelding, ..."></textarea>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Ernst</label>
+        <select id="ni-ernst">
+          <option value="urgent">Urgent</option>
+          <option value="normaal" selected>Normaal</option>
+          <option value="laag">Laag</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Geschatte duur (min)</label>
+        <input type="number" id="ni-duur" value="60" min="15" step="15">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Gewenste datum (optioneel)</label>
+      <input type="date" id="ni-gewenste-datum">
+    </div>
+
+    <div class="modal-buttons">
+      <button onclick="closeNieuweInterventieModal()">Annuleren</button>
+      <button class="btn-save" onclick="saveNieuweInterventie()">Interventie aanmaken</button>
+    </div>
+  </div>
+</div>
+
 <!-- BEURT BEWERKEN MODAL -->
 <div class="modal-overlay" id="modal-edit-beurt">
   <div class="modal" style="max-width:480px">
@@ -836,6 +908,8 @@ var currentDate = new Date(); // reference date for navigation
 var allBeurten = [];
 var allTechniekers = [];
 var allInterventies = [];
+var allRapporten = [];
+var sidebarType = 'onderhoud'; // 'onderhoud' | 'interventie'
 var allTechSectoren = [];
 var allAfwezigheden = [];
 var allContracten = [];
@@ -1036,6 +1110,30 @@ function getInTePlannen() {
   });
 }
 
+// Effectieve minuten voor een beurt op basis van uren_data uit gekoppeld rapport.
+// Voor extra techniekers (niet primary): altijd geplande slot, want uren_data is niet per-tech betrouwbaar gekoppeld.
+function getEffectieveMinutenForBeurt(beurt, techId) {
+  if (techId && beurt.technieker_id && techId !== beurt.technieker_id) {
+    return beurt.duur_minuten || 60;
+  }
+  if (typeof allRapporten !== 'undefined' && Array.isArray(allRapporten)) {
+    var rapport = allRapporten.find(function(r) { return r.onderhoudsbeurt_id === beurt.id; });
+    if (!rapport) {
+      // Fallback heuristiek: match op tech + datum
+      rapport = allRapporten.find(function(r) {
+        return r.technieker_id === beurt.technieker_id && r.datum_onderhoud === beurt.plan_datum;
+      });
+    }
+    if (rapport && Array.isArray(rapport.uren_data) && rapport.uren_data.length > 0) {
+      var totaalUren = rapport.uren_data.reduce(function(sum, u) {
+        return sum + (parseFloat(u.uren) || 0);
+      }, 0);
+      if (totaalUren > 0) return Math.round(totaalUren * 60);
+    }
+  }
+  return beurt.duur_minuten || 60;
+}
+
 function getWeekBeurten(dates) {
   var start = formatDateISO(dates[0]);
   var end = formatDateISO(dates[dates.length - 1]);
@@ -1144,7 +1242,8 @@ async function loadPlanningData() {
     sb.from('partners').select('id, naam, slug, bedrijfsnaam'),
     sb.from('verlof_types').select('*'),
     sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)'),
-    sb.from('klant_installaties').select('*')
+    sb.from('klant_installaties').select('*'),
+    sb.from('rapporten').select('id, technieker_id, onderhoudsbeurt_id, uren_data, datum_onderhoud')
   ]);
 
   allBeurten = results[0].data || [];
@@ -1158,6 +1257,7 @@ async function loadPlanningData() {
   allVerlofTypes = results[8].data || [];
   allInterventies = results[9].data || [];
   allInstallaties = results[10].data || [];
+  allRapporten = results[11].data || [];
 
   populateFilterDropdowns();
 }
@@ -1403,22 +1503,25 @@ function renderWeekView() {
   techniekers.forEach(function(tech) {
     html += '<tr>';
 
-    // C3: Uren naast technieker-naam
+    // C3: Uren naast technieker-naam — tel alle ingepland/uitgevoerd/afgewerkt, gebruik effectieve uren uit rapport
     var weekMin = 0;
     allBeurten.forEach(function(b) {
       var isPrimary = b.technieker_id === tech.id;
       var isExtra = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
-      if ((isPrimary || isExtra) && b.status === 'ingepland') {
-        var pd = b.plan_datum;
-        for (var wd = 0; wd < 5; wd++) {
-          if (formatDateISO(dates[wd]) === pd) { weekMin += b.duur_minuten || 60; break; }
+      if (!isPrimary && !isExtra) return;
+      if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return;
+      var pd = b.plan_datum;
+      for (var wd = 0; wd < 5; wd++) {
+        if (formatDateISO(dates[wd]) === pd) {
+          weekMin += getEffectieveMinutenForBeurt(b, tech.id);
+          break;
         }
       }
     });
     var geplandUren = weekMin / 60;
     var contractUren = tech.contract_uren_week || 38;
     var pct = geplandUren / contractUren;
-    var urenKleur = pct > 1 ? 'var(--red)' : pct > 0.8 ? 'var(--orange)' : 'var(--green)';
+    var urenKleur = pct > 1 ? 'var(--red)' : pct >= 0.6 ? 'var(--green)' : 'var(--orange)';
 
     html += '<td><div class="tech-name-cell">' +
       '<div class="tech-avatar">' + esc(getTechInitials(tech)) + '</div>' +
@@ -1698,7 +1801,29 @@ function monthDayClick(dateStr) {
 // SIDEBAR - IN TE PLANNEN
 // =============================================
 function renderSidebar() {
-  var items = getInTePlannen();
+  // Update interventie-count badge
+  var intCount = (allInterventies || []).filter(function(iv) { return iv.status === 'open'; }).length;
+  var elIntCount = document.getElementById('sb-int-count');
+  if (elIntCount) elIntCount.textContent = intCount;
+
+  var items;
+  if (sidebarType === 'interventie') {
+    items = (allInterventies || []).filter(function(iv) { return iv.status === 'open'; }).map(function(iv) {
+      var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+      return {
+        id: 'int-' + iv.id,
+        _isInterventie: true,
+        _interventie: iv,
+        contract_id: iv.contract_id,
+        sector: contract ? contract.sector : '',
+        due_date: iv.gewenste_datum || null,
+        duur_minuten: iv.geschatte_duur || 60
+      };
+    });
+  } else {
+    items = getInTePlannen();
+  }
+
   var sectorFilter = document.getElementById('sb-filter-sector').value;
   var regioFilter = document.getElementById('sb-filter-regio').value;
 
@@ -1709,7 +1834,7 @@ function renderSidebar() {
       var contract = allContracten.find(function(c) { return c.id === b.contract_id; });
       if (!contract || contract.partner_id !== partnerFilter) return false;
     }
-    if (sectorFilter && info.sector.toLowerCase() !== sectorFilter) return false;
+    if (sectorFilter && (info.sector || '').toLowerCase() !== sectorFilter) return false;
     if (regioFilter && getProvincie(info.postcode) !== regioFilter) return false;
     return true;
   });
@@ -1722,11 +1847,15 @@ function renderSidebar() {
   document.getElementById('sidebar-count').textContent = items.length;
 
   if (items.length === 0) {
+    var emptyTitle = sidebarType === 'interventie' ? 'Geen open interventies' : 'Alles ingepland!';
+    var emptyMsg = sidebarType === 'interventie'
+      ? 'Er zijn geen openstaande interventies. Klik op "+ Nieuwe interventie" om er één toe te voegen.'
+      : 'Er zijn geen openstaande beurten om in te plannen.';
     document.getElementById('sidebar-list').innerHTML =
       '<div class="empty-state-card">' +
       '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>' +
-      '<h3>Alles ingepland!</h3>' +
-      '<p>Er zijn geen openstaande beurten om in te plannen.</p>' +
+      '<h3>' + emptyTitle + '</h3>' +
+      '<p>' + emptyMsg + '</p>' +
       '</div>';
     return;
   }
@@ -1755,6 +1884,13 @@ function renderSidebar() {
       html += '<div class="sc-detail">' + esc(info.sectorDetails) + '</div>';
     }
 
+    if (b._isInterventie && b._interventie) {
+      var iv = b._interventie;
+      var ernstColor = iv.ernst === 'urgent' ? 'var(--red)' : iv.ernst === 'normaal' ? 'var(--orange)' : 'var(--grey)';
+      html += '<div class="sc-detail" style="font-style:italic">' + esc(iv.omschrijving || '') + '</div>';
+      html += '<div class="sc-detail"><span style="color:' + ernstColor + ';font-weight:600;text-transform:uppercase;font-size:10px">' + esc(iv.ernst || 'normaal') + '</span></div>';
+    }
+
     html += '<div class="sc-footer">';
     if (b.due_date) {
       var due = parseDate(b.due_date);
@@ -1769,6 +1905,74 @@ function renderSidebar() {
   });
 
   document.getElementById('sidebar-list').innerHTML = html;
+}
+
+function switchSidebarType(type) {
+  sidebarType = type;
+  document.querySelectorAll('.sb-type-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.sbtype === type);
+  });
+  var newBtn = document.getElementById('sb-new-int-btn');
+  if (newBtn) newBtn.style.display = (type === 'interventie') ? 'block' : 'none';
+  var title = document.getElementById('sidebar-title');
+  if (title) title.textContent = (type === 'interventie') ? 'Open interventies' : 'In te plannen';
+  renderSidebar();
+}
+
+// =============================================
+// NIEUWE INTERVENTIE MODAL
+// =============================================
+function openNieuweInterventieModal() {
+  var sel = document.getElementById('ni-contract');
+  sel.innerHTML = '<option value="">Selecteer een klant/contract...</option>';
+  var contracten = (allContracten || []).slice().sort(function(a, b) {
+    return (a.klant_naam || '').localeCompare(b.klant_naam || '');
+  });
+  contracten.forEach(function(c) {
+    sel.innerHTML += '<option value="' + c.id + '">' + esc(c.klant_naam || '—') + ' (' + esc(c.klant_gemeente || '') + ')</option>';
+  });
+  document.getElementById('ni-omschrijving').value = '';
+  document.getElementById('ni-ernst').value = 'normaal';
+  document.getElementById('ni-gewenste-datum').value = '';
+  document.getElementById('ni-duur').value = '60';
+  document.getElementById('modal-nieuwe-interventie').classList.add('open');
+}
+
+function closeNieuweInterventieModal() {
+  document.getElementById('modal-nieuwe-interventie').classList.remove('open');
+}
+
+async function saveNieuweInterventie() {
+  var contractId = document.getElementById('ni-contract').value;
+  var omschrijving = document.getElementById('ni-omschrijving').value.trim();
+  var ernst = document.getElementById('ni-ernst').value;
+  var gewenste = document.getElementById('ni-gewenste-datum').value;
+  var duur = parseInt(document.getElementById('ni-duur').value, 10) || 60;
+
+  if (!contractId) { alert('Selecteer een klant/contract.'); return; }
+  if (!omschrijving) { alert('Vul een omschrijving in.'); return; }
+
+  var payload = {
+    contract_id: contractId,
+    omschrijving: omschrijving,
+    ernst: ernst,
+    status: 'open',
+    gewenste_datum: gewenste || null,
+    geschatte_duur: duur
+  };
+  try {
+    var userRes = await sb.auth.getUser();
+    if (userRes && userRes.data && userRes.data.user) payload.created_by = userRes.data.user.id;
+  } catch(e) {}
+
+  var res = await sb.from('interventies').insert([payload]).select();
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+
+  closeNieuweInterventieModal();
+  showToast('Interventie aangemaakt', 'success');
+  await loadPlanningData();
+  if (sidebarType !== 'interventie') switchSidebarType('interventie');
+  else renderSidebar();
 }
 
 // =============================================
@@ -2559,8 +2763,9 @@ function renderBeschikbaarheid() {
       allBeurten.forEach(function(b) {
         var isPri = b.technieker_id === tech.id;
         var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
-        if ((isPri || isExt) && b.plan_datum === formatDateISO(dates[d]) && b.status === 'ingepland') {
-          weekMin += b.duur_minuten || 60;
+        if ((isPri || isExt) && b.plan_datum === formatDateISO(dates[d]) &&
+            (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt')) {
+          weekMin += getEffectieveMinutenForBeurt(b, tech.id);
           dayTaken[d]++;
         }
       });
@@ -2568,7 +2773,7 @@ function renderBeschikbaarheid() {
 
     var contractMin = (tech.contract_uren_week || 38) * 60;
     var werkdrukPct = contractMin > 0 ? Math.round((weekMin / contractMin) * 100) : 0;
-    var werkdrukKleur = werkdrukPct > 80 ? 'var(--red)' : werkdrukPct > 50 ? 'var(--orange)' : 'var(--green)';
+    var werkdrukKleur = werkdrukPct > 100 ? 'var(--red)' : werkdrukPct >= 60 ? 'var(--green)' : 'var(--orange)';
 
     // Badge
     var badgeStyle, badgeText;

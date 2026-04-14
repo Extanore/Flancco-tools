@@ -904,6 +904,7 @@
               <option value="laag">Laag</option>
             </select>
           </div>
+          <button class="btn btn-primary" onclick="openNieuweInterventieModal()">+ Nieuwe interventie</button>
         </div>
         <table>
           <thead>
@@ -922,6 +923,46 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- NIEUWE INTERVENTIE MODAL -->
+<div class="modal-overlay" id="modal-nieuwe-interventie">
+  <div class="modal" style="max-width:520px">
+    <h2>Nieuwe interventie</h2>
+    <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Meld een interventie aan zodat de planner ze kan inplannen.</p>
+
+    <div class="modal-field">
+      <label>Klant / Contract *</label>
+      <select id="ni-contract"></select>
+    </div>
+    <div class="modal-field">
+      <label>Omschrijving *</label>
+      <textarea id="ni-omschrijving" rows="3" placeholder="Wat is het probleem? Locatie binnen installatie, foutmelding, ..."></textarea>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Ernst</label>
+        <select id="ni-ernst">
+          <option value="urgent">Urgent</option>
+          <option value="normaal" selected>Normaal</option>
+          <option value="laag">Laag</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Geschatte duur (min)</label>
+        <input type="number" id="ni-duur" value="60" min="15" step="15">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Gewenste datum (optioneel)</label>
+      <input type="date" id="ni-gewenste-datum">
+    </div>
+
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeNieuweInterventieModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveNieuweInterventie()">Interventie aanmaken</button>
+    </div>
   </div>
 </div>
 
@@ -1333,8 +1374,6 @@
         <label class="tech-cb"><input type="checkbox" value="loodgieter"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M4.5 16.5c-1.5 1.5-1.5 4 0 5.5s4 1.5 5.5 0l7-7-5.5-5.5-7 7z"/><path d="M14.5 6.5l3-3c.8-.8 2-.8 2.8 0l.7.7c.8.8.8 2 0 2.8l-3 3"/></svg> Loodgieter</label>
         <label class="tech-cb"><input type="checkbox" value="koeltechnieker"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="2"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg> Koeltechnieker</label>
         <label class="tech-cb"><input type="checkbox" value="handige_harry"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Handige Harry</label>
-        <label class="tech-cb"><input type="checkbox" value="sanitair"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M4.5 16.5c-1.5 1.5-1.5 4 0 5.5s4 1.5 5.5 0l7-7-5.5-5.5-7 7z"/><path d="M14.5 6.5l3-3c.8-.8 2-.8 2.8 0l.7.7c.8.8.8 2 0 2.8l-3 3"/></svg> Sanitair</label>
-        <label class="tech-cb"><input type="checkbox" value="elektriciteit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Elektriciteit</label>
       </div>
 
       <!-- 8. Certificeringen -->
@@ -5425,7 +5464,8 @@ async function saveTechnieker() {
       }
     });
     if (secRows.length > 0) {
-      await sb.from('technieker_sectoren').insert(secRows);
+      var secRes = await sb.from('technieker_sectoren').insert(secRows);
+      if (secRes.error) { alert('Fout sectoren: ' + secRes.error.message); }
     }
   }
 
@@ -5732,6 +5772,58 @@ function myInterventies() {
   if (userRole === 'admin') return allInterventies;
   if (userPartner) return allInterventies.filter(function(iv) { return iv.doorgespeeld_naar_partner_id === userPartner.id; });
   return [];
+}
+
+function openNieuweInterventieModal() {
+  var sel = document.getElementById('ni-contract');
+  sel.innerHTML = '<option value="">Selecteer een klant/contract...</option>';
+  var contracten = (typeof allContracten !== 'undefined' ? allContracten : []).slice().sort(function(a, b) {
+    return (a.klant_naam || '').localeCompare(b.klant_naam || '');
+  });
+  contracten.forEach(function(c) {
+    sel.innerHTML += '<option value="' + c.id + '">' + esc(c.klant_naam || '—') + ' (' + esc(c.klant_gemeente || '') + ')</option>';
+  });
+  document.getElementById('ni-omschrijving').value = '';
+  document.getElementById('ni-ernst').value = 'normaal';
+  document.getElementById('ni-gewenste-datum').value = '';
+  document.getElementById('ni-duur').value = '60';
+  document.getElementById('modal-nieuwe-interventie').classList.add('open');
+}
+
+function closeNieuweInterventieModal() {
+  document.getElementById('modal-nieuwe-interventie').classList.remove('open');
+}
+
+async function saveNieuweInterventie() {
+  var contractId = document.getElementById('ni-contract').value;
+  var omschrijving = document.getElementById('ni-omschrijving').value.trim();
+  var ernst = document.getElementById('ni-ernst').value;
+  var gewenste = document.getElementById('ni-gewenste-datum').value;
+  var duur = parseInt(document.getElementById('ni-duur').value, 10) || 60;
+
+  if (!contractId) { alert('Selecteer een klant/contract.'); return; }
+  if (!omschrijving) { alert('Vul een omschrijving in.'); return; }
+
+  var payload = {
+    contract_id: contractId,
+    omschrijving: omschrijving,
+    ernst: ernst,
+    status: 'open',
+    gewenste_datum: gewenste || null,
+    geschatte_duur: duur
+  };
+  try {
+    var userRes = await sb.auth.getUser();
+    if (userRes && userRes.data && userRes.data.user) payload.created_by = userRes.data.user.id;
+  } catch(e) {}
+
+  var res = await sb.from('interventies').insert([payload]).select();
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+
+  closeNieuweInterventieModal();
+  showToast('Interventie aangemaakt');
+  if (typeof loadAllData === 'function') await loadAllData();
+  if (typeof renderInterventies === 'function') renderInterventies();
 }
 
 function renderInterventies() {
