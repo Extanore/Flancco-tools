@@ -3267,9 +3267,9 @@ function contractActions(c) {
     btns += '<a class="btn-action" href="contracten-wizard.html?edit=' + c.id + '" title="Bewerken"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a>';
     btns += '<button class="btn-action btn-action-red" onclick="annuleerContract(\'' + c.id + '\')" title="Annuleren"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>';
   }
-  if (st === 'geannuleerd') {
-    btns += '<button class="btn-action btn-action-red" onclick="deleteContract(\'' + c.id + '\')" title="Definitief verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
-  }
+  // Verwijder-knop: zichtbaar voor elke status. Voor admin: altijd.
+  // Voor partners: enkel op eigen contracten (RLS beperkt DB-zichtbaarheid al, dus altijd tonen volstaat).
+  btns += '<button class="btn-action btn-action-red" onclick="deleteContract(\'' + c.id + '\')" title="Verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
   return btns;
 }
 
@@ -3289,9 +3289,57 @@ async function annuleerContract(id) {
 }
 
 async function deleteContract(id) {
-  if (!confirm('Contract definitief verwijderen? Dit kan niet ongedaan worden.')) return;
-  var { error } = await sb.from('contracten').delete().eq('id', id);
-  if (error) { showToast('Fout bij verwijderen: ' + error.message, 'error'); return; }
+  var c = allContracten.find(function(x) { return x.id === id; });
+  var klantNaam = c ? c.klant_naam : '';
+
+  // Tel gekoppelde records — deze moeten mee verwijderd worden want hebben geen ON DELETE CASCADE
+  // (onderhoudsbeurten en contract_regels cascaden wel automatisch)
+  var [beurtRes, rapRes, intRes, factRes] = await Promise.all([
+    sb.from('onderhoudsbeurten').select('id', { count: 'exact', head: true }).eq('contract_id', id),
+    sb.from('rapporten').select('id', { count: 'exact', head: true }).eq('contract_id', id),
+    sb.from('interventies').select('id', { count: 'exact', head: true }).eq('contract_id', id),
+    sb.from('facturatie_regels').select('id', { count: 'exact', head: true }).eq('contract_id', id)
+  ]);
+  var nBeurt = beurtRes.count || 0;
+  var nRap = rapRes.count || 0;
+  var nInt = intRes.count || 0;
+  var nFact = factRes.count || 0;
+
+  var msg = 'Contract "' + klantNaam + '" definitief verwijderen?\n\n';
+  if (nBeurt + nRap + nInt + nFact === 0) {
+    msg += 'Er zijn geen gekoppelde records. Dit kan niet ongedaan worden.';
+  } else {
+    msg += 'Volgende gekoppelde gegevens worden óók verwijderd:\n';
+    if (nBeurt > 0) msg += '  • ' + nBeurt + ' onderhoudsbeurt(en)\n';
+    if (nRap > 0) msg += '  • ' + nRap + ' rapport(en)\n';
+    if (nInt > 0) msg += '  • ' + nInt + ' interventie(s)\n';
+    if (nFact > 0) msg += '  • ' + nFact + ' facturatieregel(s)\n';
+    msg += '\nDit kan niet ongedaan worden. Doorgaan?';
+  }
+  if (!confirm(msg)) return;
+
+  // Verwijder eerst alle niet-cascaderende koppelingen
+  try {
+    if (nFact > 0) {
+      var f = await sb.from('facturatie_regels').delete().eq('contract_id', id);
+      if (f.error) throw new Error('Facturatieregels: ' + f.error.message);
+    }
+    if (nRap > 0) {
+      var r = await sb.from('rapporten').delete().eq('contract_id', id);
+      if (r.error) throw new Error('Rapporten: ' + r.error.message);
+    }
+    if (nInt > 0) {
+      var iv = await sb.from('interventies').delete().eq('contract_id', id);
+      if (iv.error) throw new Error('Interventies: ' + iv.error.message);
+    }
+    // onderhoudsbeurten + contract_regels cascaden automatisch
+    var { error } = await sb.from('contracten').delete().eq('id', id);
+    if (error) throw new Error('Contract: ' + error.message);
+  } catch (err) {
+    showToast('Fout bij verwijderen: ' + err.message, 'error');
+    return;
+  }
+
   await loadAllData();
   renderContracten();
   showToast('Contract verwijderd');
