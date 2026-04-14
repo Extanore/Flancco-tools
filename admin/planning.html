@@ -839,6 +839,16 @@
         <button type="button" onclick="qaSelectNewKlant()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
       </div>
     </div>
+    <div class="modal-field" id="qa-loc-wrap" style="display:none">
+      <label>Werklocatie</label>
+      <select id="qa-locatie" onchange="qaLocatieChanged()"></select>
+      <small id="qa-loc-hint" style="display:block;margin-top:4px;font-size:11px;color:var(--grey)"></small>
+    </div>
+    <div class="modal-field">
+      <label>PO-nummer</label>
+      <input type="text" id="qa-po-number" placeholder="Optioneel — referentie van de klant">
+      <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Automatisch ingevuld vanuit locatie of klant. Kan per taak aangepast worden.</small>
+    </div>
     <div id="qa-new-client-fields" style="display:none;background:var(--light);border-radius:10px;padding:16px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:10px">NIEUWE KLANT</div>
       <div class="modal-row">
@@ -858,6 +868,10 @@
         <div class="modal-field"><label>Straat + nr</label><input id="qa-klant-straat" placeholder="Kerkstraat 12"></div>
         <div class="modal-field" style="max-width:100px"><label>Postcode</label><input id="qa-klant-postcode" placeholder="9000"></div>
         <div class="modal-field"><label>Gemeente</label><input id="qa-klant-gemeente" placeholder="Gent"></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>BTW-nummer</label><input id="qa-klant-btw" placeholder="BE0123456789"></div>
+        <div class="modal-field"><label>Vast PO-nummer (optioneel)</label><input id="qa-klant-po" placeholder="Standaard PO voor deze klant"></div>
       </div>
     </div>
     <!-- Duur + Hele dag -->
@@ -1233,7 +1247,7 @@
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 // =============================================
@@ -1492,6 +1506,9 @@ function getWeekBeurten(dates) {
 function showToast(msg, type) {
   var t = document.getElementById('toast');
   t.className = 'toast toast-' + (type || 'success') + ' show';
+  // Error meldingen assertief aankondigen, success beleefd
+  t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+  t.setAttribute('role', type === 'error' ? 'alert' : 'status');
   t.textContent = msg;
   setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
@@ -1589,7 +1606,8 @@ async function loadPlanningData() {
     sb.from('verlof_types').select('*'),
     sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)'),
     sb.from('klant_installaties').select('*'),
-    sb.from('rapporten').select('id, technieker_id, onderhoudsbeurt_id, uren_data, datum_onderhoud')
+    sb.from('rapporten').select('id, technieker_id, onderhoudsbeurt_id, uren_data, datum_onderhoud'),
+    sb.from('client_locations').select('id, client_id, label, street, house_number, postal_code, city, country, is_primary, po_number')
   ]);
 
   allBeurten = results[0].data || [];
@@ -1604,6 +1622,7 @@ async function loadPlanningData() {
   allInterventies = results[9].data || [];
   allInstallaties = results[10].data || [];
   allRapporten = results[11].data || [];
+  window._allClientLocations = results[12].data || [];
 
   populateFilterDropdowns();
 }
@@ -3729,9 +3748,15 @@ function quickAdd(techId, datum, mode) {
 
   // Reset new client fields
   document.getElementById('qa-new-client-fields').style.display = 'none';
-  ['qa-klant-voornaam','qa-klant-achternaam','qa-klant-tel','qa-klant-email','qa-klant-straat','qa-klant-postcode','qa-klant-gemeente'].forEach(function(id) {
+  ['qa-klant-voornaam','qa-klant-achternaam','qa-klant-tel','qa-klant-email','qa-klant-straat','qa-klant-postcode','qa-klant-gemeente','qa-klant-btw','qa-klant-po'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
+
+  // Reset locatie-picker + PO
+  var locWrap = document.getElementById('qa-loc-wrap'); if (locWrap) locWrap.style.display = 'none';
+  var locSel = document.getElementById('qa-locatie'); if (locSel) locSel.innerHTML = '';
+  var poEl = document.getElementById('qa-po-number'); if (poEl) poEl.value = '';
+  var hintEl = document.getElementById('qa-loc-hint'); if (hintEl) hintEl.textContent = '';
 
   // Extra techniekers chips (bedienden niet)
   var chipHtml = '';
@@ -3816,6 +3841,77 @@ function qaContractChanged() {
   if (val && opt && opt.dataset.sector) {
     document.getElementById('qa-sector').value = opt.dataset.sector;
   }
+
+  // Populate locatie-picker + PO-cascade
+  var locWrap = document.getElementById('qa-loc-wrap');
+  var locSel = document.getElementById('qa-locatie');
+  var poEl = document.getElementById('qa-po-number');
+  var hintEl = document.getElementById('qa-loc-hint');
+  if (!locWrap || !locSel) return;
+
+  if (!val) {
+    locWrap.style.display = 'none';
+    locSel.innerHTML = '';
+    if (poEl) poEl.value = '';
+    return;
+  }
+
+  var contract = allContracten.find(function(c) { return c.id === val; });
+  if (!contract) { locWrap.style.display = 'none'; return; }
+  var client = allClients.find(function(c) { return c.id === contract.client_id; });
+  if (!client) { locWrap.style.display = 'none'; return; }
+
+  // Haal client_locations via globale cache of lazy-load
+  var clientLocaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === client.id; });
+  if (clientLocaties.length <= 1) {
+    // Enkel hoofdlocatie of geen: verberg picker
+    locWrap.style.display = 'none';
+    // PO cascade: eerste locatie > klant > leeg
+    var po = (clientLocaties[0] && clientLocaties[0].po_number) || client.po_number || '';
+    if (poEl) poEl.value = po;
+    if (hintEl) hintEl.textContent = po ? 'PO vooraf-ingevuld vanuit ' + (clientLocaties[0] && clientLocaties[0].po_number ? 'werklocatie' : 'klantprofiel') : '';
+    return;
+  }
+
+  // Meerdere locaties → toon picker, primary eerst
+  locSel.innerHTML = '';
+  var primary = clientLocaties.find(function(l) { return l.is_primary; });
+  var sorted = clientLocaties.slice().sort(function(a, b) {
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    return (a.label || '').localeCompare(b.label || '');
+  });
+  sorted.forEach(function(l) {
+    var label = (l.label || 'Locatie') + ' — ' + [l.street, l.postal_code, l.city].filter(Boolean).join(' ');
+    var opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = label;
+    opt.dataset.po = l.po_number || '';
+    locSel.appendChild(opt);
+  });
+  if (primary) locSel.value = primary.id;
+  locWrap.style.display = 'block';
+  qaLocatieChanged();
+}
+
+function qaLocatieChanged() {
+  var locSel = document.getElementById('qa-locatie');
+  var poEl = document.getElementById('qa-po-number');
+  var hintEl = document.getElementById('qa-loc-hint');
+  var contractSel = document.getElementById('qa-contract');
+  if (!locSel || !poEl) return;
+  var selOpt = locSel.options[locSel.selectedIndex];
+  var locPo = selOpt ? (selOpt.dataset.po || '') : '';
+  var contract = allContracten.find(function(c) { return c.id === (contractSel ? contractSel.value : null); });
+  var client = contract ? allClients.find(function(c) { return c.id === contract.client_id; }) : null;
+  var clientPo = client ? (client.po_number || '') : '';
+  var final = locPo || clientPo || '';
+  poEl.value = final;
+  if (hintEl) {
+    if (locPo) hintEl.textContent = 'PO vooraf-ingevuld vanuit werklocatie';
+    else if (clientPo) hintEl.textContent = 'PO vooraf-ingevuld vanuit klantprofiel';
+    else hintEl.textContent = '';
+  }
 }
 
 function qaSelectNewKlant() {
@@ -3899,6 +3995,8 @@ async function saveQuickAdd(action) {
   });
 
   var contractId = contractVal;
+  var clientLocationId = null;
+  var poNumberFinal = (document.getElementById('qa-po-number').value || '').trim() || null;
 
   // Create new client + contract if needed
   if (newClientActive) {
@@ -3908,25 +4006,53 @@ async function saveQuickAdd(action) {
     var klantNaam = klantVoornaam + ' ' + klantAchternaam;
 
     var partnerId = document.getElementById('qa-partner').value;
+    var klantBtw = (document.getElementById('qa-klant-btw') ? document.getElementById('qa-klant-btw').value : '').trim() || null;
+    var klantPo = (document.getElementById('qa-klant-po') ? document.getElementById('qa-klant-po').value : '').trim() || null;
 
-    // 1. Create client
-    var clientRes = await sb.from('clients').insert([{
+    // 1. Create client (met vast PO-nummer indien ingevuld)
+    var clientPayload = {
       partner_id: partnerId,
       contact_person: klantNaam,
       phone: document.getElementById('qa-klant-tel').value.trim() || null,
       email: document.getElementById('qa-klant-email').value.trim() || null,
       street: document.getElementById('qa-klant-straat').value.trim() || null,
       postal_code: document.getElementById('qa-klant-postcode').value.trim() || null,
-      city: document.getElementById('qa-klant-gemeente').value.trim() || null
-    }]).select();
-
+      city: document.getElementById('qa-klant-gemeente').value.trim() || null,
+      vat_number: klantBtw ? klantBtw.replace(/[^A-Za-z0-9]/g, '').toUpperCase() : null,
+      po_number: klantPo
+    };
+    var clientRes = await sb.from('clients').insert([clientPayload]).select();
+    if (clientRes.error) {
+      // Retry zonder optionele velden als schema verschilt
+      if (/vat_number|po_number/i.test(clientRes.error.message || '')) {
+        delete clientPayload.vat_number; delete clientPayload.po_number;
+        clientRes = await sb.from('clients').insert([clientPayload]).select();
+      }
+    }
     if (clientRes.error) { alert('Fout bij klant aanmaken: ' + clientRes.error.message); return; }
     var newClient = clientRes.data[0];
 
-    // 2. Create minimal contract
+    // 2. Create hoofdlocatie met PO-cascade
+    var locPayload = {
+      client_id: newClient.id,
+      label: 'Hoofdadres',
+      street: document.getElementById('qa-klant-straat').value.trim() || null,
+      postal_code: document.getElementById('qa-klant-postcode').value.trim() || null,
+      city: document.getElementById('qa-klant-gemeente').value.trim() || null,
+      country: 'BE',
+      is_primary: true,
+      po_number: klantPo
+    };
+    var locRes = await sb.from('client_locations').insert([locPayload]).select();
+    if (!locRes.error && locRes.data && locRes.data[0]) {
+      clientLocationId = locRes.data[0].id;
+    }
+
+    // 3. Create minimal contract
     var contractRes = await sb.from('contracten').insert([{
       partner_id: partnerId,
       client_id: newClient.id,
+      client_location_id: clientLocationId,
       klant_naam: klantNaam,
       klant_postcode: document.getElementById('qa-klant-postcode').value.trim() || null,
       klant_gemeente: document.getElementById('qa-klant-gemeente').value.trim() || null,
@@ -3943,8 +4069,31 @@ async function saveQuickAdd(action) {
       status: 'actief'
     }]).select();
 
+    if (contractRes.error) {
+      // Retry zonder client_location_id als schema verschilt
+      if (/client_location_id/i.test(contractRes.error.message || '')) {
+        var retry = Object.assign({}, contractRes._payload || {}); delete retry.client_location_id;
+        contractRes = await sb.from('contracten').insert([{
+          partner_id: partnerId, client_id: newClient.id, klant_naam: klantNaam,
+          klant_postcode: document.getElementById('qa-klant-postcode').value.trim() || null,
+          klant_gemeente: document.getElementById('qa-klant-gemeente').value.trim() || null,
+          klant_telefoon: document.getElementById('qa-klant-tel').value.trim() || null,
+          klant_email: document.getElementById('qa-klant-email').value.trim() || null,
+          sector: sector, frequentie: 'eenmalig', contractduur: 'eenmalig', is_eenmalig: true,
+          aantal_panelen: 0, forfait_bedrag: 0, totaal_incl_btw: 0,
+          datum_ondertekening: datum, status: 'actief'
+        }]).select();
+      }
+    }
     if (contractRes.error) { alert('Fout bij contract aanmaken: ' + contractRes.error.message); return; }
     contractId = contractRes.data[0].id;
+    if (!poNumberFinal && klantPo) poNumberFinal = klantPo;
+  } else {
+    // Bestaand contract gekozen → lees locatie uit picker (indien zichtbaar)
+    var locSelEl = document.getElementById('qa-locatie');
+    if (locSelEl && locSelEl.style && document.getElementById('qa-loc-wrap').style.display !== 'none') {
+      clientLocationId = locSelEl.value || null;
+    }
   }
 
   var payload = {
@@ -3957,10 +4106,18 @@ async function saveQuickAdd(action) {
     hele_dag: heleDag,
     status: status,
     notities: notities,
-    extra_technieker_ids: extraIds
+    extra_technieker_ids: extraIds,
+    po_number: poNumberFinal,
+    client_location_id: clientLocationId
   };
 
   var res = await sb.from('onderhoudsbeurten').insert([payload]).select();
+  if (res.error && /po_number|client_location_id/i.test(res.error.message || '')) {
+    // Retry zonder optionele kolommen voor forward-compat
+    var retryPayload = Object.assign({}, payload);
+    delete retryPayload.po_number; delete retryPayload.client_location_id;
+    res = await sb.from('onderhoudsbeurten').insert([retryPayload]).select();
+  }
   if (res.error) { alert('Fout: ' + res.error.message); return; }
 
   await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, status + ' via quick-add');

@@ -67,6 +67,33 @@
   .nav-parent.open .nav-chevron { transform: rotate(180deg); }
   .nav-dropdown { overflow: hidden; }
   .nav-badge { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: var(--red); color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+  /* Notificaties */
+  #notif-bell { transition: background .15s, color .15s; }
+  #notif-bell:hover { background: var(--light) !important; color: var(--navy) !important; }
+  #notif-dropdown { animation: notif-fade-in .18s ease-out; }
+  @keyframes notif-fade-in { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform: translateY(0); } }
+  .notif-row { display:flex; gap:10px; padding:10px 14px; border-bottom:1px solid var(--rule); cursor:pointer; transition: background .12s; align-items:flex-start; }
+  .notif-row:last-child { border-bottom:none; }
+  .notif-row:hover { background: var(--light); }
+  .notif-row.unread { background: #F0F9FF; }
+  .notif-row.unread:hover { background: #E0F2FE; }
+  .notif-row .notif-icon { flex:0 0 32px; width:32px; height:32px; border-radius:50%; background:var(--light); display:flex; align-items:center; justify-content:center; color:var(--navy); }
+  .notif-row .notif-icon svg { width:16px; height:16px; }
+  .notif-row[data-type="rapport_klaar"] .notif-icon { background:#DCFCE7; color:#166534; }
+  .notif-row[data-type="beurt_afgewerkt"] .notif-icon { background:#DBEAFE; color:#1E40AF; }
+  .notif-row[data-type="interventie_aangemaakt"] .notif-icon { background:#FEE2E2; color:#991B1B; }
+  .notif-row[data-type="interventie_status_gewijzigd"] .notif-icon { background:#FEF3C7; color:#92400E; }
+  .notif-row[data-type="contract_getekend"] .notif-icon { background:#EDE9FE; color:#5B21B6; }
+  .notif-row .notif-body { flex:1; min-width:0; }
+  .notif-row .notif-title { font-size:13px; font-weight:600; color:var(--navy); margin:0 0 2px; line-height:1.3; }
+  .notif-row.unread .notif-title::after { content:""; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--red,#E74C3C); margin-left:6px; vertical-align:middle; }
+  .notif-row .notif-text { font-size:12px; color:var(--grey); margin:0; line-height:1.4; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .notif-row .notif-time { font-size:11px; color:var(--grey); margin-top:4px; }
+  .notif-page-list { max-height: none; }
+  .notif-page-list .notif-row { padding:14px 16px; }
+  .notif-filter-btn { background:transparent; border:1px solid var(--rule); padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500; color:var(--grey); cursor:pointer; transition: all .15s; }
+  .notif-filter-btn:hover { border-color:var(--navy); color:var(--navy); }
+  .notif-filter-btn.active { background:var(--navy); color:#fff; border-color:var(--navy); }
   .chat-msg { padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; font-size: 13px; line-height: 1.5; max-width: 85%; }
   .chat-msg.self { background: #EFF6FF; border: 1px solid #BFDBFE; margin-left: auto; }
   .chat-msg.other { background: var(--light); border: 1px solid var(--rule); }
@@ -654,6 +681,15 @@
       <span>Interventies</span>
       <span class="nav-badge" id="partner-int-badge" style="display:none"></span>
     </a>
+    <a class="nav-item partner-only" onclick="showPage('rapporten')" data-page="rapporten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Rapporten</span>
+    </a>
+    <a class="nav-item partner-only" onclick="showPage('notificaties')" data-page="notificaties" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span>Meldingen</span>
+      <span class="nav-badge" id="partner-notif-badge" style="display:none"></span>
+    </a>
     <a class="nav-item partner-only" id="nav-partner-facturatie" style="display:none" onclick="showPage('facturatie')" data-page="facturatie">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
       <span>Facturatie</span>
@@ -677,7 +713,26 @@
         <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.4" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <div id="search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--white);border:1px solid var(--rule);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:360px;overflow-y:auto;z-index:999;margin-top:4px"></div>
       </div>
-      <div class="topbar-user">
+      <div class="topbar-user" style="display:flex;align-items:center;gap:12px">
+        <div id="notif-bell-wrap" style="position:relative">
+          <button id="notif-bell" type="button" onclick="toggleNotifDropdown(event)"
+            style="position:relative;background:transparent;border:1px solid var(--rule);border-radius:8px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--navy)"
+            aria-label="Meldingen" title="Meldingen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notif-bell-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red,#E74C3C);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;line-height:1.3;min-width:16px;text-align:center"></span>
+          </button>
+          <div id="notif-dropdown" role="menu" aria-label="Recente meldingen"
+            style="display:none;position:absolute;top:calc(100% + 6px);right:0;width:360px;max-height:480px;overflow:hidden;background:#fff;border:1px solid var(--rule);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.12);z-index:1000">
+            <div style="padding:12px 14px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center">
+              <strong style="font-size:13px">Meldingen</strong>
+              <button type="button" onclick="markAllNotificationsRead(event)" style="background:transparent;border:none;color:var(--navy);font-size:12px;cursor:pointer;text-decoration:underline" title="Alle markeren als gelezen">Alles gelezen</button>
+            </div>
+            <div id="notif-dropdown-list" style="max-height:360px;overflow-y:auto"></div>
+            <div style="padding:10px 14px;border-top:1px solid var(--rule);text-align:center">
+              <a href="#" onclick="event.preventDefault();closeNotifDropdown();showPage('notificaties')" style="font-size:12px;color:var(--navy);text-decoration:none;font-weight:600">Alle meldingen bekijken &rsaquo;</a>
+            </div>
+          </div>
+        </div>
         <span id="user-email"></span>
         <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
       </div>
@@ -720,6 +775,25 @@
           <tbody id="recent-contracts"></tbody>
         </table>
         <p id="no-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Nog geen contracten ontvangen.</p>
+      </div>
+    </div>
+
+    <!-- MELDINGEN / NOTIFICATIES PAGE -->
+    <div class="page" id="page-notificaties">
+      <div class="card">
+        <div class="card-header" style="display:flex;align-items:center;gap:12px">
+          <span class="card-title" style="margin-right:auto">Meldingen</span>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="notif-filter-btn active" data-notif-filter="all" onclick="setNotifFilter('all')">Alle</button>
+            <button type="button" class="notif-filter-btn" data-notif-filter="unread" onclick="setNotifFilter('unread')">Ongelezen</button>
+          </div>
+          <button class="btn btn-ghost" onclick="markAllNotificationsRead()" id="btn-mark-all-read">Alles als gelezen markeren</button>
+        </div>
+        <div id="notif-page-list" class="notif-page-list"></div>
+        <div id="notif-page-empty" style="display:none;text-align:center;padding:40px 16px;color:var(--grey)">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px;opacity:.4"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <p style="margin:0;font-size:14px">Geen meldingen om weer te geven.</p>
+        </div>
       </div>
     </div>
 
@@ -921,26 +995,38 @@
           <div class="modal-field">
             <label>Gratis transport (km)</label>
             <input type="number" id="set-transport-km" min="0">
+            <small style="color:var(--grey);font-size:11px">Aanpasbaar door jou</small>
           </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--grey);background:#FAFBFC">
+        <div class="card-header" style="display:flex;align-items:center;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--grey)"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span class="card-title" style="color:var(--grey)">Commerciele voorwaarden (vastgelegd)</span>
+        </div>
+        <p style="font-size:12px;color:var(--grey);margin-bottom:14px">Deze waarden zijn contractueel vastgelegd tussen jou en Flancco en kunnen enkel via Flancco aangepast worden.</p>
+        <div class="modal-row">
           <div class="modal-field">
             <label>Marge op Flancco-forfait (%)</label>
-            <input type="number" id="set-marge" min="0" step="0.5" disabled style="background:#f3f4f6">
-            <small style="color:var(--grey);font-size:11px">Wordt bepaald door Flancco</small>
+            <input type="number" id="set-marge" min="0" step="0.5" disabled style="background:#f3f4f6;cursor:not-allowed">
+          </div>
+          <div class="modal-field">
+            <label>Planning fee (&euro; per installatie)</label>
+            <input type="number" id="set-planning" min="0" step="0.5" disabled style="background:#f3f4f6;cursor:not-allowed">
           </div>
         </div>
         <div class="modal-row">
           <div class="modal-field">
-            <label>Planning fee (€ per installatie)</label>
-            <input type="number" id="set-planning" min="0" step="0.5" disabled style="background:#f3f4f6">
-            <small style="color:var(--grey);font-size:11px">Wordt bepaald door Flancco</small>
-          </div>
-          <div class="modal-field">
             <label>Flancco inzage in klantdata</label>
-            <select id="set-inzage" disabled style="background:#f3f4f6">
+            <select id="set-inzage" disabled style="background:#f3f4f6;cursor:not-allowed">
               <option value="true">Akkoord</option>
               <option value="false">Niet akkoord</option>
             </select>
-            <small style="color:var(--grey);font-size:11px">Vastgelegd in samenwerkingsovereenkomst</small>
+          </div>
+          <div class="modal-field">
+            <label>&nbsp;</label>
+            <a href="mailto:gillian.geernaert@flancco.be?subject=Aanvraag%20wijziging%20commerciele%20voorwaarden" class="btn btn-ghost" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;justify-content:center">Wijziging aanvragen</a>
           </div>
         </div>
       </div>
@@ -1057,6 +1143,42 @@
         <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
           <button onclick="closeInviteModal()" style="padding:10px 20px;border:1.5px solid var(--rule);border-radius:8px;background:white;font-size:13px;font-weight:600;cursor:pointer">Sluiten</button>
           <button onclick="sendPartnerInvite()" id="invite-submit-btn" style="padding:10px 24px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Account aanmaken</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ONBOARDING WIZARD (partner first-login) -->
+    <div id="onboarding-wizard" style="display:none;position:fixed;inset:0;background:rgba(13, 20, 35, 0.72);backdrop-filter:blur(6px);z-index:10000;align-items:center;justify-content:center;overflow-y:auto;padding:20px">
+      <div class="onb-card" role="dialog" aria-labelledby="onb-title" aria-modal="true" style="background:#fff;border-radius:16px;max-width:640px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden">
+        <!-- Header met progress -->
+        <div class="onb-header" style="padding:24px 28px 16px;border-bottom:1px solid var(--rule);background:linear-gradient(135deg, var(--navy) 0%, #2a2a4e 100%);color:#fff">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div id="onb-logo" style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px"></div>
+            <div style="flex:1">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;opacity:0.7;font-weight:600">Welkom op het Flancco partner platform</div>
+              <div id="onb-title" style="font-size:17px;font-weight:700;margin-top:2px">Even je account afwerken</div>
+            </div>
+            <button type="button" onclick="skipOnboarding()" aria-label="Wizard overslaan" style="background:transparent;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:12px;padding:6px 10px;border-radius:6px" title="Later afwerken">Later</button>
+          </div>
+          <!-- Progress bar -->
+          <div style="display:flex;gap:6px;margin-top:14px">
+            <div class="onb-step-dot" data-step="1" style="flex:1;height:4px;border-radius:2px;background:#fff;transition:background .3s"></div>
+            <div class="onb-step-dot" data-step="2" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
+            <div class="onb-step-dot" data-step="3" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
+            <div class="onb-step-dot" data-step="4" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
+          </div>
+        </div>
+
+        <!-- Body (wisselende content per stap) -->
+        <div id="onb-body" style="padding:26px 28px 18px;min-height:280px"></div>
+
+        <!-- Footer -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 28px 22px;border-top:1px solid var(--rule);background:#fafafa">
+          <span id="onb-step-label" style="font-size:12px;color:var(--grey);font-weight:500">Stap 1 van 4</span>
+          <div style="display:flex;gap:8px">
+            <button type="button" id="onb-prev-btn" onclick="onbPrev()" style="padding:10px 18px;border:1.5px solid var(--rule);background:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--navy);display:none">Vorige</button>
+            <button type="button" id="onb-next-btn" onclick="onbNext()" style="padding:10px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Volgende</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1373,7 +1495,7 @@
       </div>
     </div>
 
-    <div class="page admin-only" id="page-rapporten">
+    <div class="page" id="page-rapporten">
       <div style="padding:20px 28px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <h2 style="font-size:16px;font-weight:700;color:var(--navy);margin:0">Rapporten</h2>
@@ -2243,6 +2365,11 @@ async function initApp() {
         navFactEl.classList.remove('role-hidden');
       }
     }
+
+    // Partner onboarding-wizard indien nog niet afgerond
+    if (userPartner && !userPartner.onboarding_completed_at) {
+      setTimeout(function() { openOnboardingWizard(); }, 120);
+    }
   }
 }
 
@@ -2570,6 +2697,9 @@ async function loadAllData() {
   }
   await loadPartnerPermissions();
   await loadFacturatie();
+  // Notificaties laden + realtime subscribe (alle rollen)
+  await loadNotifications();
+  startNotifRealtime();
 
   if (userRole === 'admin') {
     await loadPartnerSectors();
@@ -2637,6 +2767,227 @@ function showPage(name) {
   if (name === 'gebruikers') renderGebruikers();
   if (name === 'verlof') renderVerlofPage();
   if (name === 'uren') renderUrenPage();
+  if (name === 'notificaties') { renderNotificatiesPage(); }
+}
+
+// =============================================
+// NOTIFICATIES — bell dropdown + inbox pagina
+// =============================================
+var allNotifications = [];
+var notifFilterMode = 'all';
+var notifRealtimeChannel = null;
+var notifPollTimer = null;
+var NOTIF_POLL_INTERVAL_MS = 60000;
+
+function notifIconSvg(type) {
+  var icons = {
+    rapport_klaar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>',
+    beurt_afgewerkt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    interventie_aangemaakt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    interventie_status_gewijzigd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+    contract_getekend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    systeem: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+  };
+  return icons[type] || icons.systeem;
+}
+
+function formatNotifTime(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  var now = new Date();
+  var diffMs = now - d;
+  var diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'net nu';
+  if (diffMin < 60) return diffMin + ' min geleden';
+  var diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return diffH + ' u geleden';
+  var diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return diffD + ' d geleden';
+  return d.toLocaleDateString('nl-BE', { day: '2-digit', month: 'short' });
+}
+
+async function loadNotifications() {
+  try {
+    var query = sb.from('notifications').select('*').order('created_at', { ascending: false }).limit(200);
+    var { data, error } = await query;
+    if (error) { console.error('loadNotifications error:', error); return; }
+    allNotifications = data || [];
+    updateNotifBadge();
+    renderNotifDropdown();
+    if (document.getElementById('page-notificaties') && document.getElementById('page-notificaties').classList.contains('active')) {
+      renderNotificatiesPage();
+    }
+  } catch (e) { console.error('loadNotifications exception:', e); }
+}
+
+function updateNotifBadge() {
+  var unread = (allNotifications || []).filter(function(n) { return !n.is_read; }).length;
+  var bellBadge = document.getElementById('notif-bell-badge');
+  if (bellBadge) {
+    if (unread > 0) {
+      bellBadge.textContent = unread > 99 ? '99+' : unread;
+      bellBadge.style.display = 'inline-block';
+    } else {
+      bellBadge.style.display = 'none';
+    }
+  }
+  var navBadge = document.getElementById('partner-notif-badge');
+  if (navBadge) {
+    if (unread > 0) {
+      navBadge.textContent = unread > 99 ? '99+' : unread;
+      navBadge.style.display = 'flex';
+    } else {
+      navBadge.style.display = 'none';
+    }
+  }
+}
+
+function renderNotifDropdown() {
+  var list = document.getElementById('notif-dropdown-list');
+  if (!list) return;
+  var recent = (allNotifications || []).slice(0, 10);
+  if (recent.length === 0) {
+    list.innerHTML = '<div style="padding:24px 14px;text-align:center;color:var(--grey);font-size:13px">Geen meldingen</div>';
+    return;
+  }
+  var html = '';
+  recent.forEach(function(n) {
+    html += buildNotifRowHtml(n, true);
+  });
+  list.innerHTML = html;
+}
+
+function buildNotifRowHtml(n, compact) {
+  var safeTitle = escapeHtml(n.title || '');
+  var safeBody = escapeHtml(n.body || '');
+  var readClass = n.is_read ? '' : ' unread';
+  var onClick = 'onclick="openNotification(\'' + n.id + '\')"';
+  return '<div class="notif-row' + readClass + '" data-type="' + escapeHtml(n.type || 'systeem') + '" ' + onClick + '>' +
+    '<div class="notif-icon">' + notifIconSvg(n.type) + '</div>' +
+    '<div class="notif-body">' +
+    '<p class="notif-title">' + safeTitle + '</p>' +
+    (safeBody ? '<p class="notif-text">' + safeBody + '</p>' : '') +
+    '<div class="notif-time">' + formatNotifTime(n.created_at) + '</div>' +
+    '</div>' +
+    '</div>';
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function renderNotificatiesPage() {
+  var list = document.getElementById('notif-page-list');
+  var empty = document.getElementById('notif-page-empty');
+  if (!list || !empty) return;
+  var items = (allNotifications || []);
+  if (notifFilterMode === 'unread') items = items.filter(function(n) { return !n.is_read; });
+  if (items.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  var html = '';
+  items.forEach(function(n) { html += buildNotifRowHtml(n, false); });
+  list.innerHTML = html;
+}
+
+function setNotifFilter(mode) {
+  notifFilterMode = mode;
+  document.querySelectorAll('.notif-filter-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.notifFilter === mode);
+  });
+  renderNotificatiesPage();
+}
+
+function toggleNotifDropdown(ev) {
+  if (ev) ev.stopPropagation();
+  var dd = document.getElementById('notif-dropdown');
+  if (!dd) return;
+  var isOpen = dd.style.display === 'block';
+  dd.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    document.addEventListener('click', closeNotifDropdownOnOutside, { once: true });
+  }
+}
+
+function closeNotifDropdownOnOutside(ev) {
+  var wrap = document.getElementById('notif-bell-wrap');
+  if (wrap && !wrap.contains(ev.target)) {
+    closeNotifDropdown();
+  } else {
+    document.addEventListener('click', closeNotifDropdownOnOutside, { once: true });
+  }
+}
+
+function closeNotifDropdown() {
+  var dd = document.getElementById('notif-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+async function openNotification(id) {
+  var n = (allNotifications || []).find(function(x) { return x.id === id; });
+  if (!n) return;
+  if (!n.is_read) await markNotificationRead(id, false);
+  closeNotifDropdown();
+  if (n.link_url) {
+    if (n.link_url.startsWith('page:')) {
+      var pg = n.link_url.substring(5);
+      showPage(pg);
+    } else if (n.link_url.startsWith('#')) {
+      window.location.hash = n.link_url;
+    } else if (n.link_url.startsWith('http')) {
+      window.open(n.link_url, '_blank', 'noopener');
+    }
+  } else if (n.related_type === 'interventie' && n.related_id) {
+    showPage('interventies');
+  } else if (n.related_type === 'rapport' && n.related_id) {
+    showPage('rapporten');
+  } else if (n.related_type === 'onderhoudsbeurt' && n.related_id) {
+    showPage('planning');
+  } else if (n.related_type === 'contract' && n.related_id) {
+    showPage('contracten');
+  }
+}
+
+async function markNotificationRead(id, refetch) {
+  try {
+    var { error } = await sb.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id);
+    if (error) { console.error('markNotificationRead:', error); return; }
+    var n = (allNotifications || []).find(function(x) { return x.id === id; });
+    if (n) { n.is_read = true; n.read_at = new Date().toISOString(); }
+    updateNotifBadge();
+    renderNotifDropdown();
+    if (refetch !== false) renderNotificatiesPage();
+  } catch (e) { console.error('markNotificationRead exception:', e); }
+}
+
+async function markAllNotificationsRead(ev) {
+  if (ev) ev.stopPropagation();
+  var unreadIds = (allNotifications || []).filter(function(n) { return !n.is_read; }).map(function(n) { return n.id; });
+  if (unreadIds.length === 0) return;
+  try {
+    var { error } = await sb.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).in('id', unreadIds);
+    if (error) { console.error('markAll:', error); return; }
+    allNotifications.forEach(function(n) { if (!n.is_read) { n.is_read = true; n.read_at = new Date().toISOString(); } });
+    updateNotifBadge();
+    renderNotifDropdown();
+    renderNotificatiesPage();
+  } catch (e) { console.error('markAll exception:', e); }
+}
+
+function startNotifRealtime() {
+  if (notifPollTimer) clearInterval(notifPollTimer);
+  notifPollTimer = setInterval(loadNotifications, NOTIF_POLL_INTERVAL_MS);
+  try {
+    if (notifRealtimeChannel) { try { sb.removeChannel(notifRealtimeChannel); } catch(_) {} }
+    notifRealtimeChannel = sb
+      .channel('notif-' + (currentUser ? currentUser.id : 'anon'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, function() { loadNotifications(); })
+      .subscribe();
+  } catch(_) { /* realtime optional; poll is fallback */ }
 }
 
 // =============================================
@@ -3552,6 +3903,243 @@ function copyInviteInfo() {
   navigator.clipboard.writeText(text).then(function() {
     showToast('Inloggegevens gekopieerd');
   });
+}
+
+// =============================================
+// ONBOARDING WIZARD (partner first-login)
+// =============================================
+var onbCurrentStep = 1;
+var onbDraft = { bedrijfsnaam:'', contactpersoon:'', telefoon:'', btw_nummer:'', adres:'', postcode:'', gemeente:'', kleur_primair:'', logo_url:'', newPass:'', newPassConfirm:'' };
+
+function openOnboardingWizard() {
+  if (!userPartner) return;
+  onbCurrentStep = 1;
+  // Prefill draft uit partner-record (wat admin al heeft ingevuld bij invite)
+  onbDraft = {
+    bedrijfsnaam: userPartner.bedrijfsnaam || userPartner.naam || '',
+    contactpersoon: userPartner.contactpersoon || '',
+    telefoon: userPartner.telefoon || '',
+    btw_nummer: userPartner.btw_nummer || '',
+    adres: userPartner.adres || '',
+    postcode: userPartner.postcode || '',
+    gemeente: userPartner.gemeente || '',
+    kleur_primair: userPartner.kleur_primair || '#098979',
+    logo_url: userPartner.logo_url || '',
+    newPass: '',
+    newPassConfirm: ''
+  };
+  // Logo / initiaal in header
+  var logoEl = document.getElementById('onb-logo');
+  if (logoEl) {
+    if (onbDraft.logo_url) {
+      logoEl.innerHTML = '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:4px">';
+    } else {
+      logoEl.textContent = (onbDraft.bedrijfsnaam || '?').charAt(0).toUpperCase();
+    }
+  }
+  renderOnbStep();
+  document.getElementById('onboarding-wizard').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOnboardingWizard() {
+  document.getElementById('onboarding-wizard').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function renderOnbStep() {
+  // Progress dots
+  document.querySelectorAll('.onb-step-dot').forEach(function(d) {
+    var s = parseInt(d.dataset.step, 10);
+    d.style.background = s <= onbCurrentStep ? '#fff' : 'rgba(255,255,255,0.25)';
+  });
+  document.getElementById('onb-step-label').textContent = 'Stap ' + onbCurrentStep + ' van 4';
+  document.getElementById('onb-prev-btn').style.display = onbCurrentStep === 1 ? 'none' : 'inline-block';
+  var nextBtn = document.getElementById('onb-next-btn');
+  nextBtn.textContent = onbCurrentStep === 4 ? 'Afronden' : 'Volgende';
+
+  var body = document.getElementById('onb-body');
+  var html = '';
+  if (onbCurrentStep === 1) {
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Welkom bij Flancco</h3>';
+    html += '<p style="margin:0 0 18px;color:var(--grey);font-size:13px;line-height:1.55">Bedankt om op te starten als partner. In een paar stappen werken we je profiel af zodat je meteen van start kan met contracten, interventies en rapportages voor je klanten.</p>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">';
+    [
+      { ic:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', t:'Bedrijfsgegevens', s:'Even verifiëren en aanvullen' },
+      { ic:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>', t:'Branding', s:'Logo en huisstijl op calculator' },
+      { ic:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>', t:'Wachtwoord', s:'Vervang tijdelijk wachtwoord' },
+      { ic:'<polyline points="20 6 9 17 4 12"/>', t:'Klaar', s:'Overzicht en eerste stappen' }
+    ].forEach(function(item, i) {
+      html += '<div style="border:1px solid var(--rule);border-radius:8px;padding:12px;display:flex;gap:10px;align-items:flex-start;background:#fff">' +
+        '<div style="width:28px;height:28px;border-radius:6px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + item.ic + '</svg></div>' +
+        '<div><div style="font-size:13px;font-weight:600;color:var(--navy)">' + (i+1) + '. ' + item.t + '</div>' +
+        '<div style="font-size:12px;color:var(--grey);margin-top:2px">' + item.s + '</div></div></div>';
+    });
+    html += '</div>';
+  } else if (onbCurrentStep === 2) {
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Bedrijfsgegevens</h3>';
+    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Deze gegevens verschijnen op contracten en facturatie-exports.</p>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    html += onbField('Bedrijfsnaam *', 'onb-bedrijfsnaam', onbDraft.bedrijfsnaam, 'text', 'span 2');
+    html += onbField('Contactpersoon', 'onb-contactpersoon', onbDraft.contactpersoon);
+    html += onbField('Telefoon', 'onb-telefoon', onbDraft.telefoon, 'tel');
+    html += onbField('BTW-nummer', 'onb-btw', onbDraft.btw_nummer, 'text', 'span 2');
+    html += onbField('Adres', 'onb-adres', onbDraft.adres, 'text', 'span 2');
+    html += onbField('Postcode', 'onb-postcode', onbDraft.postcode);
+    html += onbField('Gemeente', 'onb-gemeente', onbDraft.gemeente);
+    html += '</div>';
+  } else if (onbCurrentStep === 3) {
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Branding & huisstijl</h3>';
+    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Zorg dat jouw klanten jouw look herkennen op de calculator en rapportages.</p>';
+    html += '<div style="display:flex;gap:20px;align-items:flex-start">';
+    html += '<div style="flex:1">';
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Primaire kleur</label>';
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<input type="color" id="onb-kleur" value="' + esc(onbDraft.kleur_primair) + '" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
+    html += '<input type="text" id="onb-kleur-hex" value="' + esc(onbDraft.kleur_primair) + '" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
+    html += '</div>';
+    html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Wordt gebruikt in sidebar, buttons en accenten.</p>';
+    html += '</div>';
+    html += '<div style="flex:1">';
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Logo</label>';
+    html += '<div id="onb-logo-preview" style="border:1.5px dashed var(--rule);border-radius:8px;padding:14px;background:#fafafa;text-align:center;min-height:76px;display:flex;align-items:center;justify-content:center">';
+    if (onbDraft.logo_url) html += '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="max-height:60px;max-width:100%;object-fit:contain">';
+    else html += '<span style="font-size:12px;color:var(--grey)">Nog geen logo</span>';
+    html += '</div>';
+    html += '<input type="file" id="onb-logo-file" accept="image/*" style="display:none" onchange="onbHandleLogoUpload(event)">';
+    html += '<button type="button" onclick="document.getElementById(\'onb-logo-file\').click()" style="margin-top:8px;padding:8px 12px;border:1.5px solid var(--rule);background:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);width:100%">' + (onbDraft.logo_url ? 'Logo vervangen' : 'Logo uploaden') + '</button>';
+    html += '</div>';
+    html += '</div>';
+  } else if (onbCurrentStep === 4) {
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Nieuw wachtwoord instellen</h3>';
+    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Vervang het tijdelijk wachtwoord door een eigen keuze (min. 10 tekens, sterk advies: mix van letters, cijfers en symbolen).</p>';
+    html += '<div style="display:grid;gap:12px;max-width:420px">';
+    html += onbField('Nieuw wachtwoord *', 'onb-newpass', onbDraft.newPass, 'password');
+    html += onbField('Bevestig wachtwoord *', 'onb-newpass2', onbDraft.newPassConfirm, 'password');
+    html += '</div>';
+    html += '<p style="margin-top:16px;padding:10px 12px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#78350F;line-height:1.5">' +
+      '<strong>Veiligheid:</strong> bewaar je wachtwoord in een password manager. Flancco kan een vergeten wachtwoord resetten via de login-pagina.' +
+      '</p>';
+  }
+  body.innerHTML = html;
+}
+
+function onbField(label, id, value, type, gridColumn) {
+  type = type || 'text';
+  var col = gridColumn ? 'grid-column:' + gridColumn + ';' : '';
+  return '<div style="' + col + '">' +
+    '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">' + esc(label) + '</label>' +
+    '<input type="' + type + '" id="' + id + '" value="' + esc(value || '') + '" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;box-sizing:border-box">' +
+    '</div>';
+}
+
+function onbCollectStep() {
+  if (onbCurrentStep === 2) {
+    onbDraft.bedrijfsnaam = (document.getElementById('onb-bedrijfsnaam').value || '').trim();
+    onbDraft.contactpersoon = (document.getElementById('onb-contactpersoon').value || '').trim();
+    onbDraft.telefoon = (document.getElementById('onb-telefoon').value || '').trim();
+    onbDraft.btw_nummer = (document.getElementById('onb-btw').value || '').trim();
+    onbDraft.adres = (document.getElementById('onb-adres').value || '').trim();
+    onbDraft.postcode = (document.getElementById('onb-postcode').value || '').trim();
+    onbDraft.gemeente = (document.getElementById('onb-gemeente').value || '').trim();
+    if (!onbDraft.bedrijfsnaam) { showToast('Bedrijfsnaam is verplicht', 'error'); return false; }
+  } else if (onbCurrentStep === 3) {
+    var hexEl = document.getElementById('onb-kleur-hex');
+    var kleurEl = document.getElementById('onb-kleur');
+    var val = (hexEl.value || kleurEl.value || '').trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(val)) { showToast('Ongeldige hex-kleur', 'error'); return false; }
+    onbDraft.kleur_primair = val;
+  } else if (onbCurrentStep === 4) {
+    onbDraft.newPass = document.getElementById('onb-newpass').value || '';
+    onbDraft.newPassConfirm = document.getElementById('onb-newpass2').value || '';
+    if (onbDraft.newPass.length < 10) { showToast('Wachtwoord moet minstens 10 tekens zijn', 'error'); return false; }
+    if (onbDraft.newPass !== onbDraft.newPassConfirm) { showToast('Wachtwoorden komen niet overeen', 'error'); return false; }
+  }
+  return true;
+}
+
+async function onbHandleLogoUpload(ev) {
+  var file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('Logo mag max. 2 MB zijn', 'error'); return; }
+  if (!/^image\//.test(file.type)) { showToast('Selecteer een afbeelding', 'error'); return; }
+  var preview = document.getElementById('onb-logo-preview');
+  preview.innerHTML = '<span style="font-size:12px;color:var(--grey)">Uploaden…</span>';
+  try {
+    var ext = (file.name.split('.').pop() || 'png').toLowerCase();
+    var path = userPartner.id + '/logo-' + Date.now() + '.' + ext;
+    var up = await sb.storage.from('partner-logos').upload(path, file, { upsert: true, cacheControl: '3600' });
+    if (up.error) throw up.error;
+    var pub = sb.storage.from('partner-logos').getPublicUrl(path);
+    onbDraft.logo_url = pub.data.publicUrl;
+    preview.innerHTML = '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="max-height:60px;max-width:100%;object-fit:contain">';
+    var headerLogo = document.getElementById('onb-logo');
+    if (headerLogo) headerLogo.innerHTML = '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:4px">';
+  } catch (e) {
+    preview.innerHTML = '<span style="font-size:12px;color:var(--red)">Upload mislukt: ' + esc(e.message || 'onbekende fout') + '</span>';
+  }
+}
+
+async function onbPrev() {
+  if (onbCurrentStep <= 1) return;
+  if (!onbCollectStep()) return;
+  onbCurrentStep--;
+  renderOnbStep();
+}
+
+async function onbNext() {
+  if (!onbCollectStep()) return;
+  if (onbCurrentStep < 4) {
+    onbCurrentStep++;
+    renderOnbStep();
+    return;
+  }
+  // Stap 4 = afronden
+  await onbFinish();
+}
+
+async function onbFinish() {
+  var btn = document.getElementById('onb-next-btn');
+  btn.disabled = true;
+  var origLabel = btn.textContent;
+  btn.textContent = 'Opslaan…';
+  try {
+    // 1) Partner gegevens opslaan
+    var patch = {
+      bedrijfsnaam: onbDraft.bedrijfsnaam,
+      contactpersoon: onbDraft.contactpersoon || null,
+      telefoon: onbDraft.telefoon || null,
+      btw_nummer: onbDraft.btw_nummer || null,
+      adres: onbDraft.adres || null,
+      postcode: onbDraft.postcode || null,
+      gemeente: onbDraft.gemeente || null,
+      kleur_primair: onbDraft.kleur_primair,
+      onboarding_completed_at: new Date().toISOString()
+    };
+    if (onbDraft.logo_url) patch.logo_url = onbDraft.logo_url;
+    var upd = await sb.from('partners').update(patch).eq('id', userPartner.id);
+    if (upd.error) throw upd.error;
+    // 2) Wachtwoord updaten
+    var pass = await sb.auth.updateUser({ password: onbDraft.newPass });
+    if (pass.error) throw pass.error;
+    // 3) Lokale state verversen
+    Object.assign(userPartner, patch);
+    applyBranding(userPartner);
+    closeOnboardingWizard();
+    showToast('Welkom op het platform — je account is klaar voor gebruik.');
+    // Refresh relevante views
+    if (typeof renderDashboard === 'function') renderDashboard();
+  } catch (e) {
+    showToast('Fout bij opslaan: ' + (e.message || 'onbekend'), 'error');
+    btn.disabled = false;
+    btn.textContent = origLabel;
+  }
+}
+
+function skipOnboarding() {
+  if (!confirm('Wizard overslaan?\n\nJe kan je gegevens later aanvullen via Instellingen. Dit venster verschijnt opnieuw bij je volgende login.')) return;
+  closeOnboardingWizard();
 }
 
 async function toggleAdminSector(partnerId, sector, label) {
@@ -5045,6 +5633,8 @@ function showToast(msg, type) {
   if (existing) existing.remove();
   var el = document.createElement('div');
   el.id = 'admin-toast';
+  el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   var bg = type === 'error' ? '#EF4444' : '#27AE60';
   el.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;background:' + bg + ';color:#fff;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;';
   el.textContent = msg;
@@ -6146,20 +6736,51 @@ function openCsvImportModal() {
   var overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.id = 'modal-csv-import';
-  overlay.innerHTML = '<div class="modal" style="max-width:800px;max-height:90vh;overflow-y:auto">' +
-    '<h2>CSV Import — Klantgegevens</h2>' +
-    '<p style="font-size:13px;color:var(--grey);margin-bottom:12px">Upload een CSV-bestand (puntkomma-gescheiden) met klantgegevens.<br>' +
-    'Format: <code style="font-size:11px;background:var(--light);padding:2px 6px;border-radius:3px">Voornaam;Achternaam;Bedrijf;Email;Telefoon;Straat;Nr;Postcode;Gemeente;Land;Notities</code></p>' +
-    '<div class="modal-field"><label>Partner toewijzen</label><select id="csv-partner">' +
-      partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('') +
+  var partnerOpts = '';
+  if (userRole === 'partner' && userPartner) {
+    partnerOpts = '<option value="' + userPartner.id + '">' + esc(userPartner.naam) + '</option>';
+  } else {
+    partnerOpts = partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('');
+  }
+  overlay.innerHTML = '<div class="modal" style="max-width:900px;max-height:90vh;overflow-y:auto">' +
+    '<h2>CSV import &mdash; Klantgegevens</h2>' +
+    '<p style="font-size:13px;color:var(--grey);margin-bottom:12px">Upload een puntkomma-gescheiden CSV. De kolomvolgorde is vast. Download eerst het template voor zekerheid.</p>' +
+    '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+      '<button class="btn btn-ghost" onclick="downloadKlantenCsvTemplate()" type="button">Template downloaden</button>' +
+      '<span style="font-size:12px;color:var(--grey);align-self:center">Kolommen: Voornaam; Achternaam; Bedrijfsnaam; BTW; Email; Telefoon; Straat; Nr; Postcode; Gemeente; Land; Notities</span>' +
+    '</div>' +
+    '<div class="modal-field"><label>Partner toewijzen</label><select id="csv-partner"' + (userRole === 'partner' ? ' disabled' : '') + '>' +
+      partnerOpts +
     '</select></div>' +
-    '<div class="modal-field"><label>CSV bestand</label><input type="file" id="csv-file" accept=".csv,.txt" onchange="parseCsvPreview()"></div>' +
+    '<div class="modal-field"><label>CSV-bestand</label><input type="file" id="csv-file" accept=".csv,.txt" onchange="parseCsvPreview()"></div>' +
     '<div id="csv-preview" style="margin-top:12px"></div>' +
     '<div class="modal-buttons" style="margin-top:16px">' +
       '<button class="btn btn-secondary" onclick="document.getElementById(\'modal-csv-import\').remove()">Annuleren</button>' +
       '<button class="btn" id="csv-import-btn" onclick="executeCsvImport()" style="display:none">Importeren</button>' +
     '</div></div>';
   document.body.appendChild(overlay);
+}
+
+function downloadKlantenCsvTemplate() {
+  var header = ['Voornaam','Achternaam','Bedrijfsnaam','BTW','Email','Telefoon','Straat','Nr','Postcode','Gemeente','Land','Notities'];
+  var sample = ['Jan','Peeters','Peeters BVBA','BE0123456789','jan@peeters.be','+32470123456','Kerkstraat','12','9000','Gent','BE','Voorbeeldklant'];
+  var csv = '\uFEFF' + [header.join(';'), sample.join(';')].join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'klanten-template.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function normalizeBtw(btw) {
+  if (!btw) return '';
+  return String(btw).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+}
+
+function normalizeEmail(e) {
+  if (!e) return '';
+  return String(e).toLowerCase().trim();
 }
 
 var _csvRows = [];
@@ -6170,58 +6791,92 @@ function parseCsvPreview() {
   var reader = new FileReader();
   reader.onload = function(e) {
     var text = e.target.result;
+    // Strip BOM
+    if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
     var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
     if (lines.length === 0) { document.getElementById('csv-preview').innerHTML = '<p style="color:var(--red)">Leeg bestand</p>'; return; }
 
-    // Detect separator
     var sep = lines[0].indexOf(';') >= 0 ? ';' : ',';
-
-    // Check if first line is header
     var firstFields = lines[0].split(sep);
-    var isHeader = firstFields.some(function(f) { return /voornaam|achternaam|email|naam/i.test(f); });
+    var isHeader = firstFields.some(function(f) { return /voornaam|achternaam|email|naam|btw/i.test(f); });
     var startIdx = isHeader ? 1 : 0;
 
+    // Bestaande klanten indexeren op BTW + email (voor dedup)
+    var existingBtw = {}, existingEmail = {};
+    (allClients || []).forEach(function(c) {
+      var btw = normalizeBtw(c.vat_number || c.btw_number || '');
+      var em = normalizeEmail(c.email || '');
+      if (btw) existingBtw[btw] = c;
+      if (em) existingEmail[em] = c;
+    });
+
+    // Interne dup-detectie binnen CSV-file zelf
+    var seenBtwInCsv = {}, seenEmailInCsv = {};
+
     _csvRows = [];
-    var errors = 0;
+    var errors = 0, dupExisting = 0, dupInFile = 0;
     for (var i = startIdx; i < lines.length; i++) {
       var fields = lines[i].split(sep).map(function(f) { return f.trim().replace(/^["']|["']$/g, ''); });
       var row = {
         voornaam: fields[0] || '',
         achternaam: fields[1] || '',
         bedrijf: fields[2] || '',
-        email: fields[3] || '',
-        telefoon: fields[4] || '',
-        straat: fields[5] || '',
-        nr: fields[6] || '',
-        postcode: fields[7] || '',
-        gemeente: fields[8] || '',
-        land: fields[9] || 'BE',
-        notities: fields[10] || '',
+        btw: fields[3] || '',
+        email: fields[4] || '',
+        telefoon: fields[5] || '',
+        straat: fields[6] || '',
+        nr: fields[7] || '',
+        postcode: fields[8] || '',
+        gemeente: fields[9] || '',
+        land: fields[10] || 'BE',
+        notities: fields[11] || '',
         valid: true,
+        warn: false,
         error: ''
       };
-      // Validation
-      if (!row.voornaam && !row.achternaam) { row.valid = false; row.error = 'Naam ontbreekt'; errors++; }
+      if (!row.voornaam && !row.achternaam && !row.bedrijf) { row.valid = false; row.error = 'Naam of bedrijf ontbreekt'; errors++; _csvRows.push(row); continue; }
+      var nBtw = normalizeBtw(row.btw);
+      var nEmail = normalizeEmail(row.email);
+      if (nBtw && existingBtw[nBtw]) { row.valid = false; row.error = 'BTW bestaat al (' + row.btw + ')'; dupExisting++; _csvRows.push(row); continue; }
+      if (nEmail && existingEmail[nEmail]) { row.valid = false; row.error = 'Email bestaat al'; dupExisting++; _csvRows.push(row); continue; }
+      if (nBtw && seenBtwInCsv[nBtw]) { row.valid = false; row.error = 'Dubbele BTW binnen CSV'; dupInFile++; _csvRows.push(row); continue; }
+      if (nEmail && seenEmailInCsv[nEmail]) { row.valid = false; row.error = 'Dubbel email binnen CSV'; dupInFile++; _csvRows.push(row); continue; }
+      if (nBtw) seenBtwInCsv[nBtw] = true;
+      if (nEmail) seenEmailInCsv[nEmail] = true;
       _csvRows.push(row);
     }
 
-    var html = '<p style="font-size:13px;margin-bottom:8px"><strong>' + _csvRows.length + '</strong> rij(en) gevonden' +
-      (errors > 0 ? ', <span style="color:var(--red)">' + errors + ' fouten</span>' : ', <span style="color:var(--green)">alles OK</span>') + '</p>';
-    html += '<div style="max-height:300px;overflow:auto"><table style="width:100%;font-size:12px"><thead><tr>' +
-      '<th></th><th>Voornaam</th><th>Achternaam</th><th>Bedrijf</th><th>Email</th><th>Telefoon</th><th>Gemeente</th>' +
+    var validCount = _csvRows.filter(function(r) { return r.valid; }).length;
+    var summary = '<p style="font-size:13px;margin-bottom:8px"><strong>' + _csvRows.length + '</strong> rij(en) gevonden.' +
+      ' <span style="color:var(--green)">' + validCount + ' klaar voor import</span>' +
+      (errors ? ', <span style="color:var(--red)">' + errors + ' fouten</span>' : '') +
+      (dupExisting ? ', <span style="color:#92400E">' + dupExisting + ' reeds in DB</span>' : '') +
+      (dupInFile ? ', <span style="color:#92400E">' + dupInFile + ' interne duplicaten</span>' : '') +
+      '</p>';
+
+    var html = summary +
+      '<div style="max-height:340px;overflow:auto;border:1px solid var(--rule);border-radius:6px">' +
+      '<table style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr style="background:var(--light);position:sticky;top:0">' +
+      '<th style="padding:6px"></th><th style="padding:6px;text-align:left">Voornaam</th><th style="padding:6px;text-align:left">Achternaam</th>' +
+      '<th style="padding:6px;text-align:left">Bedrijf</th><th style="padding:6px;text-align:left">BTW</th><th style="padding:6px;text-align:left">Email</th>' +
+      '<th style="padding:6px;text-align:left">Gemeente</th><th style="padding:6px;text-align:left">Opmerking</th>' +
       '</tr></thead><tbody>';
-    _csvRows.forEach(function(r, idx) {
-      var color = r.valid ? '' : 'background:#FDE8E8';
-      html += '<tr style="' + color + '">' +
-        '<td>' + (r.valid ? '<span style="color:var(--green)">&#10003;</span>' : '<span style="color:var(--red)" title="' + esc(r.error) + '">&#10007;</span>') + '</td>' +
-        '<td>' + esc(r.voornaam) + '</td><td>' + esc(r.achternaam) + '</td><td>' + esc(r.bedrijf) + '</td>' +
-        '<td>' + esc(r.email) + '</td><td>' + esc(r.telefoon) + '</td><td>' + esc(r.gemeente) + '</td></tr>';
+    _csvRows.forEach(function(r) {
+      var rowStyle = r.valid ? '' : 'background:#FEF2F2';
+      html += '<tr style="' + rowStyle + ';border-top:1px solid var(--rule)">' +
+        '<td style="padding:6px;text-align:center">' + (r.valid ? '<span style="color:var(--green)">&#10003;</span>' : '<span style="color:var(--red)">&#10007;</span>') + '</td>' +
+        '<td style="padding:6px">' + esc(r.voornaam) + '</td><td style="padding:6px">' + esc(r.achternaam) + '</td>' +
+        '<td style="padding:6px">' + esc(r.bedrijf) + '</td><td style="padding:6px">' + esc(r.btw) + '</td>' +
+        '<td style="padding:6px">' + esc(r.email) + '</td><td style="padding:6px">' + esc(r.gemeente) + '</td>' +
+        '<td style="padding:6px;color:var(--red);font-size:11px">' + esc(r.error || '') + '</td>' +
+      '</tr>';
     });
     html += '</tbody></table></div>';
     document.getElementById('csv-preview').innerHTML = html;
 
-    var validCount = _csvRows.filter(function(r) { return r.valid; }).length;
-    document.getElementById('csv-import-btn').style.display = validCount > 0 ? '' : 'none';
+    var btn = document.getElementById('csv-import-btn');
+    btn.style.display = validCount > 0 ? '' : 'none';
+    btn.textContent = 'Importeer ' + validCount + ' klant(en)';
   };
   reader.readAsText(file);
 }
@@ -6232,17 +6887,20 @@ async function executeCsvImport() {
   if (validRows.length === 0) return;
 
   var btn = document.getElementById('csv-import-btn');
-  btn.disabled = true; btn.textContent = 'Importeren...';
+  btn.disabled = true;
+  btn.textContent = 'Importeren... 0/' + validRows.length;
 
-  var inserted = 0;
+  var inserted = 0, failed = 0;
+  var failures = [];
   for (var i = 0; i < validRows.length; i++) {
     var r = validRows[i];
     var contactPerson = (r.voornaam + ' ' + r.achternaam).trim();
-    var res = await sb.from('clients').insert({
+    var payload = {
       partner_id: partnerId,
-      contact_person: contactPerson,
+      contact_person: contactPerson || (r.bedrijf || 'Onbekend'),
       company_name: r.bedrijf || null,
-      email: r.email || null,
+      vat_number: normalizeBtw(r.btw) || null,
+      email: normalizeEmail(r.email) || null,
       phone: r.telefoon || null,
       street: r.straat || null,
       house_number: r.nr || null,
@@ -6250,13 +6908,20 @@ async function executeCsvImport() {
       city: r.gemeente || null,
       country: r.land || 'BE',
       notes: r.notities || null
-    });
-    if (!res.error) {
+    };
+    var res = await sb.from('clients').insert(payload).select('id').single();
+    if (res.error) {
+      // Retry zonder btw_number indien kolom niet bestaat
+      if (res.error.message && /vat_number/i.test(res.error.message)) {
+        delete payload.vat_number;
+        res = await sb.from('clients').insert(payload).select('id').single();
+      }
+    }
+    if (!res.error && res.data && res.data.id) {
       inserted++;
-      // Auto-create location
-      if (res.data && res.data[0] && (r.straat || r.gemeente)) {
+      if (r.straat || r.gemeente) {
         await sb.from('client_locations').insert({
-          client_id: res.data[0].id,
+          client_id: res.data.id,
           label: 'Hoofdadres',
           street: r.straat || null,
           house_number: r.nr || null,
@@ -6266,11 +6931,17 @@ async function executeCsvImport() {
           is_primary: true
         });
       }
+    } else {
+      failed++;
+      failures.push((contactPerson || r.bedrijf) + ': ' + (res.error ? res.error.message : 'onbekende fout'));
     }
+    btn.textContent = 'Importeren... ' + (inserted + failed) + '/' + validRows.length;
   }
 
   document.getElementById('modal-csv-import').remove();
-  alert(inserted + ' van ' + validRows.length + ' klant(en) geimporteerd.');
+  var msg = inserted + ' van ' + validRows.length + ' klant(en) geimporteerd.';
+  if (failed) msg += '\n\n' + failed + ' mislukt:\n- ' + failures.slice(0, 5).join('\n- ') + (failures.length > 5 ? '\n(+' + (failures.length - 5) + ' meer)' : '');
+  alert(msg);
   await loadAllData();
 }
 
@@ -7779,12 +8450,28 @@ async function sendInterventieBericht() {
 // RAPPORTEN PAGINA
 // =============================================
 function renderRapportenPage() {
-  var search = (document.getElementById('rpt-search').value || '').toLowerCase();
-  var sectorF = document.getElementById('rpt-sector-filter').value;
+  var searchEl = document.getElementById('rpt-search');
+  var sectorFEl = document.getElementById('rpt-sector-filter');
+  if (!searchEl || !sectorFEl) return;
+  var search = (searchEl.value || '').toLowerCase();
+  var sectorF = sectorFEl.value;
   var container = document.getElementById('rpt-cards');
   var noEl = document.getElementById('no-rapporten');
 
-  var filtered = allRapporten.filter(function(r) {
+  // Partner scope: enkel rapporten van eigen klanten
+  var sourceRapporten = allRapporten;
+  if (userRole === 'partner' && userPartner) {
+    var sharedClientIds = (window._partnerDelingen || []).filter(function(d) { return d.gedeeld_met_partner_id === userPartner.id && d.status === 'actief'; }).map(function(d) { return d.client_id; });
+    var myClientIds = (allClients || []).filter(function(c) { return c.partner_id === userPartner.id || sharedClientIds.indexOf(c.id) >= 0; }).map(function(c) { return c.id; });
+    sourceRapporten = allRapporten.filter(function(r) {
+      // Koppel rapport via contract → klant
+      var ct = (allContracten || []).find(function(c) { return c.id === r.contract_id; });
+      if (!ct) return false;
+      return myClientIds.indexOf(ct.client_id) >= 0;
+    });
+  }
+
+  var filtered = sourceRapporten.filter(function(r) {
     if (sectorF && r.sector !== sectorF) return false;
     if (search) {
       var snap = r.klant_snapshot || {};
