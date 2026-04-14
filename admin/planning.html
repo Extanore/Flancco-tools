@@ -718,32 +718,24 @@
     <input type="hidden" id="qa-datum">
     <input type="hidden" id="qa-mode" value="inline">
     <input type="hidden" id="qa-step" value="input">
-    <div class="modal-row">
-      <div class="modal-field">
-        <label>Type</label>
-        <select id="qa-type">
-          <option value="onderhoud">Onderhoud</option>
-          <option value="interventie">Interventie</option>
-        </select>
-      </div>
-      <div class="modal-field">
-        <label>Sector</label>
-        <select id="qa-sector">
-          <option value="zonnepanelen">Zonnepanelen</option>
-          <option value="warmtepomp">Warmtepomp</option>
-          <option value="ventilatie">Ventilatie</option>
-          <option value="verwarming">Verwarming</option>
-          <option value="airco">Airco</option>
-          <option value="ic">Industrial Cleaning</option>
-          <option value="klussen">Klussen</option>
-        </select>
-      </div>
+    <div class="modal-field">
+      <label>Sector *</label>
+      <select id="qa-sector" required>
+        <option value="">— Kies sector —</option>
+        <option value="zonnepanelen">Zonnepanelen</option>
+        <option value="warmtepomp">Warmtepomp</option>
+        <option value="ventilatie">Ventilatie</option>
+        <option value="verwarming">Verwarming</option>
+        <option value="airco">Airco</option>
+        <option value="ic">Industrial Cleaning</option>
+        <option value="klussen">Klussen</option>
+      </select>
     </div>
     <div class="modal-field">
       <label>Klant / Contract</label>
       <div style="display:flex;gap:8px">
         <select id="qa-contract" onchange="qaContractChanged()" style="flex:1">
-          <option value="">Selecteer een contract...</option>
+          <option value="">— Kies een contract —</option>
         </select>
         <button type="button" onclick="qaSelectNewKlant()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
       </div>
@@ -776,7 +768,7 @@
         <input type="number" id="qa-duur" value="60" min="15" step="15">
       </div>
       <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
           <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()">
           <span style="font-size:13px">Hele dag (7,6u)</span>
         </label>
@@ -925,7 +917,8 @@
 
     <div class="modal-field" id="ni-sector-wrap">
       <label>Sector *</label>
-      <select id="ni-sector">
+      <select id="ni-sector" required>
+        <option value="">— Kies sector —</option>
         <option value="zonnepanelen">Zonnepanelen</option>
         <option value="warmtepomp">Warmtepomp</option>
         <option value="ventilatie">Ventilatie</option>
@@ -977,7 +970,7 @@
         <input type="number" id="ni-duur" value="60" min="15" step="15">
       </div>
       <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
           <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()">
           <span style="font-size:13px">Hele dag (7,6u)</span>
         </label>
@@ -2193,8 +2186,7 @@ var FLANCCO_PARTNER_ID = '93679849-afb0-4a69-8bd5-b74afdf22cad';
 
 function fillNiKlantDropdown(preselectId) {
   var sel = document.getElementById('ni-klant');
-  sel.innerHTML = '<option value="">— Kies een klant —</option>' +
-    '<option value="__new__" style="font-weight:700;color:var(--navy)">+ Nieuwe klant aanmaken</option>';
+  sel.innerHTML = '<option value="">— Kies een klant —</option>';
   // Klanten uit clients-tabel
   var klanten = (allClients || []).slice().sort(function(a, b) {
     return (a.company_name || a.contact_person || '').localeCompare(b.company_name || b.contact_person || '');
@@ -2229,15 +2221,6 @@ function onNiKlantChange() {
   if (!val) {
     contractWrap.style.display = 'none';
     sectorWrap.style.display = 'block';
-    return;
-  }
-
-  // Nieuwe klant-keuze: toon inline velden, verberg contract-keuze
-  if (val === '__new__') {
-    contractWrap.style.display = 'none';
-    sectorWrap.style.display = 'block';
-    if (newWrap) newWrap.style.display = 'block';
-    fillNiPartnerDropdown();
     return;
   }
 
@@ -2281,7 +2264,7 @@ function openNieuweInterventieModal() {
   fillNiKlantDropdown();
   document.getElementById('ni-contract-wrap').style.display = 'none';
   document.getElementById('ni-sector-wrap').style.display = 'block';
-  document.getElementById('ni-sector').value = 'zonnepanelen';
+  document.getElementById('ni-sector').value = '';
   document.getElementById('ni-omschrijving').value = '';
   document.getElementById('ni-ernst').value = 'normaal';
   document.getElementById('ni-duur').value = '60';
@@ -2317,9 +2300,13 @@ function openNieuweInterventieModal() {
 }
 
 function niSelectNewKlant() {
-  var sel = document.getElementById('ni-klant');
-  sel.value = '__new__';
-  onNiKlantChange();
+  // Leeg dropdown en toon inline nieuwe-klant-velden
+  document.getElementById('ni-klant').value = '';
+  document.getElementById('ni-contract-wrap').style.display = 'none';
+  document.getElementById('ni-sector-wrap').style.display = 'block';
+  var newWrap = document.getElementById('ni-new-client-fields');
+  if (newWrap) newWrap.style.display = 'block';
+  fillNiPartnerDropdown();
 }
 
 function closeNieuweInterventieModal() {
@@ -2441,6 +2428,7 @@ async function saveNieuweInterventie(action) {
   var step = document.getElementById('ni-step').value;
 
   var klantVal = document.getElementById('ni-klant').value;
+  var newNiClientActive = document.getElementById('ni-new-client-fields') && document.getElementById('ni-new-client-fields').style.display === 'block';
   var contractId = document.getElementById('ni-contract').value || null;
   var sector = document.getElementById('ni-sector').value;
   var omschrijving = document.getElementById('ni-omschrijving').value.trim();
@@ -2448,7 +2436,8 @@ async function saveNieuweInterventie(action) {
   var heleDag = document.getElementById('ni-hele-dag') && document.getElementById('ni-hele-dag').checked;
   var duur = heleDag ? 456 : (parseInt(document.getElementById('ni-duur').value, 10) || 60);
 
-  if (!klantVal) { alert('Selecteer een klant.'); return; }
+  if (!klantVal && !newNiClientActive) { alert('Selecteer een klant of klik "+ Nieuwe klant".'); return; }
+  if (!sector) { alert('Kies een sector.'); return; }
   if (!omschrijving) { alert('Vul een omschrijving in.'); return; }
 
   // Stap-overgang: eerste klik op 'Nu inplannen' → toon inplanning-velden
@@ -2476,7 +2465,7 @@ async function saveNieuweInterventie(action) {
 
   // Bepaal client_id en evt. bestaand legacy contract
   var clientId = null;
-  if (klantVal === '__new__') {
+  if (newNiClientActive) {
     // Nieuwe klant inline aanmaken
     var vnaam = document.getElementById('ni-klant-voornaam').value.trim();
     var anaam = document.getElementById('ni-klant-achternaam').value.trim();
@@ -3239,12 +3228,8 @@ function openNieuweTaakModal(opts) {
   quickAdd(useTechId, useDatum, callMode);
 
   if (type === 'eenmalig') {
-    // Auto-selecteer '+ Nieuwe klant' in contract-dropdown
-    var sel = document.getElementById('qa-contract');
-    if (sel) {
-      sel.value = '__new__';
-      qaContractChanged();
-    }
+    // Toon direct nieuwe-klant-velden (eenmalig → altijd nieuwe klant of bestaande kiezen)
+    if (typeof qaSelectNewKlant === 'function') qaSelectNewKlant();
   }
 }
 
@@ -3269,10 +3254,9 @@ function quickAdd(techId, datum, mode) {
     document.getElementById('qa-info').textContent = 'Maak een nieuwe taak aan — vul klant + duur in, daarna opmaken of direct inplannen.';
   }
 
-  // Populate contract dropdown with "Nieuwe klant" option
+  // Populate contract dropdown (nieuwe klant via knop rechts ernaast)
   var sel = document.getElementById('qa-contract');
-  sel.innerHTML = '<option value="">Selecteer een contract...</option>' +
-    '<option value="__new__" style="font-weight:700;color:var(--navy)">+ Nieuwe klant aanmaken</option>';
+  sel.innerHTML = '<option value="">— Kies een contract —</option>';
   allContracten.forEach(function(c) {
     if (c.status === 'geannuleerd') return;
     var kl = c.klant_naam || '';
@@ -3392,19 +3376,21 @@ function qaContractChanged() {
   var val = sel.value;
   var opt = sel.options[sel.selectedIndex];
 
-  // Show/hide new client fields
-  document.getElementById('qa-new-client-fields').style.display = val === '__new__' ? 'block' : 'none';
+  // Een bestaand contract gekozen → verberg nieuwe-klant-velden
+  if (val) {
+    document.getElementById('qa-new-client-fields').style.display = 'none';
+  }
 
   // Auto-set sector from existing contract
-  if (val !== '__new__' && opt && opt.dataset.sector) {
+  if (val && opt && opt.dataset.sector) {
     document.getElementById('qa-sector').value = opt.dataset.sector;
   }
 }
 
 function qaSelectNewKlant() {
-  var sel = document.getElementById('qa-contract');
-  sel.value = '__new__';
-  qaContractChanged();
+  // Leeg dropdown en toon inline nieuwe-klant-velden
+  document.getElementById('qa-contract').value = '';
+  document.getElementById('qa-new-client-fields').style.display = 'block';
 }
 
 function toggleTechChip(el) {
@@ -3436,9 +3422,11 @@ async function saveQuickAdd(action) {
 
   // Lees form-waarden
   var contractVal = document.getElementById('qa-contract').value;
-  if (!contractVal) { alert('Selecteer een contract of maak een nieuwe klant aan'); return; }
+  var newClientActive = document.getElementById('qa-new-client-fields').style.display === 'block';
+  if (!contractVal && !newClientActive) { alert('Selecteer een contract of klik "+ Nieuwe klant"'); return; }
 
   var sector = document.getElementById('qa-sector').value;
+  if (!sector) { alert('Kies een sector.'); return; }
   var heleDag = document.getElementById('qa-hele-dag').checked;
   var duur = heleDag ? QA_HELE_DAG_MIN : (parseInt(document.getElementById('qa-duur').value) || 60);
   var notities = document.getElementById('qa-notities').value.trim() || null;
@@ -3482,7 +3470,7 @@ async function saveQuickAdd(action) {
   var contractId = contractVal;
 
   // Create new client + contract if needed
-  if (contractVal === '__new__') {
+  if (newClientActive) {
     var klantVoornaam = document.getElementById('qa-klant-voornaam').value.trim();
     var klantAchternaam = document.getElementById('qa-klant-achternaam').value.trim();
     if (!klantVoornaam || !klantAchternaam) { alert('Voornaam en achternaam zijn verplicht'); return; }
@@ -3545,7 +3533,7 @@ async function saveQuickAdd(action) {
   if (res.error) { alert('Fout: ' + res.error.message); return; }
 
   await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, status + ' via quick-add');
-  var msg = contractVal === '__new__' ? 'Klant aangemaakt + taak ' : 'Taak ';
+  var msg = newClientActive ? 'Klant aangemaakt + taak ' : 'Taak ';
   msg += (status === 'ingepland') ? 'ingepland' : 'opgemaakt (in te plannen)';
   showToast(msg);
   closeQuickAdd();
