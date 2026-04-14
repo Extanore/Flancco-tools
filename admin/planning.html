@@ -74,7 +74,8 @@
   /* SECONDARY BAR */
   .secondary-bar {
     background: var(--white); border-bottom: 1px solid var(--rule);
-    padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 12px 28px; display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; gap: 16px;
     position: sticky; top: 54px; z-index: 99;
   }
   .view-toggle { display: flex; background: var(--light); border-radius: 10px; padding: 3px; gap: 2px; }
@@ -85,7 +86,24 @@
   }
   .view-toggle .btn-view:hover { color: var(--navy); }
   .view-toggle .btn-view.active { background: var(--white); color: var(--navy); box-shadow: var(--shadow-sm); }
-  .secondary-bar-right { display: flex; align-items: center; gap: 16px; }
+  .secondary-bar-center {
+    display: flex; align-items: center; gap: 8px; justify-self: center;
+  }
+  .secondary-bar-center .week-label {
+    font-size: 13px; font-weight: 600; color: var(--navy); min-width: 220px; text-align: center; letter-spacing: -0.2px;
+  }
+  .btn-nav {
+    background: var(--white); border: 1px solid var(--rule); color: var(--navy);
+    padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s var(--ease); font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; min-height: 32px;
+  }
+  .btn-nav:hover { background: var(--light); border-color: var(--navy); }
+  .btn-nav.btn-today {
+    background: var(--red); border-color: var(--red); color: var(--white);
+  }
+  .btn-nav.btn-today:hover { background: #c0392b; border-color: #c0392b; box-shadow: 0 2px 8px rgba(231,76,60,0.35); }
+  .secondary-bar-right { display: flex; align-items: center; gap: 16px; justify-self: end; }
   .view-toggle-workflow { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); }
   .view-toggle-workflow .btn-view { padding: 6px 14px; font-size: 12px; }
   .tab-badge { position:absolute; top:-4px; right:-4px; background:var(--red); color:white; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 5px; }
@@ -539,7 +557,7 @@
   @media (max-width: 1024px) {
     .filters-sidebar { display: none; }
     .planning-sidebar { width: 260px; min-width: 260px; }
-    .header-center .week-label { min-width: auto; font-size: 12px; }
+    .secondary-bar-center .week-label { min-width: 160px; font-size: 12px; }
     .legend { display: none; }
   }
   @media (max-width: 768px) {
@@ -568,12 +586,6 @@
     <div class="header-left">
       <h1>FLANCC<span>O</span> Planning</h1>
     </div>
-    <div class="header-center">
-      <button class="btn-header" onclick="prevPeriod()" title="Vorige">&larr;</button>
-      <div class="week-label" id="period-label">Week 16 — 14 apr – 18 apr 2026</div>
-      <button class="btn-header" onclick="nextPeriod()" title="Volgende">&rarr;</button>
-      <button class="btn-header btn-today" onclick="goToday()">Vandaag</button>
-    </div>
     <div class="header-right">
       <button class="btn-header btn-sidebar-toggle" onclick="toggleSidebar()">Te plannen</button>
       <a href="./" class="btn-header">&larr; Dashboard</a>
@@ -597,6 +609,12 @@
       <button class="btn-view" data-view="dag" onclick="switchView('dag')">Dag</button>
       <button class="btn-view" data-view="maand" onclick="switchView('maand')">Maand</button>
       <button class="btn-view" data-view="beschikbaarheid" onclick="switchView('beschikbaarheid')">Beschikbaarheid</button>
+    </div>
+    <div class="secondary-bar-center">
+      <button class="btn-nav" onclick="prevPeriod()" title="Vorige">&larr;</button>
+      <div class="week-label" id="period-label">Week 16 — 14 apr – 18 apr 2026</div>
+      <button class="btn-nav" onclick="nextPeriod()" title="Volgende">&rarr;</button>
+      <button class="btn-nav btn-today" onclick="goToday()">Vandaag</button>
     </div>
     <div class="secondary-bar-right">
       <div class="view-toggle view-toggle-workflow">
