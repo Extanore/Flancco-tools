@@ -336,6 +336,16 @@
     font-family: inherit; width: calc(100% - 32px);
   }
   .sb-new-int-btn:hover { background: #2c2c4e; }
+  .dp-optie {
+    display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    padding:14px 16px; border:1px solid var(--rule); border-radius:10px;
+    background:#fff; text-align:left; cursor:pointer; width:100%;
+    font-family:inherit; transition:border-color .15s, background .15s, transform .05s;
+  }
+  .dp-optie strong { font-size:14px; color:var(--navy); }
+  .dp-optie small { font-size:12px; color:var(--grey); }
+  .dp-optie:hover { border-color:var(--navy); background:#F9FAFB; }
+  .dp-optie:active { transform:translateY(1px); }
   .sidebar-overdue-header {
     display:flex; align-items:center; gap:8px; padding:12px 16px 8px;
     margin-top: 12px; border-top: 1px solid var(--rule);
@@ -361,7 +371,7 @@
     transition: all 0.2s var(--ease);
     border: 1.5px solid var(--rule); border-left: 4px solid transparent;
   }
-  .sidebar-card:hover { border-color: var(--blue); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .sidebar-card:hover { border-top-color: var(--navy); border-right-color: var(--navy); border-bottom-color: var(--navy); box-shadow: var(--shadow-md); transform: translateY(-2px); }
   .sidebar-card:active { cursor: grabbing; box-shadow: var(--shadow-lg); transform: scale(0.98); }
   .sidebar-card.dragging { opacity: 0.3; transform: scale(0.95); }
   .sidebar-card .sc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
@@ -653,7 +663,7 @@
           Interventie <span class="sb-type-count" id="sb-int-count">0</span>
         </button>
       </div>
-      <button type="button" id="sb-new-int-btn" class="sb-new-int-btn" style="display:none" onclick="openNieuweInterventieModal()">+ Nieuwe interventie</button>
+      <button type="button" id="sb-new-btn" class="sb-new-int-btn" onclick="onSidebarNewClick()">+ Nieuw onderhoud</button>
       <div class="sidebar-filters">
         <select id="sb-filter-sector" onchange="renderSidebar()">
           <option value="">Sector</option>
@@ -750,6 +760,31 @@
     <div class="modal-buttons">
       <button onclick="closeQuickAdd()">Annuleren</button>
       <button class="btn-save" onclick="saveQuickAdd()">Inplannen</button>
+    </div>
+  </div>
+</div>
+
+<!-- DAG-PLUS KEUZEMENU -->
+<div class="modal-overlay" id="modal-dagplus">
+  <div class="modal" style="max-width:440px">
+    <h2>Nieuwe taak</h2>
+    <p id="dp-info" style="color:var(--grey);font-size:12px;margin-bottom:16px"></p>
+    <div class="dp-kiezer" style="display:flex;flex-direction:column;gap:10px">
+      <button class="dp-optie" type="button" onclick="onDagPlusKies('contract')">
+        <strong>Contract-beurt</strong>
+        <small>Beurt plannen uit een lopend contract</small>
+      </button>
+      <button class="dp-optie" type="button" onclick="onDagPlusKies('eenmalig')">
+        <strong>Eenmalig onderhoud</strong>
+        <small>1-malige klus, geen lopend contract</small>
+      </button>
+      <button class="dp-optie" type="button" onclick="onDagPlusKies('interventie')">
+        <strong>Interventie</strong>
+        <small>Storing of dringende herstelling</small>
+      </button>
+    </div>
+    <div class="modal-buttons">
+      <button onclick="closeDagPlusKiezer()">Annuleren</button>
     </div>
   </div>
 </div>
@@ -1475,15 +1510,16 @@ function renderStats() {
     if (isTechAbsent(t.id, todayDate)) verlof++;
   });
 
-  // Overbezet: techniekers met >100% weekuren
+  // Overbezet: techniekers met >100% weekuren — consistent met week/beschikbaarheidsview
   allTechniekers.forEach(function(t) {
     var weekMin = 0;
     allBeurten.forEach(function(b) {
       var isPri = b.technieker_id === t.id;
       var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(t.id) !== -1;
-      if ((isPri || isExt) && weekStrs.indexOf(b.plan_datum) !== -1 && b.status === 'ingepland') {
-        weekMin += b.duur_minuten || 60;
-      }
+      if (!isPri && !isExt) return;
+      if (weekStrs.indexOf(b.plan_datum) === -1) return;
+      if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return;
+      weekMin += getEffectieveMinutenForBeurt(b, t.id);
     });
     var contractMin = (t.contract_uren_week || 38) * 60;
     if (weekMin > contractMin) overbezet++;
@@ -1630,7 +1666,7 @@ function renderWeekView() {
         // C4: Quick-add button — centered if empty, below tasks if filled
         var qaIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
         var hasTasks = beurten.length > 0 || ghostBeurten.length > 0;
-        var qaBtn = '<button class="' + (hasTasks ? 'quick-add-btn' : 'quick-add-center') + '" onclick="event.stopPropagation();quickAdd(\'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')" title="Taak toevoegen">' + qaIcon + '</button>';
+        var qaBtn = '<button class="' + (hasTasks ? 'quick-add-btn' : 'quick-add-center') + '" onclick="event.stopPropagation();openDagPlusKiezer(\'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')" title="Taak toevoegen">' + qaIcon + '</button>';
         html += hasTasks ? qaBtn : '<div class="quick-add-empty-wrap">' + qaBtn + '</div>';
         html += '</td>';
       }
@@ -2001,11 +2037,28 @@ function switchSidebarType(type) {
   document.querySelectorAll('.sb-type-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.sbtype === type);
   });
-  var newBtn = document.getElementById('sb-new-int-btn');
-  if (newBtn) newBtn.style.display = (type === 'interventie') ? 'block' : 'none';
+  var newBtn = document.getElementById('sb-new-btn');
+  if (newBtn) newBtn.textContent = (type === 'interventie') ? '+ Nieuwe interventie' : '+ Nieuw onderhoud';
   var title = document.getElementById('sidebar-title');
   if (title) title.textContent = (type === 'interventie') ? 'Open interventies' : 'In te plannen';
   renderSidebar();
+}
+
+// Router: kiest juiste create-modal o.b.v. actieve sidebar-tab
+function onSidebarNewClick() {
+  if (sidebarType === 'interventie') {
+    if (typeof openNieuweTaakModal === 'function') {
+      openNieuweTaakModal({ type: 'interventie' });
+    } else {
+      openNieuweInterventieModal();
+    }
+  } else {
+    if (typeof openNieuweTaakModal === 'function') {
+      openNieuweTaakModal({ type: 'eenmalig' });
+    } else {
+      alert('Eenmalig onderhoud aanmaken wordt binnenkort geactiveerd.');
+    }
+  }
 }
 
 // =============================================
@@ -2741,6 +2794,62 @@ async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
 }
 
 // =============================================
+// DAG-PLUS KEUZEMENU — routeert naar contract/eenmalig/interventie
+// =============================================
+var dpContext = { techId: null, datum: null };
+
+function openDagPlusKiezer(techId, datum) {
+  dpContext.techId = techId;
+  dpContext.datum = datum;
+  var tech = allTechniekers.find(function(t) { return t.id === techId; });
+  var info = document.getElementById('dp-info');
+  if (info) info.textContent = (tech ? tech.voornaam + ' ' + tech.naam : '') + (datum ? ' — ' + datum : '');
+  document.getElementById('modal-dagplus').classList.add('open');
+}
+
+function closeDagPlusKiezer() {
+  document.getElementById('modal-dagplus').classList.remove('open');
+}
+
+function onDagPlusKies(type) {
+  closeDagPlusKiezer();
+  openNieuweTaakModal({ type: type, techId: dpContext.techId, datum: dpContext.datum });
+}
+
+// Unified router — wordt ook gebruikt door sidebar '+ Nieuw' knop
+function openNieuweTaakModal(opts) {
+  opts = opts || {};
+  var type = opts.type || 'eenmalig';
+  var techId = opts.techId || null;
+  var datum = opts.datum || null;
+
+  if (type === 'interventie') {
+    openNieuweInterventieModal();
+    if (datum) {
+      var dEl = document.getElementById('ni-gewenste-datum');
+      if (dEl) dEl.value = datum;
+    }
+    return;
+  }
+
+  // Contract-beurt én Eenmalig gebruiken QuickAdd. Voor eenmalig wordt
+  // automatisch '+ Nieuwe klant' geselecteerd.
+  var useTechId = techId || (allTechniekers[0] && allTechniekers[0].id) || null;
+  var useDatum = datum || formatDateISO(new Date());
+  if (!useTechId) { alert('Geen technieker beschikbaar.'); return; }
+  quickAdd(useTechId, useDatum);
+
+  if (type === 'eenmalig') {
+    // Auto-selecteer '+ Nieuwe klant' in contract-dropdown
+    var sel = document.getElementById('qa-contract');
+    if (sel) {
+      sel.value = '__new__';
+      qaContractChanged();
+    }
+  }
+}
+
+// =============================================
 // QUICK-ADD
 // =============================================
 function quickAdd(techId, datum) {
@@ -2872,6 +2981,7 @@ async function saveQuickAdd() {
       sector: sector,
       frequentie: 'eenmalig',
       contractduur: 'eenmalig',
+      is_eenmalig: true,
       aantal_panelen: 0,
       forfait_bedrag: 0,
       totaal_incl_btw: 0,

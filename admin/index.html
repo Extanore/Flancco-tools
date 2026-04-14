@@ -110,6 +110,11 @@
   .badge-wp { background: #DBEAFE; color: #1E40AF; }
   .badge-vent { background: #EDE9FE; color: #5B21B6; }
   .badge-verw { background: #FEE2E2; color: #991B1B; }
+  .c-tab { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; font-size:13px; font-weight:600; background:transparent; border:none; color:var(--grey); cursor:pointer; border-bottom:2px solid transparent; font-family:inherit; }
+  .c-tab.active { color:var(--navy); border-bottom-color:var(--navy); }
+  .c-tab:hover { color:var(--navy); }
+  .c-tab-count { background:var(--light); color:var(--grey); font-size:11px; padding:1px 7px; border-radius:10px; font-weight:700; min-width:18px; text-align:center; }
+  .c-tab.active .c-tab-count { background:var(--navy); color:#fff; }
   .btn-action { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid var(--rule); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 14px; color: var(--grey); text-decoration: none; margin-right: 4px; transition: 0.2s; }
   .btn-action:hover { border-color: var(--navy); color: var(--navy); }
   .btn-action-red:hover { border-color: var(--red); color: var(--red); }
@@ -343,6 +348,64 @@
 
   /* ROLE VISIBILITY — elements are hidden by adding .role-hidden */
   .role-hidden { display: none !important; }
+  /* Technieker-rol verbergt .not-technieker elementen (edit/delete icons e.d.) */
+  body.role-technieker .not-technieker { display: none !important; }
+  /* Klant-/partner-rij icon-knop */
+  .icon-btn { background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; cursor: pointer; color: var(--grey); display: inline-flex; align-items: center; justify-content: center; transition: background .15s, color .15s, border-color .15s; }
+  .icon-btn:hover { background: rgba(0,0,0,0.04); color: var(--navy); border-color: var(--rule); }
+  .icon-btn-danger:hover { background: rgba(231,76,60,0.08); color: var(--red); border-color: rgba(231,76,60,0.3); }
+  .icon-btn + .icon-btn { margin-left: 4px; }
+  /* Partners-tabel met expandable rij */
+  .partners-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .partners-table th { text-align:left; padding:10px 12px; font-size:11px; font-weight:600; color:var(--grey); letter-spacing:0.4px; background:#F9FAFB; border-bottom:1px solid var(--rule); text-transform:uppercase; }
+  .partners-table td { padding:12px; border-bottom:1px solid var(--rule); vertical-align:middle; }
+  .partners-table tr.partner-row { cursor:pointer; transition:background 0.15s; }
+  .partners-table tr.partner-row:hover { background:#F9FAFB; }
+  .partners-table tr.partner-detail > td { background:#FAFAFA; padding:20px 24px; border-bottom:2px solid var(--rule); }
+  .expand-btn { background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--grey); padding:4px; display:inline-flex; transition:transform 0.2s; }
+  .partner-row.expanded .expand-btn { transform:rotate(90deg); }
+  .partner-logo-sm { width:36px; height:36px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid var(--rule); padding:2px; }
+  .partner-logo-ph { width:36px; height:36px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:14px; }
+  .partner-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+  .pd-section-title { font-size:11px; font-weight:700; color:var(--grey); letter-spacing:0.5px; margin:0 0 8px; text-transform:uppercase; }
+  .pd-row { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px; color:var(--navy); }
+  .pd-row svg { width:14px; height:14px; color:var(--grey); flex:none; }
+  .pd-row a { color:var(--navy); text-decoration:none; }
+  .pd-row a:hover { text-decoration:underline; }
+  .pd-commercial { display:flex; gap:18px; font-size:13px; color:var(--navy); flex-wrap:wrap; }
+  .pd-commercial strong { color:var(--navy); }
+  .pd-branding { display:flex; gap:8px; align-items:center; }
+  .pd-color-chip { width:22px; height:22px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--rule); flex:none; }
+  .pd-branding-logo { height:28px; max-width:120px; object-fit:contain; margin-left:6px; }
+  .pd-actions { display:flex; gap:8px; margin-top:14px; }
+  .btn-danger-outline { background:#fff; border:1.5px solid var(--red); color:var(--red); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; }
+  .btn-danger-outline:hover { background:var(--red); color:#fff; }
+  .pd-contract-list { list-style:none; padding:0; margin:0; }
+  .pd-contract-list li { padding:10px 12px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; cursor:pointer; background:#fff; transition:border-color 0.15s; }
+  .pd-contract-list li:hover { border-color:var(--navy); }
+  .pd-c-title { font-weight:600; font-size:13px; color:var(--navy); }
+  .pd-c-meta { display:block; font-size:12px; color:var(--grey); margin-top:2px; }
+  .pd-empty { font-size:13px; color:var(--grey); font-style:italic; padding:8px 0; }
+  .pd-link-btn { background:transparent; border:none; color:var(--navy); text-decoration:underline; cursor:pointer; font-size:13px; padding:6px 0; font-family:inherit; }
+  /* Dashboard Vandaag + Deadlines widgets */
+  .today-group { padding: 10px 0; border-bottom: 1px solid var(--light); }
+  .today-group:last-child { border-bottom: none; }
+  .today-group-header { display:flex; justify-content:space-between; font-weight:600; font-size:13px; color:var(--navy); margin-bottom:6px; }
+  .today-task { display:flex; align-items:center; gap:8px; padding:3px 0; font-size:13px; }
+  .today-task .time { color:var(--grey); font-variant-numeric:tabular-nums; width:44px; font-size:12px; }
+  .today-task .sector-dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .today-task .task-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .today-task .task-status { font-size:10px; padding:2px 6px; border-radius:4px; background:var(--light); color:var(--grey); }
+  .deadline-row { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--light); align-items:center; }
+  .deadline-row:last-child { border-bottom: none; }
+  .deadline-badge { font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700; white-space:nowrap; }
+  .deadline-badge.overdue { background:#FEE2E2; color:#B91C1C; }
+  .deadline-badge.urgent { background:#FEF3C7; color:#92400E; }
+  .deadline-badge.contract { background:#EDE9FE; color:#5B21B6; }
+  .deadline-meta { font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; }
+  .deadline-date { font-size:12px; color:var(--grey); font-variant-numeric:tabular-nums; }
+  .dash-empty { color: var(--grey); font-size: 13px; padding: 24px 0; text-align: center; }
+  @media (max-width: 900px) { .dash-grid-primary { grid-template-columns: 1fr !important; } }
 
   /* RESPONSIVE */
   @media (max-width: 768px) {
@@ -494,9 +557,35 @@
 
     <!-- DASHBOARD PAGE -->
     <div class="page active" id="page-dashboard">
+      <div class="dash-header" id="dash-header" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px;flex-wrap:wrap">
+        <div>
+          <h1 id="dash-greeting" style="margin:0;font-size:24px;font-weight:700;color:var(--navy)">Goedemiddag</h1>
+          <p class="dash-date" id="dash-date" style="color:var(--grey);font-size:13px;margin:4px 0 0"></p>
+        </div>
+        <div class="dash-actions admin-only" style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="window.location.href='planning.html'" style="padding:8px 14px;border:1px solid var(--rule);background:#fff;border-radius:8px;font-size:13px;cursor:pointer">\u2192 Planning openen</button>
+        </div>
+      </div>
       <div id="dashboard-alerts" class="admin-only" style="display:none"></div>
       <div class="stats" id="stats-row"></div>
-      <div class="card">
+      <div class="dash-grid-primary" id="dash-grid-primary" style="display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-top:20px">
+        <div class="card dash-today">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title" id="today-title">Vandaag</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="today-count" id="today-count" style="font-size:12px;color:var(--grey)">0 taken</span>
+              <button type="button" id="today-nav-btn" onclick="toggleTodayTomorrow()" style="padding:4px 10px;font-size:12px;border:1px solid var(--rule);background:#fff;border-radius:6px;cursor:pointer" title="Wissel tussen vandaag en morgen">Morgen \u203A</button>
+            </div>
+          </div>
+          <div class="today-body" id="today-body" style="min-height:220px"></div>
+        </div>
+        <div class="card dash-deadlines">
+          <div class="card-header"><span class="card-title">Komende deadlines</span></div>
+          <p style="font-size:12px;color:var(--grey);margin:0 0 10px">Contracten einddatum &le;30d, urgente interventies, overdue beurten</p>
+          <div class="deadlines-body" id="deadlines-body" style="min-height:220px"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px">
         <div class="card-header"><span class="card-title">Recente contracten</span></div>
         <table>
           <thead><tr><th>Klant</th><th>Partner</th><th>Panelen</th><th>Bedrag</th><th>Datum</th><th>Status</th></tr></thead>
@@ -509,7 +598,27 @@
     <!-- PARTNERS PAGE -->
     <div class="page" id="page-partners">
       <div class="stats" id="partner-stats"></div>
-      <div class="card" id="partner-cards"></div>
+      <div class="card">
+        <div class="card-header" style="display:flex;align-items:center;gap:12px">
+          <span class="card-title" style="margin-right:auto">Installateurs & integratie-partners</span>
+          <input type="search" id="partners-zoek" placeholder="Zoek op naam, contact, email..." oninput="renderPartners()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;width:260px">
+        </div>
+        <table class="partners-table">
+          <thead>
+            <tr>
+              <th style="width:32px"></th>
+              <th style="width:56px">LOGO</th>
+              <th>BEDRIJFSNAAM</th>
+              <th>CONTACTPERSOON</th>
+              <th>E-MAIL</th>
+              <th>TELEFOON</th>
+              <th style="width:120px">CONTRACTEN</th>
+              <th class="admin-only" style="width:140px;text-align:right">ACTIES</th>
+            </tr>
+          </thead>
+          <tbody id="partner-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- CONTRACTEN PAGE -->
@@ -521,6 +630,14 @@
             <option value="">Alle partners</option>
           </select>
           <button class="btn-save" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
+        </div>
+        <div class="contracten-tabs" style="display:flex;gap:6px;padding:0 16px 12px;border-bottom:1px solid var(--rule)">
+          <button type="button" class="c-tab active" data-ctab="lopend" onclick="switchContractTab('lopend')">
+            Lopend <span class="c-tab-count" id="c-tab-lopend-count">0</span>
+          </button>
+          <button type="button" class="c-tab" data-ctab="eenmalig" onclick="switchContractTab('eenmalig')">
+            Eenmalig <span class="c-tab-count" id="c-tab-eenmalig-count">0</span>
+          </button>
         </div>
         <table>
           <thead><tr><th>Klant</th><th class="admin-only">Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
@@ -574,6 +691,7 @@
             <th>Telefoon</th>
             <th>Gemeente</th>
             <th>Contracten</th>
+            <th class="not-technieker" style="width:90px;text-align:right">ACTIES</th>
           </tr></thead>
           <tbody id="klanten-tbody"></tbody>
         </table>
@@ -1673,6 +1791,12 @@ async function initApp() {
   userRole = roleData.role;
   userPermissions = roleData.permissions || {};
 
+  // Body role-class voor technieker (gebruikt door .not-technieker CSS-gate)
+  document.body.classList.remove('role-admin', 'role-partner', 'role-technieker');
+  if (userRole === 'technieker') document.body.classList.add('role-technieker');
+  else if (userRole === 'partner') document.body.classList.add('role-partner');
+  else document.body.classList.add('role-admin');
+
   // Hide elements not meant for this role
   const hideClass = userRole === 'admin' ? 'partner-only' : 'admin-only';
   document.querySelectorAll('.' + hideClass).forEach(el => el.classList.add('role-hidden'));
@@ -2088,10 +2212,15 @@ async function renderGebruikers() {
   var permLabels = { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer (super-admin)' };
   var permKeys = Object.keys(permLabels);
 
+  var canManageUsers = !!(userPermissions && userPermissions.manage_users);
+
   var html = '<table class="data-table" style="width:100%"><thead><tr>' +
     '<th>Gebruiker</th><th>Rol</th>';
   permKeys.forEach(function(k) { html += '<th style="text-align:center">' + permLabels[k] + '</th>'; });
+  if (canManageUsers) html += '<th style="text-align:right;width:80px">ACTIES</th>';
   html += '</tr></thead><tbody>';
+
+  var delSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
 
   roles.forEach(function(r) {
     var email = emailMap[r.user_id] || r.user_id.substring(0, 8) + '…';
@@ -2105,11 +2234,51 @@ async function renderGebruikers() {
       html += '<td style="text-align:center"><input type="checkbox" ' + checked + ' ' + disabled +
         ' onchange="toggleUserPermission(\'' + r.id + '\',\'' + k + '\',this.checked)"></td>';
     });
+    if (canManageUsers) {
+      var btnDisabled = isSelf ? ' disabled title="Je kunt jezelf niet verwijderen"' : ' title="Verwijder gebruiker"';
+      html += '<td style="text-align:right">' +
+        '<button class="icon-btn icon-btn-danger"' + btnDisabled +
+        ' onclick="deleteUser(\'' + r.user_id + '\', \'' + esc(email).replace(/'/g, "\\'") + '\')">' + delSvg + '</button>' +
+        '</td>';
+    }
     html += '</tr>';
   });
   html += '</tbody></table>';
-  html += '<p style="font-size:12px;color:var(--grey);margin-top:12px"><strong>Tip:</strong> nieuwe gebruikers worden aangemaakt via Supabase Auth. Vraag Gillian om dit te doen.</p>';
+  html += '<p style="font-size:12px;color:var(--grey);margin-top:12px"><strong>Tip:</strong> nieuwe gebruikers worden aangemaakt via Supabase Auth. Verwijderen kan rechtstreeks via de prullenbak-knop rechts (enkel super-admin).</p>';
   container.innerHTML = html;
+}
+
+async function deleteUser(userId, email) {
+  if (userId === currentUser.id) { alert('Je kunt jezelf niet verwijderen.'); return; }
+
+  // Blokker-check: koppelingen aan onderhoudsbeurten / rapporten / interventies
+  try {
+    var results = await Promise.all([
+      sb.from('onderhoudsbeurten').select('id', { count: 'exact', head: true }).eq('technieker_id', userId),
+      sb.from('rapporten').select('id', { count: 'exact', head: true }).eq('technieker_id', userId),
+      sb.from('interventies').select('id', { count: 'exact', head: true }).eq('created_by', userId)
+    ]);
+    var lijn = [];
+    if (results[0].count) lijn.push(results[0].count + ' onderhoudsbeurt(en)');
+    if (results[1].count) lijn.push(results[1].count + ' rapport(en)');
+    if (results[2].count) lijn.push(results[2].count + ' interventie(s)');
+    if (lijn.length) {
+      alert('Kan ' + email + ' niet verwijderen.\n\nGekoppeld aan:\n\u2022 ' + lijn.join('\n\u2022 ') +
+        '\n\nDraag eerst die records over aan een andere medewerker.');
+      return;
+    }
+  } catch(e) { /* ignore — count queries mogen falen */ }
+
+  if (!confirm('Gebruiker "' + email + '" definitief verwijderen?\nDit wist zowel het auth-account als de rol/permissies.')) return;
+
+  try {
+    var res = await sb.functions.invoke('delete-user', { body: { userIdToDelete: userId } });
+    if (res.error) { alert('Fout: ' + res.error.message); return; }
+    if (res.data && res.data.error) { alert('Fout: ' + res.data.error); return; }
+    await renderGebruikers();
+  } catch (e) {
+    alert('Fout: ' + (e && e.message ? e.message : e));
+  }
 }
 
 async function toggleUserPermission(roleId, permKey, value) {
@@ -2130,7 +2299,209 @@ function myContracten() {
   return allContracten;
 }
 
+// Toggle tussen vandaag en morgen in het "Vandaag"-widget
+var todayMode = 'vandaag';
+function toggleTodayTomorrow() {
+  todayMode = (todayMode === 'vandaag') ? 'morgen' : 'vandaag';
+  var title = document.getElementById('today-title');
+  var navBtn = document.getElementById('today-nav-btn');
+  if (title) title.textContent = (todayMode === 'morgen') ? 'Morgen' : 'Vandaag';
+  if (navBtn) navBtn.textContent = (todayMode === 'morgen') ? '\u2039 Vandaag' : 'Morgen \u203A';
+  loadPlanningDashWidgets();
+}
+
+function formatDateISO_dash(d) {
+  var dd = new Date(d);
+  return dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0');
+}
+
+function formatDateNL_dash(d) {
+  var days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+  var months = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  var dd = new Date(d);
+  return days[dd.getDay()] + ' ' + dd.getDate() + ' ' + months[dd.getMonth()] + ' ' + dd.getFullYear();
+}
+
+// Haal "Vandaag" beurten + deadlines + tellers op — scope o.b.v. rol
+async function loadPlanningDashWidgets() {
+  var now = new Date();
+  var target = new Date(now);
+  if (todayMode === 'morgen') target.setDate(target.getDate() + 1);
+  var targetISO = formatDateISO_dash(target);
+  var todayISO = formatDateISO_dash(now);
+  var in14d = new Date(now); in14d.setDate(in14d.getDate() + 14);
+  var in30d = new Date(now); in30d.setDate(in30d.getDate() + 30);
+  var in7d = new Date(now); in7d.setDate(in7d.getDate() + 7);
+  var weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // maandag
+  var weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 4); // vrijdag
+
+  // Partner scope — contracten filteren op partner_id
+  var scopedContracten = (userRole === 'partner' && userPartner)
+    ? allContracten.filter(function(c) { return c.partner_id === userPartner.id; })
+    : allContracten;
+  var scopedContractIds = scopedContracten.map(function(c) { return c.id; });
+
+  // Fetch beurten voor target + week parallel
+  var beurtSel = 'id, plan_datum, start_tijd, duur_minuten, status, technieker_id, contract_id, sector';
+  var pTarget = sb.from('onderhoudsbeurten').select(beurtSel).eq('plan_datum', targetISO);
+  var pWeek = sb.from('onderhoudsbeurten').select('id, plan_datum, status, contract_id')
+    .gte('plan_datum', formatDateISO_dash(weekStart))
+    .lte('plan_datum', formatDateISO_dash(weekEnd));
+  var pOverdue = sb.from('onderhoudsbeurten').select('id, plan_datum, status, contract_id')
+    .eq('status', 'in_te_plannen')
+    .lt('plan_datum', todayISO)
+    .limit(50);
+  var pInTePlannen = sb.from('onderhoudsbeurten').select('id, contract_id', { count: 'exact', head: true })
+    .eq('status', 'in_te_plannen');
+
+  var results;
+  try {
+    results = await Promise.all([pTarget, pWeek, pOverdue, pInTePlannen]);
+  } catch (e) {
+    console.warn('Dashboard fetch failed:', e);
+    return;
+  }
+  var targetBeurten = (results[0].data || []).filter(function(b) {
+    return !b.contract_id || scopedContractIds.indexOf(b.contract_id) >= 0;
+  });
+  var weekBeurten = (results[1].data || []).filter(function(b) {
+    return !b.contract_id || scopedContractIds.indexOf(b.contract_id) >= 0;
+  });
+  var overdueBeurten = (results[2].data || []).filter(function(b) {
+    return !b.contract_id || scopedContractIds.indexOf(b.contract_id) >= 0;
+  });
+  var inTePlannenCount = results[3].count || 0;
+
+  // Open interventies scoped
+  var openInt = (allInterventies || []).filter(function(i) {
+    if (i.status !== 'open') return false;
+    if (userRole === 'partner' && userPartner) {
+      return i.contract_id && scopedContractIds.indexOf(i.contract_id) >= 0;
+    }
+    return true;
+  });
+
+  // Deadlines 14d: contracten einddatum ≤ 30d + urgent interventies ≤ 7d + overdue beurten
+  var deadlineRows = [];
+  scopedContracten.forEach(function(c) {
+    if (!c.einddatum) return;
+    var ed = new Date(c.einddatum);
+    if (ed >= now && ed <= in30d) {
+      deadlineRows.push({ type: 'contract', datum: c.einddatum, label: 'Contract verloopt', klant: c.klant_naam || '—' });
+    }
+  });
+  openInt.forEach(function(iv) {
+    if (iv.ernst === 'urgent' || (iv.gewenste_datum && new Date(iv.gewenste_datum) <= in7d)) {
+      var contract = scopedContracten.find(function(c) { return c.id === iv.contract_id; });
+      deadlineRows.push({
+        type: 'urgent',
+        datum: iv.gewenste_datum || todayISO,
+        label: 'Urgente interventie',
+        klant: contract ? contract.klant_naam : (iv.omschrijving || '—').slice(0, 40)
+      });
+    }
+  });
+  overdueBeurten.forEach(function(b) {
+    var contract = scopedContracten.find(function(c) { return c.id === b.contract_id; });
+    deadlineRows.push({
+      type: 'overdue',
+      datum: b.plan_datum,
+      label: 'Overdue beurt',
+      klant: contract ? contract.klant_naam : '—'
+    });
+  });
+  deadlineRows.sort(function(a, b) { return (a.datum || '').localeCompare(b.datum || ''); });
+  var deadlines14d = deadlineRows.filter(function(r) { return !r.datum || new Date(r.datum) <= in14d; });
+
+  // Tellers bijwerken
+  var vandaagBeurten = targetBeurten.filter(function(b) { return b.status !== 'in_te_plannen'; });
+  var afgewerkt = vandaagBeurten.filter(function(b) { return b.status === 'afgewerkt'; }).length;
+  setDashStatValue('stat-vandaag-ingepland', vandaagBeurten.length);
+  setDashStatSub('stat-vandaag-sub', afgewerkt + ' afgewerkt');
+  setDashStatValue('stat-week', weekBeurten.filter(function(b) { return b.status !== 'in_te_plannen'; }).length);
+  setDashStatValue('stat-openstaand', inTePlannenCount);
+  setDashStatValue('stat-int-open', openInt.length);
+  setDashStatValue('stat-deadlines', deadlines14d.length);
+
+  // Vandaag widget — gegroepeerd per technieker
+  renderDashTodayWidget(targetBeurten);
+  renderDashDeadlines(deadlines14d);
+}
+
+function setDashStatValue(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+function setDashStatSub(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+
+function renderDashTodayWidget(beurten) {
+  var body = document.getElementById('today-body');
+  var cnt = document.getElementById('today-count');
+  if (!body) return;
+  if (cnt) cnt.textContent = beurten.length + ' taken';
+  if (beurten.length === 0) {
+    body.innerHTML = '<div class="dash-empty">Geen taken ' + (todayMode === 'morgen' ? 'morgen' : 'vandaag') + '.</div>';
+    return;
+  }
+  var sectorKleur = { zonnepanelen:'#F59E0B', warmtepomp:'#8B5CF6', ventilatie:'#3B82F6', verwarming:'#EF4444', ic:'#10B981', klussen:'#F97316', airco:'#06B6D4' };
+  var byTech = {};
+  beurten.forEach(function(b) {
+    var tid = b.technieker_id || 'unassigned';
+    (byTech[tid] = byTech[tid] || []).push(b);
+  });
+  var html = '';
+  Object.keys(byTech).forEach(function(tid) {
+    var tech = allTechniekers.find(function(t) { return t.id === tid; });
+    var naam = tech ? (tech.voornaam + ' ' + (tech.naam || tech.achternaam || '')) : 'Niet toegewezen';
+    var taken = byTech[tid].sort(function(a,b) { return (a.start_tijd || '').localeCompare(b.start_tijd || ''); });
+    html += '<div class="today-group">';
+    html += '<div class="today-group-header"><span>' + esc(naam) + '</span><span style="color:var(--grey);font-weight:500">' + taken.length + ' taken</span></div>';
+    taken.forEach(function(b) {
+      var contract = allContracten.find(function(c) { return c.id === b.contract_id; });
+      var klantNaam = contract ? (contract.klant_naam || '—') : '—';
+      var kleur = sectorKleur[b.sector] || '#999';
+      var tijd = (b.start_tijd || '').substring(0, 5);
+      html += '<div class="today-task">' +
+        '<span class="time">' + esc(tijd) + '</span>' +
+        '<span class="sector-dot" style="background:' + kleur + '"></span>' +
+        '<span class="task-name">' + esc(klantNaam) + '</span>' +
+        '<span class="task-status">' + esc(b.status) + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+  });
+  body.innerHTML = html;
+}
+
+function renderDashDeadlines(rows) {
+  var body = document.getElementById('deadlines-body');
+  if (!body) return;
+  if (rows.length === 0) {
+    body.innerHTML = '<div class="dash-empty">Geen openstaande deadlines.</div>';
+    return;
+  }
+  var html = '';
+  rows.slice(0, 10).forEach(function(r) {
+    var badgeClass = r.type;
+    var badgeLabel = r.type === 'contract' ? 'CONTRACT' : r.type === 'urgent' ? 'URGENT' : 'OVERDUE';
+    html += '<div class="deadline-row">' +
+      '<span class="deadline-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+      '<div class="deadline-meta"><strong>' + esc(r.klant) + '</strong><br><small style="color:var(--grey)">' + esc(r.label) + '</small></div>' +
+      '<span class="deadline-date">' + (r.datum || '') + '</span>' +
+      '</div>';
+  });
+  body.innerHTML = html;
+}
+
 function renderDashboard() {
+  // Greeting + datum
+  var now = new Date();
+  var h = now.getHours();
+  var greet = h < 12 ? 'Goedemorgen' : h < 18 ? 'Goedemiddag' : 'Goedenavond';
+  var nameEl = currentUser && currentUser.email ? currentUser.email.split('@')[0] : '';
+  var greetEl = document.getElementById('dash-greeting');
+  if (greetEl) greetEl.textContent = greet + (nameEl ? ', ' + nameEl : '');
+  var dEl = document.getElementById('dash-date');
+  if (dEl) dEl.textContent = formatDateNL_dash(now);
+
   // Verloopwaarschuwingen (alleen admin)
   if (userRole === 'admin') {
     var alerts = [];
@@ -2173,10 +2544,11 @@ function renderDashboard() {
   const avgPanels = contracts.length > 0 ? Math.round(contracts.reduce((s, c) => s + (c.aantal_panelen || 0), 0) / contracts.length) : 0;
 
   const statsHtml = userRole === 'admin'
-    ? `<div class="stat-card"><div class="stat-label">Partners</div><div class="stat-value">${totalPartners}</div><div class="stat-sub">${activePartners} actief contract</div></div>
-       <div class="stat-card blue"><div class="stat-label">Klantcontracten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">totaal getekend</div></div>
-       <div class="stat-card green"><div class="stat-label">Omzet (eindklant)</div><div class="stat-value">€ ${Math.round(totalRevenue).toLocaleString('nl-BE')}</div><div class="stat-sub">totaal incl. btw</div></div>
-       <div class="stat-card orange"><div class="stat-label">Gem. panelen</div><div class="stat-value">${avgPanels}</div><div class="stat-sub">per contract</div></div>`
+    ? `<div class="stat-card blue"><div class="stat-label">Vandaag</div><div class="stat-value" id="stat-vandaag-ingepland">0</div><div class="stat-sub" id="stat-vandaag-sub">0 afgewerkt</div></div>
+       <div class="stat-card"><div class="stat-label">Deze week</div><div class="stat-value" id="stat-week">0</div><div class="stat-sub">geplande beurten</div></div>
+       <div class="stat-card orange"><div class="stat-label">Openstaand</div><div class="stat-value" id="stat-openstaand">0</div><div class="stat-sub">in te plannen</div></div>
+       <div class="stat-card red"><div class="stat-label">Interventies</div><div class="stat-value" id="stat-int-open">0</div><div class="stat-sub">open</div></div>
+       <div class="stat-card green"><div class="stat-label">Deadlines 14d</div><div class="stat-value" id="stat-deadlines">0</div><div class="stat-sub">actie vereist</div></div>`
     : (function() {
         // Partner verdienste-overzicht
         var partnerMarge = userPartner ? parseFloat(userPartner.marge_pct || 0) : 0;
@@ -2193,6 +2565,11 @@ function renderDashboard() {
           '<div class="stat-card' + (openInts > 0 ? ' orange' : '') + '"><div class="stat-label">Open interventies</div><div class="stat-value">' + openInts + '</div><div class="stat-sub">' + (openInts === 0 ? 'alles up-to-date' : 'wacht op afhandeling') + '</div></div>';
       })();
   document.getElementById('stats-row').innerHTML = statsHtml;
+
+  // Planning-widgets laden (Vandaag + Deadlines) — enkel voor admin/partner dashboard
+  if (userRole === 'admin' || userRole === 'partner') {
+    loadPlanningDashWidgets();
+  }
 
   const recent = contracts.slice(0, 8);
   const tbody = document.getElementById('recent-contracts');
@@ -2220,53 +2597,217 @@ function renderDashboard() {
 // PARTNERS
 // =============================================
 function renderPartners() {
-  document.getElementById('partner-stats').innerHTML = partners.map(p => {
-    const contracts = allContracten.filter(c => c.partner_id === p.id);
-    const revenue = contracts.reduce((s, c) => s + parseFloat(c.totaal_incl_btw || 0), 0);
-    return `<div class="stat-card">
-      <div class="stat-label">${p.naam}</div>
-      <div class="stat-value">${contracts.length}</div>
-      <div class="stat-sub">contracten · € ${Math.round(revenue).toLocaleString('nl-BE')} omzet</div>
-    </div>`;
+  // Stats (platform-overzicht) — blijft bovenaan
+  document.getElementById('partner-stats').innerHTML = partners.map(function(p) {
+    var contracts = allContracten.filter(function(c) { return c.partner_id === p.id; });
+    var revenue = contracts.reduce(function(s, c) { return s + parseFloat(c.totaal_incl_btw || 0); }, 0);
+    return '<div class="stat-card">' +
+      '<div class="stat-label">' + esc(p.bedrijfsnaam || p.naam) + '</div>' +
+      '<div class="stat-value">' + contracts.length + '</div>' +
+      '<div class="stat-sub">contracten · € ' + Math.round(revenue).toLocaleString('nl-BE') + ' omzet</div>' +
+      '</div>';
   }).join('');
 
-  document.getElementById('partner-cards').innerHTML = partners.map(p => {
-    const contracts = allContracten.filter(c => c.partner_id === p.id);
-    const revenue = contracts.reduce((s, c) => s + parseFloat(c.totaal_incl_btw || 0), 0);
-    return `<div style="border-bottom:1px solid var(--rule)">
-      <div onclick="togglePartnerDetail('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:14px 8px;cursor:pointer;user-select:none">
-        <span style="width:10px;height:10px;border-radius:50%;background:${p.kleur_primair};flex-shrink:0"></span>
-        <strong style="flex:1">${p.bedrijfsnaam}</strong>
-        <span style="color:var(--grey);font-size:13px">${contracts.length} contracten · € ${Math.round(revenue).toLocaleString('nl-BE')}</span>
-        <span class="badge ${p.contract_getekend ? 'badge-green' : 'badge-orange'}" style="font-size:11px">${p.contract_getekend ? 'Getekend' : 'In afwachting'}</span>
-        <svg id="partner-chevron-${p.id}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div id="partner-detail-${p.id}" style="display:none;padding:0 8px 16px 30px">
-        <table style="font-size:13px">
-          <tr><td style="color:var(--grey);width:140px;padding:4px 8px">Contactpersoon</td><td style="padding:4px 8px">${p.contactpersoon || '—'}</td></tr>
-          <tr><td style="color:var(--grey);padding:4px 8px">BTW-nummer</td><td style="padding:4px 8px">${p.btw_nummer || '—'}</td></tr>
-          <tr><td style="color:var(--grey);padding:4px 8px">Adres</td><td style="padding:4px 8px">${p.adres || ''}, ${p.postcode || ''} ${p.gemeente || ''}</td></tr>
-          <tr><td style="color:var(--grey);padding:4px 8px">Transport gratis</td><td style="padding:4px 8px">${p.transport_gratis_km} km</td></tr>
-          <tr><td style="color:var(--grey);padding:4px 8px">Marge</td><td style="padding:4px 8px">${p.marge_pct}%</td></tr>
-          <tr><td style="color:var(--grey);padding:4px 8px">Planning fee</td><td style="padding:4px 8px">€ ${parseFloat(p.planning_fee).toFixed(2).replace('.',',')}</td></tr>
-          <tr><td style="color:var(--grey);padding:4px 8px">Flancco inzage</td><td style="padding:4px 8px"><span class="badge ${p.akkoord_flancco_inzage ? 'badge-green' : 'badge-red'}">${p.akkoord_flancco_inzage ? 'Akkoord' : 'Nog niet'}</span></td></tr>
-          <tr><td style="color:var(--grey);padding:4px 8px">Calculator link</td><td style="padding:4px 8px"><a href="../calculator/?partner=${p.slug}" target="_blank" style="color:var(--blue)">/calculator/?partner=${p.slug}</a></td></tr>
-        </table>
-      </div>
-    </div>`;
-  }).join('');
+  // Filter op zoekterm
+  var zoekEl = document.getElementById('partners-zoek');
+  var zoek = (zoekEl && zoekEl.value || '').toLowerCase().trim();
+  var rows = partners.filter(function(p) {
+    if (!zoek) return true;
+    return (p.bedrijfsnaam || p.naam || '').toLowerCase().indexOf(zoek) !== -1 ||
+           (p.contactpersoon || '').toLowerCase().indexOf(zoek) !== -1 ||
+           (p.email || '').toLowerCase().indexOf(zoek) !== -1;
+  });
+
+  var tbody = document.getElementById('partner-tbody');
+  if (!tbody) return;
+  var html = '';
+  rows.forEach(function(p) {
+    var contracts = allContracten.filter(function(c) { return c.partner_id === p.id; });
+    var actieve = contracts.filter(function(c) { return c.status === 'actief' || c.status === 'getekend'; });
+    var naam = p.bedrijfsnaam || p.naam || '—';
+
+    // Hoofdrij
+    html += '<tr class="partner-row" data-pid="' + p.id + '" onclick="togglePartnerDetail(\'' + p.id + '\')">';
+    html += '<td><button class="expand-btn" type="button" onclick="event.stopPropagation();togglePartnerDetail(\'' + p.id + '\')">▸</button></td>';
+    html += '<td>';
+    if (p.logo_url) {
+      html += '<img src="' + esc(p.logo_url) + '" class="partner-logo-sm" alt="">';
+    } else {
+      html += '<div class="partner-logo-ph" style="background:' + (p.kleur_primair || '#098979') + '">' + esc((naam[0] || '?').toUpperCase()) + '</div>';
+    }
+    html += '</td>';
+    html += '<td><strong>' + esc(naam) + '</strong>' + (p.slug ? '<div style="font-size:11px;color:var(--grey)">/' + esc(p.slug) + '</div>' : '') + '</td>';
+    html += '<td>' + esc(p.contactpersoon || '—') + '</td>';
+    html += '<td>' + esc(p.email || '—') + '</td>';
+    html += '<td>' + esc(p.telefoon || '—') + '</td>';
+    html += '<td>' + actieve.length + ' actief<div style="font-size:11px;color:var(--grey)">' + contracts.length + ' totaal</div></td>';
+    html += '<td class="admin-only" style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">';
+    if (p.slug) {
+      html += '<button class="icon-btn" title="Bekijk calculator" onclick="window.open(\'../' + esc(p.slug) + '/\',\'_blank\')">' +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+        '</button>';
+    }
+    html += '<button class="icon-btn" title="Bewerken" onclick="editPartnerFromTable(\'' + p.id + '\')">' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+      '</button>';
+    html += '<button class="icon-btn icon-btn-danger" title="Verwijderen" onclick="deletePartner(\'' + p.id + '\')">' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>' +
+      '</button>';
+    html += '</td>';
+    html += '</tr>';
+
+    // Detail-rij (verborgen tot open)
+    html += '<tr class="partner-detail" id="partner-detail-' + p.id + '" style="display:none"><td colspan="8">';
+    html += renderPartnerDetail(p, actieve, contracts);
+    html += '</td></tr>';
+  });
+  if (!html) {
+    html = '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--grey)">Geen partners gevonden.</td></tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function renderPartnerDetail(p, actieve, alleContracten) {
+  var topContracten = actieve.slice().sort(function(a, b) {
+    return (b.created_at || '').localeCompare(a.created_at || '');
+  }).slice(0, 5);
+
+  var h = '<div class="partner-detail-grid">';
+
+  // LINKS: gegevens + commercieel + branding
+  h += '<div>';
+  h += '<h4 class="pd-section-title">Gegevens</h4>';
+  h += '<div class="pd-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><strong>' + esc(p.bedrijfsnaam || p.naam || '—') + '</strong></div>';
+  h += '<div class="pd-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' + esc(p.contactpersoon || '—') + '</div>';
+  if (p.email) h += '<div class="pd-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><a href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a></div>';
+  if (p.telefoon) h += '<div class="pd-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>' + esc(p.telefoon) + '</div>';
+  if (p.website) h += '<div class="pd-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><a href="' + esc(p.website) + '" target="_blank" rel="noopener">' + esc(p.website) + '</a></div>';
+  if (p.btw_nummer) h += '<div class="pd-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>BTW ' + esc(p.btw_nummer) + '</div>';
+  var adresRegel = [p.adres || p.street, [p.postcode || p.postal_code, p.gemeente || p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  if (adresRegel) h += '<div class="pd-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(adresRegel) + '</div>';
+
+  h += '<h4 class="pd-section-title" style="margin-top:16px">Commercieel</h4>';
+  h += '<div class="pd-commercial">';
+  h += '<span>Marge: <strong>' + (p.marge_pct || 0) + '%</strong></span>';
+  h += '<span>Planning fee: <strong>€ ' + parseFloat(p.planning_fee || 0).toFixed(2).replace('.', ',') + '</strong></span>';
+  if (p.transport_gratis_km != null) h += '<span>Gratis transport: <strong>' + p.transport_gratis_km + ' km</strong></span>';
+  h += '<span>Getekend: <strong>' + (p.contract_getekend ? 'ja' : 'nee') + '</strong></span>';
+  h += '</div>';
+
+  h += '<h4 class="pd-section-title" style="margin-top:16px">Branding</h4>';
+  h += '<div class="pd-branding">';
+  h += '<span class="pd-color-chip" style="background:' + esc(p.kleur_primair || '#ccc') + '" title="Primaire kleur: ' + esc(p.kleur_primair || '—') + '"></span>';
+  h += '<span class="pd-color-chip" style="background:' + esc(p.kleur_donker || p.kleur_secundair || '#ccc') + '" title="Donkere/secundaire kleur"></span>';
+  if (p.logo_url) h += '<img src="' + esc(p.logo_url) + '" class="pd-branding-logo" alt="">';
+  h += '</div>';
+
+  h += '<div class="pd-actions admin-only">';
+  h += '<button type="button" class="btn btn-ghost" onclick="editPartnerFromTable(\'' + p.id + '\')">Bewerken</button>';
+  h += '<button type="button" class="btn-danger-outline" onclick="deletePartner(\'' + p.id + '\')">Verwijderen</button>';
+  h += '</div>';
+  h += '</div>';
+
+  // RECHTS: actieve contracten
+  h += '<div>';
+  h += '<h4 class="pd-section-title">◆ Actieve contracten (' + actieve.length + ')</h4>';
+  if (topContracten.length === 0) {
+    h += '<p class="pd-empty">Geen actieve contracten voor deze partner.</p>';
+  } else {
+    h += '<ul class="pd-contract-list">';
+    topContracten.forEach(function(c) {
+      var klNaam = c.klant_naam || '—';
+      var meta = [];
+      if (c.sector) meta.push(c.sector);
+      if (c.frequentie) meta.push(c.frequentie + '×/jaar');
+      if (c.totaal_incl_btw) meta.push('€ ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.', ','));
+      h += '<li onclick="filterContractenByPartner(\'' + p.id + '\')">';
+      h += '<div class="pd-c-title">' + esc(klNaam) + '</div>';
+      h += '<span class="pd-c-meta">' + esc(meta.join(' · ')) + '</span>';
+      h += '</li>';
+    });
+    h += '</ul>';
+    if (actieve.length > 5) {
+      h += '<button type="button" class="pd-link-btn" onclick="filterContractenByPartner(\'' + p.id + '\')">Alle ' + actieve.length + ' contracten bekijken →</button>';
+    }
+  }
+  h += '</div>';
+
+  h += '</div>';
+  return h;
 }
 
 function togglePartnerDetail(partnerId) {
-  var el = document.getElementById('partner-detail-' + partnerId);
-  var chev = document.getElementById('partner-chevron-' + partnerId);
-  if (el.style.display === 'none') {
-    el.style.display = 'block';
-    chev.style.transform = 'rotate(180deg)';
-  } else {
-    el.style.display = 'none';
-    chev.style.transform = '';
+  var detailRow = document.getElementById('partner-detail-' + partnerId);
+  if (!detailRow) return;
+  var mainRow = document.querySelector('.partner-row[data-pid="' + partnerId + '"]');
+  var open = detailRow.style.display === 'table-row';
+  detailRow.style.display = open ? 'none' : 'table-row';
+  if (mainRow) mainRow.classList.toggle('expanded', !open);
+}
+
+function editPartnerFromTable(partnerId) {
+  // Navigeer naar Admin Instellingen en expand de partner-kaart zodat alle velden (incl. adres) bewerkbaar zijn
+  showPage('admin-instellingen');
+  setTimeout(function() {
+    var el = document.getElementById('adm-detail-' + partnerId);
+    if (el && el.style.display === 'none') toggleAdminPartner(partnerId);
+    var wrap = document.getElementById('adm-detail-' + partnerId);
+    if (wrap && wrap.scrollIntoView) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+function filterContractenByPartner(partnerId) {
+  showPage('contracten');
+  setTimeout(function() {
+    var sel = document.getElementById('filter-partner');
+    if (sel) { sel.value = partnerId; if (typeof loadContracten === 'function') loadContracten(); }
+  }, 80);
+}
+
+async function deletePartner(partnerId) {
+  if (userRole !== 'admin') { alert('Alleen admin kan partners verwijderen.'); return; }
+  var p = partners.find(function(x) { return x.id === partnerId; });
+  if (!p) return;
+
+  // Blokker-check op alle tabellen die naar partner_id verwijzen
+  var results = await Promise.all([
+    sb.from('contracten').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId),
+    sb.from('clients').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId),
+    sb.from('pricing').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId),
+    sb.from('user_roles').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId)
+  ]);
+  var cnt = {
+    contracten: results[0].count || 0,
+    klanten: results[1].count || 0,
+    pricing: results[2].count || 0,
+    users: results[3].count || 0
+  };
+
+  // Contracten / klanten / users = harde blokker
+  var blokkers = [];
+  if (cnt.contracten) blokkers.push(cnt.contracten + ' contract(en)');
+  if (cnt.klanten) blokkers.push(cnt.klanten + ' klant(en)');
+  if (cnt.users) blokkers.push(cnt.users + ' gebruiker(s)');
+  if (blokkers.length) {
+    alert('Kan partner "' + (p.bedrijfsnaam || p.naam) + '" niet verwijderen.\n\nEr zijn nog gekoppelde records:\n• ' + blokkers.join('\n• ') + '\n\nVerwijder of herverbind eerst deze records.');
+    return;
   }
+
+  // Pricing & partner_sectors cascade we zelf (geen blokker maar wel opruimen)
+  var naam = p.bedrijfsnaam || p.naam;
+  var extra = cnt.pricing ? '\n(' + cnt.pricing + ' pricing-staffel(s) worden ook verwijderd.)' : '';
+  if (!confirm('Partner "' + naam + '" definitief verwijderen?' + extra)) return;
+
+  await sb.from('pricing').delete().eq('partner_id', partnerId);
+  await sb.from('partner_sectors').delete().eq('partner_id', partnerId);
+  await sb.from('partner_permissions').delete().eq('partner_id', partnerId);
+  var res = await sb.from('partners').delete().eq('id', partnerId);
+  if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+
+  // Refresh lokale cache
+  partners = partners.filter(function(x) { return x.id !== partnerId; });
+  renderPartners();
+  if (typeof renderAdminSettings === 'function') renderAdminSettings();
 }
 
 // =============================================
@@ -2904,12 +3445,35 @@ function populateFilterDropdown() {
     partners.map(p => `<option value="${p.id}">${p.naam}</option>`).join('');
 }
 
+var contractTab = 'lopend';
+function switchContractTab(tab) {
+  contractTab = tab;
+  document.querySelectorAll('.c-tab').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.ctab === tab);
+  });
+  renderContracten();
+}
+
 function renderContracten() {
   let filtered = myContracten();
   if (userRole === 'admin') {
     const filter = document.getElementById('filter-partner').value;
     if (filter) filtered = filtered.filter(c => c.partner_id === filter);
   }
+
+  // Update tab counts (op volledige scope, voor filter-partner)
+  var allScope = myContracten();
+  var cntLopend = allScope.filter(function(c) { return !c.is_eenmalig; }).length;
+  var cntEenmalig = allScope.filter(function(c) { return c.is_eenmalig === true; }).length;
+  var elL = document.getElementById('c-tab-lopend-count');
+  var elE = document.getElementById('c-tab-eenmalig-count');
+  if (elL) elL.textContent = cntLopend;
+  if (elE) elE.textContent = cntEenmalig;
+
+  // Filter op tab
+  filtered = filtered.filter(function(c) {
+    return contractTab === 'eenmalig' ? c.is_eenmalig === true : !c.is_eenmalig;
+  });
 
   const tbody = document.getElementById('all-contracts');
   const noEl = document.getElementById('no-all-contracts');
@@ -4072,6 +4636,12 @@ function renderKlanten() {
       var partner = partners.find(function(p) { return p.id === c.partner_id; });
       var contractCount = allContracten.filter(function(ct) { return ct.client_id === c.id; }).length;
       var isShared = c._shared ? ' <span style="font-size:10px;color:var(--blue);font-weight:600;background:#EFF6FF;padding:1px 6px;border-radius:3px">Gedeeld</span>' : '';
+      var editSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+      var delSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+      var actiesHtml = '<td class="not-technieker" onclick="event.stopPropagation()" style="text-align:right;white-space:nowrap">' +
+        '<button class="icon-btn" title="Bewerken" onclick="editKlant(\'' + c.id + '\')">' + editSvg + '</button>' +
+        '<button class="icon-btn icon-btn-danger" title="Verwijderen" onclick="deleteKlantRow(\'' + c.id + '\')">' + delSvg + '</button>' +
+      '</td>';
       return '<tr style="cursor:pointer">' +
         (userRole === 'admin' ? '<td onclick="event.stopPropagation()"><input type="checkbox" class="klant-checkbox" value="' + c.id + '"></td>' : '') +
         '<td onclick="showKlantDossier(\'' + c.id + '\')"><strong>' + esc(c.contact_person || '') + '</strong>' + isShared +
@@ -4081,6 +4651,7 @@ function renderKlanten() {
         '<td>' + esc(c.phone || '') + '</td>' +
         '<td>' + esc(c.city || '') + '</td>' +
         '<td>' + contractCount + '</td>' +
+        actiesHtml +
       '</tr>';
     }).join('');
   }
@@ -4394,6 +4965,43 @@ async function deleteKlant() {
 
   closeKlantModal();
   await loadAllData();
+}
+
+// Verwijder-knop per rij — met blokker-check op gekoppelde records
+async function deleteKlantRow(klantId) {
+  try {
+    var results = await Promise.all([
+      sb.from('contracten').select('id', { count: 'exact', head: true }).eq('client_id', klantId),
+      sb.from('interventies').select('id', { count: 'exact', head: true }).eq('client_id', klantId),
+      sb.from('rapporten').select('id', { count: 'exact', head: true }).eq('client_id', klantId)
+    ]);
+    var cnt = {
+      contracten: results[0].count || 0,
+      interventies: results[1].count || 0,
+      rapporten: results[2].count || 0
+    };
+    var totaal = cnt.contracten + cnt.interventies + cnt.rapporten;
+    if (totaal > 0) {
+      var lijn = [];
+      if (cnt.contracten) lijn.push(cnt.contracten + ' contract(en)');
+      if (cnt.interventies) lijn.push(cnt.interventies + ' interventie(s)');
+      if (cnt.rapporten) lijn.push(cnt.rapporten + ' rapport(en)');
+      alert('Kan deze klant niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + lijn.join('\n\u2022 ') +
+        '\n\nVerwijder of archiveer eerst deze records via hun eigen pagina.');
+      return;
+    }
+
+    var klant = allClients.find(function(c) { return c.id === klantId; });
+    var naam = klant ? (klant.company_name || klant.contact_person || 'deze klant') : 'deze klant';
+    if (!confirm('Klant "' + naam + '" definitief verwijderen?\nDit verwijdert ook alle werklocaties van deze klant.')) return;
+
+    await sb.from('client_locations').delete().eq('client_id', klantId);
+    var res = await sb.from('clients').delete().eq('id', klantId);
+    if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+    await loadAllData();
+  } catch (e) {
+    alert('Fout: ' + (e && e.message ? e.message : e));
+  }
 }
 
 function getFilteredKlanten() {
