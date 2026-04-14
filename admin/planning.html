@@ -687,10 +687,12 @@
 <!-- QUICK-ADD MODAL -->
 <div class="modal-overlay" id="modal-quickadd">
   <div class="modal" style="max-width:520px">
-    <h2>Taak toevoegen</h2>
+    <h2 id="qa-title">Taak toevoegen</h2>
     <p id="qa-info" style="color:var(--grey);font-size:12px;margin-bottom:16px"></p>
     <input type="hidden" id="qa-tech-id">
     <input type="hidden" id="qa-datum">
+    <input type="hidden" id="qa-mode" value="inline">
+    <input type="hidden" id="qa-step" value="input">
     <div class="modal-row">
       <div class="modal-field">
         <label>Type</label>
@@ -714,9 +716,12 @@
     </div>
     <div class="modal-field">
       <label>Klant / Contract</label>
-      <select id="qa-contract" onchange="qaContractChanged()">
-        <option value="">Selecteer een contract...</option>
-      </select>
+      <div style="display:flex;gap:8px">
+        <select id="qa-contract" onchange="qaContractChanged()" style="flex:1">
+          <option value="">Selecteer een contract...</option>
+        </select>
+        <button type="button" onclick="qaSelectNewKlant()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
+      </div>
     </div>
     <div id="qa-new-client-fields" style="display:none;background:var(--light);border-radius:10px;padding:16px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:10px">NIEUWE KLANT</div>
@@ -739,27 +744,51 @@
         <div class="modal-field"><label>Gemeente</label><input id="qa-klant-gemeente" placeholder="Gent"></div>
       </div>
     </div>
+    <!-- Duur + Hele dag -->
     <div class="modal-row">
-      <div class="modal-field">
-        <label>Starttijd</label>
-        <input type="time" id="qa-start" value="09:00">
-      </div>
       <div class="modal-field">
         <label>Duur (min)</label>
         <input type="number" id="qa-duur" value="60" min="15" step="15">
       </div>
+      <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500">
+          <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()">
+          <span style="font-size:13px">Hele dag (7,6u)</span>
+        </label>
+      </div>
     </div>
-    <div class="modal-field">
-      <label>Extra techniekers (duo-beurt)</label>
-      <div class="tech-chip-grid" id="qa-extra-techs"></div>
-    </div>
+    <!-- Notities -->
     <div class="modal-field">
       <label>Notities</label>
       <textarea id="qa-notities" rows="2" placeholder="Optionele notities..." style="resize:vertical"></textarea>
     </div>
+    <!-- Inplanning-block (conditioneel zichtbaar) -->
+    <div id="qa-schedule-block">
+      <div style="font-size:11px;font-weight:600;color:var(--grey);letter-spacing:0.5px;margin:8px 0 6px" id="qa-schedule-title" hidden>WANNEER INPLANNEN?</div>
+      <div class="modal-row">
+        <div class="modal-field" id="qa-datum-wrap">
+          <label>Datum *</label>
+          <input type="date" id="qa-datum-input">
+        </div>
+        <div class="modal-field" id="qa-start-wrap">
+          <label>Starttijd *</label>
+          <input type="time" id="qa-start" value="09:00">
+        </div>
+      </div>
+      <div class="modal-field" id="qa-tech-wrap">
+        <label>Technieker *</label>
+        <select id="qa-tech-select"></select>
+      </div>
+      <div class="modal-field" id="qa-extra-wrap">
+        <label>Extra techniekers (duo-beurt)</label>
+        <div class="tech-chip-grid" id="qa-extra-techs"></div>
+      </div>
+    </div>
+    <!-- Buttons: inline (single) vs deferrable (dual) -->
     <div class="modal-buttons">
-      <button onclick="closeQuickAdd()">Annuleren</button>
-      <button class="btn-save" onclick="saveQuickAdd()">Inplannen</button>
+      <button type="button" onclick="closeQuickAdd()">Annuleren</button>
+      <button type="button" id="qa-btn-opmaken" class="btn-ghost" style="display:none" onclick="saveQuickAdd('opmaken')">Opmaken</button>
+      <button type="button" id="qa-btn-save" class="btn-save" onclick="saveQuickAdd('inplannen')">Inplannen</button>
     </div>
   </div>
 </div>
@@ -855,10 +884,10 @@
     <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Meld een interventie aan zodat de planner ze kan inplannen.</p>
 
     <div class="modal-field">
-      <label>Klant *</label>
+      <label>Klant / Contract *</label>
       <div style="display:flex;gap:8px">
         <select id="ni-klant" onchange="onNiKlantChange()" style="flex:1"></select>
-        <button type="button" onclick="openQuickKlantFromNi()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
+        <button type="button" onclick="niSelectNewKlant()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
       </div>
     </div>
 
@@ -882,6 +911,29 @@
       </select>
     </div>
 
+    <!-- NIEUWE KLANT inline fields (zelfde patroon als QuickAdd) -->
+    <div id="ni-new-client-fields" style="display:none;background:var(--light);border-radius:10px;padding:16px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:10px">NIEUWE KLANT</div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Voornaam *</label><input id="ni-klant-voornaam" placeholder="Jan"></div>
+        <div class="modal-field"><label>Achternaam *</label><input id="ni-klant-achternaam" placeholder="Janssen"></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Telefoon</label><input id="ni-klant-tel" placeholder="+32 4..."></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Email</label><input id="ni-klant-email" type="email" placeholder="email@voorbeeld.be"></div>
+        <div class="modal-field"><label>Partner</label>
+          <select id="ni-klant-partner"></select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Straat + nr</label><input id="ni-klant-straat" placeholder="Kerkstraat 12"></div>
+        <div class="modal-field" style="max-width:100px"><label>Postcode</label><input id="ni-klant-postcode" placeholder="9000"></div>
+        <div class="modal-field"><label>Gemeente</label><input id="ni-klant-gemeente" placeholder="Gent"></div>
+      </div>
+    </div>
+
     <div class="modal-field">
       <label>Omschrijving *</label>
       <textarea id="ni-omschrijving" rows="3" placeholder="Wat is het probleem? Locatie binnen installatie, foutmelding, ..."></textarea>
@@ -899,67 +951,39 @@
         <label>Geschatte duur (min)</label>
         <input type="number" id="ni-duur" value="60" min="15" step="15">
       </div>
+      <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500">
+          <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()">
+          <span style="font-size:13px">Hele dag (7,6u)</span>
+        </label>
+      </div>
     </div>
-    <div class="modal-field">
-      <label>Gewenste datum (optioneel)</label>
-      <input type="date" id="ni-gewenste-datum">
+
+    <input type="hidden" id="ni-step" value="input">
+
+    <!-- Inplanning-block (enkel zichtbaar na 'Nu inplannen') -->
+    <div id="ni-schedule-block" style="display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--grey);letter-spacing:0.5px;margin:8px 0 6px">WANNEER INPLANNEN?</div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label>Datum *</label>
+          <input type="date" id="ni-plan-datum">
+        </div>
+        <div class="modal-field" id="ni-start-wrap">
+          <label>Starttijd *</label>
+          <input type="time" id="ni-plan-start" value="09:00">
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>Technieker *</label>
+        <select id="ni-plan-tech"></select>
+      </div>
     </div>
 
     <div class="modal-buttons">
-      <button onclick="closeNieuweInterventieModal()">Annuleren</button>
-      <button class="btn-save" onclick="saveNieuweInterventie()">Interventie aanmaken</button>
-    </div>
-  </div>
-</div>
-
-<!-- QUICK KLANT MODAL (inline vanuit nieuwe-interventie) -->
-<div class="modal-overlay" id="modal-quick-klant" style="z-index:1200">
-  <div class="modal" style="max-width:480px">
-    <h2>Nieuwe klant</h2>
-    <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Snel een klant toevoegen voor deze interventie.</p>
-    <div class="modal-row">
-      <div class="modal-field" style="flex:2">
-        <label>Bedrijfsnaam</label>
-        <input type="text" id="qk-company" placeholder="optioneel">
-      </div>
-      <div class="modal-field" style="flex:2">
-        <label>Contactpersoon *</label>
-        <input type="text" id="qk-contact" placeholder="Voornaam Naam">
-      </div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-field">
-        <label>E-mail *</label>
-        <input type="email" id="qk-email">
-      </div>
-      <div class="modal-field">
-        <label>Telefoon</label>
-        <input type="tel" id="qk-phone">
-      </div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-field" style="flex:3">
-        <label>Straat</label>
-        <input type="text" id="qk-street">
-      </div>
-      <div class="modal-field" style="flex:1">
-        <label>Nr.</label>
-        <input type="text" id="qk-housenr">
-      </div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-field">
-        <label>Postcode</label>
-        <input type="text" id="qk-postal">
-      </div>
-      <div class="modal-field" style="flex:2">
-        <label>Gemeente</label>
-        <input type="text" id="qk-city">
-      </div>
-    </div>
-    <div class="modal-buttons">
-      <button onclick="closeQuickKlant()">Annuleren</button>
-      <button class="btn-save" onclick="saveQuickKlant()">Klant opslaan</button>
+      <button type="button" onclick="closeNieuweInterventieModal()">Annuleren</button>
+      <button type="button" id="ni-btn-opmaken" class="btn-ghost" onclick="saveNieuweInterventie('opmaken')">Opmaken</button>
+      <button type="button" id="ni-btn-save" class="btn-save" onclick="saveNieuweInterventie('inplannen')">Nu inplannen</button>
     </div>
   </div>
 </div>
@@ -2144,7 +2168,8 @@ var FLANCCO_PARTNER_ID = '93679849-afb0-4a69-8bd5-b74afdf22cad';
 
 function fillNiKlantDropdown(preselectId) {
   var sel = document.getElementById('ni-klant');
-  sel.innerHTML = '<option value="">— Kies een klant —</option>';
+  sel.innerHTML = '<option value="">— Kies een klant —</option>' +
+    '<option value="__new__" style="font-weight:700;color:var(--navy)">+ Nieuwe klant aanmaken</option>';
   // Klanten uit clients-tabel
   var klanten = (allClients || []).slice().sort(function(a, b) {
     return (a.company_name || a.contact_person || '').localeCompare(b.company_name || b.contact_person || '');
@@ -2171,10 +2196,23 @@ function onNiKlantChange() {
   var contractWrap = document.getElementById('ni-contract-wrap');
   var contractSel = document.getElementById('ni-contract');
   var sectorWrap = document.getElementById('ni-sector-wrap');
+  var newWrap = document.getElementById('ni-new-client-fields');
+
+  // Reset zichtbaarheid van nieuwe-klant velden by default
+  if (newWrap) newWrap.style.display = 'none';
 
   if (!val) {
     contractWrap.style.display = 'none';
     sectorWrap.style.display = 'block';
+    return;
+  }
+
+  // Nieuwe klant-keuze: toon inline velden, verberg contract-keuze
+  if (val === '__new__') {
+    contractWrap.style.display = 'none';
+    sectorWrap.style.display = 'block';
+    if (newWrap) newWrap.style.display = 'block';
+    fillNiPartnerDropdown();
     return;
   }
 
@@ -2201,6 +2239,19 @@ function onNiKlantChange() {
   sectorWrap.style.display = 'block';
 }
 
+function fillNiPartnerDropdown() {
+  var sel = document.getElementById('ni-klant-partner');
+  if (!sel) return;
+  sel.innerHTML = '';
+  var flanccoId = '';
+  (allPartners || []).forEach(function(p) {
+    var naam = (p.bedrijfsnaam || p.naam || '').toLowerCase();
+    if (naam.indexOf('flancco') >= 0 && !flanccoId) flanccoId = p.id;
+    sel.innerHTML += '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam) + '</option>';
+  });
+  if (flanccoId) sel.value = flanccoId;
+}
+
 function openNieuweInterventieModal() {
   fillNiKlantDropdown();
   document.getElementById('ni-contract-wrap').style.display = 'none';
@@ -2208,59 +2259,81 @@ function openNieuweInterventieModal() {
   document.getElementById('ni-sector').value = 'zonnepanelen';
   document.getElementById('ni-omschrijving').value = '';
   document.getElementById('ni-ernst').value = 'normaal';
-  document.getElementById('ni-gewenste-datum').value = '';
   document.getElementById('ni-duur').value = '60';
+  document.getElementById('ni-duur').disabled = false;
+
+  // Hele dag + stap-state resetten
+  var heleDag = document.getElementById('ni-hele-dag');
+  if (heleDag) heleDag.checked = false;
+  document.getElementById('ni-step').value = 'input';
+  document.getElementById('ni-plan-datum').value = '';
+  document.getElementById('ni-plan-start').value = '09:00';
+
+  // Reset inline nieuwe-klant velden
+  var newWrap = document.getElementById('ni-new-client-fields');
+  if (newWrap) newWrap.style.display = 'none';
+  ['ni-klant-voornaam','ni-klant-achternaam','ni-klant-tel','ni-klant-email','ni-klant-straat','ni-klant-postcode','ni-klant-gemeente'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  fillNiPartnerDropdown();
+
+  // Populate tech dropdown voor 'Nu inplannen'-stap
+  var techSel = document.getElementById('ni-plan-tech');
+  if (techSel) {
+    techSel.innerHTML = '<option value="">— Kies technieker —</option>';
+    (allTechniekers || []).forEach(function(t) {
+      techSel.innerHTML += '<option value="' + t.id + '">' + esc(t.voornaam + ' ' + t.naam) + '</option>';
+    });
+  }
+
+  niApplyStepVisibility();
   document.getElementById('modal-nieuwe-interventie').classList.add('open');
+}
+
+function niSelectNewKlant() {
+  var sel = document.getElementById('ni-klant');
+  sel.value = '__new__';
+  onNiKlantChange();
 }
 
 function closeNieuweInterventieModal() {
   document.getElementById('modal-nieuwe-interventie').classList.remove('open');
 }
 
-// ---- Quick Klant (inline, bovenop interventie-modal) ----
-function openQuickKlantFromNi() {
-  document.getElementById('qk-company').value = '';
-  document.getElementById('qk-contact').value = '';
-  document.getElementById('qk-email').value = '';
-  document.getElementById('qk-phone').value = '';
-  document.getElementById('qk-street').value = '';
-  document.getElementById('qk-housenr').value = '';
-  document.getElementById('qk-postal').value = '';
-  document.getElementById('qk-city').value = '';
-  document.getElementById('modal-quick-klant').classList.add('open');
+function niApplyStepVisibility() {
+  var step = document.getElementById('ni-step').value;
+  var heleDag = document.getElementById('ni-hele-dag') && document.getElementById('ni-hele-dag').checked;
+
+  // Inplanning-blok enkel in 'scheduling' stap
+  document.getElementById('ni-schedule-block').style.display = (step === 'scheduling') ? 'block' : 'none';
+
+  // Startuur verbergen bij hele dag
+  document.getElementById('ni-start-wrap').style.display = (step === 'scheduling' && !heleDag) ? 'block' : 'none';
+
+  // Knoppen
+  var btnOpmaken = document.getElementById('ni-btn-opmaken');
+  var btnSave = document.getElementById('ni-btn-save');
+  if (step === 'input') {
+    btnOpmaken.style.display = 'inline-flex';
+    btnSave.textContent = 'Nu inplannen';
+  } else {
+    btnOpmaken.style.display = 'none';
+    btnSave.textContent = 'Bevestig inplanning';
+  }
 }
-function closeQuickKlant() {
-  document.getElementById('modal-quick-klant').classList.remove('open');
-}
-async function saveQuickKlant() {
-  var contact = document.getElementById('qk-contact').value.trim();
-  var email = document.getElementById('qk-email').value.trim();
-  if (!contact) { alert('Vul contactpersoon in.'); return; }
-  if (!email) { alert('Vul e-mail in.'); return; }
 
-  var payload = {
-    partner_id: FLANCCO_PARTNER_ID,
-    contact_person: contact,
-    company_name: document.getElementById('qk-company').value.trim() || null,
-    email: email,
-    phone: document.getElementById('qk-phone').value.trim() || null,
-    street: document.getElementById('qk-street').value.trim() || null,
-    house_number: document.getElementById('qk-housenr').value.trim() || null,
-    postal_code: document.getElementById('qk-postal').value.trim() || null,
-    city: document.getElementById('qk-city').value.trim() || null
-  };
-  var res = await sb.from('clients').insert([payload]).select().single();
-  if (res.error) { alert('Fout bij klant aanmaken: ' + res.error.message); return; }
-
-  // Refresh lokale cache
-  allClients = allClients || [];
-  allClients.push(res.data);
-
-  // Terug naar interventie-modal, selecteer nieuwe klant
-  closeQuickKlant();
-  fillNiKlantDropdown('client:' + res.data.id);
-  onNiKlantChange();
-  showToast('Klant toegevoegd', 'success');
+function niHeleDagChanged() {
+  var heleDag = document.getElementById('ni-hele-dag').checked;
+  var duurEl = document.getElementById('ni-duur');
+  if (heleDag) {
+    duurEl.value = 456; // 7,6u
+    duurEl.disabled = true;
+  } else {
+    duurEl.disabled = false;
+    if (parseInt(duurEl.value, 10) === 456) duurEl.value = 60;
+  }
+  niApplyStepVisibility();
 }
 
 function openPlanInterventieModal(ivId, techId, dateStr, startTijd) {
@@ -2338,21 +2411,68 @@ async function savePlanInterventie() {
   renderSidebar();
 }
 
-async function saveNieuweInterventie() {
+async function saveNieuweInterventie(action) {
+  action = action || 'opmaken';
+  var step = document.getElementById('ni-step').value;
+
   var klantVal = document.getElementById('ni-klant').value;
   var contractId = document.getElementById('ni-contract').value || null;
   var sector = document.getElementById('ni-sector').value;
   var omschrijving = document.getElementById('ni-omschrijving').value.trim();
   var ernst = document.getElementById('ni-ernst').value;
-  var gewenste = document.getElementById('ni-gewenste-datum').value;
-  var duur = parseInt(document.getElementById('ni-duur').value, 10) || 60;
+  var heleDag = document.getElementById('ni-hele-dag') && document.getElementById('ni-hele-dag').checked;
+  var duur = heleDag ? 456 : (parseInt(document.getElementById('ni-duur').value, 10) || 60);
 
   if (!klantVal) { alert('Selecteer een klant.'); return; }
   if (!omschrijving) { alert('Vul een omschrijving in.'); return; }
 
+  // Stap-overgang: eerste klik op 'Nu inplannen' → toon inplanning-velden
+  if (action === 'inplannen' && step === 'input') {
+    document.getElementById('ni-step').value = 'scheduling';
+    if (!document.getElementById('ni-plan-datum').value) {
+      document.getElementById('ni-plan-datum').value = formatDateISO(new Date());
+    }
+    niApplyStepVisibility();
+    return;
+  }
+
+  // Inplannen-velden ophalen + valideren (alleen bij stap 2)
+  var planDatum = null;
+  var planStart = null;
+  var planTech = null;
+  if (action === 'inplannen' && step === 'scheduling') {
+    planDatum = document.getElementById('ni-plan-datum').value || null;
+    planStart = heleDag ? null : (document.getElementById('ni-plan-start').value || null);
+    planTech = document.getElementById('ni-plan-tech').value || null;
+    if (!planTech) { alert('Kies een technieker.'); return; }
+    if (!planDatum) { alert('Kies een datum.'); return; }
+    if (!heleDag && !planStart) { alert('Vul een startuur in (of vink Hele dag aan).'); return; }
+  }
+
   // Bepaal client_id en evt. bestaand legacy contract
   var clientId = null;
-  if (klantVal.indexOf('contract:') === 0) {
+  if (klantVal === '__new__') {
+    // Nieuwe klant inline aanmaken
+    var vnaam = document.getElementById('ni-klant-voornaam').value.trim();
+    var anaam = document.getElementById('ni-klant-achternaam').value.trim();
+    if (!vnaam || !anaam) { alert('Voornaam en achternaam zijn verplicht voor nieuwe klant.'); return; }
+    var partnerId = document.getElementById('ni-klant-partner').value || FLANCCO_PARTNER_ID;
+    var volledigeNaam = vnaam + ' ' + anaam;
+    var clientPayload = {
+      partner_id: partnerId,
+      contact_person: volledigeNaam,
+      phone: document.getElementById('ni-klant-tel').value.trim() || null,
+      email: document.getElementById('ni-klant-email').value.trim() || null,
+      street: document.getElementById('ni-klant-straat').value.trim() || null,
+      postal_code: document.getElementById('ni-klant-postcode').value.trim() || null,
+      city: document.getElementById('ni-klant-gemeente').value.trim() || null
+    };
+    var newClientRes = await sb.from('clients').insert([clientPayload]).select().single();
+    if (newClientRes.error) { alert('Fout bij klant aanmaken: ' + newClientRes.error.message); return; }
+    allClients = allClients || [];
+    allClients.push(newClientRes.data);
+    clientId = newClientRes.data.id;
+  } else if (klantVal.indexOf('contract:') === 0) {
     // Legacy: klant zonder client_id — gebruik dat contract rechtstreeks
     contractId = klantVal.replace('contract:', '');
   } else if (klantVal.indexOf('client:') === 0) {
@@ -2395,23 +2515,50 @@ async function saveNieuweInterventie() {
 
   if (!contractId) { alert('Kon geen contract bepalen voor deze interventie.'); return; }
 
+  var ivStatus = (action === 'inplannen') ? 'ingepland' : 'open';
   var payload = {
     contract_id: contractId,
     omschrijving: omschrijving,
     ernst: ernst,
     actie_door: 'flancco',
-    status: 'open',
-    plan_datum: gewenste || null
+    status: ivStatus,
+    plan_datum: (action === 'inplannen') ? planDatum : null,
+    hele_dag: heleDag
   };
 
-  var res = await sb.from('interventies').insert([payload]).select();
+  var res = await sb.from('interventies').insert([payload]).select().single();
   if (res.error) { alert('Fout: ' + res.error.message); return; }
+  var newIv = res.data;
+
+  // Bij 'Nu inplannen': meteen onderhoudsbeurt aanmaken + koppelen
+  if (action === 'inplannen') {
+    var beurtPayload = {
+      contract_id: contractId,
+      sector: sector,
+      technieker_id: planTech,
+      plan_datum: planDatum,
+      start_tijd: planStart,
+      duur_minuten: duur,
+      hele_dag: heleDag,
+      status: 'ingepland',
+      notities: 'Interventie: ' + omschrijving.slice(0, 200)
+    };
+    var bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select().single();
+    if (bRes.error) { alert('Fout bij aanmaken beurt: ' + bRes.error.message); return; }
+    // Koppel interventie aan beurt
+    await sb.from('interventies').update({ onderhoudsbeurt_id: bRes.data.id }).eq('id', newIv.id);
+  }
 
   closeNieuweInterventieModal();
-  showToast('Interventie aangemaakt', 'success');
+  showToast((action === 'inplannen') ? 'Interventie ingepland' : 'Interventie opgemaakt (in te plannen)', 'success');
   await loadPlanningData();
-  if (sidebarType !== 'interventie') switchSidebarType('interventie');
-  else renderSidebar();
+  if (action === 'inplannen') {
+    renderView();
+    renderSidebar();
+  } else {
+    if (sidebarType !== 'interventie') switchSidebarType('interventie');
+    else renderSidebar();
+  }
 }
 
 // =============================================
@@ -3047,19 +3194,24 @@ function openNieuweTaakModal(opts) {
 
   if (type === 'interventie') {
     openNieuweInterventieModal();
+    // Vanuit dag-plus (met datum) direct in stap 'scheduling' zodat datum/tech/uur zichtbaar zijn
     if (datum) {
-      var dEl = document.getElementById('ni-gewenste-datum');
-      if (dEl) dEl.value = datum;
+      document.getElementById('ni-plan-datum').value = datum;
+      document.getElementById('ni-step').value = 'scheduling';
+      if (typeof niApplyStepVisibility === 'function') niApplyStepVisibility();
     }
     return;
   }
 
   // Contract-beurt én Eenmalig gebruiken QuickAdd. Voor eenmalig wordt
   // automatisch '+ Nieuwe klant' geselecteerd.
+  // Mode: 'inline' wanneer er een datum-context is (dag-plus), 'deferrable' zonder datum
+  // (sidebar/dashboard) — dan eerst input-stap zonder startuur, daarna Opmaken/Nu-inplannen.
+  var callMode = datum ? 'inline' : 'deferrable';
   var useTechId = techId || (allTechniekers[0] && allTechniekers[0].id) || null;
-  var useDatum = datum || formatDateISO(new Date());
-  if (!useTechId) { alert('Geen technieker beschikbaar.'); return; }
-  quickAdd(useTechId, useDatum);
+  var useDatum = datum || '';
+  if (callMode === 'inline' && !useTechId) { alert('Geen technieker beschikbaar.'); return; }
+  quickAdd(useTechId, useDatum, callMode);
 
   if (type === 'eenmalig') {
     // Auto-selecteer '+ Nieuwe klant' in contract-dropdown
@@ -3074,12 +3226,23 @@ function openNieuweTaakModal(opts) {
 // =============================================
 // QUICK-ADD
 // =============================================
-function quickAdd(techId, datum) {
-  document.getElementById('qa-tech-id').value = techId;
-  document.getElementById('qa-datum').value = datum;
+var QA_HELE_DAG_MIN = 456; // 7,6 uur (38u/week ÷ 5)
 
-  var tech = allTechniekers.find(function(t) { return t.id === techId; });
-  document.getElementById('qa-info').textContent = (tech ? tech.voornaam + ' ' + tech.naam : '') + ' — ' + datum;
+function quickAdd(techId, datum, mode) {
+  mode = mode || 'inline';
+  document.getElementById('qa-tech-id').value = techId || '';
+  document.getElementById('qa-datum').value = datum || '';
+  document.getElementById('qa-mode').value = mode;
+  document.getElementById('qa-step').value = 'input';
+
+  // Titel + info
+  document.getElementById('qa-title').textContent = (mode === 'deferrable') ? 'Nieuwe taak' : 'Taak toevoegen';
+  if (mode === 'inline') {
+    var tech = allTechniekers.find(function(t) { return t.id === techId; });
+    document.getElementById('qa-info').textContent = (tech ? tech.voornaam + ' ' + tech.naam : '') + ' — ' + (datum || '');
+  } else {
+    document.getElementById('qa-info').textContent = 'Maak een nieuwe taak aan — vul klant + duur in, daarna opmaken of direct inplannen.';
+  }
 
   // Populate contract dropdown with "Nieuwe klant" option
   var sel = document.getElementById('qa-contract');
@@ -3105,15 +3268,31 @@ function quickAdd(techId, datum) {
   });
   if (flanccoId) partnerSel.value = flanccoId;
 
+  // Populate tech dropdown (for deferrable mode Nu-inplannen step)
+  var techSel = document.getElementById('qa-tech-select');
+  if (techSel) {
+    techSel.innerHTML = '<option value="">— Kies technieker —</option>';
+    (allTechniekers || []).forEach(function(t) {
+      techSel.innerHTML += '<option value="' + t.id + '"' + (t.id === techId ? ' selected' : '') + '>' +
+        esc(t.voornaam + ' ' + t.naam) + '</option>';
+    });
+  }
+
+  // Reset datum-input (visible in deferrable stap 2)
+  document.getElementById('qa-datum-input').value = (mode === 'inline') ? (datum || '') : '';
+
+  // Reset hele-dag + duur + startuur
+  document.getElementById('qa-hele-dag').checked = false;
+  document.getElementById('qa-duur').value = 60;
+  document.getElementById('qa-duur').disabled = false;
+  document.getElementById('qa-start').value = '09:00';
+  document.getElementById('qa-start-wrap').style.display = 'block';
+
   // Reset new client fields
   document.getElementById('qa-new-client-fields').style.display = 'none';
-  document.getElementById('qa-klant-voornaam').value = '';
-  document.getElementById('qa-klant-achternaam').value = '';
-  document.getElementById('qa-klant-tel').value = '';
-  document.getElementById('qa-klant-email').value = '';
-  document.getElementById('qa-klant-straat').value = '';
-  document.getElementById('qa-klant-postcode').value = '';
-  document.getElementById('qa-klant-gemeente').value = '';
+  ['qa-klant-voornaam','qa-klant-achternaam','qa-klant-tel','qa-klant-email','qa-klant-straat','qa-klant-postcode','qa-klant-gemeente'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
 
   // Extra techniekers chips
   var chipHtml = '';
@@ -3125,7 +3304,62 @@ function quickAdd(techId, datum) {
   document.getElementById('qa-extra-techs').innerHTML = chipHtml;
 
   document.getElementById('qa-notities').value = '';
+
+  // Mode-specifieke zichtbaarheid
+  qaApplyModeVisibility();
+
   document.getElementById('modal-quickadd').classList.add('open');
+}
+
+// Toon/verberg velden en knoppen o.b.v. mode + step
+function qaApplyModeVisibility() {
+  var mode = document.getElementById('qa-mode').value;
+  var step = document.getElementById('qa-step').value;
+  var heleDag = document.getElementById('qa-hele-dag').checked;
+
+  var showScheduleBlock = (mode === 'inline') || (mode === 'deferrable' && step === 'scheduling');
+  document.getElementById('qa-schedule-block').style.display = showScheduleBlock ? 'block' : 'none';
+
+  // Titel van schedule-blok alleen bij deferrable stap 2
+  var schedTitle = document.getElementById('qa-schedule-title');
+  if (schedTitle) schedTitle.hidden = !(mode === 'deferrable' && step === 'scheduling');
+
+  // Startuur verbergen bij hele dag
+  document.getElementById('qa-start-wrap').style.display = (showScheduleBlock && !heleDag) ? 'block' : 'none';
+
+  // Tech dropdown alleen in deferrable stap 2 (inline heeft tech vooraf gezet)
+  var showTechSelect = (mode === 'deferrable' && step === 'scheduling');
+  document.getElementById('qa-tech-wrap').style.display = showTechSelect ? 'block' : 'none';
+
+  // Datum-input in deferrable stap 2 zichtbaar; in inline verborgen (gebruikt hidden qa-datum)
+  document.getElementById('qa-datum-wrap').style.display = (mode === 'deferrable' && step === 'scheduling') ? 'block' : 'none';
+
+  // Buttons
+  var btnOpmaken = document.getElementById('qa-btn-opmaken');
+  var btnSave = document.getElementById('qa-btn-save');
+  if (mode === 'deferrable' && step === 'input') {
+    btnOpmaken.style.display = 'inline-flex';
+    btnSave.textContent = 'Nu inplannen';
+  } else if (mode === 'deferrable' && step === 'scheduling') {
+    btnOpmaken.style.display = 'none';
+    btnSave.textContent = 'Bevestig inplanning';
+  } else {
+    btnOpmaken.style.display = 'none';
+    btnSave.textContent = 'Inplannen';
+  }
+}
+
+function qaHeleDagChanged() {
+  var heleDag = document.getElementById('qa-hele-dag').checked;
+  var duurEl = document.getElementById('qa-duur');
+  if (heleDag) {
+    duurEl.value = QA_HELE_DAG_MIN;
+    duurEl.disabled = true;
+  } else {
+    duurEl.disabled = false;
+    if (parseInt(duurEl.value, 10) === QA_HELE_DAG_MIN) duurEl.value = 60;
+  }
+  qaApplyModeVisibility();
 }
 
 function qaContractChanged() {
@@ -3142,6 +3376,12 @@ function qaContractChanged() {
   }
 }
 
+function qaSelectNewKlant() {
+  var sel = document.getElementById('qa-contract');
+  sel.value = '__new__';
+  qaContractChanged();
+}
+
 function toggleTechChip(el) {
   el.classList.toggle('selected');
 }
@@ -3150,16 +3390,64 @@ function closeQuickAdd() {
   document.getElementById('modal-quickadd').classList.remove('open');
 }
 
-async function saveQuickAdd() {
+async function saveQuickAdd(action) {
+  action = action || 'inplannen';
+  var mode = document.getElementById('qa-mode').value;
+  var step = document.getElementById('qa-step').value;
+
+  // Stap-overgang bij deferrable + Nu-inplannen klik: eerst velden tonen
+  if (action === 'inplannen' && mode === 'deferrable' && step === 'input') {
+    // Valideer dat basis-velden zijn ingevuld vooraleer we naar stap 2 gaan
+    var contractValPre = document.getElementById('qa-contract').value;
+    if (!contractValPre) { alert('Selecteer een klant of maak een nieuwe aan.'); return; }
+    document.getElementById('qa-step').value = 'scheduling';
+    // Voor-invullen datum op vandaag
+    if (!document.getElementById('qa-datum-input').value) {
+      document.getElementById('qa-datum-input').value = formatDateISO(new Date());
+    }
+    qaApplyModeVisibility();
+    return;
+  }
+
+  // Lees form-waarden
   var contractVal = document.getElementById('qa-contract').value;
   if (!contractVal) { alert('Selecteer een contract of maak een nieuwe klant aan'); return; }
 
-  var techId = document.getElementById('qa-tech-id').value;
-  var datum = document.getElementById('qa-datum').value;
   var sector = document.getElementById('qa-sector').value;
-  var startTijd = document.getElementById('qa-start').value || null;
-  var duur = parseInt(document.getElementById('qa-duur').value) || 60;
+  var heleDag = document.getElementById('qa-hele-dag').checked;
+  var duur = heleDag ? QA_HELE_DAG_MIN : (parseInt(document.getElementById('qa-duur').value) || 60);
   var notities = document.getElementById('qa-notities').value.trim() || null;
+
+  // Tech + datum + startuur afhankelijk van action/mode
+  var techId = null;
+  var datum = null;
+  var startTijd = null;
+  var status = 'in_te_plannen';
+
+  if (action === 'opmaken') {
+    // Opmaken: geen tech/datum/startuur vereist → status=in_te_plannen
+    techId = document.getElementById('qa-tech-id').value || null;
+    // Datum optioneel meegeven als al ingevuld (dan wordt het toch "in te plannen" door status)
+    var dIn = document.getElementById('qa-datum-input').value;
+    datum = dIn || (document.getElementById('qa-datum').value || null);
+    startTijd = null;
+    status = 'in_te_plannen';
+  } else {
+    // Nu inplannen / Inplannen — vereist datum (+ startuur als niet hele dag)
+    if (mode === 'deferrable') {
+      techId = document.getElementById('qa-tech-select').value || null;
+      datum = document.getElementById('qa-datum-input').value || null;
+    } else {
+      techId = document.getElementById('qa-tech-id').value || null;
+      datum = document.getElementById('qa-datum').value || null;
+    }
+    startTijd = heleDag ? null : (document.getElementById('qa-start').value || null);
+
+    if (!techId) { alert('Kies een technieker.'); return; }
+    if (!datum) { alert('Kies een datum.'); return; }
+    if (!heleDag && !startTijd) { alert('Vul een startuur in (of vink Hele dag aan).'); return; }
+    status = 'ingepland';
+  }
 
   var extraIds = [];
   document.querySelectorAll('#qa-extra-techs .tech-chip.selected').forEach(function(el) {
@@ -3222,7 +3510,8 @@ async function saveQuickAdd() {
     plan_datum: datum,
     start_tijd: startTijd,
     duur_minuten: duur,
-    status: 'ingepland',
+    hele_dag: heleDag,
+    status: status,
     notities: notities,
     extra_technieker_ids: extraIds
   };
@@ -3230,8 +3519,10 @@ async function saveQuickAdd() {
   var res = await sb.from('onderhoudsbeurten').insert([payload]).select();
   if (res.error) { alert('Fout: ' + res.error.message); return; }
 
-  await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, 'ingepland via quick-add');
-  showToast(contractVal === '__new__' ? 'Klant aangemaakt + taak ingepland' : 'Taak ingepland');
+  await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, status + ' via quick-add');
+  var msg = contractVal === '__new__' ? 'Klant aangemaakt + taak ' : 'Taak ';
+  msg += (status === 'ingepland') ? 'ingepland' : 'opgemaakt (in te plannen)';
+  showToast(msg);
   closeQuickAdd();
   await loadPlanningData();
   renderView();
