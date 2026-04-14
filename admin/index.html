@@ -3085,7 +3085,9 @@ function renderAdminSettings() {
     html += '<div><label style="font-size:11px;color:var(--grey)">Telefoon</label><input type="tel" id="adm-tel-' + p.id + '" value="' + esc(p.telefoon || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
     html += '<div><label style="font-size:11px;color:var(--grey)">BTW-nummer</label><input type="text" id="adm-btw-' + p.id + '" value="' + esc(p.btw_nummer || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
     html += '<div><label style="font-size:11px;color:var(--grey)">Website</label><input type="text" id="adm-web-' + p.id + '" value="' + esc(p.website || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
-    html += '<div style="grid-column:span 2"><label style="font-size:11px;color:var(--grey)">Adres</label><input type="text" id="adm-adres-' + p.id + '" value="' + esc([p.adres, p.postcode, p.gemeente].filter(Boolean).join(', ')) + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div style="grid-column:span 2"><label style="font-size:11px;color:var(--grey)">Adres (straat + nr)</label><input type="text" id="adm-adres-' + p.id + '" value="' + esc(p.adres || p.street || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Postcode</label><input type="text" id="adm-postcode-' + p.id + '" value="' + esc(p.postcode || p.postal_code || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Gemeente</label><input type="text" id="adm-gemeente-' + p.id + '" value="' + esc(p.gemeente || p.city || '') + '" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
     html += '</div></div>';
 
     // Branding
@@ -3329,6 +3331,9 @@ async function toggleAdminSector(partnerId, sector, label) {
 }
 
 async function saveAdminPartner(partnerId) {
+  var adresEl = document.getElementById('adm-adres-' + partnerId);
+  var postcodeEl = document.getElementById('adm-postcode-' + partnerId);
+  var gemeenteEl = document.getElementById('adm-gemeente-' + partnerId);
   var updates = {
     bedrijfsnaam: document.getElementById('adm-naam-' + partnerId).value.trim(),
     contactpersoon: document.getElementById('adm-contact-' + partnerId).value.trim(),
@@ -3336,6 +3341,9 @@ async function saveAdminPartner(partnerId) {
     telefoon: document.getElementById('adm-tel-' + partnerId).value.trim(),
     btw_nummer: document.getElementById('adm-btw-' + partnerId).value.trim(),
     website: document.getElementById('adm-web-' + partnerId).value.trim(),
+    adres: adresEl ? (adresEl.value.trim() || null) : null,
+    postcode: postcodeEl ? (postcodeEl.value.trim() || null) : null,
+    gemeente: gemeenteEl ? (gemeenteEl.value.trim() || null) : null,
     kleur_primair: document.getElementById('adm-kleur1t-' + partnerId).value.trim() || document.getElementById('adm-kleur1-' + partnerId).value,
     kleur_donker: document.getElementById('adm-kleur2t-' + partnerId).value.trim() || document.getElementById('adm-kleur2-' + partnerId).value,
     logo_url: document.getElementById('adm-logo-' + partnerId).value.trim() || null,
