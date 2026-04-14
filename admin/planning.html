@@ -504,6 +504,10 @@
     background: var(--navy); color: var(--white); border-color: var(--navy);
   }
   .modal-buttons .btn-save:hover { background: var(--navy-light); }
+  .modal-buttons .btn-blue {
+    background: var(--blue); color: var(--white); border-color: var(--blue);
+  }
+  .modal-buttons .btn-blue:hover { background: #2580B8; border-color: #2580B8; }
   .tech-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .tech-chip {
     padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
@@ -769,8 +773,8 @@
       </div>
       <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
-          <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()">
-          <span style="font-size:13px">Hele dag (7,6u)</span>
+          <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()" style="width:auto;padding:0;border:1px solid var(--rule);flex-shrink:0;margin:0">
+          <span style="font-size:13px;flex-shrink:0">Hele dag (7,6u)</span>
         </label>
       </div>
     </div>
@@ -804,8 +808,8 @@
     <!-- Buttons: inline (single) vs deferrable (dual) -->
     <div class="modal-buttons">
       <button type="button" onclick="closeQuickAdd()">Annuleren</button>
-      <button type="button" id="qa-btn-opmaken" class="btn-ghost" style="display:none" onclick="saveQuickAdd('opmaken')">Opmaken</button>
       <button type="button" id="qa-btn-save" class="btn-save" onclick="saveQuickAdd('inplannen')">Inplannen</button>
+      <button type="button" id="qa-btn-opmaken" class="btn-blue" style="display:none" onclick="saveQuickAdd('opmaken')">Opmaken</button>
     </div>
   </div>
 </div>
@@ -971,8 +975,8 @@
       </div>
       <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
-          <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()">
-          <span style="font-size:13px">Hele dag (7,6u)</span>
+          <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()" style="width:auto;padding:0;border:1px solid var(--rule);flex-shrink:0;margin:0">
+          <span style="font-size:13px;flex-shrink:0">Hele dag (7,6u)</span>
         </label>
       </div>
     </div>
@@ -1000,8 +1004,8 @@
 
     <div class="modal-buttons">
       <button type="button" onclick="closeNieuweInterventieModal()">Annuleren</button>
-      <button type="button" id="ni-btn-opmaken" class="btn-ghost" onclick="saveNieuweInterventie('opmaken')">Opmaken</button>
       <button type="button" id="ni-btn-save" class="btn-save" onclick="saveNieuweInterventie('inplannen')">Nu inplannen</button>
+      <button type="button" id="ni-btn-opmaken" class="btn-blue" onclick="saveNieuweInterventie('opmaken')">Opmaken</button>
     </div>
   </div>
 </div>
@@ -3217,8 +3221,8 @@ function openNieuweTaakModal(opts) {
     return;
   }
 
-  // Contract-beurt én Eenmalig gebruiken QuickAdd. Voor eenmalig wordt
-  // automatisch '+ Nieuwe klant' geselecteerd.
+  // Contract-beurt én Eenmalig gebruiken QuickAdd. Nieuwe-klant-velden verschijnen
+  // pas na klik op "+ Nieuwe klant"-knop (niet automatisch zichtbaar).
   // Mode: 'inline' wanneer er een datum-context is (dag-plus), 'deferrable' zonder datum
   // (sidebar/dashboard) — dan eerst input-stap zonder startuur, daarna Opmaken/Nu-inplannen.
   var callMode = datum ? 'inline' : 'deferrable';
@@ -3226,11 +3230,6 @@ function openNieuweTaakModal(opts) {
   var useDatum = datum || '';
   if (callMode === 'inline' && !useTechId) { alert('Geen technieker beschikbaar.'); return; }
   quickAdd(useTechId, useDatum, callMode);
-
-  if (type === 'eenmalig') {
-    // Toon direct nieuwe-klant-velden (eenmalig → altijd nieuwe klant of bestaande kiezen)
-    if (typeof qaSelectNewKlant === 'function') qaSelectNewKlant();
-  }
 }
 
 // =============================================
