@@ -406,6 +406,28 @@
   .deadline-date { font-size:12px; color:var(--grey); font-variant-numeric:tabular-nums; }
   .dash-empty { color: var(--grey); font-size: 13px; padding: 24px 0; text-align: center; }
   @media (max-width: 900px) { .dash-grid-primary { grid-template-columns: 1fr !important; } }
+  /* Verlof + Uren */
+  .btn.btn-ghost { background:#fff; color:var(--navy); border:1.5px solid var(--rule); }
+  .btn.btn-ghost:hover { border-color:var(--navy); background:#f9fafb; }
+  .u-period-btn { padding:6px 14px; font-size:12px; font-weight:600; background:#fff; border:none; border-right:1px solid var(--rule); cursor:pointer; color:var(--grey); font-family:inherit; }
+  .u-period-btn:last-child { border-right:none; }
+  .u-period-btn.active { background:var(--navy); color:#fff; }
+  .btn-nav { padding:4px 10px; font-size:14px; background:#fff; border:1.5px solid var(--rule); border-radius:6px; cursor:pointer; color:var(--navy); font-family:inherit; }
+  .btn-nav:hover { background:var(--light); }
+  .saldo-card { background:#fff; border:1px solid var(--rule); border-left:3px solid var(--accent); border-radius:8px; padding:10px 12px; font-size:12px; }
+  .saldo-card .saldo-tech { font-weight:700; color:var(--navy); font-size:13px; }
+  .saldo-card .saldo-type { color:var(--grey); text-transform:uppercase; font-size:10px; letter-spacing:0.5px; }
+  .saldo-card .saldo-val { font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .saldo-card .saldo-sub { font-size:11px; color:var(--grey); margin-top:2px; }
+  .saldo-card[data-over="true"] { border-left-color:var(--red); }
+  .verlof-type-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; color:#fff; }
+  .verlof-type-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .uren-bar { width:100%; height:6px; border-radius:3px; background:var(--light); overflow:hidden; margin-top:4px; }
+  .uren-bar-fill { height:100%; transition:width 0.2s; }
+  /* Diagonal stripe (voor planning overlay) */
+  .verlof-overlay-pattern {
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 6px, transparent 6px, transparent 12px);
+  }
 
   /* RESPONSIVE */
   @media (max-width: 768px) {
@@ -472,13 +494,23 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       <span>Rapporten</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('wagenpark')" data-page="wagenpark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2"/><path d="M9 17h6"/><path d="M5 6h9"/></svg>
+      <span>Wagenpark</span>
+    </a>
+
+    <div class="nav-section admin-only">Team</div>
     <a class="nav-item admin-only" onclick="showPage('techniekers')" data-page="techniekers">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
       <span>Techniekers</span>
     </a>
-    <a class="nav-item admin-only" onclick="showPage('wagenpark')" data-page="wagenpark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2"/><path d="M9 17h6"/><path d="M5 6h9"/></svg>
-      <span>Wagenpark</span>
+    <a class="nav-item admin-only perm-verlof-beheer" onclick="showPage('verlof')" data-page="verlof">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+      <span>Verlof</span>
+    </a>
+    <a class="nav-item admin-only perm-verlof-beheer" onclick="showPage('uren')" data-page="uren">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Uren</span>
     </a>
 
     <div class="nav-section admin-only">Financieel</div>
@@ -1014,6 +1046,83 @@
           </thead>
           <tbody id="tech-tbody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <div class="page admin-only perm-verlof-beheer" id="page-verlof">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <select id="verlof-filter-tech" onchange="renderVerlof()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;min-width:180px">
+              <option value="">Alle techniekers</option>
+            </select>
+            <select id="verlof-filter-type" onchange="renderVerlof()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+              <option value="">Alle types</option>
+            </select>
+            <select id="verlof-filter-jaar" onchange="renderVerlof()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100px">
+            </select>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="openFeestdagenBulk()">📅 Feestdagen importeren</button>
+            <button class="btn" onclick="openVerlofModal(null)">+ Nieuw verlof</button>
+          </div>
+        </div>
+
+        <!-- Saldo-overzicht -->
+        <div id="verlof-saldo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Technieker</th>
+              <th>Type</th>
+              <th>Periode</th>
+              <th>Dagen</th>
+              <th>Reden</th>
+              <th>Status</th>
+              <th style="width:90px;text-align:right">Acties</th>
+            </tr>
+          </thead>
+          <tbody id="verlof-tbody"></tbody>
+        </table>
+        <div id="verlof-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen verlof-records gevonden voor deze filters.</div>
+      </div>
+    </div>
+
+    <div class="page admin-only perm-verlof-beheer" id="page-uren">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div class="view-toggle" style="display:inline-flex;gap:0;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden">
+              <button class="u-period-btn active" data-period="week" onclick="switchUrenPeriode('week')">Week</button>
+              <button class="u-period-btn" data-period="maand" onclick="switchUrenPeriode('maand')">Maand</button>
+              <button class="u-period-btn" data-period="kwartaal" onclick="switchUrenPeriode('kwartaal')">Kwartaal</button>
+              <button class="u-period-btn" data-period="jaar" onclick="switchUrenPeriode('jaar')">Jaar</button>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn-nav" onclick="urenNavPeriode(-1)">‹</button>
+              <span id="uren-periode-label" style="font-weight:600;font-size:13px;min-width:140px;text-align:center"></span>
+              <button class="btn-nav" onclick="urenNavPeriode(1)">›</button>
+            </div>
+          </div>
+          <button class="btn btn-ghost" onclick="exportUrenCsv()">⬇ Export CSV</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Technieker</th>
+              <th style="text-align:right">Gewerkte uren</th>
+              <th style="text-align:right">Verlof (d)</th>
+              <th style="text-align:right">Ziekte (d)</th>
+              <th style="text-align:right">Overuren</th>
+              <th style="text-align:right">Contract</th>
+              <th>Vulling</th>
+            </tr>
+          </thead>
+          <tbody id="uren-tbody"></tbody>
+        </table>
+        <div id="uren-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen gegevens voor deze periode.</div>
       </div>
     </div>
 
@@ -1729,6 +1838,85 @@
   </div>
 </div>
 
+<!-- VERLOF MODAL -->
+<div class="modal-overlay" id="modal-verlof">
+  <div class="modal" style="max-width:560px">
+    <h2 id="verlof-modal-title">Nieuw verlof</h2>
+    <input type="hidden" id="verlof-edit-id">
+    <div class="modal-row">
+      <div class="modal-field"><label>Technieker *</label>
+        <select id="verlof-tech"></select>
+      </div>
+      <div class="modal-field"><label>Type *</label>
+        <select id="verlof-type"></select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Van *</label><input type="date" id="verlof-van"></div>
+      <div class="modal-field"><label>Tot *</label><input type="date" id="verlof-tot"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Halve dag</label>
+        <select id="verlof-halve-dag">
+          <option value="">— Hele dag(en) —</option>
+          <option value="vm">Voormiddag</option>
+          <option value="nm">Namiddag</option>
+        </select>
+        <small style="color:var(--grey);font-size:11px">Alleen van toepassing als Van = Tot</small>
+      </div>
+      <div class="modal-field"><label>Dagen</label>
+        <input type="text" id="verlof-dagen-preview" readonly style="background:#f5f5f5">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Reden / opmerking</label>
+      <textarea id="verlof-reden" rows="2" placeholder="Optionele opmerking"></textarea>
+    </div>
+    <div id="verlof-conflict-warn" style="display:none;background:#FEF3C7;border-left:3px solid #F59E0B;padding:10px;border-radius:6px;margin-top:10px;font-size:13px"></div>
+    <div id="verlof-saldo-warn" style="display:none;background:#FEE2E2;border-left:3px solid #EF4444;padding:10px;border-radius:6px;margin-top:10px;font-size:13px"></div>
+    <div id="verlof-retro-warn" style="display:none;background:#E0E7FF;border-left:3px solid #6366F1;padding:10px;border-radius:6px;margin-top:10px;font-size:13px">⏮ Deze verlofdatum ligt in het verleden — retroactief.</div>
+
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeVerlofModal()">Annuleren</button>
+      <button class="btn btn-danger" id="verlof-delete-btn" style="display:none" onclick="deleteVerlof()">Verwijderen</button>
+      <button class="btn" onclick="saveVerlof()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEESTDAGEN BULK MODAL -->
+<div class="modal-overlay" id="modal-feestdagen">
+  <div class="modal" style="max-width:560px">
+    <h2>Feestdagen importeren</h2>
+    <p style="color:var(--grey);font-size:13px;margin-top:-4px">10 Belgische wettelijke feestdagen voor alle actieve techniekers. Bestaande feestdagen worden overgeslagen.</p>
+    <div class="modal-row">
+      <div class="modal-field"><label>Jaar</label>
+        <select id="feestdagen-jaar" style="font-size:14px"></select>
+      </div>
+    </div>
+    <div id="feestdagen-preview" style="background:#f9fafb;border:1px solid var(--rule);border-radius:6px;padding:12px;font-size:12px;max-height:220px;overflow-y:auto;margin-top:8px"></div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeFeestdagenBulk()">Annuleren</button>
+      <button class="btn" onclick="importeerFeestdagen()">Importeren</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFLICT MODAL (taken op verlofdag) -->
+<div class="modal-overlay" id="modal-verlof-conflict">
+  <div class="modal" style="max-width:560px">
+    <h2>Taken op verlof-datum</h2>
+    <p style="color:var(--grey);font-size:13px;margin-top:-4px">Er staan al beurten op deze dagen voor deze technieker. Wat wil je doen?</p>
+    <div id="conflict-taken-lijst" style="background:#f9fafb;border:1px solid var(--rule);border-radius:6px;padding:12px;font-size:13px;max-height:220px;overflow-y:auto;margin:12px 0"></div>
+    <div class="modal-buttons" style="flex-wrap:wrap;gap:8px">
+      <button class="btn btn-secondary" onclick="closeVerlofConflict()">Annuleren</button>
+      <button class="btn btn-ghost" onclick="resolveVerlofConflict('keep')">Laat taken staan</button>
+      <button class="btn btn-ghost" onclick="resolveVerlofConflict('unassign')">Maak los (in_te_plannen)</button>
+      <button class="btn" onclick="resolveVerlofConflict('delete')">Verwijder taken</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // =============================================
 // SUPABASE INIT
@@ -1752,6 +1940,13 @@ let allTechSectoren = [];
 let allVoertuigen = [];
 let allInterventies = [];
 let allRapporten = [];
+let allVerlofTypes = [];
+let allVerlof = [];
+let allVerlofSaldi = [];
+let allOnderhoudsbeurten = [];
+let urenPeriode = 'week';
+let urenPeriodeRef = new Date();  // anker-datum voor uren-periode navigatie
+let currentVerlofConflict = null; // {taken:[], verlofPayload:{...}}
 
 // =============================================
 // AUTH
@@ -1805,6 +2000,7 @@ async function initApp() {
   if (!can('manage_pricing')) document.querySelectorAll('.perm-pricing').forEach(el => el.classList.add('role-hidden'));
   if (!can('manage_partners')) document.querySelectorAll('.perm-partners').forEach(el => el.classList.add('role-hidden'));
   if (!can('manage_users')) document.querySelectorAll('.perm-users').forEach(el => el.classList.add('role-hidden'));
+  if (!can('verlof_beheer')) document.querySelectorAll('.perm-verlof-beheer').forEach(el => el.classList.add('role-hidden'));
 
   document.getElementById('login').classList.remove('visible');
   document.getElementById('login').style.display = 'none';
@@ -2106,7 +2302,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt] = await Promise.all([
+  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('staffel_min'),
     sb.from('supplementen').select('*'),
@@ -2116,7 +2312,11 @@ async function loadAllData() {
     sb.from('technieker_sectoren').select('*'),
     sb.from('voertuigen').select('*').order('nummerplaat'),
     sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector, partner_id)').order('created_at', { ascending: false }),
-    sb.from('rapporten').select('*').order('datum_onderhoud', { ascending: false })
+    sb.from('rapporten').select('*').order('datum_onderhoud', { ascending: false }),
+    sb.from('verlof_types').select('*').order('volgorde'),
+    sb.from('technieker_afwezigheden').select('*').order('van_datum', { ascending: false }),
+    sb.from('verlof_saldi').select('*'),
+    sb.from('onderhoudsbeurten').select('id, contract_id, technieker_id, plan_datum, plan_tijd, duur_minuten, status').order('plan_datum', { ascending: false })
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
@@ -2128,6 +2328,10 @@ async function loadAllData() {
   allVoertuigen = voert.data || [];
   allInterventies = intv.data || [];
   allRapporten = rpt.data || [];
+  allVerlofTypes = vt.data || [];
+  allVerlof = vaf.data || [];
+  allVerlofSaldi = vsa.data || [];
+  allOnderhoudsbeurten = ob.data || [];
 
   renderDashboard();
   renderPartners();
@@ -2180,10 +2384,12 @@ function showPage(name) {
   // Activate the visible nav item (not role-hidden)
   var navItems = document.querySelectorAll('.nav-item[data-page="' + name + '"]');
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Techniekers', wagenpark: 'Wagenpark', interventies: 'Interventies', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Techniekers', wagenpark: 'Wagenpark', interventies: 'Interventies', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') initChecklistTabs();
   if (name === 'gebruikers') renderGebruikers();
+  if (name === 'verlof') renderVerlofPage();
+  if (name === 'uren') renderUrenPage();
 }
 
 // =============================================
@@ -7295,6 +7501,608 @@ async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
       user_id: userId
     });
   } catch(e) { console.warn('Audit log failed:', e); }
+}
+
+// =============================================
+// VERLOF — helpers
+// =============================================
+function paaszondag(jaar) {
+  var a = jaar % 19, b = Math.floor(jaar / 100), c = jaar % 100;
+  var d = Math.floor(b / 4), e = b % 4;
+  var f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  var h = (19 * a + b - d - g + 15) % 30;
+  var i = Math.floor(c / 4), k = c % 4;
+  var l = (32 + 2 * e + 2 * i - h - k) % 7;
+  var m = Math.floor((a + 11 * h + 22 * l) / 451);
+  var maand = Math.floor((h + l - 7 * m + 114) / 31);
+  var dag = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(jaar, maand - 1, dag);
+}
+function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function dateISO(d) {
+  var yr = d.getFullYear(), mo = ('0' + (d.getMonth() + 1)).slice(-2), da = ('0' + d.getDate()).slice(-2);
+  return yr + '-' + mo + '-' + da;
+}
+function parseISO(s) { if (!s) return null; var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function getBelgieFeestdagen(jaar) {
+  var paas = paaszondag(jaar);
+  return [
+    { datum: jaar + '-01-01', naam: 'Nieuwjaar' },
+    { datum: dateISO(addDays(paas, 1)), naam: 'Paasmaandag' },
+    { datum: jaar + '-05-01', naam: 'Feest van de Arbeid' },
+    { datum: dateISO(addDays(paas, 39)), naam: 'O.L.H. Hemelvaart' },
+    { datum: dateISO(addDays(paas, 50)), naam: 'Pinkstermaandag' },
+    { datum: jaar + '-07-21', naam: 'Nationale feestdag' },
+    { datum: jaar + '-08-15', naam: 'O.L.V. Hemelvaart' },
+    { datum: jaar + '-11-01', naam: 'Allerheiligen' },
+    { datum: jaar + '-11-11', naam: 'Wapenstilstand' },
+    { datum: jaar + '-12-25', naam: 'Kerstmis' }
+  ];
+}
+// Aantal werkdagen (ma-vr) tussen van..tot inclusief — halveDag maakt 1-daagse 0.5
+function countWerkdagen(vanISO, totISO, halveDag) {
+  if (!vanISO || !totISO) return 0;
+  var van = parseISO(vanISO), tot = parseISO(totISO);
+  if (tot < van) return 0;
+  var n = 0, cur = new Date(van);
+  while (cur <= tot) {
+    var dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) n++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (halveDag && vanISO === totISO) return 0.5;
+  return n;
+}
+function techNaam(techId) {
+  var t = allTechniekers.find(function(x) { return x.id === techId; });
+  if (!t) return '—';
+  return ((t.voornaam || '') + ' ' + (t.naam || '')).trim() || t.naam || '—';
+}
+function verlofTypeById(id) { return allVerlofTypes.find(function(x) { return x.id === id; }); }
+
+// =============================================
+// VERLOF — render pagina
+// =============================================
+function renderVerlofPage() {
+  // Filter dropdowns
+  var techSel = document.getElementById('verlof-filter-tech');
+  techSel.innerHTML = '<option value="">Alle techniekers</option>' +
+    allTechniekers.filter(function(t) { return t.actief !== false; })
+      .map(function(t) { return '<option value="' + t.id + '">' + esc(techNaam(t.id)) + '</option>'; }).join('');
+  var typeSel = document.getElementById('verlof-filter-type');
+  typeSel.innerHTML = '<option value="">Alle types</option>' +
+    allVerlofTypes.map(function(vt) { return '<option value="' + vt.id + '">' + esc(vt.naam) + '</option>'; }).join('');
+  var jaarSel = document.getElementById('verlof-filter-jaar');
+  var huidigJaar = new Date().getFullYear();
+  var jaren = [];
+  for (var j = huidigJaar - 1; j <= huidigJaar + 1; j++) jaren.push(j);
+  jaarSel.innerHTML = jaren.map(function(j) { return '<option value="' + j + '"' + (j === huidigJaar ? ' selected' : '') + '>' + j + '</option>'; }).join('');
+
+  renderVerlof();
+  renderVerlofSaldoGrid();
+}
+
+function renderVerlof() {
+  var fTech = document.getElementById('verlof-filter-tech').value;
+  var fType = document.getElementById('verlof-filter-type').value;
+  var fJaar = parseInt(document.getElementById('verlof-filter-jaar').value || '0', 10);
+
+  var rows = allVerlof.filter(function(v) {
+    if (fTech && v.technieker_id !== fTech) return false;
+    if (fType && v.verlof_type_id !== fType) return false;
+    if (fJaar) {
+      var vn = parseISO(v.van_datum).getFullYear(), tt = parseISO(v.tot_datum).getFullYear();
+      if (vn !== fJaar && tt !== fJaar) return false;
+    }
+    return true;
+  });
+
+  var tbody = document.getElementById('verlof-tbody');
+  var empty = document.getElementById('verlof-empty');
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(function(v) {
+    var vt = verlofTypeById(v.verlof_type_id) || { naam: '—', kleur: '#999' };
+    var dagen = countWerkdagen(v.van_datum, v.tot_datum, v.halve_dag);
+    var periode = v.van_datum === v.tot_datum ? formatBE(v.van_datum) : (formatBE(v.van_datum) + ' → ' + formatBE(v.tot_datum));
+    if (v.halve_dag) periode += ' (' + (v.halve_dag === 'vm' ? 'VM' : 'NM') + ')';
+    var status = v.status || 'goedgekeurd';
+    return '<tr>' +
+      '<td>' + esc(techNaam(v.technieker_id)) + '</td>' +
+      '<td><span class="verlof-type-pill" style="background:' + vt.kleur + '">' + esc(vt.naam) + '</span></td>' +
+      '<td>' + periode + '</td>' +
+      '<td>' + dagen + '</td>' +
+      '<td>' + esc(v.reden || '—') + '</td>' +
+      '<td>' + esc(status) + '</td>' +
+      '<td style="text-align:right">' +
+        '<button class="icon-btn" title="Bewerken" onclick="openVerlofModal(\'' + v.id + '\')">✎</button>' +
+        '<button class="icon-btn icon-btn-danger" title="Verwijderen" onclick="deleteVerlofById(\'' + v.id + '\')">🗑</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+function formatBE(iso) {
+  if (!iso) return '—';
+  var d = parseISO(iso);
+  return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+}
+
+function renderVerlofSaldoGrid() {
+  var fTech = document.getElementById('verlof-filter-tech').value;
+  var fJaar = parseInt(document.getElementById('verlof-filter-jaar').value || String(new Date().getFullYear()), 10);
+  var grid = document.getElementById('verlof-saldo-grid');
+
+  // Toon alleen saldo-telbare types
+  var types = allVerlofTypes.filter(function(vt) { return vt.is_saldo_telbaar; });
+  var techs = allTechniekers.filter(function(t) { return t.actief !== false; });
+  if (fTech) techs = techs.filter(function(t) { return t.id === fTech; });
+
+  var cards = [];
+  techs.forEach(function(t) {
+    types.forEach(function(vt) {
+      var saldo = allVerlofSaldi.find(function(s) {
+        return s.technieker_id === t.id && s.verlof_type_id === vt.id && s.jaar === fJaar;
+      });
+      var maxDagen = saldo ? parseFloat(saldo.saldo_dagen) : 0;
+      // Opgenomen berekenen uit allVerlof
+      var opgenomen = 0;
+      allVerlof.forEach(function(v) {
+        if (v.technieker_id !== t.id || v.verlof_type_id !== vt.id) return;
+        var vn = parseISO(v.van_datum).getFullYear();
+        if (vn === fJaar) opgenomen += countWerkdagen(v.van_datum, v.tot_datum, v.halve_dag);
+      });
+      var rest = maxDagen - opgenomen;
+      var over = opgenomen > maxDagen;
+      cards.push(
+        '<div class="saldo-card" data-over="' + over + '" style="--accent:' + vt.kleur + '">' +
+          '<div class="saldo-type">' + esc(vt.naam) + '</div>' +
+          '<div class="saldo-tech">' + esc(techNaam(t.id)) + '</div>' +
+          '<div class="saldo-val" style="color:' + (over ? 'var(--red)' : 'var(--navy)') + '">' + rest.toFixed(1) + ' d</div>' +
+          '<div class="saldo-sub">' + opgenomen.toFixed(1) + ' / ' + maxDagen.toFixed(1) + ' d opgenomen</div>' +
+        '</div>'
+      );
+    });
+  });
+  grid.innerHTML = cards.join('') || '<p style="color:var(--grey);font-size:13px;padding:12px">Geen saldo-telbare verloftypes ingesteld.</p>';
+}
+
+// =============================================
+// VERLOF — modal
+// =============================================
+function openVerlofModal(id) {
+  document.getElementById('verlof-edit-id').value = id || '';
+  document.getElementById('verlof-modal-title').textContent = id ? 'Verlof bewerken' : 'Nieuw verlof';
+  document.getElementById('verlof-delete-btn').style.display = id ? 'inline-flex' : 'none';
+
+  // Vul technieker-dropdown
+  var techSel = document.getElementById('verlof-tech');
+  techSel.innerHTML = allTechniekers.filter(function(t) { return t.actief !== false; })
+    .map(function(t) { return '<option value="' + t.id + '">' + esc(techNaam(t.id)) + '</option>'; }).join('');
+
+  // Vul type-dropdown
+  var typeSel = document.getElementById('verlof-type');
+  typeSel.innerHTML = allVerlofTypes
+    .map(function(vt) { return '<option value="' + vt.id + '">' + esc(vt.naam) + '</option>'; }).join('');
+
+  if (id) {
+    var v = allVerlof.find(function(x) { return x.id === id; });
+    if (!v) { alert('Verlof niet gevonden.'); return; }
+    techSel.value = v.technieker_id;
+    typeSel.value = v.verlof_type_id;
+    document.getElementById('verlof-van').value = v.van_datum;
+    document.getElementById('verlof-tot').value = v.tot_datum;
+    document.getElementById('verlof-halve-dag').value = v.halve_dag || '';
+    document.getElementById('verlof-reden').value = v.reden || '';
+  } else {
+    document.getElementById('verlof-van').value = '';
+    document.getElementById('verlof-tot').value = '';
+    document.getElementById('verlof-halve-dag').value = '';
+    document.getElementById('verlof-reden').value = '';
+  }
+
+  // Live preview
+  ['verlof-tech','verlof-type','verlof-van','verlof-tot','verlof-halve-dag'].forEach(function(elId) {
+    document.getElementById(elId).oninput = onVerlofFormChange;
+    document.getElementById(elId).onchange = onVerlofFormChange;
+  });
+  onVerlofFormChange();
+
+  document.getElementById('modal-verlof').classList.add('active');
+}
+function closeVerlofModal() { document.getElementById('modal-verlof').classList.remove('active'); }
+
+function onVerlofFormChange() {
+  var van = document.getElementById('verlof-van').value;
+  var tot = document.getElementById('verlof-tot').value;
+  var half = document.getElementById('verlof-halve-dag').value;
+  var techId = document.getElementById('verlof-tech').value;
+  var typeId = document.getElementById('verlof-type').value;
+  var editId = document.getElementById('verlof-edit-id').value;
+
+  // Auto: tot = van als leeg
+  if (van && !tot) { document.getElementById('verlof-tot').value = van; tot = van; }
+
+  var dagen = countWerkdagen(van, tot, half);
+  document.getElementById('verlof-dagen-preview').value = dagen ? (dagen + ' werkdag' + (dagen === 1 ? '' : 'en')) : '—';
+
+  // Retroactief?
+  var retroEl = document.getElementById('verlof-retro-warn');
+  retroEl.style.display = (van && parseISO(van) < new Date(new Date().setHours(0,0,0,0))) ? 'block' : 'none';
+
+  // Conflict-check
+  var warnEl = document.getElementById('verlof-conflict-warn');
+  if (techId && van && tot) {
+    var conflicts = findConflicterendeBeurten(techId, van, tot, editId);
+    if (conflicts.length) {
+      warnEl.style.display = 'block';
+      warnEl.innerHTML = '⚠ <strong>' + conflicts.length + ' taak/taken</strong> gepland op deze dagen. Je kan opslaan — daarna krijg je de keuze om ze te verplaatsen.';
+    } else warnEl.style.display = 'none';
+  } else warnEl.style.display = 'none';
+
+  // Saldo-check
+  var saldoEl = document.getElementById('verlof-saldo-warn');
+  saldoEl.style.display = 'none';
+  if (techId && typeId && dagen > 0) {
+    var vt = verlofTypeById(typeId);
+    if (vt && vt.is_saldo_telbaar) {
+      var jaar = parseISO(van).getFullYear();
+      var saldo = allVerlofSaldi.find(function(s) { return s.technieker_id === techId && s.verlof_type_id === typeId && s.jaar === jaar; });
+      var max = saldo ? parseFloat(saldo.saldo_dagen) : 0;
+      var huidigOpgenomen = 0;
+      allVerlof.forEach(function(v) {
+        if (v.id === editId) return;
+        if (v.technieker_id !== techId || v.verlof_type_id !== typeId) return;
+        if (parseISO(v.van_datum).getFullYear() === jaar) huidigOpgenomen += countWerkdagen(v.van_datum, v.tot_datum, v.halve_dag);
+      });
+      var rest = max - huidigOpgenomen;
+      if (dagen > rest) {
+        saldoEl.style.display = 'block';
+        saldoEl.innerHTML = '⚠ <strong>Onvoldoende saldo</strong>: ' + rest.toFixed(1) + ' d beschikbaar, ' + dagen + ' d gevraagd. Opslaan wordt geblokkeerd tot saldo aangepast.';
+      }
+    }
+  }
+}
+
+function findConflicterendeBeurten(techId, vanISO, totISO, excludeBeurtenIds) {
+  return allOnderhoudsbeurten.filter(function(b) {
+    if (b.technieker_id !== techId) return false;
+    if (!b.plan_datum || b.plan_datum < vanISO || b.plan_datum > totISO) return false;
+    if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+    return true;
+  });
+}
+
+async function saveVerlof() {
+  var techId = document.getElementById('verlof-tech').value;
+  var typeId = document.getElementById('verlof-type').value;
+  var van = document.getElementById('verlof-van').value;
+  var tot = document.getElementById('verlof-tot').value || van;
+  var half = document.getElementById('verlof-halve-dag').value || null;
+  var reden = document.getElementById('verlof-reden').value.trim() || null;
+  var editId = document.getElementById('verlof-edit-id').value;
+
+  if (!techId) { alert('Kies een technieker.'); return; }
+  if (!typeId) { alert('Kies een verloftype.'); return; }
+  if (!van) { alert('Vul een startdatum in.'); return; }
+  if (tot < van) { alert('Einddatum ligt vóór startdatum.'); return; }
+  if (half && van !== tot) { alert('Halve dag kan enkel bij 1-daagse verlof (van = tot).'); return; }
+
+  // Saldo blokkade
+  if (document.getElementById('verlof-saldo-warn').style.display === 'block') {
+    if (!confirm('Saldo onvoldoende. Toch opslaan?')) return;
+  }
+
+  var payload = { technieker_id: techId, verlof_type_id: typeId, van_datum: van, tot_datum: tot, halve_dag: half, reden: reden, status: 'goedgekeurd' };
+  if (!editId) payload.created_by = currentUser ? currentUser.id : null;
+
+  // Conflict-detectie: als er beurten staan, open conflict-modal → vervolg via resolveVerlofConflict
+  var conflicts = findConflicterendeBeurten(techId, van, tot, editId);
+  if (conflicts.length) {
+    currentVerlofConflict = { taken: conflicts, payload: payload, editId: editId };
+    openVerlofConflict();
+    return;
+  }
+
+  await _persistVerlof(payload, editId);
+}
+
+async function _persistVerlof(payload, editId) {
+  var res;
+  if (editId) res = await sb.from('technieker_afwezigheden').update(payload).eq('id', editId).select().single();
+  else res = await sb.from('technieker_afwezigheden').insert(payload).select().single();
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+
+  // Refresh lokale cache
+  var vafRes = await sb.from('technieker_afwezigheden').select('*').order('van_datum', { ascending: false });
+  allVerlof = vafRes.data || [];
+  closeVerlofModal();
+  renderVerlof();
+  renderVerlofSaldoGrid();
+}
+
+async function deleteVerlof() {
+  var id = document.getElementById('verlof-edit-id').value;
+  if (!id) return;
+  await deleteVerlofById(id);
+  closeVerlofModal();
+}
+async function deleteVerlofById(id) {
+  if (!confirm('Verlof verwijderen?')) return;
+  var res = await sb.from('technieker_afwezigheden').delete().eq('id', id);
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  allVerlof = allVerlof.filter(function(v) { return v.id !== id; });
+  renderVerlof();
+  renderVerlofSaldoGrid();
+}
+
+// =============================================
+// VERLOF — conflict-modal
+// =============================================
+function openVerlofConflict() {
+  if (!currentVerlofConflict) return;
+  var lijst = document.getElementById('conflict-taken-lijst');
+  lijst.innerHTML = currentVerlofConflict.taken.map(function(t) {
+    var ct = allContracten.find(function(c) { return c.id === t.contract_id; });
+    var klant = ct ? (ct.klant_naam || ct.klant_bedrijfsnaam || '—') : '—';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--rule)">' +
+      '<strong>' + formatBE(t.plan_datum) + ' ' + (t.plan_tijd ? t.plan_tijd.substring(0,5) : '') + '</strong> — ' +
+      esc(klant) + ' <span style="color:var(--grey);font-size:12px">(' + t.status + ')</span>' +
+    '</div>';
+  }).join('');
+  document.getElementById('modal-verlof-conflict').classList.add('active');
+}
+function closeVerlofConflict() {
+  document.getElementById('modal-verlof-conflict').classList.remove('active');
+  currentVerlofConflict = null;
+}
+async function resolveVerlofConflict(actie) {
+  if (!currentVerlofConflict) return;
+  var ids = currentVerlofConflict.taken.map(function(t) { return t.id; });
+  if (actie === 'delete') {
+    var r = await sb.from('onderhoudsbeurten').delete().in('id', ids);
+    if (r.error) { alert('Fout: ' + r.error.message); return; }
+    allOnderhoudsbeurten = allOnderhoudsbeurten.filter(function(b) { return ids.indexOf(b.id) === -1; });
+  } else if (actie === 'unassign') {
+    var r = await sb.from('onderhoudsbeurten').update({ status: 'in_te_plannen', technieker_id: null, plan_datum: null, plan_tijd: null }).in('id', ids);
+    if (r.error) { alert('Fout: ' + r.error.message); return; }
+    allOnderhoudsbeurten.forEach(function(b) { if (ids.indexOf(b.id) !== -1) { b.status = 'in_te_plannen'; b.technieker_id = null; b.plan_datum = null; b.plan_tijd = null; } });
+  }
+  // Bij 'keep' doen we niks met de taken — ze staan gewoon op verlof-dag (admin weet dat)
+
+  var payload = currentVerlofConflict.payload;
+  var editId = currentVerlofConflict.editId;
+  closeVerlofConflict();
+  await _persistVerlof(payload, editId);
+}
+
+// =============================================
+// VERLOF — Feestdagen bulk
+// =============================================
+function openFeestdagenBulk() {
+  var sel = document.getElementById('feestdagen-jaar');
+  var huidig = new Date().getFullYear();
+  var opts = '';
+  for (var j = huidig; j <= huidig + 2; j++) opts += '<option value="' + j + '"' + (j === huidig ? ' selected' : '') + '>' + j + '</option>';
+  sel.innerHTML = opts;
+  sel.onchange = renderFeestdagenPreview;
+  renderFeestdagenPreview();
+  document.getElementById('modal-feestdagen').classList.add('active');
+}
+function closeFeestdagenBulk() { document.getElementById('modal-feestdagen').classList.remove('active'); }
+function renderFeestdagenPreview() {
+  var jaar = parseInt(document.getElementById('feestdagen-jaar').value, 10);
+  var dagen = getBelgieFeestdagen(jaar);
+  document.getElementById('feestdagen-preview').innerHTML = dagen.map(function(d) {
+    return '<div style="padding:3px 0">📅 <strong>' + formatBE(d.datum) + '</strong> — ' + d.naam + '</div>';
+  }).join('');
+}
+async function importeerFeestdagen() {
+  var jaar = parseInt(document.getElementById('feestdagen-jaar').value, 10);
+  var dagen = getBelgieFeestdagen(jaar);
+  var feestType = allVerlofTypes.find(function(vt) { return vt.code === 'feestdag'; });
+  if (!feestType) { alert('Verloftype "Feestdag" niet gevonden in DB.'); return; }
+  var techs = allTechniekers.filter(function(t) { return t.actief !== false; });
+  if (!techs.length) { alert('Geen actieve techniekers.'); return; }
+
+  var nieuwe = [];
+  techs.forEach(function(t) {
+    dagen.forEach(function(d) {
+      var bestaat = allVerlof.some(function(v) {
+        return v.technieker_id === t.id && v.verlof_type_id === feestType.id && v.van_datum === d.datum;
+      });
+      if (!bestaat) {
+        nieuwe.push({
+          technieker_id: t.id,
+          verlof_type_id: feestType.id,
+          van_datum: d.datum,
+          tot_datum: d.datum,
+          reden: d.naam,
+          status: 'goedgekeurd',
+          created_by: currentUser ? currentUser.id : null
+        });
+      }
+    });
+  });
+
+  if (!nieuwe.length) { alert('Alle feestdagen van ' + jaar + ' zijn al toegewezen.'); return; }
+  if (!confirm(nieuwe.length + ' feestdag-records aanmaken voor ' + techs.length + ' tech(s)?')) return;
+
+  var res = await sb.from('technieker_afwezigheden').insert(nieuwe);
+  if (res.error) { alert('Fout: ' + res.error.message); return; }
+
+  var vafRes = await sb.from('technieker_afwezigheden').select('*').order('van_datum', { ascending: false });
+  allVerlof = vafRes.data || [];
+  closeFeestdagenBulk();
+  renderVerlof();
+  renderVerlofSaldoGrid();
+  alert(nieuwe.length + ' feestdagen geïmporteerd.');
+}
+
+// =============================================
+// UREN-pagina
+// =============================================
+function renderUrenPage() {
+  updateUrenPeriodeLabel();
+  renderUren();
+}
+function switchUrenPeriode(p) {
+  urenPeriode = p;
+  document.querySelectorAll('.u-period-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.period === p);
+  });
+  updateUrenPeriodeLabel();
+  renderUren();
+}
+function urenNavPeriode(dir) {
+  var d = new Date(urenPeriodeRef);
+  if (urenPeriode === 'week') d.setDate(d.getDate() + 7 * dir);
+  else if (urenPeriode === 'maand') d.setMonth(d.getMonth() + dir);
+  else if (urenPeriode === 'kwartaal') d.setMonth(d.getMonth() + 3 * dir);
+  else if (urenPeriode === 'jaar') d.setFullYear(d.getFullYear() + dir);
+  urenPeriodeRef = d;
+  updateUrenPeriodeLabel();
+  renderUren();
+}
+function getUrenPeriodeBereik() {
+  var d = new Date(urenPeriodeRef);
+  var van, tot, label;
+  if (urenPeriode === 'week') {
+    var dow = d.getDay(); var maDiff = dow === 0 ? -6 : 1 - dow;
+    van = addDays(d, maDiff); tot = addDays(van, 6);
+    var w = getWeekNr(van);
+    label = 'Week ' + w + ' — ' + formatBE(dateISO(van)) + ' → ' + formatBE(dateISO(tot));
+  } else if (urenPeriode === 'maand') {
+    van = new Date(d.getFullYear(), d.getMonth(), 1);
+    tot = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    var mnm = ['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
+    label = mnm[d.getMonth()] + ' ' + d.getFullYear();
+  } else if (urenPeriode === 'kwartaal') {
+    var q = Math.floor(d.getMonth() / 3);
+    van = new Date(d.getFullYear(), q * 3, 1);
+    tot = new Date(d.getFullYear(), q * 3 + 3, 0);
+    label = 'Q' + (q + 1) + ' ' + d.getFullYear();
+  } else {
+    van = new Date(d.getFullYear(), 0, 1);
+    tot = new Date(d.getFullYear(), 11, 31);
+    label = String(d.getFullYear());
+  }
+  return { van: dateISO(van), tot: dateISO(tot), label: label };
+}
+function getWeekNr(d) {
+  var dd = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  dd.setUTCDate(dd.getUTCDate() + 4 - (dd.getUTCDay() || 7));
+  var yearStart = new Date(Date.UTC(dd.getUTCFullYear(), 0, 1));
+  return Math.ceil((((dd - yearStart) / 86400000) + 1) / 7);
+}
+function updateUrenPeriodeLabel() {
+  var b = getUrenPeriodeBereik();
+  document.getElementById('uren-periode-label').textContent = b.label;
+}
+
+function renderUren() {
+  var bereik = getUrenPeriodeBereik();
+  var van = bereik.van, tot = bereik.tot;
+  var techs = allTechniekers.filter(function(t) { return t.actief !== false; });
+  var tbody = document.getElementById('uren-tbody');
+  var empty = document.getElementById('uren-empty');
+  if (!techs.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  // Werkdagen in periode (ma-vr)
+  var werkdagenInPeriode = countWerkdagen(van, tot, null);
+
+  tbody.innerHTML = techs.map(function(t) {
+    // Gewerkte uren: som rapporten.uren_data in periode voor deze tech
+    var gewerkt = 0;
+    allRapporten.forEach(function(r) {
+      if (r.technieker_id !== t.id) return;
+      if (!r.datum_onderhoud || r.datum_onderhoud < van || r.datum_onderhoud > tot) return;
+      if (Array.isArray(r.uren_data)) {
+        r.uren_data.forEach(function(u) { gewerkt += parseFloat(u.uren) || 0; });
+      }
+    });
+
+    // Verlof-dagen (betaald niet-ziekte) + ziekte-dagen apart
+    var verlofDagen = 0, ziekteDagen = 0;
+    allVerlof.forEach(function(v) {
+      if (v.technieker_id !== t.id) return;
+      // Overlap van verlof met periode
+      var ov = countWerkdagenOverlap(v.van_datum, v.tot_datum, van, tot, v.halve_dag);
+      if (ov === 0) return;
+      var vt = verlofTypeById(v.verlof_type_id);
+      if (vt && vt.code === 'ziekte') ziekteDagen += ov;
+      else verlofDagen += ov;
+    });
+
+    var contractUrenWeek = parseFloat(t.contract_uren_week) || 38;
+    var contractUrenDag = parseFloat(t.contract_uren_dag) || 7.6;
+    var contractUrenPeriode = werkdagenInPeriode * contractUrenDag;
+    // Verwachte uren na aftrek verlof/ziekte
+    var verwacht = contractUrenPeriode - ((verlofDagen + ziekteDagen) * contractUrenDag);
+    var overuren = Math.max(0, gewerkt - verwacht);
+    var vulling = verwacht > 0 ? Math.min(150, (gewerkt / verwacht) * 100) : 0;
+    var vulKleur = vulling >= 100 ? 'var(--red)' : vulling >= 60 ? 'var(--green)' : 'var(--orange)';
+
+    return '<tr>' +
+      '<td><strong>' + esc(techNaam(t.id)) + '</strong></td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">' + gewerkt.toFixed(1) + 'u</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">' + verlofDagen.toFixed(1) + '</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:' + (ziekteDagen > 0 ? 'var(--red)' : 'inherit') + '">' + ziekteDagen.toFixed(1) + '</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">' + overuren.toFixed(1) + 'u</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">' + verwacht.toFixed(1) + 'u</td>' +
+      '<td style="min-width:120px"><div class="uren-bar"><div class="uren-bar-fill" style="width:' + Math.min(100, vulling) + '%;background:' + vulKleur + '"></div></div><small style="color:var(--grey);font-size:11px">' + vulling.toFixed(0) + '%</small></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function countWerkdagenOverlap(aFrom, aTo, bFrom, bTo, halveDag) {
+  if (!aFrom || !aTo || !bFrom || !bTo) return 0;
+  var from = aFrom > bFrom ? aFrom : bFrom;
+  var to = aTo < bTo ? aTo : bTo;
+  if (from > to) return 0;
+  var d = countWerkdagen(from, to, null);
+  if (halveDag && aFrom === aTo && aFrom >= bFrom && aFrom <= bTo) return 0.5;
+  return d;
+}
+
+function exportUrenCsv() {
+  var bereik = getUrenPeriodeBereik();
+  var rows = [['Technieker','Gewerkte uren','Verlof (dagen)','Ziekte (dagen)','Overuren','Contract-uren verwacht','Vulling %']];
+  var werkdagenInPeriode = countWerkdagen(bereik.van, bereik.tot, null);
+  allTechniekers.filter(function(t) { return t.actief !== false; }).forEach(function(t) {
+    var gewerkt = 0;
+    allRapporten.forEach(function(r) {
+      if (r.technieker_id !== t.id || !r.datum_onderhoud) return;
+      if (r.datum_onderhoud < bereik.van || r.datum_onderhoud > bereik.tot) return;
+      if (Array.isArray(r.uren_data)) r.uren_data.forEach(function(u) { gewerkt += parseFloat(u.uren) || 0; });
+    });
+    var verlofDagen = 0, ziekteDagen = 0;
+    allVerlof.forEach(function(v) {
+      if (v.technieker_id !== t.id) return;
+      var ov = countWerkdagenOverlap(v.van_datum, v.tot_datum, bereik.van, bereik.tot, v.halve_dag);
+      if (ov === 0) return;
+      var vt = verlofTypeById(v.verlof_type_id);
+      if (vt && vt.code === 'ziekte') ziekteDagen += ov;
+      else verlofDagen += ov;
+    });
+    var contractUrenDag = parseFloat(t.contract_uren_dag) || 7.6;
+    var verwacht = werkdagenInPeriode * contractUrenDag - (verlofDagen + ziekteDagen) * contractUrenDag;
+    var overuren = Math.max(0, gewerkt - verwacht);
+    var vulling = verwacht > 0 ? (gewerkt / verwacht * 100).toFixed(0) : '0';
+    rows.push([techNaam(t.id), gewerkt.toFixed(1), verlofDagen.toFixed(1), ziekteDagen.toFixed(1), overuren.toFixed(1), verwacht.toFixed(1), vulling]);
+  });
+  var csv = rows.map(function(r) { return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'uren-' + urenPeriode + '-' + bereik.van + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // =============================================
