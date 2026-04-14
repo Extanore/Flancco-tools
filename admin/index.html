@@ -438,6 +438,7 @@
       </div>
       <div class="topbar-user">
         <span id="user-email"></span>
+        <button class="btn-logout" onclick="openPasswordModal()" title="Wachtwoord wijzigen">Wachtwoord</button>
         <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
       </div>
     </div>
@@ -1068,6 +1069,28 @@
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
       <button class="btn-submit" onclick="saveNewContract()">Contract opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- WACHTWOORD MODAL -->
+<div class="modal-overlay" id="modal-password">
+  <div class="modal" style="max-width:420px">
+    <h2>Wachtwoord wijzigen</h2>
+    <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Kies een nieuw wachtwoord (minimaal 8 tekens).</p>
+    <div class="modal-field" style="margin-bottom:12px">
+      <label>Nieuw wachtwoord</label>
+      <input type="password" id="pw-new" placeholder="Nieuw wachtwoord" autocomplete="new-password">
+    </div>
+    <div class="modal-field" style="margin-bottom:16px">
+      <label>Bevestig wachtwoord</label>
+      <input type="password" id="pw-confirm" placeholder="Bevestig nieuw wachtwoord" autocomplete="new-password">
+    </div>
+    <div id="pw-error" style="color:var(--red);font-size:13px;margin-bottom:12px;display:none"></div>
+    <div id="pw-success" style="color:#10B981;font-size:13px;margin-bottom:12px;display:none">Wachtwoord succesvol gewijzigd.</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closePasswordModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="changePassword()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -1757,6 +1780,34 @@ async function saveChecklistTemplate() {
 async function doLogout() {
   await sb.auth.signOut();
   location.reload();
+}
+
+function openPasswordModal() {
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  document.getElementById('pw-error').style.display = 'none';
+  document.getElementById('pw-success').style.display = 'none';
+  document.getElementById('modal-password').classList.add('open');
+}
+function closePasswordModal() {
+  document.getElementById('modal-password').classList.remove('open');
+}
+async function changePassword() {
+  var pwNew = document.getElementById('pw-new').value;
+  var pwConfirm = document.getElementById('pw-confirm').value;
+  var errEl = document.getElementById('pw-error');
+  var okEl = document.getElementById('pw-success');
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
+
+  if (pwNew.length < 8) { errEl.textContent = 'Wachtwoord moet minstens 8 tekens bevatten.'; errEl.style.display = 'block'; return; }
+  if (pwNew !== pwConfirm) { errEl.textContent = 'Wachtwoorden komen niet overeen.'; errEl.style.display = 'block'; return; }
+
+  var { error } = await sb.auth.updateUser({ password: pwNew });
+  if (error) { errEl.textContent = 'Fout: ' + error.message; errEl.style.display = 'block'; return; }
+
+  okEl.style.display = 'block';
+  setTimeout(closePasswordModal, 1500);
 }
 
 // Enter key support
