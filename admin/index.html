@@ -291,6 +291,56 @@
   .cert-actions button:hover { color: var(--navy); }
   .cert-actions button.danger:hover { color: var(--red); }
 
+  /* MODAL TABS — gebruikt in Nieuwe klant / bewerken */
+  .modal-lg { width: 720px !important; max-width: 95vw; padding: 0 !important; overflow: hidden; display: flex; flex-direction: column; }
+  .modal-lg-header { padding: 20px 28px 16px; border-bottom: 1px solid var(--rule); }
+  .modal-lg-header h2 { margin: 0 0 4px; font-size: 18px; color: var(--navy); }
+  .modal-lg-header .modal-sub { font-size: 12px; color: var(--grey); }
+  .modal-tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--rule); background: var(--light); }
+  .modal-tab { padding: 12px 16px; background: none; border: none; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 600; color: var(--grey); cursor: pointer; margin-bottom: -1px; }
+  .modal-tab:hover { color: var(--navy); }
+  .modal-tab.active { color: var(--navy); border-bottom-color: var(--navy); background: #fff; }
+  .modal-tab-body { padding: 24px 28px; overflow-y: auto; flex: 1; }
+  .modal-tab-pane { display: none; }
+  .modal-tab-pane.active { display: block; }
+  .modal-lg-footer { padding: 16px 28px; border-top: 1px solid var(--rule); background: var(--light); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .modal-lg-footer .footer-left { display: flex; gap: 8px; }
+  .modal-lg-footer .footer-right { display: flex; gap: 8px; }
+
+  /* LOCATIE REPEATER */
+  .loc-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--grey); letter-spacing: 0.5px; margin: 0 0 10px; }
+  .loc-repeater { display: flex; flex-direction: column; gap: 12px; }
+  .loc-card { background: var(--light); border: 1.5px solid var(--rule); border-radius: 10px; padding: 16px; position: relative; }
+  .loc-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .loc-card-title { font-size: 13px; font-weight: 600; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+  .loc-card-title .loc-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: var(--navy); color: #fff; text-transform: uppercase; letter-spacing: 0.5px; }
+  .loc-card-remove { background: none; border: none; color: var(--grey); cursor: pointer; font-size: 13px; padding: 4px 8px; border-radius: 4px; }
+  .loc-card-remove:hover { color: var(--red); background: #fff; }
+  .loc-card .modal-field { margin-bottom: 10px; }
+  .loc-card .modal-field label { font-size: 12px; }
+  .loc-card .modal-field input, .loc-card .modal-field textarea { font-size: 13px; padding: 8px 10px; background: #fff; }
+  .btn-add-loc { width: 100%; padding: 10px; background: none; border: 1.5px dashed var(--rule); border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  .btn-add-loc:hover { border-color: var(--navy); background: var(--light); }
+
+  /* DROPDOWN MENU — toolbar */
+  .dropdown { position: relative; display: inline-block; }
+  .dropdown-btn { padding: 6px 12px; background: #fff; color: var(--navy); border: 1.5px solid var(--rule); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .dropdown-btn:hover { border-color: var(--navy); background: var(--light); }
+  .dropdown-menu { display: none; position: absolute; top: calc(100% + 4px); right: 0; background: #fff; border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); min-width: 200px; z-index: 50; overflow: hidden; }
+  .dropdown.open .dropdown-menu { display: block; }
+  .dropdown-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; background: none; border: none; text-align: left; font-size: 13px; color: var(--navy); cursor: pointer; }
+  .dropdown-item:hover { background: var(--light); }
+  .dropdown-item svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--grey); }
+  .dropdown-divider { height: 1px; background: var(--rule); margin: 4px 0; }
+
+  /* BULK ACTION BAR — zichtbaar als items geselecteerd */
+  .bulk-bar { display: none; align-items: center; gap: 12px; padding: 10px 16px; background: var(--navy); color: #fff; border-radius: 8px; margin-bottom: 12px; font-size: 13px; }
+  .bulk-bar.open { display: flex; }
+  .bulk-bar-count { font-weight: 600; }
+  .bulk-bar-spacer { flex: 1; }
+  .bulk-bar button { padding: 6px 12px; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .bulk-bar button:hover { background: rgba(255,255,255,0.25); }
+
   /* ROLE VISIBILITY — elements are hidden by adding .role-hidden */
   .role-hidden { display: none !important; }
 
@@ -490,15 +540,34 @@
             <select id="filter-klant-partner" class="admin-only" onchange="renderKlanten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
               <option value="">Alle partners</option>
             </select>
-            <button class="btn-save admin-only" onclick="openBulkShareModal()" style="margin:0;font-size:12px;background:var(--blue)">Deel geselecteerde</button>
-            <button class="btn-save admin-only" onclick="openCsvImportModal()" style="margin:0;font-size:12px;background:var(--orange)">CSV import</button>
-            <button class="btn-save" onclick="exportKlantenExcel()" style="margin:0;font-size:12px;background:var(--blue);display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
+            <div class="dropdown" id="klanten-meer-dropdown">
+              <button type="button" class="dropdown-btn" onclick="toggleKlantenMeer(event)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+                Meer
+              </button>
+              <div class="dropdown-menu">
+                <button type="button" class="dropdown-item" onclick="exportKlantenExcel();closeKlantenMeer()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Exporteren naar Excel
+                </button>
+                <button type="button" class="dropdown-item admin-only" onclick="openCsvImportModal();closeKlantenMeer()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  CSV importeren
+                </button>
+              </div>
+            </div>
             <button class="btn-save" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
           </div>
         </div>
+        <div class="bulk-bar" id="klanten-bulk-bar">
+          <span class="bulk-bar-count" id="klanten-bulk-count">0 geselecteerd</span>
+          <div class="bulk-bar-spacer"></div>
+          <button type="button" class="admin-only" onclick="openBulkShareModal()">Delen met partner</button>
+          <button type="button" onclick="clearKlantenSelectie()" style="background:transparent;border:1px solid rgba(255,255,255,0.4)">Wissen</button>
+        </div>
         <table>
           <thead><tr>
-            <th class="admin-only" style="width:30px"><input type="checkbox" onchange="document.querySelectorAll('.klant-checkbox').forEach(function(cb){cb.checked=this.checked}.bind(this))"></th>
+            <th class="admin-only" style="width:30px"><input type="checkbox" onchange="toggleKlantenAlles(this)"></th>
             <th>Naam / Bedrijf</th>
             <th class="admin-only">Partner</th>
             <th>Email</th>
@@ -1147,41 +1216,89 @@
 
 <!-- KLANT MODAL -->
 <div class="modal-overlay" id="modal-klant">
-  <div class="modal">
-    <h2 id="klant-modal-title">Nieuwe klant</h2>
-    <input type="hidden" id="kl-id">
-    <div class="modal-row">
-      <div class="modal-field"><label>Voornaam *</label><input id="kl-voornaam" placeholder="Jan"></div>
-      <div class="modal-field"><label>Achternaam *</label><input id="kl-achternaam" placeholder="Janssen"></div>
+  <div class="modal modal-lg">
+    <div class="modal-lg-header">
+      <h2 id="klant-modal-title">Nieuwe klant</h2>
+      <div class="modal-sub" id="klant-modal-sub">Klantgegevens, locaties en facturatie in één overzicht.</div>
     </div>
-    <div class="modal-row">
-      <div class="modal-field"><label>Bedrijfsnaam</label><input id="kl-bedrijf" placeholder="Optioneel"></div>
+    <div class="modal-tabs" role="tablist">
+      <button type="button" class="modal-tab active" data-tab="basis" onclick="switchKlantTab('basis')">Basis</button>
+      <button type="button" class="modal-tab" data-tab="locaties" onclick="switchKlantTab('locaties')">Locaties</button>
+      <button type="button" class="modal-tab" data-tab="facturatie" onclick="switchKlantTab('facturatie')">Facturatie</button>
+      <button type="button" class="modal-tab" data-tab="notities" onclick="switchKlantTab('notities')">Notities</button>
     </div>
-    <div class="modal-row">
-      <div class="modal-field"><label>Email *</label><input type="email" id="kl-email"></div>
-      <div class="modal-field"><label>Telefoon *</label><input id="kl-telefoon"></div>
+    <div class="modal-tab-body">
+      <input type="hidden" id="kl-id">
+      <input type="hidden" id="kl-partner">
+
+      <!-- TAB: BASIS -->
+      <div class="modal-tab-pane active" data-pane="basis">
+        <div class="modal-row">
+          <div class="modal-field"><label>Voornaam *</label><input id="kl-voornaam" placeholder="Jan"></div>
+          <div class="modal-field"><label>Achternaam *</label><input id="kl-achternaam" placeholder="Janssen"></div>
+        </div>
+        <div class="modal-field"><label>Bedrijfsnaam</label><input id="kl-bedrijf" placeholder="Optioneel — laat leeg voor particulier"></div>
+        <div class="modal-row">
+          <div class="modal-field"><label>Email *</label><input type="email" id="kl-email" placeholder="naam@voorbeeld.be"></div>
+          <div class="modal-field"><label>Telefoon *</label><input id="kl-telefoon" placeholder="+32 ..."></div>
+        </div>
+      </div>
+
+      <!-- TAB: LOCATIES -->
+      <div class="modal-tab-pane" data-pane="locaties">
+        <p class="loc-section-title">Factuuradres (hoofdlocatie)</p>
+        <div class="modal-row">
+          <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-straat"></div>
+          <div class="modal-field"><label>Huisnr *</label><input id="kl-huisnr"></div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-field"><label>Postcode *</label><input id="kl-postcode"></div>
+          <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-gemeente"></div>
+        </div>
+        <div class="modal-field">
+          <label>Land</label>
+          <select id="kl-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--rule);margin:20px 0">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <p class="loc-section-title" style="margin:0">Bijkomende werklocaties</p>
+          <small style="color:var(--grey);font-size:11px">Optioneel — filialen, opslagplaatsen, ...</small>
+        </div>
+        <div class="loc-repeater" id="kl-loc-repeater"></div>
+        <button type="button" class="btn-add-loc" style="margin-top:10px" onclick="addKlantLocatie()">+ Werklocatie toevoegen</button>
+      </div>
+
+      <!-- TAB: FACTURATIE -->
+      <div class="modal-tab-pane" data-pane="facturatie">
+        <div class="modal-field">
+          <label>BTW-nummer</label>
+          <input id="kl-btw" placeholder="BE 0123.456.789 — optioneel">
+        </div>
+        <div class="modal-field">
+          <label>Standaard PO-nummer</label>
+          <input id="kl-po" placeholder="Optioneel — wordt default voorgesteld op nieuwe contracten">
+          <small style="color:var(--grey);font-size:11px">Kan per contract worden overschreven.</small>
+        </div>
+      </div>
+
+      <!-- TAB: NOTITIES -->
+      <div class="modal-tab-pane" data-pane="notities">
+        <div class="modal-field">
+          <label>Interne notities</label>
+          <textarea id="kl-notities" rows="8" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;resize:vertical;font-family:inherit;font-size:13px" placeholder="Bijzonderheden, voorkeuren, historische context..."></textarea>
+        </div>
+      </div>
     </div>
-    <div class="modal-row">
-      <div class="modal-field"><label>Straat *</label><input id="kl-straat"></div>
-      <div class="modal-field"><label>Huisnr *</label><input id="kl-huisnr"></div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-field"><label>Postcode *</label><input id="kl-postcode"></div>
-      <div class="modal-field"><label>Gemeente *</label><input id="kl-gemeente"></div>
-    </div>
-    <div class="modal-field">
-      <label>Land</label>
-      <select id="kl-land"><option value="BE">België</option><option value="NL">Nederland</option></select>
-    </div>
-    <input type="hidden" id="kl-partner">
-    <div class="modal-field">
-      <label>Notities</label>
-      <textarea id="kl-notities" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;resize:vertical;font-family:inherit;font-size:13px"></textarea>
-    </div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeKlantModal()">Annuleren</button>
-      <button class="btn-submit" id="btn-delete-klant" onclick="deleteKlant()" style="background:var(--red);display:none">Verwijderen</button>
-      <button class="btn-submit" onclick="saveKlant()">Opslaan</button>
+    <div class="modal-lg-footer">
+      <div class="footer-left">
+        <button class="btn-submit" id="btn-delete-klant" onclick="deleteKlant()" style="background:var(--red);display:none;padding:10px 16px;flex:none">Verwijderen</button>
+      </div>
+      <div class="footer-right">
+        <button class="btn-cancel" onclick="closeKlantModal()" style="padding:10px 20px;flex:none;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--light);color:var(--grey)">Annuleren</button>
+        <button class="btn-submit" onclick="saveKlant()" style="padding:10px 20px;flex:none">Opslaan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3915,8 +4032,82 @@ function renderKlanten() {
   }
 }
 
-function openKlantModal(editData) {
+// Werklocaties buffer voor de open modal (niet-primaire locaties). Gesynct naar DB op save.
+var klantLocatiesBuffer = [];
+
+function switchKlantTab(tab) {
+  document.querySelectorAll('#modal-klant .modal-tab').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('#modal-klant .modal-tab-pane').forEach(function(p) {
+    p.classList.toggle('active', p.dataset.pane === tab);
+  });
+}
+
+function renderKlantLocaties() {
+  var cont = document.getElementById('kl-loc-repeater');
+  if (!cont) return;
+  if (klantLocatiesBuffer.length === 0) {
+    cont.innerHTML = '<p style="color:var(--grey);font-size:12px;text-align:center;padding:12px 0;margin:0">Nog geen bijkomende werklocaties.</p>';
+    return;
+  }
+  cont.innerHTML = klantLocatiesBuffer.map(function(loc, idx) {
+    return '<div class="loc-card" data-idx="' + idx + '">' +
+      '<div class="loc-card-header">' +
+        '<div class="loc-card-title">Werklocatie ' + (idx + 1) + (loc.label ? ' — <span style="color:var(--grey);font-weight:500">' + esc(loc.label) + '</span>' : '') + '</div>' +
+        '<button type="button" class="loc-card-remove" onclick="removeKlantLocatie(' + idx + ')">Verwijderen</button>' +
+      '</div>' +
+      '<div class="modal-row">' +
+        '<div class="modal-field" style="flex:2"><label>Label / Naam locatie *</label><input data-loc-field="label" value="' + esc(loc.label || '') + '" placeholder="bijv. Filiaal Gent, Magazijn Noord"></div>' +
+      '</div>' +
+      '<div class="modal-row">' +
+        '<div class="modal-field" style="flex:3"><label>Straat</label><input data-loc-field="street" value="' + esc(loc.street || '') + '"></div>' +
+        '<div class="modal-field"><label>Huisnr</label><input data-loc-field="house_number" value="' + esc(loc.house_number || '') + '"></div>' +
+      '</div>' +
+      '<div class="modal-row">' +
+        '<div class="modal-field"><label>Postcode</label><input data-loc-field="postal_code" value="' + esc(loc.postal_code || '') + '"></div>' +
+        '<div class="modal-field" style="flex:2"><label>Gemeente</label><input data-loc-field="city" value="' + esc(loc.city || '') + '"></div>' +
+      '</div>' +
+      '<div class="modal-row">' +
+        '<div class="modal-field" style="flex:2"><label>Contactpersoon</label><input data-loc-field="contact_name" value="' + esc(loc.contact_name || '') + '" placeholder="Naam ter plaatse"></div>' +
+        '<div class="modal-field"><label>Telefoon</label><input data-loc-field="contact_phone" value="' + esc(loc.contact_phone || '') + '"></div>' +
+      '</div>' +
+      '<div class="modal-field"><label>Email contactpersoon</label><input data-loc-field="contact_email" value="' + esc(loc.contact_email || '') + '"></div>' +
+      '<div class="modal-field"><label>Toegangsinfo / Notities</label><textarea data-loc-field="access_info" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:8px;resize:vertical;font-family:inherit;font-size:13px;background:#fff" placeholder="Toegangscode, sleutel ophalen bij..., parkeerinfo...">' + esc(loc.access_info || '') + '</textarea></div>' +
+    '</div>';
+  }).join('');
+
+  // Bind inputs → buffer
+  cont.querySelectorAll('.loc-card').forEach(function(card) {
+    var idx = parseInt(card.dataset.idx, 10);
+    card.querySelectorAll('[data-loc-field]').forEach(function(inp) {
+      inp.addEventListener('input', function() {
+        klantLocatiesBuffer[idx][inp.dataset.locField] = inp.value;
+      });
+    });
+  });
+}
+
+function addKlantLocatie() {
+  klantLocatiesBuffer.push({ label: '', street: '', house_number: '', postal_code: '', city: '', country: 'BE', contact_name: '', contact_phone: '', contact_email: '', access_info: '' });
+  renderKlantLocaties();
+}
+
+function removeKlantLocatie(idx) {
+  klantLocatiesBuffer.splice(idx, 1);
+  renderKlantLocaties();
+}
+
+async function loadWerklocatiesVoorKlant(clientId) {
+  if (!clientId) return [];
+  var { data, error } = await sb.from('client_locations').select('*').eq('client_id', clientId).eq('is_primary', false).order('created_at', { ascending: true });
+  if (error) { console.warn('Laden werklocaties faalde:', error); return []; }
+  return data || [];
+}
+
+async function openKlantModal(editData) {
   document.getElementById('klant-modal-title').textContent = editData ? 'Klant bewerken' : 'Nieuwe klant';
+  document.getElementById('klant-modal-sub').textContent = editData ? 'Wijzig gegevens, locaties of facturatie.' : 'Klantgegevens, locaties en facturatie in één overzicht.';
   document.getElementById('kl-id').value = editData ? editData.id : '';
   var nameParts = (editData ? editData.contact_person || '' : '').split(' ');
   document.getElementById('kl-voornaam').value = editData ? nameParts[0] || '' : '';
@@ -3930,8 +4121,10 @@ function openKlantModal(editData) {
   document.getElementById('kl-gemeente').value = editData ? editData.city || '' : '';
   document.getElementById('kl-land').value = editData ? editData.country || 'BE' : 'BE';
   document.getElementById('kl-notities').value = editData ? editData.notes || '' : '';
+  document.getElementById('kl-btw').value = editData ? editData.vat_number || '' : '';
+  document.getElementById('kl-po').value = editData ? editData.po_number || '' : '';
 
-  // Auto-assign partner: partner krijgt eigen id, admin krijgt actieve filter
+  // Auto-assign partner
   var partnerField = document.getElementById('kl-partner');
   if (editData && editData.partner_id) {
     partnerField.value = editData.partner_id;
@@ -3942,9 +4135,26 @@ function openKlantModal(editData) {
     partnerField.value = filterVal || '';
   }
 
-  // Show delete button only when editing
-  document.getElementById('btn-delete-klant').style.display = editData ? 'inline-block' : 'none';
+  // Reset naar tab Basis
+  switchKlantTab('basis');
 
+  // Laad werklocaties (niet-primaire) in de buffer
+  klantLocatiesBuffer = [];
+  if (editData && editData.id) {
+    var extras = await loadWerklocatiesVoorKlant(editData.id);
+    klantLocatiesBuffer = extras.map(function(l) {
+      return {
+        _id: l.id,
+        label: l.label || '', street: l.street || '', house_number: l.house_number || '',
+        postal_code: l.postal_code || '', city: l.city || '', country: l.country || 'BE',
+        contact_name: l.contact_name || '', contact_phone: l.contact_phone || '',
+        contact_email: l.contact_email || '', access_info: l.access_info || ''
+      };
+    });
+  }
+  renderKlantLocaties();
+
+  document.getElementById('btn-delete-klant').style.display = editData ? 'inline-block' : 'none';
   document.getElementById('modal-klant').classList.add('open');
 }
 
@@ -3955,7 +4165,47 @@ function editKlant(id) {
 
 function closeKlantModal() {
   document.getElementById('modal-klant').classList.remove('open');
+  klantLocatiesBuffer = [];
 }
+
+// ─── Klanten toolbar dropdown + bulk selectie ───────────────────────────────
+function toggleKlantenMeer(ev) {
+  if (ev) ev.stopPropagation();
+  var dd = document.getElementById('klanten-meer-dropdown');
+  dd.classList.toggle('open');
+}
+function closeKlantenMeer() {
+  var dd = document.getElementById('klanten-meer-dropdown');
+  if (dd) dd.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  var dd = document.getElementById('klanten-meer-dropdown');
+  if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+});
+
+function toggleKlantenAlles(master) {
+  document.querySelectorAll('.klant-checkbox').forEach(function(cb) { cb.checked = master.checked; });
+  updateKlantenBulkBar();
+}
+function updateKlantenBulkBar() {
+  var checked = document.querySelectorAll('.klant-checkbox:checked').length;
+  var bar = document.getElementById('klanten-bulk-bar');
+  var cnt = document.getElementById('klanten-bulk-count');
+  if (!bar || !cnt) return;
+  cnt.textContent = checked + ' geselecteerd';
+  bar.classList.toggle('open', checked > 0);
+}
+function clearKlantenSelectie() {
+  document.querySelectorAll('.klant-checkbox').forEach(function(cb) { cb.checked = false; });
+  var master = document.querySelector('#klanten-lijst thead input[type="checkbox"]');
+  if (master) master.checked = false;
+  updateKlantenBulkBar();
+}
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.classList && e.target.classList.contains('klant-checkbox')) {
+    updateKlantenBulkBar();
+  }
+});
 
 async function saveKlant() {
   var id = document.getElementById('kl-id').value;
@@ -3970,13 +4220,30 @@ async function saveKlant() {
   var gemeente = document.getElementById('kl-gemeente').value.trim();
   var partnerId = document.getElementById('kl-partner').value;
 
-  if (!voornaam || !achternaam || !email || !telefoon || !straat || !huisnr || !postcode || !gemeente) {
-    alert('Vul alle verplichte velden in.');
+  // Verplichte basis-velden — switch automatisch naar de tab met ontbrekende data
+  if (!voornaam || !achternaam || !email || !telefoon) {
+    switchKlantTab('basis');
+    alert('Vul voornaam, achternaam, email en telefoon in.');
+    return;
+  }
+  if (!straat || !huisnr || !postcode || !gemeente) {
+    switchKlantTab('locaties');
+    alert('Vul het factuuradres (straat, huisnr, postcode, gemeente) in.');
     return;
   }
   if (!partnerId) {
     alert('Selecteer eerst een partner in het filter bovenaan de klantenlijst.');
     return;
+  }
+
+  // Validatie werklocaties: label verplicht als er andere velden ingevuld zijn
+  for (var i = 0; i < klantLocatiesBuffer.length; i++) {
+    var L = klantLocatiesBuffer[i];
+    if (!L.label || !L.label.trim()) {
+      switchKlantTab('locaties');
+      alert('Werklocatie ' + (i + 1) + ': label is verplicht. Verwijder de rij als ze leeg moet blijven.');
+      return;
+    }
   }
 
   var payload = {
@@ -3990,7 +4257,9 @@ async function saveKlant() {
     postal_code: postcode,
     city: gemeente,
     country: document.getElementById('kl-land').value,
-    notes: document.getElementById('kl-notities').value.trim() || null
+    notes: document.getElementById('kl-notities').value.trim() || null,
+    vat_number: document.getElementById('kl-btw').value.trim() || null,
+    po_number: document.getElementById('kl-po').value.trim() || null
   };
 
   var result;
@@ -4003,6 +4272,50 @@ async function saveKlant() {
   if (result.error) {
     alert('Fout bij opslaan: ' + result.error.message);
     return;
+  }
+
+  var clientId = id || (result.data && result.data[0] && result.data[0].id);
+
+  // ─── Sync werklocaties ────────────────────────────────────────────────
+  if (clientId) {
+    try {
+      // Haal huidige niet-primaire locaties op
+      var existing = await loadWerklocatiesVoorKlant(clientId);
+      var bufferIds = klantLocatiesBuffer.map(function(l) { return l._id; }).filter(Boolean);
+
+      // 1. Verwijder locaties die niet meer in buffer zitten
+      var toDelete = existing.filter(function(e) { return bufferIds.indexOf(e.id) === -1; }).map(function(e) { return e.id; });
+      if (toDelete.length > 0) {
+        await sb.from('client_locations').delete().in('id', toDelete);
+      }
+
+      // 2. Upsert buffer
+      for (var j = 0; j < klantLocatiesBuffer.length; j++) {
+        var L2 = klantLocatiesBuffer[j];
+        var locPayload = {
+          client_id: clientId,
+          label: (L2.label || '').trim(),
+          street: (L2.street || '').trim() || null,
+          house_number: (L2.house_number || '').trim() || null,
+          postal_code: (L2.postal_code || '').trim() || null,
+          city: (L2.city || '').trim() || null,
+          country: L2.country || 'BE',
+          is_primary: false,
+          contact_name: (L2.contact_name || '').trim() || null,
+          contact_phone: (L2.contact_phone || '').trim() || null,
+          contact_email: (L2.contact_email || '').trim() || null,
+          access_info: (L2.access_info || '').trim() || null
+        };
+        if (L2._id) {
+          await sb.from('client_locations').update(locPayload).eq('id', L2._id);
+        } else {
+          await sb.from('client_locations').insert([locPayload]);
+        }
+      }
+    } catch (err) {
+      console.warn('Locatie-sync faalde:', err);
+      alert('Klant opgeslagen, maar locaties konden niet volledig gesynct worden: ' + (err.message || err));
+    }
   }
 
   closeKlantModal();
