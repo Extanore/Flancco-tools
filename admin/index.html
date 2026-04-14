@@ -340,7 +340,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Klanten</span>
     </a>
-    <a class="nav-item admin-only" onclick="showPage('partners')" data-page="partners">
+    <a class="nav-item admin-only perm-partners" onclick="showPage('partners')" data-page="partners">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Partners</span>
     </a>
@@ -369,7 +369,7 @@
     </a>
 
     <div class="nav-section admin-only">Financieel</div>
-    <a class="nav-item admin-only" onclick="showPage('pricing')" data-page="pricing">
+    <a class="nav-item admin-only perm-pricing" onclick="showPage('pricing')" data-page="pricing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       <span>Prijsbeheer</span>
     </a>
@@ -385,6 +385,10 @@
     <!-- Instellingen onderaan, gescheiden -->
     <div style="flex:1"></div>
     <div style="border-top:1px solid rgba(255,255,255,0.08);margin:8px 0"></div>
+    <a class="nav-item admin-only perm-users" onclick="showPage('gebruikers')" data-page="gebruikers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
+      <span>Gebruikers</span>
+    </a>
     <a class="nav-item admin-only" onclick="showPage('admin-instellingen')" data-page="admin-instellingen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Instellingen</span>
@@ -623,6 +627,17 @@
 
       <button class="btn-save" onclick="saveSettings()" style="margin-top:4px">Instellingen opslaan</button>
       <span class="save-msg" id="settings-saved">Opgeslagen!</span>
+    </div>
+
+    <!-- GEBRUIKERS PAGE (super-admin only) -->
+    <div class="page admin-only perm-users" id="page-gebruikers">
+      <div class="card">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+          <span class="card-title">Gebruikers & rechten</span>
+        </div>
+        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Beheer interne medewerkers en hun toegangsrechten. Wijzigingen werken bij volgende login.</p>
+        <div id="gebruikers-list"></div>
+      </div>
     </div>
 
     <!-- ADMIN INSTELLINGEN PAGE -->
@@ -1419,6 +1434,8 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 let currentUser = null;
 let userRole = null;    // 'admin' or 'partner'
 let userPartner = null; // partner object if role=partner
+let userPermissions = {}; // {manage_pricing, manage_partners, manage_users}
+function can(perm) { return userPermissions && userPermissions[perm] === true; }
 let partners = [];
 let allPricing = [];
 let allSupplementen = [];
@@ -1466,10 +1483,16 @@ async function initApp() {
   }
 
   userRole = roleData.role;
+  userPermissions = roleData.permissions || {};
 
   // Hide elements not meant for this role
   const hideClass = userRole === 'admin' ? 'partner-only' : 'admin-only';
   document.querySelectorAll('.' + hideClass).forEach(el => el.classList.add('role-hidden'));
+
+  // Hide elements requiring specific permissions
+  if (!can('manage_pricing')) document.querySelectorAll('.perm-pricing').forEach(el => el.classList.add('role-hidden'));
+  if (!can('manage_partners')) document.querySelectorAll('.perm-partners').forEach(el => el.classList.add('role-hidden'));
+  if (!can('manage_users')) document.querySelectorAll('.perm-users').forEach(el => el.classList.add('role-hidden'));
 
   document.getElementById('login').classList.remove('visible');
   document.getElementById('login').style.display = 'none';
@@ -1817,9 +1840,70 @@ function showPage(name) {
   // Activate the visible nav item (not role-hidden)
   var navItems = document.querySelectorAll('.nav-item[data-page="' + name + '"]');
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Techniekers', wagenpark: 'Wagenpark', interventies: 'Interventies', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Techniekers', wagenpark: 'Wagenpark', interventies: 'Interventies', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') initChecklistTabs();
+  if (name === 'gebruikers') renderGebruikers();
+}
+
+// =============================================
+// GEBRUIKERS & RECHTEN (super-admin only)
+// =============================================
+async function renderGebruikers() {
+  var container = document.getElementById('gebruikers-list');
+  if (!container) return;
+  container.innerHTML = '<p style="font-size:13px;color:var(--grey)">Laden...</p>';
+
+  // Fetch all user_roles + emails via auth.users (via RPC or join)
+  var rolesRes = await sb.from('user_roles').select('*');
+  if (rolesRes.error) {
+    container.innerHTML = '<p style="color:var(--red)">Fout bij laden: ' + esc(rolesRes.error.message) + '</p>';
+    return;
+  }
+  var roles = rolesRes.data || [];
+
+  // Fetch user emails via edge function or RPC; fallback: show user_id
+  var emailMap = {};
+  try {
+    var emailsRes = await sb.rpc('get_user_emails');
+    if (emailsRes.data) emailsRes.data.forEach(function(u) { emailMap[u.id] = u.email; });
+  } catch(e) { /* RPC may not exist yet */ }
+
+  var permLabels = { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer (super-admin)' };
+  var permKeys = Object.keys(permLabels);
+
+  var html = '<table class="data-table" style="width:100%"><thead><tr>' +
+    '<th>Gebruiker</th><th>Rol</th>';
+  permKeys.forEach(function(k) { html += '<th style="text-align:center">' + permLabels[k] + '</th>'; });
+  html += '</tr></thead><tbody>';
+
+  roles.forEach(function(r) {
+    var email = emailMap[r.user_id] || r.user_id.substring(0, 8) + '…';
+    var isSelf = r.user_id === currentUser.id;
+    html += '<tr>' +
+      '<td>' + esc(email) + (isSelf ? ' <span style="color:var(--grey);font-size:11px">(jij)</span>' : '') + '</td>' +
+      '<td>' + esc(r.role) + (r.partner_id ? ' <span style="color:var(--grey);font-size:11px">(partner)</span>' : '') + '</td>';
+    permKeys.forEach(function(k) {
+      var checked = (r.permissions && r.permissions[k]) ? 'checked' : '';
+      var disabled = (isSelf && k === 'manage_users') ? 'disabled title="Kan eigen super-admin niet uitschakelen"' : '';
+      html += '<td style="text-align:center"><input type="checkbox" ' + checked + ' ' + disabled +
+        ' onchange="toggleUserPermission(\'' + r.id + '\',\'' + k + '\',this.checked)"></td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<p style="font-size:12px;color:var(--grey);margin-top:12px"><strong>Tip:</strong> nieuwe gebruikers worden aangemaakt via Supabase Auth. Vraag Gillian om dit te doen.</p>';
+  container.innerHTML = html;
+}
+
+async function toggleUserPermission(roleId, permKey, value) {
+  // Fetch current permissions
+  var cur = await sb.from('user_roles').select('permissions').eq('id', roleId).single();
+  if (cur.error) { alert('Fout: ' + cur.error.message); return; }
+  var perms = cur.data.permissions || {};
+  if (value) perms[permKey] = true; else delete perms[permKey];
+  var upd = await sb.from('user_roles').update({ permissions: perms }).eq('id', roleId);
+  if (upd.error) { alert('Fout bij opslaan: ' + upd.error.message); return; }
 }
 
 // =============================================
