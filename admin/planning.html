@@ -850,14 +850,38 @@
 
 <!-- NIEUWE INTERVENTIE MODAL -->
 <div class="modal-overlay" id="modal-nieuwe-interventie">
-  <div class="modal" style="max-width:520px">
+  <div class="modal" style="max-width:560px">
     <h2>Nieuwe interventie</h2>
     <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Meld een interventie aan zodat de planner ze kan inplannen.</p>
 
     <div class="modal-field">
-      <label>Klant / Contract *</label>
-      <select id="ni-contract"></select>
+      <label>Klant *</label>
+      <div style="display:flex;gap:8px">
+        <select id="ni-klant" onchange="onNiKlantChange()" style="flex:1"></select>
+        <button type="button" onclick="openQuickKlantFromNi()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
+      </div>
     </div>
+
+    <div class="modal-field" id="ni-contract-wrap" style="display:none">
+      <label>Contract (optioneel)</label>
+      <select id="ni-contract">
+        <option value="">— Eenmalige interventie (zonder contract) —</option>
+      </select>
+    </div>
+
+    <div class="modal-field" id="ni-sector-wrap">
+      <label>Sector *</label>
+      <select id="ni-sector">
+        <option value="zonnepanelen">Zonnepanelen</option>
+        <option value="warmtepomp">Warmtepomp</option>
+        <option value="ventilatie">Ventilatie</option>
+        <option value="verwarming">Verwarming</option>
+        <option value="airco">Airco</option>
+        <option value="ic">Industrial Cleaning</option>
+        <option value="klussen">Klussen</option>
+      </select>
+    </div>
+
     <div class="modal-field">
       <label>Omschrijving *</label>
       <textarea id="ni-omschrijving" rows="3" placeholder="Wat is het probleem? Locatie binnen installatie, foutmelding, ..."></textarea>
@@ -884,6 +908,58 @@
     <div class="modal-buttons">
       <button onclick="closeNieuweInterventieModal()">Annuleren</button>
       <button class="btn-save" onclick="saveNieuweInterventie()">Interventie aanmaken</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK KLANT MODAL (inline vanuit nieuwe-interventie) -->
+<div class="modal-overlay" id="modal-quick-klant" style="z-index:1200">
+  <div class="modal" style="max-width:480px">
+    <h2>Nieuwe klant</h2>
+    <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Snel een klant toevoegen voor deze interventie.</p>
+    <div class="modal-row">
+      <div class="modal-field" style="flex:2">
+        <label>Bedrijfsnaam</label>
+        <input type="text" id="qk-company" placeholder="optioneel">
+      </div>
+      <div class="modal-field" style="flex:2">
+        <label>Contactpersoon *</label>
+        <input type="text" id="qk-contact" placeholder="Voornaam Naam">
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>E-mail *</label>
+        <input type="email" id="qk-email">
+      </div>
+      <div class="modal-field">
+        <label>Telefoon</label>
+        <input type="tel" id="qk-phone">
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field" style="flex:3">
+        <label>Straat</label>
+        <input type="text" id="qk-street">
+      </div>
+      <div class="modal-field" style="flex:1">
+        <label>Nr.</label>
+        <input type="text" id="qk-housenr">
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Postcode</label>
+        <input type="text" id="qk-postal">
+      </div>
+      <div class="modal-field" style="flex:2">
+        <label>Gemeente</label>
+        <input type="text" id="qk-city">
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button onclick="closeQuickKlant()">Annuleren</button>
+      <button class="btn-save" onclick="saveQuickKlant()">Klant opslaan</button>
     </div>
   </div>
 </div>
@@ -2064,15 +2140,72 @@ function onSidebarNewClick() {
 // =============================================
 // NIEUWE INTERVENTIE MODAL
 // =============================================
+var FLANCCO_PARTNER_ID = '93679849-afb0-4a69-8bd5-b74afdf22cad';
+
+function fillNiKlantDropdown(preselectId) {
+  var sel = document.getElementById('ni-klant');
+  sel.innerHTML = '<option value="">— Kies een klant —</option>';
+  // Klanten uit clients-tabel
+  var klanten = (allClients || []).slice().sort(function(a, b) {
+    return (a.company_name || a.contact_person || '').localeCompare(b.company_name || b.contact_person || '');
+  });
+  klanten.forEach(function(k) {
+    var naam = k.company_name || k.contact_person || '—';
+    var stad = k.city || '';
+    sel.innerHTML += '<option value="client:' + k.id + '">' + esc(naam) + (stad ? ' (' + esc(stad) + ')' : '') + '</option>';
+  });
+  // Los klant_naam uit contracten die nog geen client_id hebben (legacy)
+  var seen = {};
+  (allContracten || []).forEach(function(c) {
+    if (c.client_id) return;
+    var key = (c.klant_naam || '').trim().toLowerCase() + '|' + (c.klant_gemeente || '');
+    if (!key || seen[key]) return;
+    seen[key] = true;
+    sel.innerHTML += '<option value="contract:' + c.id + '">' + esc(c.klant_naam || '—') + ' (' + esc(c.klant_gemeente || '') + ') · legacy</option>';
+  });
+  if (preselectId) sel.value = preselectId;
+}
+
+function onNiKlantChange() {
+  var val = document.getElementById('ni-klant').value;
+  var contractWrap = document.getElementById('ni-contract-wrap');
+  var contractSel = document.getElementById('ni-contract');
+  var sectorWrap = document.getElementById('ni-sector-wrap');
+
+  if (!val) {
+    contractWrap.style.display = 'none';
+    sectorWrap.style.display = 'block';
+    return;
+  }
+
+  // Legacy: contract-keuze direct (klant zonder client_id)
+  if (val.indexOf('contract:') === 0) {
+    contractWrap.style.display = 'none';
+    sectorWrap.style.display = 'none';
+    return;
+  }
+
+  // Client-keuze: filter contracten voor deze klant
+  var clientId = val.replace('client:', '');
+  var klantContracten = (allContracten || []).filter(function(c) {
+    return c.client_id === clientId && !c.is_eenmalig && c.status !== 'verlopen';
+  });
+
+  contractSel.innerHTML = '<option value="">— Eenmalige interventie (zonder contract) —</option>';
+  klantContracten.forEach(function(c) {
+    var sec = c.sector ? ' · ' + c.sector : '';
+    contractSel.innerHTML += '<option value="' + c.id + '">Contract' + sec + (c.contract_nummer ? ' (' + esc(c.contract_nummer) + ')' : '') + '</option>';
+  });
+  contractWrap.style.display = klantContracten.length > 0 ? 'block' : 'none';
+  // Sector altijd tonen — wordt gebruikt bij eenmalig of overschreven
+  sectorWrap.style.display = 'block';
+}
+
 function openNieuweInterventieModal() {
-  var sel = document.getElementById('ni-contract');
-  sel.innerHTML = '<option value="">Selecteer een klant/contract...</option>';
-  var contracten = (allContracten || []).slice().sort(function(a, b) {
-    return (a.klant_naam || '').localeCompare(b.klant_naam || '');
-  });
-  contracten.forEach(function(c) {
-    sel.innerHTML += '<option value="' + c.id + '">' + esc(c.klant_naam || '—') + ' (' + esc(c.klant_gemeente || '') + ')</option>';
-  });
+  fillNiKlantDropdown();
+  document.getElementById('ni-contract-wrap').style.display = 'none';
+  document.getElementById('ni-sector-wrap').style.display = 'block';
+  document.getElementById('ni-sector').value = 'zonnepanelen';
   document.getElementById('ni-omschrijving').value = '';
   document.getElementById('ni-ernst').value = 'normaal';
   document.getElementById('ni-gewenste-datum').value = '';
@@ -2082,6 +2215,52 @@ function openNieuweInterventieModal() {
 
 function closeNieuweInterventieModal() {
   document.getElementById('modal-nieuwe-interventie').classList.remove('open');
+}
+
+// ---- Quick Klant (inline, bovenop interventie-modal) ----
+function openQuickKlantFromNi() {
+  document.getElementById('qk-company').value = '';
+  document.getElementById('qk-contact').value = '';
+  document.getElementById('qk-email').value = '';
+  document.getElementById('qk-phone').value = '';
+  document.getElementById('qk-street').value = '';
+  document.getElementById('qk-housenr').value = '';
+  document.getElementById('qk-postal').value = '';
+  document.getElementById('qk-city').value = '';
+  document.getElementById('modal-quick-klant').classList.add('open');
+}
+function closeQuickKlant() {
+  document.getElementById('modal-quick-klant').classList.remove('open');
+}
+async function saveQuickKlant() {
+  var contact = document.getElementById('qk-contact').value.trim();
+  var email = document.getElementById('qk-email').value.trim();
+  if (!contact) { alert('Vul contactpersoon in.'); return; }
+  if (!email) { alert('Vul e-mail in.'); return; }
+
+  var payload = {
+    partner_id: FLANCCO_PARTNER_ID,
+    contact_person: contact,
+    company_name: document.getElementById('qk-company').value.trim() || null,
+    email: email,
+    phone: document.getElementById('qk-phone').value.trim() || null,
+    street: document.getElementById('qk-street').value.trim() || null,
+    house_number: document.getElementById('qk-housenr').value.trim() || null,
+    postal_code: document.getElementById('qk-postal').value.trim() || null,
+    city: document.getElementById('qk-city').value.trim() || null
+  };
+  var res = await sb.from('clients').insert([payload]).select().single();
+  if (res.error) { alert('Fout bij klant aanmaken: ' + res.error.message); return; }
+
+  // Refresh lokale cache
+  allClients = allClients || [];
+  allClients.push(res.data);
+
+  // Terug naar interventie-modal, selecteer nieuwe klant
+  closeQuickKlant();
+  fillNiKlantDropdown('client:' + res.data.id);
+  onNiKlantChange();
+  showToast('Klant toegevoegd', 'success');
 }
 
 function openPlanInterventieModal(ivId, techId, dateStr, startTijd) {
@@ -2160,27 +2339,70 @@ async function savePlanInterventie() {
 }
 
 async function saveNieuweInterventie() {
-  var contractId = document.getElementById('ni-contract').value;
+  var klantVal = document.getElementById('ni-klant').value;
+  var contractId = document.getElementById('ni-contract').value || null;
+  var sector = document.getElementById('ni-sector').value;
   var omschrijving = document.getElementById('ni-omschrijving').value.trim();
   var ernst = document.getElementById('ni-ernst').value;
   var gewenste = document.getElementById('ni-gewenste-datum').value;
   var duur = parseInt(document.getElementById('ni-duur').value, 10) || 60;
 
-  if (!contractId) { alert('Selecteer een klant/contract.'); return; }
+  if (!klantVal) { alert('Selecteer een klant.'); return; }
   if (!omschrijving) { alert('Vul een omschrijving in.'); return; }
+
+  // Bepaal client_id en evt. bestaand legacy contract
+  var clientId = null;
+  if (klantVal.indexOf('contract:') === 0) {
+    // Legacy: klant zonder client_id — gebruik dat contract rechtstreeks
+    contractId = klantVal.replace('contract:', '');
+  } else if (klantVal.indexOf('client:') === 0) {
+    clientId = klantVal.replace('client:', '');
+  }
+
+  // Als geen contract gekozen EN we hebben een client_id → maak eenmalig contract
+  if (!contractId && clientId) {
+    if (!sector) { alert('Kies een sector.'); return; }
+    var klant = (allClients || []).find(function(k) { return k.id === clientId; });
+    if (!klant) { alert('Klant niet gevonden.'); return; }
+    var contractPayload = {
+      partner_id: FLANCCO_PARTNER_ID,
+      client_id: clientId,
+      klant_naam: klant.company_name || klant.contact_person || '—',
+      klant_adres: [klant.street, klant.house_number].filter(Boolean).join(' ') || null,
+      klant_postcode: klant.postal_code || null,
+      klant_gemeente: klant.city || null,
+      klant_contact: klant.contact_person || null,
+      klant_email: klant.email || null,
+      klant_telefoon: klant.phone || null,
+      sector: sector,
+      is_eenmalig: true,
+      status: 'actief',
+      frequentie: 'eenmalig',
+      contractduur: 'eenmalig',
+      beschrijving: 'Eenmalig contract voor interventie — ' + omschrijving.slice(0, 120)
+    };
+    try {
+      var userRes = await sb.auth.getUser();
+      if (userRes && userRes.data && userRes.data.user) contractPayload.aangemaakt_door = userRes.data.user.id;
+    } catch(e) {}
+
+    var cRes = await sb.from('contracten').insert([contractPayload]).select().single();
+    if (cRes.error) { alert('Fout bij aanmaken eenmalig contract: ' + cRes.error.message); return; }
+    contractId = cRes.data.id;
+    allContracten = allContracten || [];
+    allContracten.push(cRes.data);
+  }
+
+  if (!contractId) { alert('Kon geen contract bepalen voor deze interventie.'); return; }
 
   var payload = {
     contract_id: contractId,
     omschrijving: omschrijving,
     ernst: ernst,
+    actie_door: 'flancco',
     status: 'open',
-    gewenste_datum: gewenste || null,
-    geschatte_duur: duur
+    plan_datum: gewenste || null
   };
-  try {
-    var userRes = await sb.auth.getUser();
-    if (userRes && userRes.data && userRes.data.user) payload.created_by = userRes.data.user.id;
-  } catch(e) {}
 
   var res = await sb.from('interventies').insert([payload]).select();
   if (res.error) { alert('Fout: ' + res.error.message); return; }
