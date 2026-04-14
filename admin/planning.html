@@ -280,6 +280,26 @@
   }
   .tech-name-text { line-height: 1.3; }
   .tech-name-text span { display: block; }
+
+  /* Bedienden-lane (alleen verlof/ziekte) */
+  .bedienden-sep-row td {
+    padding: 10px 12px 6px !important; background: #FAFAFC !important;
+    border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  }
+  .bedienden-sep {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700; color: #64748B;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .bedienden-sep svg { color: #94A3B8; }
+  .bediende-row td { background: #FDFDFE; }
+  .bediende-row:hover td:first-child { background: #F5F5FA; }
+  .bediende-cell { cursor: default; }
+  .tech-avatar-bediende {
+    background: linear-gradient(145deg, #F1F5F9 0%, #E2E8F0 100%);
+    border-color: #64748B; color: #475569;
+    box-shadow: 0 1px 2px rgba(100,116,139,0.12), 0 2px 6px rgba(100,116,139,0.08);
+  }
   .tech-name-text .tech-label { font-size: 10px; color: var(--grey); font-weight: 500; }
 
   /* APPOINTMENT CARD */
@@ -482,6 +502,50 @@
   .month-count { font-size: 11px; color: var(--grey); margin-bottom: 3px; font-weight: 500; }
   .month-dots { display: flex; flex-wrap: wrap; gap: 3px; }
   .month-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* Beschikbaarheidsview bedienden-sectie */
+  .beschikbaar-bedienden {
+    margin-top: 24px; padding-top: 16px; border-top: 2px dashed var(--rule);
+  }
+  .beschikbaar-bedienden-header {
+    display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700;
+    color: #64748B; letter-spacing: 0.08em; margin-bottom: 12px; padding: 0 4px;
+  }
+  .beschikbaar-bedienden-header svg { color: #94A3B8; }
+  .beschikbaar-card-bediende { background: #FDFDFE; }
+
+  /* Maandview bedienden-timeline */
+  .maand-bedienden {
+    margin-top: 20px; background: #FDFDFE; border: 1px solid var(--rule);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .maand-bedienden-header {
+    display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700;
+    color: #64748B; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .maand-bedienden-header svg { color: #94A3B8; }
+  .maand-bediende-row {
+    display: grid; grid-template-columns: 180px 1fr; gap: 12px;
+    align-items: center; padding: 6px 0;
+    border-bottom: 1px dashed #E5E7EB;
+  }
+  .maand-bediende-row:last-child { border-bottom: none; }
+  .maand-bediende-naam {
+    font-size: 13px; font-weight: 600; color: var(--navy);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .maand-bediende-timeline {
+    display: grid; grid-template-columns: repeat(31, 1fr); gap: 2px;
+  }
+  .maand-day-cell {
+    aspect-ratio: 1; border-radius: 3px; background: #F1F5F9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: #94A3B8; position: relative;
+  }
+  .maand-day-cell.weekend { background: transparent; color: #CBD5E1; }
+  .maand-day-cell.absent { color: #fff; font-weight: 600; }
+  .maand-day-cell.absent .maand-day-num { text-shadow: 0 0 2px rgba(0,0,0,0.3); }
+  .maand-day-num { line-height: 1; }
 
   /* CONTEXT MENU */
   .ctx-menu {
@@ -1555,9 +1619,9 @@ function populateFilterDropdowns() {
     sbRegioSel.innerHTML += opt;
   });
 
-  // Technieker filter
+  // Technieker filter (geen bedienden in deze dropdown)
   var techSel = document.getElementById('filter-tech');
-  allTechniekers.forEach(function(t) {
+  allTechniekers.filter(function(t) { return (t.type_personeel || 'technieker') !== 'bediende'; }).forEach(function(t) {
     techSel.innerHTML += '<option value="' + t.id + '">' + esc(t.voornaam + ' ' + t.naam) + '</option>';
   });
 
@@ -1572,10 +1636,19 @@ function populateFilterDropdowns() {
 // =============================================
 // FILTERS
 // =============================================
+function isBediende(t) { return t && (t.type_personeel || 'technieker') === 'bediende'; }
+function isTechnieker(t) { return t && (t.type_personeel || 'technieker') !== 'bediende'; }
+
 function getFilteredTechniekers() {
   var techFilter = document.getElementById('filter-tech').value;
-  if (techFilter) return allTechniekers.filter(function(t) { return t.id === techFilter; });
-  return allTechniekers;
+  var onlyTechs = allTechniekers.filter(isTechnieker);
+  if (techFilter) return onlyTechs.filter(function(t) { return t.id === techFilter; });
+  return onlyTechs;
+}
+
+function getFilteredBedienden() {
+  // Bedienden zijn nooit gefilterd via filter-tech (die lijst bevat enkel techniekers)
+  return allTechniekers.filter(function(t) { return isBediende(t) && t.actief !== false; });
 }
 
 function passesFilters(beurt) {
@@ -1705,14 +1778,14 @@ function renderStats() {
     if (b.due_date && b.due_date < todayStr && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt' && b.status !== 'geannuleerd') verlopen++;
   });
 
-  // Verlof: techniekers die vandaag afwezig zijn
+  // Verlof: techniekers die vandaag afwezig zijn (bedienden niet meetellen in planning-KPI's)
   var todayDate = new Date(); todayDate.setHours(0,0,0,0);
-  allTechniekers.forEach(function(t) {
+  allTechniekers.filter(isTechnieker).forEach(function(t) {
     if (isTechAbsent(t.id, todayDate)) verlof++;
   });
 
   // Overbezet: techniekers met >100% weekuren — consistent met week/beschikbaarheidsview
-  allTechniekers.forEach(function(t) {
+  allTechniekers.filter(isTechnieker).forEach(function(t) {
     var weekMin = 0;
     allBeurten.forEach(function(b) {
       var isPri = b.technieker_id === t.id;
@@ -1895,6 +1968,45 @@ function renderWeekView() {
     }
     html += '</tr>';
   });
+
+  // Bedienden-lane: enkel verlof/ziekte (geen taken, geen drag-drop, geen uren-teller)
+  var bedienden = getFilteredBedienden();
+  if (bedienden.length > 0) {
+    html += '<tr class="bedienden-sep-row"><td colspan="6">' +
+      '<div class="bedienden-sep">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+      'BEDIENDEN</div></td></tr>';
+
+    bedienden.forEach(function(tech) {
+      html += '<tr class="bediende-row">';
+      html += '<td><div class="tech-name-cell">' +
+        '<div class="tech-avatar tech-avatar-bediende">' + esc(getTechInitials(tech)) + '</div>' +
+        '<div style="display:flex;flex-direction:column">' +
+          '<span class="tech-name-text">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</span>' +
+          '<span style="font-size:11px;color:var(--grey)">' + esc(tech.functie || 'Bediende') + '</span>' +
+        '</div></div></td>';
+
+      for (var d = 0; d < 5; d++) {
+        var isToday = isSameDay(dates[d], today);
+        var absent = isTechAbsent(tech.id, dates[d]);
+        if (absent) {
+          var afwInfo = getAfwezigheidInfo(tech.id, dates[d]);
+          var afwBg = hexToRgba(afwInfo.kleur, 0.10);
+          var afwStripe = hexToRgba(afwInfo.kleur, 0.30);
+          var halveCls = afwInfo.halve_dag === 'vm' ? ' halve-vm' : afwInfo.halve_dag === 'nm' ? ' halve-nm' : '';
+          var halveLbl = afwInfo.halve_dag === 'vm' ? ' (VM)' : afwInfo.halve_dag === 'nm' ? ' (NM)' : '';
+          var afwTitle = esc(afwInfo.type_naam + halveLbl + (afwInfo.reden ? ' \u2014 ' + afwInfo.reden : ''));
+          html += '<td class="absent-cell' + halveCls + ' ' + (isToday ? 'today-col' : '') + '" ' +
+            'style="--afw-bg:' + afwBg + ';--afw-stripe:' + afwStripe + '" ' +
+            'title="' + afwTitle + '">' +
+            '<span class="absent-label" style="color:' + afwInfo.kleur + '">' + esc(afwInfo.type_naam) + halveLbl + '</span></td>';
+        } else {
+          html += '<td class="bediende-cell ' + (isToday ? 'today-col' : '') + '"></td>';
+        }
+      }
+      html += '</tr>';
+    });
+  }
 
   html += '</tbody></table>';
   document.getElementById('grid-area').innerHTML = html;
@@ -3147,11 +3259,12 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   // Set notities
   document.getElementById('edit-beurt-notities').value = beurt.notities || '';
 
-  // Populate technieker dropdown
+  // Populate technieker dropdown (bedienden krijgen geen beurten)
   var techSel = document.getElementById('edit-beurt-technieker');
   techSel.innerHTML = '<option value="">— Kies technieker —</option>';
   allTechniekers.forEach(function(t) {
     if (!t.actief) return;
+    if (isBediende(t)) return;
     var selected = (dropTechId && t.id === dropTechId) || (!dropTechId && beurt.technieker_id === t.id);
     techSel.innerHTML += '<option value="' + t.id + '"' + (selected ? ' selected' : '') + '>' +
       esc(t.voornaam + ' ' + t.naam) + '</option>';
@@ -3222,6 +3335,7 @@ function updateExtraTechDropdown() {
   extraSel.innerHTML = '<option value="">+ Extra technieker toevoegen...</option>';
   allTechniekers.forEach(function(t) {
     if (!t.actief || t.id === hoofdTechId) return;
+    if (isBediende(t)) return;
     extraSel.innerHTML += '<option value="' + t.id + '">' + esc(t.voornaam + ' ' + t.naam) + '</option>';
   });
   // Verwijder chips van de hoofdtechnieker als die net werd geselecteerd
@@ -3442,6 +3556,44 @@ function renderMonthView() {
   }
 
   html += '</tbody></table>';
+
+  // Bedienden-sectie: compacte timeline met afwezigheden per bediende deze maand
+  var bedienden = getFilteredBedienden();
+  if (bedienden.length > 0) {
+    var daysInMonth = lastDay.getDate();
+    html += '<div class="maand-bedienden">';
+    html += '<div class="maand-bedienden-header">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+      '<span>BEDIENDEN \u2014 afwezigheden in ' + monthNames[month] + '</span></div>';
+
+    bedienden.forEach(function(tech) {
+      html += '<div class="maand-bediende-row">';
+      html += '<div class="maand-bediende-naam">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</div>';
+      html += '<div class="maand-bediende-timeline">';
+      for (var md = 1; md <= daysInMonth; md++) {
+        var cellDate = new Date(year, month, md);
+        var dow = cellDate.getDay();
+        var isWeekend = (dow === 0 || dow === 6);
+        var absent = !isWeekend && isTechAbsent(tech.id, cellDate);
+        var cellCls = 'maand-day-cell';
+        var cellStyle = '';
+        var cellTitle = formatDate(cellDate);
+        if (isWeekend) {
+          cellCls += ' weekend';
+        } else if (absent) {
+          var afwInfo = getAfwezigheidInfo(tech.id, cellDate);
+          cellStyle = 'background:' + afwInfo.kleur + ';';
+          cellTitle += ' \u2014 ' + afwInfo.type_naam + (afwInfo.reden ? ' (' + afwInfo.reden + ')' : '');
+          cellCls += ' absent';
+        }
+        html += '<div class="' + cellCls + '" style="' + cellStyle + '" title="' + esc(cellTitle) + '">' +
+          '<span class="maand-day-num">' + md + '</span></div>';
+      }
+      html += '</div></div>';
+    });
+    html += '</div>';
+  }
+
   document.getElementById('grid-area').innerHTML = html;
 }
 
@@ -3581,10 +3733,11 @@ function quickAdd(techId, datum, mode) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
 
-  // Extra techniekers chips
+  // Extra techniekers chips (bedienden niet)
   var chipHtml = '';
   allTechniekers.forEach(function(t) {
     if (t.id === techId) return;
+    if (isBediende(t)) return;
     chipHtml += '<span class="tech-chip" data-id="' + t.id + '" onclick="toggleTechChip(this)">' +
       esc(t.voornaam + ' ' + t.naam) + '</span>';
   });
@@ -3834,7 +3987,7 @@ function renderBeschikbaarheid() {
 
   var html = '<div class="beschikbaarheid-grid">';
 
-  allTechniekers.forEach(function(tech) {
+  allTechniekers.filter(isTechnieker).forEach(function(tech) {
     var isAbsentToday = isTechAbsent(tech.id, todayDate);
 
     // Calculate week workload
@@ -3939,6 +4092,64 @@ function renderBeschikbaarheid() {
   });
 
   html += '</div>';
+
+  // Bedienden-sectie: compacte afwezigheid-cards (geen werkdruk/taken)
+  var bedienden = getFilteredBedienden();
+  if (bedienden.length > 0) {
+    html += '<div class="beschikbaar-bedienden">';
+    html += '<div class="beschikbaar-bedienden-header">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+      '<span>BEDIENDEN</span></div>';
+    html += '<div class="beschikbaarheid-grid">';
+
+    bedienden.forEach(function(tech) {
+      var isAbsentToday = isTechAbsent(tech.id, todayDate);
+      var bDayAbsent = [false,false,false,false,false];
+      var bDayAfwInfo = [];
+      for (var d = 0; d < 5; d++) {
+        bDayAbsent[d] = isTechAbsent(tech.id, dates[d]);
+        bDayAfwInfo[d] = bDayAbsent[d] ? getAfwezigheidInfo(tech.id, dates[d]) : null;
+      }
+
+      var bBadgeStyle, bBadgeText;
+      if (isAbsentToday) {
+        var bAinfo = getAfwezigheidInfo(tech.id, todayDate);
+        bBadgeStyle = 'background:' + bAinfo.kleur + '20;color:' + bAinfo.kleur;
+        bBadgeText = bAinfo.type_naam;
+      } else {
+        bBadgeStyle = 'background:#DCFCE7;color:#166534';
+        bBadgeText = 'Aanwezig';
+      }
+
+      html += '<div class="beschikbaar-card beschikbaar-card-bediende">';
+      html += '<div class="beschikbaar-header">' +
+        '<div style="display:flex;flex-direction:column">' +
+          '<span class="beschikbaar-naam">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</span>' +
+          '<span style="font-size:11px;color:var(--grey);margin-top:2px">' + esc(tech.functie || 'Bediende') + '</span>' +
+        '</div>' +
+        '<span class="beschikbaar-badge" style="' + bBadgeStyle + '">' + esc(bBadgeText) + '</span>' +
+        '</div>';
+
+      html += '<div class="mini-week">';
+      for (var d = 0; d < 5; d++) {
+        var bgColor, textColor, dayContent;
+        if (bDayAbsent[d]) {
+          bgColor = bDayAfwInfo[d].kleur + '20'; textColor = bDayAfwInfo[d].kleur;
+          dayContent = bDayAfwInfo[d].type_naam.substring(0,3);
+        } else {
+          bgColor = '#F1F5F9'; textColor = '#64748B'; dayContent = '\u2022';
+        }
+        html += '<div class="mini-day" style="background:' + bgColor + ';color:' + textColor + '">' +
+          '<span class="mini-day-label">' + dayLabels[d] + '</span>' + dayContent + '</div>';
+      }
+      html += '</div>';
+
+      html += '</div>'; // card
+    });
+
+    html += '</div></div>'; // grid + wrapper
+  }
+
   document.getElementById('grid-area').innerHTML = html;
 }
 
@@ -4148,6 +4359,7 @@ function addWerkbonUrenRij(defaultTechId, defaultDatum) {
 
   var techOpts = '<option value="">Technieker</option>';
   allTechniekers.forEach(function(t) {
+    if (isBediende(t)) return;
     var sel = (defaultTechId && t.id === defaultTechId) ? ' selected' : '';
     techOpts += '<option value="' + t.id + '"' + sel + '>' + esc(t.voornaam + ' ' + t.naam) + '</option>';
   });
