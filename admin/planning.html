@@ -2681,24 +2681,44 @@ function niRenderLocaties(clientId) {
 
   var locaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === clientId; });
 
-  if (locaties.length <= 1) {
-    wrap.style.display = 'none';
+  if (locaties.length === 0) {
+    // Geen locaties: toon info-melding zodat planner weet waarom er geen keuze is
     sel.innerHTML = '';
+    sel.setAttribute('disabled', 'disabled');
+    wrap.style.display = 'block';
+    var hintEl = wrap.querySelector('.loc-hint');
+    if (!hintEl) {
+      hintEl = document.createElement('small');
+      hintEl.className = 'loc-hint';
+      hintEl.style.cssText = 'display:block;margin-top:6px;color:var(--grey);font-size:11px';
+      wrap.appendChild(hintEl);
+    }
+    hintEl.textContent = 'Geen werklocatie geregistreerd — voeg toe via klantprofiel.';
     var client = (allClients || []).find(function(c) { return c.id === clientId; });
-    hiddenPo.value = (locaties[0] && locaties[0].po_number) || (client && client.po_number) || '';
+    hiddenPo.value = (client && client.po_number) || '';
     return;
   }
 
+  // Altijd tonen, ook bij 1 locatie (planner wil expliciet zien op welke werf de beurt valt).
+  sel.removeAttribute('disabled');
+
   locaties.sort(function(a, b) { return (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0); });
   sel.innerHTML = locaties.map(function(l) {
-    var label = (l.label || 'Werklocatie') +
-                (l.is_primary ? ' (hoofdlocatie)' : '') +
-                (l.city ? ' — ' + l.city : '');
-    return '<option value="' + l.id + '" data-po="' + esc(l.po_number || '') + '">' + esc(label) + '</option>';
+    var adres = [l.street, l.house_number].filter(Boolean).join(' ');
+    var plaats = [l.postal_code, l.city].filter(Boolean).join(' ');
+    var labelParts = [l.label || 'Werklocatie'];
+    if (l.is_primary) labelParts[0] += ' (hoofdlocatie)';
+    if (adres || plaats) labelParts.push([adres, plaats].filter(Boolean).join(', '));
+    return '<option value="' + l.id + '" data-po="' + esc(l.po_number || '') + '">' + esc(labelParts.join(' — ')) + '</option>';
   }).join('');
 
   var primary = locaties.find(function(l) { return l.is_primary; }) || locaties[0];
   sel.value = primary.id;
+
+  // Hint wegwerken indien vorige render hem zette
+  var existingHint = wrap.querySelector('.loc-hint');
+  if (existingHint) existingHint.remove();
+
   wrap.style.display = 'block';
   niLocatieChanged();
 }
@@ -3654,21 +3674,35 @@ function editBeurtRenderLocaties(beurt) {
 
   var locaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === clientId; });
 
-  if (locaties.length <= 1) {
-    // Geen picker nodig: PO komt uit (enige) locatie of klant
-    wrap.style.display = 'none';
+  if (locaties.length === 0) {
+    // Geen locaties: toon info-melding zodat planner weet waarom er geen keuze is
     sel.innerHTML = '';
+    wrap.style.display = 'block';
+    sel.setAttribute('disabled', 'disabled');
+    var hintEl = wrap.querySelector('.loc-hint');
+    if (!hintEl) {
+      hintEl = document.createElement('small');
+      hintEl.className = 'loc-hint';
+      hintEl.style.cssText = 'display:block;margin-top:6px;color:var(--grey);font-size:11px';
+      wrap.appendChild(hintEl);
+    }
+    hintEl.textContent = 'Geen werklocatie geregistreerd — voeg toe via klantprofiel.';
     return;
   }
+
+  // Altijd tonen, ook bij 1 locatie (planner wil expliciet zien op welke werf de beurt valt).
+  sel.removeAttribute('disabled');
 
   // Primary-first sortering
   locaties.sort(function(a, b) { return (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0); });
 
   sel.innerHTML = locaties.map(function(l) {
-    var label = (l.label || 'Werklocatie') +
-                (l.is_primary ? ' (hoofdlocatie)' : '') +
-                (l.city ? ' — ' + l.city : '');
-    return '<option value="' + l.id + '" data-po="' + esc(l.po_number || '') + '">' + esc(label) + '</option>';
+    var adres = [l.street, l.house_number].filter(Boolean).join(' ');
+    var plaats = [l.postal_code, l.city].filter(Boolean).join(' ');
+    var labelParts = [l.label || 'Werklocatie'];
+    if (l.is_primary) labelParts[0] += ' (hoofdlocatie)';
+    if (adres || plaats) labelParts.push([adres, plaats].filter(Boolean).join(', '));
+    return '<option value="' + l.id + '" data-po="' + esc(l.po_number || '') + '">' + esc(labelParts.join(' — ')) + '</option>';
   }).join('');
 
   // Pre-select: bestaande beurt-locatie > primary > eerste
@@ -3678,6 +3712,11 @@ function editBeurtRenderLocaties(beurt) {
     preselectId = primary ? primary.id : locaties[0].id;
   }
   sel.value = preselectId;
+
+  // Hint wegwerken indien vorige render hem zette
+  var existingHint = wrap.querySelector('.loc-hint');
+  if (existingHint) existingHint.remove();
+
   wrap.style.display = 'block';
 }
 
@@ -4552,17 +4591,30 @@ function qaContractChanged() {
 
   // Haal client_locations via globale cache of lazy-load
   var clientLocaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === client.id; });
-  if (clientLocaties.length <= 1) {
-    // Enkel hoofdlocatie of geen: verberg picker
-    locWrap.style.display = 'none';
-    // PO cascade: eerste locatie > klant > leeg
-    var po = (clientLocaties[0] && clientLocaties[0].po_number) || client.po_number || '';
-    if (poEl) poEl.value = po;
-    if (hintEl) hintEl.textContent = po ? 'PO vooraf-ingevuld vanuit ' + (clientLocaties[0] && clientLocaties[0].po_number ? 'werklocatie' : 'klantprofiel') : '';
+
+  if (clientLocaties.length === 0) {
+    // Geen locaties: toon info-melding zodat planner weet waarom er geen keuze is
+    locSel.innerHTML = '';
+    locSel.setAttribute('disabled', 'disabled');
+    locWrap.style.display = 'block';
+    var hintNoLoc = locWrap.querySelector('.loc-hint-empty');
+    if (!hintNoLoc) {
+      hintNoLoc = document.createElement('small');
+      hintNoLoc.className = 'loc-hint-empty';
+      hintNoLoc.style.cssText = 'display:block;margin-top:6px;color:var(--grey);font-size:11px';
+      locWrap.appendChild(hintNoLoc);
+    }
+    hintNoLoc.textContent = 'Geen werklocatie geregistreerd — voeg toe via klantprofiel.';
+    if (poEl) poEl.value = client.po_number || '';
+    if (hintEl) hintEl.textContent = client.po_number ? 'PO vooraf-ingevuld vanuit klantprofiel' : '';
     return;
   }
 
-  // Meerdere locaties → toon picker, primary eerst
+  // Altijd tonen, ook bij 1 locatie (planner wil expliciet zien op welke werf de beurt valt).
+  locSel.removeAttribute('disabled');
+  var existingEmptyHint = locWrap.querySelector('.loc-hint-empty');
+  if (existingEmptyHint) existingEmptyHint.remove();
+
   locSel.innerHTML = '';
   var primary = clientLocaties.find(function(l) { return l.is_primary; });
   var sorted = clientLocaties.slice().sort(function(a, b) {
@@ -4571,14 +4623,19 @@ function qaContractChanged() {
     return (a.label || '').localeCompare(b.label || '');
   });
   sorted.forEach(function(l) {
-    var label = (l.label || 'Locatie') + ' — ' + [l.street, l.postal_code, l.city].filter(Boolean).join(' ');
+    var adres = [l.street, l.house_number].filter(Boolean).join(' ');
+    var plaats = [l.postal_code, l.city].filter(Boolean).join(' ');
+    var labelParts = [l.label || 'Werklocatie'];
+    if (l.is_primary) labelParts[0] += ' (hoofdlocatie)';
+    if (adres || plaats) labelParts.push([adres, plaats].filter(Boolean).join(', '));
     var opt = document.createElement('option');
     opt.value = l.id;
-    opt.textContent = label;
+    opt.textContent = labelParts.join(' — ');
     opt.dataset.po = l.po_number || '';
     locSel.appendChild(opt);
   });
   if (primary) locSel.value = primary.id;
+  else locSel.value = sorted[0].id;
   locWrap.style.display = 'block';
   qaLocatieChanged();
 }
