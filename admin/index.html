@@ -3040,6 +3040,8 @@ async function loadAllData() {
   }
   await loadPartnerPermissions();
   await loadFacturatie();
+  // Voertuig-verval check (enkel admin) — genereert notificaties vóór we ze inladen
+  try { await checkVoertuigVervalNotificaties(); } catch (_) { /* non-blocking */ }
   // Notificaties laden + realtime subscribe (alle rollen)
   await loadNotifications();
   startNotifRealtime();
@@ -3130,6 +3132,8 @@ function notifIconSvg(type) {
     interventie_aangemaakt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     interventie_status_gewijzigd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
     contract_getekend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    voertuig_keuring_verval: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>',
+    voertuig_verzekering_verval: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
     systeem: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
   };
   return icons[type] || icons.systeem;
@@ -3293,6 +3297,14 @@ async function openNotification(id) {
     showPage('planning');
   } else if (n.related_type === 'contract' && n.related_id) {
     showPage('contracten');
+  } else if (n.related_type === 'voertuig' && n.related_id) {
+    showPage('wagenpark');
+    // Auto-expand het desbetreffende voertuig zodra wagenpark gerenderd is
+    setTimeout(function() {
+      if (typeof toggleVoertuigDetail === 'function' && typeof expandedVoertuigId !== 'undefined') {
+        if (expandedVoertuigId !== n.related_id) toggleVoertuigDetail(n.related_id);
+      }
+    }, 150);
   }
 }
 
@@ -9239,6 +9251,118 @@ function buildVoertuigDetailHTML(voertuigId) {
   html += '</div>';
 
   return html;
+}
+
+// =============================================
+// VOERTUIG VERVAL — interne notificaties (inbox + dashboard)
+// =============================================
+// Config: hoeveel dagen op voorhand waarschuwen (fallback op 30 indien kolom leeg).
+var VOERTUIG_VERVAL_WARN_DAYS = 30;
+
+/**
+ * Checkt alle actieve voertuigen op verlopen of binnenkort-verlopende keuring + verzekering
+ * en genereert interne notificaties (bell-dropdown + inbox-pagina). Idempotent via dedup_key:
+ * dezelfde combinatie (voertuig + type + vervaldatum + status) wordt nooit dubbel ingevoegd.
+ *
+ * Triggert bij elke dashboard-load voor admin-rol. Partners zien geen wagenpark dus geen notif.
+ */
+async function checkVoertuigVervalNotificaties() {
+  if (userRole !== 'admin') return;
+  if (!Array.isArray(allVoertuigen) || allVoertuigen.length === 0) return;
+  if (typeof sb === 'undefined' || !sb) return;
+
+  // Bepaal partner-ontvanger: wagens horen bij Flancco Direct (de eigenaar).
+  var flanccoPartner = (partners || []).find(function(p) {
+    var slug = (p.slug || '').toLowerCase();
+    var naam = (p.bedrijfsnaam || p.naam || '').toLowerCase();
+    return slug === 'flancco' || naam.indexOf('flancco direct') >= 0 || naam.indexOf('flancco bv') >= 0;
+  });
+  if (!flanccoPartner) flanccoPartner = (partners || [])[0];
+  if (!flanccoPartner || !flanccoPartner.id) return;
+
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  var rows = [];
+  allVoertuigen.forEach(function(v) {
+    if (!v || v.status === 'uit_dienst') return;
+
+    // Keuring
+    if (v.keuring_verval) {
+      var r1 = buildVervalNotif(v, 'keuring', v.keuring_verval, v.keuring_herinnering_maanden, today, flanccoPartner.id);
+      if (r1) rows.push(r1);
+    }
+    // Verzekering
+    if (v.verzekering_verval) {
+      var r2 = buildVervalNotif(v, 'verzekering', v.verzekering_verval, v.verzekering_herinnering_maanden, today, flanccoPartner.id);
+      if (r2) rows.push(r2);
+    }
+  });
+
+  if (rows.length === 0) return;
+
+  try {
+    var up = await sb.from('notifications').upsert(rows, {
+      onConflict: 'partner_id,dedup_key',
+      ignoreDuplicates: true
+    });
+    if (up.error) {
+      console.warn('checkVoertuigVervalNotificaties upsert fout:', up.error.message || up.error);
+    }
+  } catch (e) {
+    console.warn('checkVoertuigVervalNotificaties exception:', e && e.message ? e.message : e);
+  }
+}
+
+/**
+ * Bouwt één notificatie-rij voor een voertuig-verval.
+ * Returns null als er geen trigger-conditie voldaan is (nog te ver in de toekomst).
+ */
+function buildVervalNotif(v, kind, datumIso, herinneringMaanden, today, partnerId) {
+  var kd = new Date(datumIso);
+  kd.setHours(0, 0, 0, 0);
+  var warnDagen = Math.max(7, (parseInt(herinneringMaanden, 10) || 0) * 30 || VOERTUIG_VERVAL_WARN_DAYS);
+  var warnDrempel = new Date(today);
+  warnDrempel.setDate(warnDrempel.getDate() + warnDagen);
+
+  var status;
+  if (kd < today) status = 'verlopen';
+  else if (kd < warnDrempel) status = 'binnenkort';
+  else return null;
+
+  var typeKey = kind === 'keuring' ? 'voertuig_keuring_verval' : 'voertuig_verzekering_verval';
+  var labelKind = kind === 'keuring' ? 'Keuring' : 'Verzekering';
+  var datumBE = kd.toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
+  var plaat = v.nummerplaat || 'Voertuig';
+  var merkModel = ((v.merk || '') + ' ' + (v.model || '')).trim();
+
+  var title, body;
+  if (status === 'verlopen') {
+    var daysOver = Math.round((today - kd) / (1000 * 60 * 60 * 24));
+    title = labelKind + ' verlopen — ' + plaat;
+    body = (merkModel ? merkModel + ' · ' : '') + labelKind.toLowerCase() +
+           ' is ' + daysOver + ' dagen geleden verlopen (' + datumBE + '). Vernieuw dringend.';
+  } else {
+    var daysLeft = Math.round((kd - today) / (1000 * 60 * 60 * 24));
+    title = labelKind + ' verloopt binnenkort — ' + plaat;
+    body = (merkModel ? merkModel + ' · ' : '') + labelKind.toLowerCase() +
+           ' verloopt over ' + daysLeft + ' dagen (' + datumBE + ').';
+  }
+
+  return {
+    partner_id: partnerId,
+    user_id: null,
+    type: typeKey,
+    title: title,
+    body: body,
+    link_url: null,
+    related_type: 'voertuig',
+    related_id: v.id,
+    dedup_key: typeKey + '-' + v.id + '-' + datumIso + '-' + status,
+    is_read: false,
+    email_sent: false,
+    email_opt_in: false
+  };
 }
 
 function openWagenModal(editData) {
