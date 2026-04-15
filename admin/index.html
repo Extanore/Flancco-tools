@@ -2762,7 +2762,7 @@ function loadSettings(p) {
   }).join('');
 
   const calcLink = document.getElementById('set-calc-link');
-  const url = window.location.origin + window.location.pathname.replace('/admin/', '/' + p.slug + '/');
+  const url = window.location.origin + window.location.pathname.replace('/admin/', '/calculator/') + '?partner=' + encodeURIComponent(p.slug);
   calcLink.href = url;
   calcLink.textContent = url;
 
@@ -3803,7 +3803,7 @@ function renderPartners() {
     html += '<td>' + actieve.length + ' actief<div style="font-size:11px;color:var(--grey)">' + contracts.length + ' totaal</div></td>';
     html += '<td class="admin-only" style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">';
     if (p.slug) {
-      html += '<button class="icon-btn" title="Bekijk calculator" onclick="window.open(\'../' + esc(p.slug) + '/\',\'_blank\')">' +
+      html += '<button class="icon-btn" title="Bekijk calculator" onclick="window.open(\'../calculator/?partner=' + esc(p.slug) + '\',\'_blank\')">' +
         '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
         '</button>';
     }
