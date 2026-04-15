@@ -1165,29 +1165,40 @@
 
     <!-- PRICING PAGE -->
     <div class="page" id="page-pricing">
-      <!-- Filters bar -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
-        <div>
+      <div class="card">
+        <!-- Filters bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
           <p style="font-size:13px;color:var(--grey);margin:0">Basisforfaits per partner en sector. Eindklantprijs = (forfait × marge%) + planning fee + BTW.</p>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button type="button" id="btn-toggle-all-pricing" onclick="toggleAllPricingDetails()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:12px;font-weight:600;background:var(--white);color:var(--navy);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" onmouseenter="this.style.borderColor='var(--navy)'" onmouseleave="this.style.borderColor='var(--rule)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg> Alles uitklappen</button>
+            <select id="pricing-filter-partner" onchange="renderPricing()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);cursor:pointer">
+              <option value="">Alle partners</option>
+            </select>
+            <select id="pricing-filter-sector" onchange="renderPricing()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);cursor:pointer">
+              <option value="">Alle sectoren</option>
+              <option value="zonnepanelen">Zonnepanelen</option>
+              <option value="warmtepomp">Warmtepomp</option>
+              <option value="ventilatie">Ventilatie</option>
+              <option value="verwarming">Verwarming</option>
+              <option value="airco">Airco</option>
+              <option value="ic">Industrial Cleaning</option>
+              <option value="klussen">Klussen</option>
+            </select>
+          </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" id="btn-toggle-all-pricing" onclick="toggleAllPricingDetails()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:12px;font-weight:600;background:var(--white);color:var(--navy);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" onmouseenter="this.style.borderColor='var(--navy)'" onmouseleave="this.style.borderColor='var(--rule)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg> Alles uitklappen</button>
-          <select id="pricing-filter-partner" onchange="renderPricing()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);cursor:pointer">
-            <option value="">Alle partners</option>
-          </select>
-          <select id="pricing-filter-sector" onchange="renderPricing()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);cursor:pointer">
-            <option value="">Alle sectoren</option>
-            <option value="zonnepanelen">Zonnepanelen</option>
-            <option value="warmtepomp">Warmtepomp</option>
-            <option value="ventilatie">Ventilatie</option>
-            <option value="verwarming">Verwarming</option>
-            <option value="airco">Airco</option>
-            <option value="ic">Industrial Cleaning</option>
-            <option value="klussen">Klussen</option>
-          </select>
-        </div>
+        <table class="expandable-table">
+          <thead>
+            <tr>
+              <th style="width:36px"></th>
+              <th>Partner</th>
+              <th style="width:110px;text-align:right">Tarieven</th>
+              <th style="width:90px;text-align:right">Marge</th>
+              <th style="width:110px;text-align:right">Plan fee</th>
+            </tr>
+          </thead>
+          <tbody id="pricing-grid"></tbody>
+        </table>
       </div>
-      <div id="pricing-grid" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
 
     <!-- INSTELLINGEN PAGE (partner only) -->
@@ -5106,34 +5117,32 @@ function renderPricing() {
     var sectorKeys = Object.keys(sectors);
     if (sectorKeys.length === 0 && !filterSector) return '';
 
-    // Partner card — compact list-row stijl
+    // Partner row — Vercel-stijl in expandable-table pattern (uniform met Klanten/Techniekers)
     var brandColor = p.kleur_primair || '#098979';
-    var html = '<div class="pricing-partner" style="background:var(--white);border-radius:10px;border:1px solid var(--rule);overflow:hidden;transition:border-color 0.15s">';
+    var chevronSvg = '<svg class="exp-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
 
-    // Partner header — strakke compacte rij
-    html += '<div onclick="togglePricingDetail(\'' + p.id + '\')" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;user-select:none;transition:background 0.15s" onmouseenter="this.style.background=\'#FAFBFC\'" onmouseleave="this.style.background=\'transparent\'">';
-    // Logo / avatar
-    html += '<div style="width:28px;height:28px;border-radius:6px;background:' + brandColor + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    var html = '<tr class="exp-main" id="pricing-row-' + p.id + '" data-pid="' + p.id + '" onclick="togglePricingDetail(\'' + p.id + '\')">';
+    // Chevron-cel
+    html += '<td class="exp-chevron-cell"><button type="button" class="exp-chevron-btn" onclick="event.stopPropagation();togglePricingDetail(\'' + p.id + '\')" aria-label="Details">' + chevronSvg + '</button></td>';
+    // Partner-cel: logo + naam
+    html += '<td><div style="display:flex;align-items:center;gap:10px;min-width:0">';
+    html += '<div style="width:24px;height:24px;border-radius:5px;background:' + brandColor + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
     if (p.logo_url) {
-      html += '<img src="' + esc(p.logo_url) + '" style="width:20px;height:20px;object-fit:contain;border-radius:3px">';
+      html += '<img src="' + esc(p.logo_url) + '" style="width:18px;height:18px;object-fit:contain;border-radius:3px">';
     } else {
-      html += '<span style="color:white;font-weight:700;font-size:12px">' + esc((p.naam || '')[0]) + '</span>';
+      html += '<span style="color:white;font-weight:700;font-size:11px">' + esc((p.naam || '')[0]) + '</span>';
     }
     html += '</div>';
-    // Naam (email als hover-titel om ruis te beperken)
-    html += '<div style="flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"' + (p.email ? ' title="' + esc(p.email) + '"' : '') + '>' + esc(p.bedrijfsnaam || p.naam) + '</div>';
-    // Inline stats: licht en strak
-    html += '<div style="display:flex;gap:18px;align-items:center;flex-shrink:0;font-size:12px;color:var(--grey)">';
-    html += '<span><strong style="color:var(--navy);font-weight:600">' + pricing.length + '</strong> tarieven</span>';
-    html += '<span><strong style="color:var(--navy);font-weight:600">' + (p.marge_pct || 0) + '%</strong> marge</span>';
-    html += '<span><strong style="color:var(--navy);font-weight:600">&euro;' + (p.planning_fee || 0) + '</strong> fee</span>';
-    html += '</div>';
-    // Chevron
-    html += '<div id="pricing-chevron-' + p.id + '" style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--grey);transition:transform 0.2s;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>';
-    html += '</div>';
+    html += '<strong style="font-size:13px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"' + (p.email ? ' title="' + esc(p.email) + '"' : '') + '>' + esc(p.bedrijfsnaam || p.naam) + '</strong>';
+    html += '</div></td>';
+    // Stats — right-aligned, tabular
+    html += '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--navy);font-weight:500">' + pricing.length + '</td>';
+    html += '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--navy);font-weight:500">' + (p.marge_pct || 0) + '%</td>';
+    html += '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--navy);font-weight:500">&euro;' + (p.planning_fee || 0) + '</td>';
+    html += '</tr>';
 
-    // Detail-wrapper (collapsed by default)
-    html += '<div id="pricing-detail-' + p.id + '" style="display:none;border-top:1px solid var(--rule)">';
+    // Detail-rij (collapsed by default)
+    html += '<tr class="exp-detail-row" id="pricing-detail-' + p.id + '" hidden><td colspan="5"><div class="exp-detail-inner" style="padding:0">';
 
     // Sector tabs
     if (sectorKeys.length > 1) {
@@ -5212,8 +5221,7 @@ function renderPricing() {
       html += '</div>'; // panel close
     });
 
-    html += '</div>'; // detail-wrapper close
-    html += '</div>'; // partner card close
+    html += '</div></td></tr>'; // exp-detail-inner + colspan-td + detail-row close
     return html;
   }).join('');
 }
@@ -5238,15 +5246,15 @@ function switchPricingSectorTab(partnerId, sector, btn) {
 }
 
 function togglePricingDetail(partnerId) {
-  var el = document.getElementById('pricing-detail-' + partnerId);
-  var chev = document.getElementById('pricing-chevron-' + partnerId);
-  if (!el) return;
-  if (el.style.display === 'none' || el.style.display === '') {
-    el.style.display = 'block';
-    if (chev) chev.style.transform = 'rotate(180deg)';
+  var detail = document.getElementById('pricing-detail-' + partnerId);
+  var main = document.getElementById('pricing-row-' + partnerId);
+  if (!detail || !main) return;
+  if (detail.hasAttribute('hidden')) {
+    detail.removeAttribute('hidden');
+    main.classList.add('expanded');
   } else {
-    el.style.display = 'none';
-    if (chev) chev.style.transform = '';
+    detail.setAttribute('hidden', '');
+    main.classList.remove('expanded');
   }
 }
 
@@ -5255,13 +5263,17 @@ function toggleAllPricingDetails() {
   var details = document.querySelectorAll('[id^="pricing-detail-"]');
   if (!details.length) return;
   // Bepaal nieuwe stand op basis van eerste paneel
-  var first = details[0];
-  var shouldOpen = (first.style.display === 'none' || first.style.display === '');
+  var shouldOpen = details[0].hasAttribute('hidden');
   details.forEach(function(el) {
-    el.style.display = shouldOpen ? 'block' : 'none';
     var pid = el.id.replace('pricing-detail-', '');
-    var chev = document.getElementById('pricing-chevron-' + pid);
-    if (chev) chev.style.transform = shouldOpen ? 'rotate(180deg)' : '';
+    var main = document.getElementById('pricing-row-' + pid);
+    if (shouldOpen) {
+      el.removeAttribute('hidden');
+      if (main) main.classList.add('expanded');
+    } else {
+      el.setAttribute('hidden', '');
+      if (main) main.classList.remove('expanded');
+    }
   });
   if (btn) {
     btn.innerHTML = shouldOpen
@@ -5271,9 +5283,10 @@ function toggleAllPricingDetails() {
 }
 
 function editPricing(partnerId, btn) {
-  // Scope: huidige sector-panel (bij multi-sector), anders hele partner-card
-  var scope = btn.closest('.pricing-sec-panel') || btn.closest('.pricing-partner');
-  var inputs = scope.querySelectorAll('.pricing-input, .pricing-input-partner, .pricing-input-eindklant');
+  // Scope: huidige sector-panel (bij multi-sector); fallback: hele detail-row
+  var scope = btn.closest('.pricing-sec-panel') || btn.closest('.exp-detail-row');
+  if (!scope) return;
+  var inputs = scope.querySelectorAll('.pricing-input, .pricing-input-flancco, .pricing-input-partner, .pricing-input-eindklant');
   inputs.forEach(function(inp) {
     inp.removeAttribute('readonly');
     inp.style.background = '#fff';
@@ -5343,7 +5356,8 @@ function cascadeFromEindklant(input) {
 }
 
 async function savePricing(partnerId, btn) {
-  var scope = btn.closest('.pricing-sec-panel') || btn.closest('.pricing-partner');
+  var scope = btn.closest('.pricing-sec-panel') || btn.closest('.exp-detail-row');
+  if (!scope) return;
   // Lees enkel canonical input (.pricing-input-flancco) — de cascade-handlers houden hem altijd in sync
   var inputs = scope.querySelectorAll('.pricing-input-flancco');
   var updates = Array.from(inputs).map(function(inp) {
