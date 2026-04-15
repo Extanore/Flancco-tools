@@ -6072,7 +6072,7 @@ async function uploadPartnerLogo(file, partnerId) {
   if (up.error) throw up.error;
 
   try {
-    var partner = (allPartners || []).find(function(p) { return p.id === partnerId; });
+    var partner = ((typeof allPartners !== 'undefined' ? allPartners : null) || partners || []).find(function(p) { return p.id === partnerId; });
     if (partner && partner.logo_url) {
       var oldPath = extractStoragePath(partner.logo_url);
       if (oldPath && oldPath !== path) {
@@ -6140,7 +6140,7 @@ function mountLogoUploader(container, partnerId, currentLogoUrl, onChange) {
     status.style.color = 'var(--grey)';
     try {
       var url = await uploadPartnerLogo(file, partnerId);
-      var partner = (allPartners || []).find(function(p) { return p.id === partnerId; });
+      var partner = ((typeof allPartners !== 'undefined' ? allPartners : null) || partners || []).find(function(p) { return p.id === partnerId; });
       if (partner) partner.logo_url = url;
       setPreview(url);
       status.textContent = 'Logo bijgewerkt';
@@ -6172,7 +6172,7 @@ function mountLogoUploader(container, partnerId, currentLogoUrl, onChange) {
   container.querySelector('.lu-remove-btn').addEventListener('click', async function() {
     if (!confirm('Logo verwijderen?')) return;
     try {
-      var partner = (allPartners || []).find(function(p) { return p.id === partnerId; });
+      var partner = ((typeof allPartners !== 'undefined' ? allPartners : null) || partners || []).find(function(p) { return p.id === partnerId; });
       if (partner && partner.logo_url) {
         var oldPath = extractStoragePath(partner.logo_url);
         if (oldPath) await sb.storage.from('partner-logos').remove([oldPath]);
@@ -6732,7 +6732,7 @@ async function openKlantModal(editData) {
   var dispEl = document.getElementById('kl-partner-display');
   if (selEl) {
     var opts = '<option value="">— Kies een partner —</option>';
-    (allPartners || partners || []).forEach(function(p) {
+    ((typeof allPartners !== 'undefined' ? allPartners : null) || partners || []).forEach(function(p) {
       opts += '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam || '') + '</option>';
     });
     selEl.innerHTML = opts;
