@@ -4375,6 +4375,11 @@ function openNieuweTaakModal(opts) {
       document.getElementById('ni-step').value = 'scheduling';
       if (typeof niApplyStepVisibility === 'function') niApplyStepVisibility();
     }
+    // Pre-select technieker als de "+" in een technieker-kolom is geklikt
+    if (techId) {
+      var techSel = document.getElementById('ni-plan-tech');
+      if (techSel) techSel.value = techId;
+    }
     return;
   }
 
