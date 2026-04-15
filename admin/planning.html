@@ -912,17 +912,16 @@
       </div>
     </div>
     <!-- Duur + Hele dag -->
-    <div class="modal-row">
-      <div class="modal-field">
+    <div class="modal-row" style="align-items:flex-end;gap:12px">
+      <div class="modal-field" id="qa-duur-wrap" style="flex:0 0 140px">
         <label>Duur (min)</label>
         <input type="number" id="qa-duur" value="60" min="15" step="15">
       </div>
-      <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
-          <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()" style="width:auto;padding:0;border:1px solid var(--rule);flex-shrink:0;margin:0">
-          <span style="font-size:13px;flex-shrink:0">Hele dag (7,6u)</span>
-        </label>
-      </div>
+      <div id="qa-hele-dag-badge" style="display:none;flex:0 0 auto;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
+      <label id="qa-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
+        <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
+        <span style="font-size:13px;font-weight:500;color:var(--navy)">Hele dag (7,6u)</span>
+      </label>
     </div>
     <!-- Notities -->
     <div class="modal-field">
@@ -1113,8 +1112,8 @@
       <label>Omschrijving *</label>
       <textarea id="ni-omschrijving" rows="3" placeholder="Wat is het probleem? Locatie binnen installatie, foutmelding, ..."></textarea>
     </div>
-    <div class="modal-row">
-      <div class="modal-field">
+    <div class="modal-row" style="align-items:flex-end;gap:12px">
+      <div class="modal-field" style="flex:1">
         <label>Ernst</label>
         <select id="ni-ernst">
           <option value="urgent">Urgent</option>
@@ -1122,16 +1121,15 @@
           <option value="laag">Laag</option>
         </select>
       </div>
-      <div class="modal-field">
+      <div class="modal-field" id="ni-duur-wrap" style="flex:0 0 140px">
         <label>Geschatte duur (min)</label>
         <input type="number" id="ni-duur" value="60" min="15" step="15">
       </div>
-      <div class="modal-field" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
-          <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()" style="width:auto;padding:0;border:1px solid var(--rule);flex-shrink:0;margin:0">
-          <span style="font-size:13px;flex-shrink:0">Hele dag (7,6u)</span>
-        </label>
-      </div>
+      <div id="ni-hele-dag-badge" style="display:none;flex:0 0 auto;align-self:flex-end;margin-bottom:0;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
+      <label id="ni-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;align-self:flex-end;margin-bottom:0;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
+        <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
+        <span style="font-size:13px;font-weight:500;color:var(--navy)">Hele dag (7,6u)</span>
+      </label>
     </div>
 
     <input type="hidden" id="ni-step" value="input">
@@ -1186,19 +1184,22 @@
     </div>
 
     <div class="modal-row">
-      <div class="modal-field">
+      <div class="modal-field" style="flex:1">
         <label>Datum</label>
         <input type="date" id="edit-beurt-datum">
       </div>
-      <div class="modal-field" id="edit-beurt-start-wrap">
+      <div class="modal-field" id="edit-beurt-start-wrap" style="flex:1">
         <label>Starttijd</label>
         <input type="time" id="edit-beurt-start" step="900" value="08:00">
       </div>
-      <div class="modal-field" id="edit-beurt-duur-uren-wrap" style="max-width:80px">
+    </div>
+
+    <div class="modal-row" id="edit-beurt-duur-rij" style="align-items:flex-end;gap:12px">
+      <div class="modal-field" id="edit-beurt-duur-uren-wrap" style="flex:0 0 96px;min-width:0">
         <label>Uren</label>
         <input type="number" id="edit-beurt-duur-uren" min="0" max="12" value="1" onchange="syncDuurLabel()">
       </div>
-      <div class="modal-field" id="edit-beurt-duur-min-wrap" style="max-width:80px">
+      <div class="modal-field" id="edit-beurt-duur-min-wrap" style="flex:0 0 96px;min-width:0">
         <label>Min.</label>
         <select id="edit-beurt-duur-min" onchange="syncDuurLabel()">
           <option value="0">00</option>
@@ -1207,15 +1208,11 @@
           <option value="45">45</option>
         </select>
       </div>
-      <div class="modal-field" id="edit-beurt-hele-dag-wrap" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
-          <input type="checkbox" id="edit-beurt-hele-dag" onchange="editBeurtHeleDagChanged()" style="width:auto;padding:0;border:1px solid var(--rule);flex-shrink:0;margin:0">
-          <span style="font-size:13px;flex-shrink:0">Hele dag (7,6u)</span>
-        </label>
-      </div>
-      <div class="modal-field" id="edit-beurt-hele-dag-badge" style="display:none;align-self:end;padding-bottom:8px;flex:0 0 auto">
-        <span style="display:inline-block;padding:8px 12px;background:var(--navy);color:#fff;border-radius:6px;font-size:12px;font-weight:600">7u 36min</span>
-      </div>
+      <div id="edit-beurt-hele-dag-badge" style="display:none;flex:0 0 auto;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
+      <label id="edit-beurt-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
+        <input type="checkbox" id="edit-beurt-hele-dag" onchange="editBeurtHeleDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
+        <span style="font-size:13px;font-weight:500;color:var(--navy)">Hele dag (7,6u)</span>
+      </label>
     </div>
 
     <div class="modal-field">
@@ -2832,6 +2829,27 @@ function niHeleDagChanged() {
     duurEl.disabled = false;
     if (parseInt(duurEl.value, 10) === 456) duurEl.value = 60;
   }
+
+  // Visuele state: duur-wrap + badge + pill-toggle
+  var duurWrap = document.getElementById('ni-duur-wrap');
+  var badge = document.getElementById('ni-hele-dag-badge');
+  var toggle = document.getElementById('ni-hele-dag-toggle');
+  if (duurWrap) duurWrap.style.display = heleDag ? 'none' : '';
+  if (badge) badge.style.display = heleDag ? 'inline-flex' : 'none';
+  if (toggle) {
+    if (heleDag) {
+      toggle.style.background = 'var(--navy)';
+      toggle.style.borderColor = 'var(--navy)';
+      var spanEl = toggle.querySelector('span');
+      if (spanEl) spanEl.style.color = '#fff';
+    } else {
+      toggle.style.background = '#fff';
+      toggle.style.borderColor = 'var(--rule)';
+      var spanEl2 = toggle.querySelector('span');
+      if (spanEl2) spanEl2.style.color = 'var(--navy)';
+    }
+  }
+
   niApplyStepVisibility();
 }
 
@@ -3691,6 +3709,7 @@ function editBeurtLocatieChanged() {
 
 /**
  * Toggle hele-dag-state: verbergt uren/min/starttijd en toont 7u36min badge.
+ * Toggle-pill krijgt navy-filled stijl als actief.
  */
 function editBeurtHeleDagChanged() {
   var cb = document.getElementById('edit-beurt-hele-dag');
@@ -3701,11 +3720,23 @@ function editBeurtHeleDagChanged() {
   var urenWrap = document.getElementById('edit-beurt-duur-uren-wrap');
   var minWrap = document.getElementById('edit-beurt-duur-min-wrap');
   var badge = document.getElementById('edit-beurt-hele-dag-badge');
+  var toggle = document.getElementById('edit-beurt-hele-dag-toggle');
 
   if (startWrap) startWrap.style.display = checked ? 'none' : '';
   if (urenWrap) urenWrap.style.display = checked ? 'none' : '';
   if (minWrap) minWrap.style.display = checked ? 'none' : '';
-  if (badge) badge.style.display = checked ? 'flex' : 'none';
+  if (badge) badge.style.display = checked ? 'inline-flex' : 'none';
+  if (toggle) {
+    if (checked) {
+      toggle.style.background = 'var(--navy)';
+      toggle.style.borderColor = 'var(--navy)';
+      toggle.querySelector('span').style.color = '#fff';
+    } else {
+      toggle.style.background = '#fff';
+      toggle.style.borderColor = 'var(--rule)';
+      toggle.querySelector('span').style.color = 'var(--navy)';
+    }
+  }
 }
 
 function getSectorColor(sector) {
@@ -4461,6 +4492,27 @@ function qaHeleDagChanged() {
     duurEl.disabled = false;
     if (parseInt(duurEl.value, 10) === QA_HELE_DAG_MIN) duurEl.value = 60;
   }
+
+  // Visuele state: duur-wrap + badge + pill-toggle
+  var duurWrap = document.getElementById('qa-duur-wrap');
+  var badge = document.getElementById('qa-hele-dag-badge');
+  var toggle = document.getElementById('qa-hele-dag-toggle');
+  if (duurWrap) duurWrap.style.display = heleDag ? 'none' : '';
+  if (badge) badge.style.display = heleDag ? 'inline-flex' : 'none';
+  if (toggle) {
+    if (heleDag) {
+      toggle.style.background = 'var(--navy)';
+      toggle.style.borderColor = 'var(--navy)';
+      var spanEl = toggle.querySelector('span');
+      if (spanEl) spanEl.style.color = '#fff';
+    } else {
+      toggle.style.background = '#fff';
+      toggle.style.borderColor = 'var(--rule)';
+      var spanEl2 = toggle.querySelector('span');
+      if (spanEl2) spanEl2.style.color = 'var(--navy)';
+    }
+  }
+
   qaApplyModeVisibility();
 }
 
