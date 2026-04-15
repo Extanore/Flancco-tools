@@ -589,20 +589,57 @@
     outline: none; border-color: var(--navy);
   }
   .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+  /* =============================================
+     DESIGN-SYSTEEM BUTTONS — consistent met admin/index.html
+     Primair = NAVY, destructief = ROOD. Groen enkel voor semantic succes.
+     ============================================= */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1;
+    border-radius: 8px; border: 1.5px solid transparent; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    transition: background .15s, color .15s, border-color .15s, transform .05s;
+    user-select: none; white-space: nowrap; background: transparent; color: var(--navy);
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .btn.btn-primary { background: var(--navy); color:#fff; border-color: var(--navy); }
+  .btn.btn-primary:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .btn.btn-ghost { background:#fff; color:var(--navy); border-color: var(--rule); }
+  .btn.btn-ghost:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
+  .btn.btn-danger { background: var(--red); color:#fff; border-color: var(--red); }
+  .btn.btn-danger:hover:not(:disabled) { background:#C0392B; border-color:#C0392B; }
+  .btn.btn-danger-ghost { background:#fff; color: var(--red); border-color: var(--red); }
+  .btn.btn-danger-ghost:hover:not(:disabled) { background: rgba(231,76,60,0.08); }
+  .btn.btn-secondary { background:#fff; color: var(--grey); border-color: var(--rule); }
+  .btn.btn-secondary:hover:not(:disabled) { border-color: var(--navy); color: var(--navy); }
+  .btn.btn-success { background: var(--green); color:#fff; border-color: var(--green); }
+  .btn.btn-success:hover:not(:disabled) { filter: brightness(0.92); }
+
+  /* Legacy aliases */
   .modal-buttons button {
-    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
-    cursor: pointer; border: 1.5px solid var(--rule); background: var(--white); color: var(--navy);
-    font-family: inherit; transition: all 0.2s;
+    padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; line-height:1;
+    cursor: pointer; border: 1.5px solid var(--rule); background: #fff; color: var(--navy);
+    font-family: inherit; transition: all 0.2s; appearance:none; -webkit-appearance:none;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
   }
-  .modal-buttons button:hover { background: var(--light); }
-  .modal-buttons .btn-save {
-    background: var(--navy); color: var(--white); border-color: var(--navy);
+  .modal-buttons button:hover:not(:disabled) { border-color: var(--navy); background: #F9FAFB; }
+  .modal-buttons .btn-save,
+  .modal-buttons .btn-submit {
+    background: var(--navy); color: #fff; border-color: var(--navy);
   }
-  .modal-buttons .btn-save:hover { background: var(--navy-light); }
+  .modal-buttons .btn-save:hover:not(:disabled),
+  .modal-buttons .btn-submit:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
   .modal-buttons .btn-blue {
-    background: var(--blue); color: var(--white); border-color: var(--blue);
+    background: var(--navy); color: #fff; border-color: var(--navy);
   }
-  .modal-buttons .btn-blue:hover { background: #2580B8; border-color: #2580B8; }
+  .modal-buttons .btn-blue:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .modal-buttons .btn-danger {
+    background: var(--red); color:#fff; border-color: var(--red);
+  }
+  .modal-buttons .btn-danger:hover:not(:disabled) { background:#C0392B; border-color:#C0392B; }
   .tech-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .tech-chip {
     padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
@@ -1028,6 +1065,13 @@
       </select>
     </div>
 
+    <div class="modal-field" id="ni-loc-wrap" style="display:none">
+      <label>Werklocatie *</label>
+      <select id="ni-locatie" onchange="niLocatieChanged()"></select>
+      <small style="color:var(--grey);font-size:11px">Kies op welke werf de interventie moet plaatsvinden.</small>
+    </div>
+    <input type="hidden" id="ni-po-number">
+
     <div class="modal-field" id="ni-sector-wrap">
       <label>Sector *</label>
       <select id="ni-sector" required>
@@ -1130,20 +1174,31 @@
     <!-- Info preview -->
     <div id="edit-beurt-info" style="background:var(--light);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px"></div>
 
+    <div class="modal-field" id="edit-beurt-loc-wrap" style="display:none">
+      <label>Werklocatie</label>
+      <select id="edit-beurt-locatie" onchange="editBeurtLocatieChanged()"></select>
+      <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Kies op welke werf de taak uitgevoerd wordt.</small>
+    </div>
+    <div class="modal-field">
+      <label>PO-nummer</label>
+      <input type="text" id="edit-beurt-po" placeholder="Optioneel — referentie van de klant">
+      <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Automatisch ingevuld vanuit locatie of klant. Kan per taak aangepast worden.</small>
+    </div>
+
     <div class="modal-row">
       <div class="modal-field">
         <label>Datum</label>
         <input type="date" id="edit-beurt-datum">
       </div>
-      <div class="modal-field">
+      <div class="modal-field" id="edit-beurt-start-wrap">
         <label>Starttijd</label>
         <input type="time" id="edit-beurt-start" step="900" value="08:00">
       </div>
-      <div class="modal-field" style="max-width:80px">
+      <div class="modal-field" id="edit-beurt-duur-uren-wrap" style="max-width:80px">
         <label>Uren</label>
         <input type="number" id="edit-beurt-duur-uren" min="0" max="12" value="1" onchange="syncDuurLabel()">
       </div>
-      <div class="modal-field" style="max-width:80px">
+      <div class="modal-field" id="edit-beurt-duur-min-wrap" style="max-width:80px">
         <label>Min.</label>
         <select id="edit-beurt-duur-min" onchange="syncDuurLabel()">
           <option value="0">00</option>
@@ -1151,6 +1206,15 @@
           <option value="30">30</option>
           <option value="45">45</option>
         </select>
+      </div>
+      <div class="modal-field" id="edit-beurt-hele-dag-wrap" style="flex:0 0 auto;align-self:end;padding-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:500;text-transform:none;white-space:nowrap">
+          <input type="checkbox" id="edit-beurt-hele-dag" onchange="editBeurtHeleDagChanged()" style="width:auto;padding:0;border:1px solid var(--rule);flex-shrink:0;margin:0">
+          <span style="font-size:13px;flex-shrink:0">Hele dag (7,6u)</span>
+        </label>
+      </div>
+      <div class="modal-field" id="edit-beurt-hele-dag-badge" style="display:none;align-self:end;padding-bottom:8px;flex:0 0 auto">
+        <span style="display:inline-block;padding:8px 12px;background:var(--navy);color:#fff;border-radius:6px;font-size:12px;font-weight:600">7u 36min</span>
       </div>
     </div>
 
@@ -1177,6 +1241,27 @@
       <button id="edit-beurt-unplan-btn" style="margin-right:auto;background:#FEE2E2;color:#DC2626" onclick="unplanFromModal()">Uitplannen</button>
       <button id="edit-beurt-uitgevoerd-btn" class="btn-save" style="background:#059669" onclick="markUitgevoerdFromModal()">Markeer als uitgevoerd</button>
       <button class="btn-save" onclick="saveEditBeurt()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- UREN BEVESTIGEN MODAL -->
+<div class="modal-overlay" id="modal-uren-bevestigen">
+  <div class="modal" style="max-width:620px">
+    <h2>Uren bevestigen</h2>
+    <input type="hidden" id="ub-beurt-id">
+    <div id="ub-context" style="background:var(--light);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px"></div>
+    <div id="ub-tech-rows" style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px"></div>
+    <button type="button" class="btn btn-ghost" onclick="ubAddExtraRij()" style="align-self:flex-start;margin-bottom:14px">+ Technieker toevoegen</button>
+    <div class="modal-field" style="margin-bottom:14px">
+      <label>Notitie (optioneel)</label>
+      <textarea id="ub-notitie" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-family:inherit;font-size:13px"></textarea>
+    </div>
+    <div id="ub-facturatie-badge" style="display:none;padding:10px 14px;border-radius:8px;background:#ECFDF5;border:1px solid #10B981;font-size:13px;color:#065F46;margin-bottom:14px"></div>
+    <div class="modal-buttons" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+      <button type="button" class="btn btn-ghost" onclick="closeUrenBevestigenModal()">Annuleren</button>
+      <button type="button" class="btn btn-ghost" onclick="ubSaveAsPlanned()">Exact zoals gepland</button>
+      <button type="button" class="btn btn-primary" onclick="saveUrenBevestiging()">Bevestigen &amp; uitvoeren</button>
     </div>
   </div>
 </div>
@@ -1505,13 +1590,97 @@ function getWeekBeurten(dates) {
 
 function showToast(msg, type) {
   var t = document.getElementById('toast');
+  if (!t) {
+    // Fallback: create ad-hoc toast if element missing
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
   t.className = 'toast toast-' + (type || 'success') + ' show';
-  // Error meldingen assertief aankondigen, success beleefd
   t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   t.setAttribute('role', type === 'error' ? 'alert' : 'status');
   t.textContent = msg;
-  setTimeout(function() { t.classList.remove('show'); }, 3000);
+  var duration = type === 'error' ? 5000 : 3000;
+  setTimeout(function() { t.classList.remove('show'); }, duration);
 }
+
+// =============================================
+// FLANCCO-STIJL DIALOGS — vervangt native alert/confirm
+// =============================================
+function confirmDialog(opts) {
+  return new Promise(function(resolve) {
+    opts = opts || {};
+    var title = opts.title || 'Bevestigen';
+    var message = opts.message || '';
+    var confirmLabel = opts.confirmLabel || 'Bevestigen';
+    var cancelLabel = opts.cancelLabel || 'Annuleren';
+    var variant = opts.variant || 'primary';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.style.zIndex = '9999';
+    overlay.innerHTML =
+      '<div class="modal" style="max-width:440px;padding:28px" role="alertdialog" aria-modal="true">' +
+        '<h2 style="margin:0 0 10px;font-size:18px;color:var(--navy)">' + esc(title) + '</h2>' +
+        '<p style="margin:0 0 24px;color:#4B5563;font-size:14px;line-height:1.5;white-space:pre-wrap">' + esc(message) + '</p>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+          (cancelLabel ? '<button type="button" class="btn btn-ghost" data-role="cancel">' + esc(cancelLabel) + '</button>' : '') +
+          '<button type="button" class="btn btn-' + (variant === 'danger' ? 'danger' : 'primary') + '" data-role="confirm">' + esc(confirmLabel) + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    function finish(result) {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(result);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+      if (e.key === 'Enter')  { e.preventDefault(); finish(true);  }
+    }
+    var cancelBtn = overlay.querySelector('[data-role=cancel]');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { finish(false); });
+    overlay.querySelector('[data-role=confirm]').addEventListener('click', function() { finish(true); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) finish(false); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(function() {
+      var btn = overlay.querySelector('[data-role=confirm]');
+      if (btn) btn.focus();
+    }, 0);
+  });
+}
+
+function infoDialog(message, title) {
+  return confirmDialog({
+    title: title || 'Opgelet',
+    message: message,
+    confirmLabel: 'OK',
+    cancelLabel: ''
+  });
+}
+
+(function overrideAlert() {
+  if (window.__flanccoAlertOverridden) return;
+  window.__flanccoAlertOverridden = true;
+  var nativeAlert = window.alert;
+  window.alert = function(msg) {
+    try {
+      var text = (msg == null) ? '' : String(msg);
+      if (text.length > 120 || text.indexOf('\n') >= 0) {
+        if (typeof infoDialog === 'function') { infoDialog(text); return; }
+      }
+      if (typeof showToast === 'function') {
+        var t = text.toLowerCase();
+        var isErr = /fout|error|mislukt|niet|kan niet|ongeldig|verplicht|selecteer|vul|kies/.test(t);
+        showToast(text, isErr ? 'error' : 'info');
+        return;
+      }
+    } catch (_) { /* fallback */ }
+    nativeAlert.call(window, msg);
+  };
+})();
 
 // =============================================
 // AUTH
@@ -1607,7 +1776,8 @@ async function loadPlanningData() {
     sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)'),
     sb.from('klant_installaties').select('*'),
     sb.from('rapporten').select('id, technieker_id, onderhoudsbeurt_id, uren_data, datum_onderhoud'),
-    sb.from('client_locations').select('id, client_id, label, street, house_number, postal_code, city, country, is_primary, po_number')
+    sb.from('client_locations').select('id, client_id, label, street, house_number, postal_code, city, country, is_primary, po_number'),
+    sb.from('beurt_uren_registraties').select('*').then(function(r) { return r; }, function() { return { data: [] }; })
   ]);
 
   allBeurten = results[0].data || [];
@@ -1623,6 +1793,7 @@ async function loadPlanningData() {
   allInstallaties = results[10].data || [];
   allRapporten = results[11].data || [];
   window._allClientLocations = results[12].data || [];
+  window._allUrenRegistraties = (results[13] && results[13].data) || [];
 
   populateFilterDropdowns();
 }
@@ -2489,6 +2660,71 @@ function onNiKlantChange() {
   contractWrap.style.display = klantContracten.length > 0 ? 'block' : 'none';
   // Sector altijd tonen — wordt gebruikt bij eenmalig of overschreven
   sectorWrap.style.display = 'block';
+
+  // Sectie H: render werklocatie-dropdown bij >1 werklocaties
+  niRenderLocaties(clientId);
+}
+
+/**
+ * Rendert werklocatie-dropdown voor Nieuwe interventie modal (sectie H).
+ * Toont alleen als klant >1 werklocaties heeft. Mirror van qaContractChanged.
+ */
+function niRenderLocaties(clientId) {
+  var wrap = document.getElementById('ni-loc-wrap');
+  var sel = document.getElementById('ni-locatie');
+  var hiddenPo = document.getElementById('ni-po-number');
+  if (!wrap || !sel || !hiddenPo) return;
+
+  if (!clientId) {
+    wrap.style.display = 'none';
+    sel.innerHTML = '';
+    hiddenPo.value = '';
+    return;
+  }
+
+  var locaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === clientId; });
+
+  if (locaties.length <= 1) {
+    wrap.style.display = 'none';
+    sel.innerHTML = '';
+    var client = (allClients || []).find(function(c) { return c.id === clientId; });
+    hiddenPo.value = (locaties[0] && locaties[0].po_number) || (client && client.po_number) || '';
+    return;
+  }
+
+  locaties.sort(function(a, b) { return (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0); });
+  sel.innerHTML = locaties.map(function(l) {
+    var label = (l.label || 'Werklocatie') +
+                (l.is_primary ? ' (hoofdlocatie)' : '') +
+                (l.city ? ' — ' + l.city : '');
+    return '<option value="' + l.id + '" data-po="' + esc(l.po_number || '') + '">' + esc(label) + '</option>';
+  }).join('');
+
+  var primary = locaties.find(function(l) { return l.is_primary; }) || locaties[0];
+  sel.value = primary.id;
+  wrap.style.display = 'block';
+  niLocatieChanged();
+}
+
+/**
+ * PO-cascade bij locatie-wijziging: locatie-PO > klant-PO > leeg.
+ */
+function niLocatieChanged() {
+  var sel = document.getElementById('ni-locatie');
+  var hiddenPo = document.getElementById('ni-po-number');
+  if (!sel || !hiddenPo) return;
+
+  var opt = sel.options[sel.selectedIndex];
+  var locPo = opt ? opt.dataset.po : '';
+  if (locPo) {
+    hiddenPo.value = locPo;
+    return;
+  }
+
+  var val = document.getElementById('ni-klant').value;
+  var clientId = val.replace('client:', '');
+  var client = (allClients || []).find(function(c) { return c.id === clientId; });
+  hiddenPo.value = (client && client.po_number) || '';
 }
 
 function fillNiPartnerDropdown() {
@@ -2513,6 +2749,13 @@ function openNieuweInterventieModal() {
   document.getElementById('ni-ernst').value = 'normaal';
   document.getElementById('ni-duur').value = '60';
   document.getElementById('ni-duur').disabled = false;
+  // Sectie H: werklocatie-state resetten
+  var locWrap = document.getElementById('ni-loc-wrap');
+  if (locWrap) locWrap.style.display = 'none';
+  var locSel = document.getElementById('ni-locatie');
+  if (locSel) locSel.innerHTML = '';
+  var hiddenPo = document.getElementById('ni-po-number');
+  if (hiddenPo) hiddenPo.value = '';
 
   // Hele dag + stap-state resetten
   var heleDag = document.getElementById('ni-hele-dag');
@@ -2684,6 +2927,20 @@ async function saveNieuweInterventie(action) {
   if (!sector) { alert('Kies een sector.'); return; }
   if (!omschrijving) { alert('Vul een omschrijving in.'); return; }
 
+  // Sectie H: werklocatie-validatie bij >1 locaties
+  var locWrap = document.getElementById('ni-loc-wrap');
+  var clientLocationId = null;
+  var poNumber = null;
+  if (locWrap && locWrap.style.display !== 'none') {
+    clientLocationId = document.getElementById('ni-locatie').value || null;
+    if (!clientLocationId) {
+      showToast('Kies een werklocatie', 'error');
+      document.getElementById('ni-locatie').focus();
+      return;
+    }
+  }
+  poNumber = (document.getElementById('ni-po-number').value || '').trim() || null;
+
   // Stap-overgang: eerste klik op 'Nu inplannen' → toon inplanning-velden
   if (action === 'inplannen' && step === 'input') {
     document.getElementById('ni-step').value = 'scheduling';
@@ -2781,10 +3038,16 @@ async function saveNieuweInterventie(action) {
     actie_door: 'flancco',
     status: ivStatus,
     plan_datum: (action === 'inplannen') ? planDatum : null,
-    hele_dag: heleDag
+    hele_dag: heleDag,
+    client_location_id: clientLocationId
   };
 
   var res = await sb.from('interventies').insert([payload]).select().single();
+  // Forward-compat: schema zonder client_location_id
+  if (res.error && /column .* does not exist/i.test(res.error.message || '')) {
+    delete payload.client_location_id;
+    res = await sb.from('interventies').insert([payload]).select().single();
+  }
   if (res.error) { alert('Fout: ' + res.error.message); return; }
   var newIv = res.data;
 
@@ -2799,9 +3062,17 @@ async function saveNieuweInterventie(action) {
       duur_minuten: duur,
       hele_dag: heleDag,
       status: 'ingepland',
-      notities: 'Interventie: ' + omschrijving.slice(0, 200)
+      notities: 'Interventie: ' + omschrijving.slice(0, 200),
+      client_location_id: clientLocationId,
+      po_number: poNumber
     };
     var bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select().single();
+    // Forward-compat: schema zonder extra kolommen
+    if (bRes.error && /column .* does not exist/i.test(bRes.error.message || '')) {
+      delete beurtPayload.client_location_id;
+      delete beurtPayload.po_number;
+      bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select().single();
+    }
     if (bRes.error) { alert('Fout bij aanmaken beurt: ' + bRes.error.message); return; }
     // Koppel interventie aan beurt
     await sb.from('interventies').update({ onderhoudsbeurt_id: bRes.data.id }).eq('id', newIv.id);
@@ -3009,9 +3280,17 @@ async function ctxMarkDone() {
   var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
   if (!beurt) { ctxBeurtId = null; return; }
 
-  // Check if it's an interventie task — those go to werkbon
+  // Open uren-bevestigen modal (vervangt oude confirm-dialog)
+  openUrenBevestigenModal(beurt);
+  ctxBeurtId = null;
+  return;
+}
+
+async function _legacyCtxMarkDoneConfirm() {
+  var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
+  if (!beurt) { ctxBeurtId = null; return; }
   var contract = allContracten.find(function(c) { return c.id === beurt.contract_id; });
-  var isInterventie = false; // TODO: detect interventie tasks in future
+  var isInterventie = false;
 
   if (isInterventie) {
     openWerkbonModal(ctxBeurtId);
@@ -3019,7 +3298,6 @@ async function ctxMarkDone() {
     return;
   }
 
-  // Onderhoudstaak: markeer als uitgevoerd (rapport nog nodig)
   if (!confirm('Markeer als uitgevoerd? De beurt verschijnt in de Rapportage-tab voor rapportopmaak.')) {
     ctxBeurtId = null; return;
   }
@@ -3275,6 +3553,17 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   document.getElementById('edit-beurt-duur-uren').value = Math.floor(totalMin / 60);
   document.getElementById('edit-beurt-duur-min').value = (totalMin % 60) - ((totalMin % 60) % 15);
 
+  // Werklocatie dropdown + PO-nummer (sectie A)
+  editBeurtRenderLocaties(beurt);
+  document.getElementById('edit-beurt-po').value = beurt.po_number || '';
+
+  // Hele-dag checkbox
+  var heleDagCb = document.getElementById('edit-beurt-hele-dag');
+  if (heleDagCb) {
+    heleDagCb.checked = !!beurt.hele_dag;
+    editBeurtHeleDagChanged();
+  }
+
   // Set notities
   document.getElementById('edit-beurt-notities').value = beurt.notities || '';
 
@@ -3322,6 +3611,101 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
 
 function closeEditBeurtModal() {
   document.getElementById('modal-edit-beurt').classList.remove('open');
+}
+
+/**
+ * Rendert werklocatie-dropdown voor de edit-beurt modal.
+ * Toont alleen als de klant >1 werklocaties heeft.
+ * Pre-select: beurt.client_location_id > primary > eerste beschikbare.
+ * PO-cascade via editBeurtLocatieChanged().
+ */
+function editBeurtRenderLocaties(beurt) {
+  var wrap = document.getElementById('edit-beurt-loc-wrap');
+  var sel = document.getElementById('edit-beurt-locatie');
+  if (!wrap || !sel) return;
+
+  // Resolve client_id via contract
+  var contract = (allContracten || []).find(function(c) { return c.id === beurt.contract_id; });
+  var clientId = contract ? contract.client_id : (beurt.client_id || null);
+
+  if (!clientId) {
+    wrap.style.display = 'none';
+    sel.innerHTML = '';
+    return;
+  }
+
+  var locaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === clientId; });
+
+  if (locaties.length <= 1) {
+    // Geen picker nodig: PO komt uit (enige) locatie of klant
+    wrap.style.display = 'none';
+    sel.innerHTML = '';
+    return;
+  }
+
+  // Primary-first sortering
+  locaties.sort(function(a, b) { return (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0); });
+
+  sel.innerHTML = locaties.map(function(l) {
+    var label = (l.label || 'Werklocatie') +
+                (l.is_primary ? ' (hoofdlocatie)' : '') +
+                (l.city ? ' — ' + l.city : '');
+    return '<option value="' + l.id + '" data-po="' + esc(l.po_number || '') + '">' + esc(label) + '</option>';
+  }).join('');
+
+  // Pre-select: bestaande beurt-locatie > primary > eerste
+  var preselectId = beurt.client_location_id;
+  if (!preselectId) {
+    var primary = locaties.find(function(l) { return l.is_primary; });
+    preselectId = primary ? primary.id : locaties[0].id;
+  }
+  sel.value = preselectId;
+  wrap.style.display = 'block';
+}
+
+/**
+ * PO-cascade bij locatie-wijziging in edit-beurt modal.
+ * Prioriteit: locatie-PO > klant-PO > behoud huidige waarde.
+ */
+function editBeurtLocatieChanged() {
+  var sel = document.getElementById('edit-beurt-locatie');
+  var poInput = document.getElementById('edit-beurt-po');
+  if (!sel || !poInput) return;
+
+  var opt = sel.options[sel.selectedIndex];
+  var locPo = opt ? opt.dataset.po : '';
+  if (locPo) {
+    poInput.value = locPo;
+    return;
+  }
+
+  // Fallback op klant-PO
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var beurt = (allBeurten || []).find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+  var contract = (allContracten || []).find(function(c) { return c.id === beurt.contract_id; });
+  if (!contract) return;
+  var client = (allClients || []).find(function(c) { return c.id === contract.client_id; });
+  if (client && client.po_number) poInput.value = client.po_number;
+}
+
+/**
+ * Toggle hele-dag-state: verbergt uren/min/starttijd en toont 7u36min badge.
+ */
+function editBeurtHeleDagChanged() {
+  var cb = document.getElementById('edit-beurt-hele-dag');
+  if (!cb) return;
+  var checked = cb.checked;
+
+  var startWrap = document.getElementById('edit-beurt-start-wrap');
+  var urenWrap = document.getElementById('edit-beurt-duur-uren-wrap');
+  var minWrap = document.getElementById('edit-beurt-duur-min-wrap');
+  var badge = document.getElementById('edit-beurt-hele-dag-badge');
+
+  if (startWrap) startWrap.style.display = checked ? 'none' : '';
+  if (urenWrap) urenWrap.style.display = checked ? 'none' : '';
+  if (minWrap) minWrap.style.display = checked ? 'none' : '';
+  if (badge) badge.style.display = checked ? 'flex' : 'none';
 }
 
 function getSectorColor(sector) {
@@ -3418,22 +3802,236 @@ async function markUitgevoerdFromModal() {
   var beurtId = document.getElementById('edit-beurt-id').value;
   var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
   if (!beurt) return;
-  if (!confirm('Markeer als uitgevoerd? De beurt verschijnt in de Rapportage-tab voor rapportopmaak.')) return;
-  var datum = beurt.plan_datum || new Date().toISOString().split('T')[0];
-  var res = await sb.from('onderhoudsbeurten').update({
-    status: 'uitgevoerd',
-    uitvoer_datum: datum,
-    updated_at: new Date().toISOString()
-  }).eq('id', beurtId);
-  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
-  beurt.status = 'uitgevoerd';
-  beurt.uitvoer_datum = datum;
   closeEditBeurtModal();
-  auditLog('onderhoudsbeurten', beurtId, 'status_update', 'ingepland', 'uitgevoerd');
-  showToast('Beurt gemarkeerd als uitgevoerd — ga naar Rapportage-tab om rapport op te maken');
-  renderView();
-  renderSidebar();
-  updateWorkflowBadges();
+  openUrenBevestigenModal(beurt);
+}
+
+// =============================================
+// UREN BEVESTIGEN (Section I)
+// =============================================
+var _ubCurrentBeurt = null;
+var _ubExtraRijen = []; // extra technieker-rijen (naast primary)
+
+function resolveFacturatieTarief(beurt, technieker) {
+  var contract = (allContracten || []).find(function(c) { return c.id === beurt.contract_id; });
+  var contractTarief = contract && parseFloat(contract.uurtarief_interventie);
+  var techTarief = technieker ? parseFloat(technieker.uurtarief) : NaN;
+  var effectief = (contractTarief && contractTarief > 0) ? contractTarief : (techTarief || 0);
+  return {
+    technieker: isNaN(techTarief) ? 0 : techTarief,
+    contract: (contractTarief && contractTarief > 0) ? contractTarief : null,
+    effectief: effectief,
+    bron: (contractTarief && contractTarief > 0) ? 'contract' : 'technieker'
+  };
+}
+
+function isInterventieBeurt(beurt) {
+  if (!beurt) return false;
+  if (beurt.is_interventie === true) return true;
+  if (beurt.type === 'interventie') return true;
+  if (beurt.notities && typeof beurt.notities === 'string' && beurt.notities.toLowerCase().indexOf('interventie:') === 0) return true;
+  var iv = (allInterventies || []).find(function(i) { return i.onderhoudsbeurt_id === beurt.id; });
+  return !!iv;
+}
+
+function openUrenBevestigenModal(beurt) {
+  if (!beurt) return;
+  _ubCurrentBeurt = beurt;
+  _ubExtraRijen = [];
+  document.getElementById('ub-beurt-id').value = beurt.id;
+
+  var contract = (allContracten || []).find(function(c) { return c.id === beurt.contract_id; });
+  var client = contract ? (allClients || []).find(function(c) { return c.id === contract.client_id; }) : null;
+  var klantNaam = (client && (client.contact_person || client.company_name)) || (contract && contract.klant_naam) || '—';
+  var datum = beurt.plan_datum || new Date().toISOString().split('T')[0];
+  document.getElementById('ub-context').innerHTML =
+    '<strong>' + esc(klantNaam) + '</strong><br>' +
+    '<span style="color:var(--grey)">' + esc(datum) + (beurt.sector ? ' · ' + esc(beurt.sector) : '') + '</span>';
+
+  // Facturatie-badge bij interventie
+  var isIv = isInterventieBeurt(beurt);
+  var badge = document.getElementById('ub-facturatie-badge');
+  if (isIv) {
+    badge.style.display = 'block';
+    badge.innerHTML = '<strong>Facturabel aan klant</strong> — uren worden in de facturatie-queue geplaatst.';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  ubRenderRijen();
+  document.getElementById('ub-notitie').value = '';
+  document.getElementById('modal-uren-bevestigen').classList.add('open');
+}
+
+function closeUrenBevestigenModal() {
+  document.getElementById('modal-uren-bevestigen').classList.remove('open');
+  _ubCurrentBeurt = null;
+  _ubExtraRijen = [];
+}
+
+function ubBuildDefaultTimes(beurt) {
+  var datum = beurt.plan_datum || new Date().toISOString().split('T')[0];
+  var start = beurt.start_tijd || '08:00';
+  if (start.length > 5) start = start.slice(0,5);
+  var heleDag = !!beurt.hele_dag;
+  var duurMin = heleDag ? 456 : (parseInt(beurt.duur_minuten) || 480);
+  var parts = start.split(':').map(function(s) { return parseInt(s) || 0; });
+  var startMin = parts[0] * 60 + parts[1];
+  var eindMin = startMin + duurMin;
+  var eindH = Math.floor(eindMin / 60) % 24;
+  var eindM = eindMin % 60;
+  var pad = function(n) { return String(n).padStart(2, '0'); };
+  return {
+    datum: datum,
+    start: start,
+    eind: pad(eindH) + ':' + pad(eindM)
+  };
+}
+
+function ubRenderRijen() {
+  var beurt = _ubCurrentBeurt;
+  if (!beurt) return;
+  var tijden = ubBuildDefaultTimes(beurt);
+  var primaryTech = (allTechniekers || []).find(function(t) { return t.id === beurt.technieker_id; });
+  var rijen = [{ techId: beurt.technieker_id || (primaryTech ? primaryTech.id : ''), isPrimary: true }];
+  _ubExtraRijen.forEach(function(r) { rijen.push({ techId: r.techId, isPrimary: false }); });
+
+  var html = rijen.map(function(r, idx) {
+    var tech = (allTechniekers || []).find(function(t) { return t.id === r.techId; });
+    var tarief = tech ? resolveFacturatieTarief(beurt, tech) : { effectief: 0, bron: 'technieker', contract: null, technieker: 0 };
+    var bronBadge = tarief.bron === 'contract'
+      ? '<span style="display:inline-block;background:#D1FAE5;color:#065F46;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px">Contract-tarief</span>'
+      : '<span style="display:inline-block;background:#F3F4F6;color:#4B5563;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px">Technieker-tarief</span>';
+    var techOptions = (allTechniekers || []).filter(function(t) { return t.actief !== false; })
+      .map(function(t) {
+        var nm = (t.voornaam || '') + ' ' + (t.naam || '');
+        return '<option value="' + t.id + '"' + (t.id === r.techId ? ' selected' : '') + '>' + esc(nm.trim()) + '</option>';
+      }).join('');
+    return '' +
+      '<div class="ub-rij" data-idx="' + idx + '" style="border:1px solid var(--rule);border-radius:10px;padding:12px 14px;background:#FAFBFC">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+          '<select class="ub-tech-sel" data-idx="' + idx + '" style="flex:1;padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"' + (r.isPrimary ? ' disabled' : '') + '>' + techOptions + '</select>' +
+          bronBadge + ' €' + (tarief.effectief || 0).toFixed(2) + '/u' +
+          (r.isPrimary ? '' : '<button type="button" class="ub-del-rij" data-idx="' + idx + '" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px">×</button>') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+          '<div><label style="font-size:11px;color:var(--grey)">Start</label><input type="time" class="ub-start" data-idx="' + idx + '" value="' + tijden.start + '" style="width:100%;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>' +
+          '<div><label style="font-size:11px;color:var(--grey)">Eind</label><input type="time" class="ub-eind" data-idx="' + idx + '" value="' + tijden.eind + '" style="width:100%;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>' +
+          '<div><label style="font-size:11px;color:var(--grey)">Km</label><input type="number" min="0" class="ub-km" data-idx="' + idx + '" value="0" style="width:100%;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>' +
+        '</div>' +
+      '</div>';
+  }).join('');
+
+  var container = document.getElementById('ub-tech-rows');
+  container.innerHTML = html;
+  container.querySelectorAll('.ub-tech-sel').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var idx = parseInt(sel.dataset.idx);
+      if (idx > 0) _ubExtraRijen[idx - 1].techId = sel.value;
+      ubRenderRijen();
+    });
+  });
+  container.querySelectorAll('.ub-del-rij').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(btn.dataset.idx) - 1;
+      _ubExtraRijen.splice(idx, 1);
+      ubRenderRijen();
+    });
+  });
+}
+
+function ubAddExtraRij() {
+  var beurt = _ubCurrentBeurt;
+  if (!beurt) return;
+  var used = [beurt.technieker_id].concat(_ubExtraRijen.map(function(r) { return r.techId; }));
+  var kandidaten = (allTechniekers || []).filter(function(t) {
+    return t.actief !== false && used.indexOf(t.id) === -1;
+  });
+  if (kandidaten.length === 0) { showToast('Geen extra techniekers beschikbaar', 'info'); return; }
+  _ubExtraRijen.push({ techId: kandidaten[0].id });
+  ubRenderRijen();
+}
+
+async function ubSaveAsPlanned() {
+  _ubExtraRijen = [];
+  ubRenderRijen();
+  await saveUrenBevestiging();
+}
+
+async function saveUrenBevestiging() {
+  var beurt = _ubCurrentBeurt;
+  if (!beurt) return;
+  var beurtId = beurt.id;
+  var datum = beurt.plan_datum || new Date().toISOString().split('T')[0];
+  var isIv = isInterventieBeurt(beurt);
+  var notitie = document.getElementById('ub-notitie').value.trim();
+
+  var rows = [];
+  var container = document.getElementById('ub-tech-rows');
+  var rijen = container.querySelectorAll('.ub-rij');
+  for (var i = 0; i < rijen.length; i++) {
+    var rij = rijen[i];
+    var idx = parseInt(rij.dataset.idx);
+    var techSel = rij.querySelector('.ub-tech-sel');
+    var techId = techSel.value;
+    var start = rij.querySelector('.ub-start').value;
+    var eind = rij.querySelector('.ub-eind').value;
+    var km = parseInt(rij.querySelector('.ub-km').value) || 0;
+    if (!techId) { showToast('Kies een technieker', 'error'); return; }
+    if (!start || !eind) { showToast('Vul start- en eindtijd in', 'error'); return; }
+    var startTs = new Date(datum + 'T' + start + ':00');
+    var eindTs = new Date(datum + 'T' + eind + ':00');
+    if (eindTs <= startTs) {
+      // Misschien werkt over middernacht — voeg 1 dag toe
+      eindTs = new Date(eindTs.getTime() + 24 * 60 * 60 * 1000);
+    }
+    if (eindTs <= startTs) { showToast('Eindtijd moet na starttijd liggen', 'error'); return; }
+
+    var tech = (allTechniekers || []).find(function(t) { return t.id === techId; });
+    var tarief = resolveFacturatieTarief(beurt, tech);
+
+    rows.push({
+      beurt_id: beurtId,
+      technieker_id: techId,
+      start_tijd: startTs.toISOString(),
+      eind_tijd: eindTs.toISOString(),
+      uurtarief_technieker_snapshot: tarief.technieker || null,
+      uurtarief_contract_snapshot: tarief.contract,
+      uurtarief_facturatie_snapshot: tarief.effectief || null,
+      km: km,
+      km_tarief_snapshot: tech && tech.km_tarief ? parseFloat(tech.km_tarief) : null,
+      notitie: notitie || null,
+      is_interventie: isIv,
+      bron: 'planner'
+    });
+  }
+
+  try {
+    // Als er al registraties zijn voor deze beurt → delete & replace (eenvoudige edit-flow)
+    await sb.from('beurt_uren_registraties').delete().eq('beurt_id', beurtId);
+    var res = await sb.from('beurt_uren_registraties').insert(rows).select();
+    if (res.error) { throw res.error; }
+    window._allUrenRegistraties = (window._allUrenRegistraties || []).filter(function(r) { return r.beurt_id !== beurtId; }).concat(res.data || []);
+
+    // Update beurt-status
+    var upd = await sb.from('onderhoudsbeurten').update({
+      status: 'uitgevoerd',
+      uitvoer_datum: datum,
+      updated_at: new Date().toISOString()
+    }).eq('id', beurtId);
+    if (upd.error) throw upd.error;
+    beurt.status = 'uitgevoerd';
+    beurt.uitvoer_datum = datum;
+
+    auditLog('onderhoudsbeurten', beurtId, 'uren_bevestigd', 'ingepland', 'uitgevoerd');
+    closeUrenBevestigenModal();
+    showToast('Uren bevestigd · beurt uitgevoerd', 'success');
+    renderView();
+    renderSidebar();
+    if (typeof updateWorkflowBadges === 'function') updateWorkflowBadges();
+  } catch (e) {
+    showToast('Fout: ' + (e.message || e), 'error');
+  }
 }
 
 async function saveEditBeurt() {
@@ -3446,6 +4044,20 @@ async function saveEditBeurt() {
   var duur = uren * 60 + min;
   if (duur <= 0) duur = 60;
   var notities = document.getElementById('edit-beurt-notities').value.trim();
+
+  // Sectie A: werklocatie + PO + hele-dag
+  var heleDagCb = document.getElementById('edit-beurt-hele-dag');
+  var heleDag = heleDagCb ? heleDagCb.checked : false;
+  var locSel = document.getElementById('edit-beurt-locatie');
+  var clientLocationId = (locSel && locSel.value) ? locSel.value : null;
+  var poNumberRaw = (document.getElementById('edit-beurt-po').value || '').trim();
+  var poNumber = poNumberRaw || null;
+
+  // Bij hele-dag: override duur + reset starttijd
+  if (heleDag) {
+    duur = (typeof QA_HELE_DAG_MIN !== 'undefined') ? QA_HELE_DAG_MIN : 456;
+    startTijd = null;
+  }
 
   if (!techId) { showToast('Kies een technieker', 'error'); return; }
   if (!datum) { showToast('Kies een datum', 'error'); return; }
@@ -3477,15 +4089,37 @@ async function saveEditBeurt() {
   var updateData = {
     technieker_id: techId,
     plan_datum: datum,
-    start_tijd: startTijd || null,
+    start_tijd: startTijd,
     duur_minuten: duur,
     notities: notities || null,
     extra_technieker_ids: extraIds,
     status: 'ingepland',
+    hele_dag: heleDag,
+    client_location_id: clientLocationId,
+    po_number: poNumber,
     updated_at: new Date().toISOString()
   };
 
   var result = await sb.from('onderhoudsbeurten').update(updateData).eq('id', beurtId);
+
+  // Forward-compat: indien kolommen ontbreken in DB-schema, retry zonder die velden
+  if (result.error && /column .* does not exist/i.test(result.error.message || '')) {
+    var fallback = {
+      technieker_id: techId,
+      plan_datum: datum,
+      start_tijd: startTijd,
+      duur_minuten: duur,
+      notities: notities || null,
+      extra_technieker_ids: extraIds,
+      status: 'ingepland',
+      updated_at: new Date().toISOString()
+    };
+    result = await sb.from('onderhoudsbeurten').update(fallback).eq('id', beurtId);
+    if (!result.error) {
+      showToast('Beurt opgeslagen (enkele velden nog niet ondersteund door DB-schema)', 'info');
+    }
+  }
+
   if (result.error) {
     showToast('Fout: ' + result.error.message, 'error');
     return;
@@ -3495,11 +4129,14 @@ async function saveEditBeurt() {
   var oldStatus = beurt.status;
   beurt.technieker_id = techId;
   beurt.plan_datum = datum;
-  beurt.start_tijd = startTijd || null;
+  beurt.start_tijd = startTijd;
   beurt.duur_minuten = duur;
   beurt.notities = notities || null;
   beurt.extra_technieker_ids = extraIds;
   beurt.status = 'ingepland';
+  beurt.hele_dag = heleDag;
+  beurt.client_location_id = clientLocationId;
+  beurt.po_number = poNumber;
 
   if (oldStatus !== 'ingepland') {
     auditLog('onderhoudsbeurten', beurtId, 'status_wijziging', oldStatus, 'ingepland');

@@ -254,9 +254,87 @@
   .pricing-partner h3 { font-size: 15px; margin-bottom: 12px; color: var(--navy); }
   .pricing-input { width: 90px; padding: 6px 10px; border: 1.5px solid var(--rule); border-radius: 6px; font-size: 13px; text-align: right; }
   .pricing-input:focus { border-color: var(--blue); outline: none; }
-  .btn-save { padding: 8px 20px; background: var(--green); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
-  .btn-save:hover { opacity: 0.9; }
   .save-msg { font-size: 12px; color: var(--green); margin-left: 12px; display: none; }
+
+  /* =============================================
+     DESIGN-SYSTEEM BUTTONS
+     Primair = NAVY (#1A1A2E), accent/destructief = ROOD (#E74C3C).
+     Groen wordt NIET gebruikt voor primary action (enkel semantic succes zoals "uitgevoerd").
+     ============================================= */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1;
+    border-radius: 8px; border: 1.5px solid transparent; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    transition: background .15s, color .15s, border-color .15s, transform .05s;
+    user-select: none; white-space: nowrap; background: transparent; color: var(--navy);
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+  .btn.btn-primary { background: var(--navy); color:#fff; border-color: var(--navy); }
+  .btn.btn-primary:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+
+  .btn.btn-ghost { background:#fff; color:var(--navy); border-color: var(--rule); }
+  .btn.btn-ghost:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
+
+  .btn.btn-danger { background: var(--red); color:#fff; border-color: var(--red); }
+  .btn.btn-danger:hover:not(:disabled) { background:#C0392B; border-color:#C0392B; }
+
+  .btn.btn-danger-ghost { background:#fff; color: var(--red); border-color: var(--red); }
+  .btn.btn-danger-ghost:hover:not(:disabled) { background: rgba(231,76,60,0.08); }
+
+  .btn.btn-secondary { background:#fff; color: var(--grey); border-color: var(--rule); }
+  .btn.btn-secondary:hover:not(:disabled) { border-color: var(--navy); color: var(--navy); }
+
+  /* Success-variant — enkel voor semantic "gelukt/afgewerkt" acties, NIET voor opslaan */
+  .btn.btn-success { background: var(--green); color:#fff; border-color: var(--green); }
+  .btn.btn-success:hover:not(:disabled) { filter: brightness(0.92); }
+
+  /* Legacy aliases — bestaande HTML blijft werken zonder visuele regressie.
+     Migreer waar mogelijk naar expliciete btn btn-primary / btn-ghost / btn-danger. */
+  .btn-save {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
+    border-radius:8px; border:1.5px solid var(--navy);
+    background: var(--navy); color:#fff; cursor:pointer;
+    appearance:none; -webkit-appearance:none; transition: background .15s, border-color .15s;
+  }
+  .btn-save:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .btn-save:disabled { opacity:.5; cursor:not-allowed; }
+
+  .btn-submit {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
+    border-radius:8px; border:1.5px solid var(--navy);
+    background: var(--navy); color:#fff; cursor:pointer;
+    appearance:none; -webkit-appearance:none; transition: background .15s, border-color .15s;
+  }
+  .btn-submit:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
+  /* Specialisatie voor destructieve submit-knoppen die btn-submit hergebruiken */
+  .btn-submit[id*="delete"], .btn-submit[id*="verwijder"] {
+    background: var(--red); border-color: var(--red);
+  }
+  .btn-submit[id*="delete"]:hover:not(:disabled),
+  .btn-submit[id*="verwijder"]:hover:not(:disabled) { background:#C0392B; border-color:#C0392B; }
+
+  .btn-cancel {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
+    border-radius:8px; border:1.5px solid var(--rule);
+    background:#fff; color: var(--navy); cursor:pointer;
+    appearance:none; -webkit-appearance:none; transition: border-color .15s, background .15s;
+  }
+  .btn-cancel:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
+
+  /* Shared footer layout voor modals (optioneel, overschrijfbaar per modal) */
+  .modal-lg-footer {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:16px 24px; border-top:1px solid var(--rule); background:#FAFBFC;
+  }
+  .modal-lg-footer .footer-left, .modal-lg-footer .footer-right { display:flex; gap:8px; }
 
   /* MODAL */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
@@ -272,17 +350,7 @@
   .modal-result .res-line { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
   .modal-result .res-total { display:flex; justify-content:space-between; font-size:16px; font-weight:700; padding-top:8px; margin-top:8px; border-top:2px solid var(--rule); color:var(--navy); }
   .modal-btns { display:flex; gap:12px; margin-top:20px; }
-  .modal-btns button { flex:1; padding:12px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; }
-  .btn-cancel { background:var(--light); color:var(--grey); }
-  .btn-cancel:hover { background:var(--rule); }
-  .btn-submit { background:var(--green); color:white; }
-  .btn-submit:hover { opacity:0.9; }
-  .btn { padding:10px 20px; background:var(--green); color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
-  .btn:hover { opacity:0.9; }
-  .btn.btn-secondary { background:var(--light); color:var(--grey); }
-  .btn.btn-secondary:hover { background:var(--rule); }
-  .btn.btn-danger { background:var(--red) !important; color:white; }
-  .btn.btn-danger:hover { opacity:0.9; }
+  .modal-btns button { flex:1; }
   .alert-bar { padding:12px 16px; border-radius:8px; margin-bottom:12px; font-size:13px; display:flex; align-items:center; gap:10px; }
   .alert-bar svg { width:18px; height:18px; flex-shrink:0; }
   .alert-red { background:#FDE8E8; color:#B91C1C; border:1px solid #FECACA; }
@@ -386,6 +454,41 @@
   .icon-btn:hover { background: rgba(0,0,0,0.04); color: var(--navy); border-color: var(--rule); }
   .icon-btn-danger:hover { background: rgba(231,76,60,0.08); color: var(--red); border-color: rgba(231,76,60,0.3); }
   .icon-btn + .icon-btn { margin-left: 4px; }
+
+  /* Klanten-tabel — expandable rij */
+  .klant-expand-cell { width:36px; padding:8px 4px 8px 12px; }
+  .expand-btn { background:transparent; border:none; cursor:pointer; padding:4px; border-radius:4px; color:var(--grey); display:inline-flex; align-items:center; justify-content:center; }
+  .expand-btn:hover { background:var(--light); color:var(--navy); }
+  .expand-chevron { transition:transform .15s; }
+  .klant-row.expanded .expand-chevron { transform:rotate(90deg); color:var(--navy); }
+  .klant-row.expanded { background:#F9FAFB; }
+  .klant-row { cursor:pointer; }
+  .klant-row:hover { background:#FAFBFC; }
+  .klant-detail-row td { padding:0; background:#FAFBFC; border-bottom:2px solid var(--rule); }
+  .klant-detail-inner { padding:20px 28px; }
+
+  /* Klant-detail paneel layout */
+  .kd-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-bottom:16px; }
+  .kd-col { }
+  .kd-title { font-size:11px; font-weight:600; color:var(--grey); letter-spacing:0.5px; margin:0 0 10px; text-transform:uppercase; }
+  .kd-row { font-size:13px; padding:4px 0; color:var(--navy); }
+  .kd-lab { color:var(--grey); font-size:12px; margin-right:4px; }
+  .kd-empty { color:var(--grey); font-size:12px; font-style:italic; margin:0; }
+  .kd-contract-item { padding:8px 10px; background:#fff; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; cursor:pointer; font-size:13px; transition:border-color .15s; }
+  .kd-contract-item:hover { border-color:var(--navy); }
+  .kd-stat { font-size:12px; color:var(--grey); margin-top:8px; padding-top:8px; border-top:1px dashed var(--rule); }
+  .kd-section { margin-top:16px; padding-top:16px; border-top:1px solid var(--rule); }
+  .kd-beurt { font-size:13px; padding:6px 0; display:flex; gap:8px; align-items:center; }
+  .kd-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px; letter-spacing:0.3px; }
+  .kd-badge-planned { background:#DBEAFE; color:#1E40AF; }
+  .kd-badge-done { background:#D1FAE5; color:#065F46; }
+  .kd-notities { font-size:13px; color:var(--navy); white-space:pre-wrap; margin:0; }
+  .kd-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; padding-top:16px; border-top:1px solid var(--rule); flex-wrap:wrap; }
+  .btn-link { background:none; border:none; color:var(--navy); text-decoration:underline; cursor:pointer; font-size:12px; font-family:inherit; padding:4px 0; }
+  @media (max-width:900px) {
+    .kd-grid { grid-template-columns:1fr; }
+  }
+
   /* Partners-tabel met expandable rij */
   .partners-table { width:100%; border-collapse:collapse; font-size:13px; }
   .partners-table th { text-align:left; padding:10px 12px; font-size:11px; font-weight:600; color:var(--grey); letter-spacing:0.4px; background:#F9FAFB; border-bottom:1px solid var(--rule); text-transform:uppercase; }
@@ -397,6 +500,32 @@
   .partner-row.expanded .expand-btn { transform:rotate(90deg); }
   .partner-logo-sm { width:36px; height:36px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid var(--rule); padding:2px; }
   .partner-logo-ph { width:36px; height:36px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:14px; }
+
+  /* Logo Uploader */
+  .logo-uploader { display:grid; grid-template-columns:1fr; gap:12px; }
+  .logo-uploader-preview { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .lu-bg { aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:12px; border:1px solid var(--rule); }
+  .lu-bg-light { background:#ffffff; }
+  .lu-bg-dark  { background:#1A1A2E; }
+  .lu-bg-brand { background:var(--navy); }
+  .lu-img-holder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  .lu-img-holder img { max-width:100%; max-height:100%; object-fit:contain; }
+  .logo-uploader[data-state="empty"] .logo-uploader-preview { opacity:0.35; }
+  .logo-uploader[data-state="empty"] .lu-remove-btn { display:none; }
+  .logo-uploader[data-state="filled"] .logo-uploader-dropzone { padding:12px 16px; }
+  .logo-uploader[data-state="filled"] .lu-dz-icon, .logo-uploader[data-state="filled"] .lu-dz-hint { display:none; }
+  .logo-uploader-dropzone { border:2px dashed var(--rule); border-radius:12px; padding:24px; text-align:center; cursor:pointer; background:var(--light); transition:all .15s; }
+  .logo-uploader-dropzone:hover, .logo-uploader-dropzone.dragover { border-color:var(--navy); background:rgba(26,26,46,0.03); }
+  .lu-dz-icon { margin-bottom:8px; color:var(--grey); display:flex; justify-content:center; }
+  .lu-dz-icon svg { width:28px; height:28px; }
+  .lu-dz-text { font-size:13px; color:var(--navy); margin-bottom:4px; }
+  .lu-dz-hint { font-size:11px; color:var(--grey); }
+  .logo-uploader-actions { display:flex; gap:8px; }
+  .logo-uploader[data-state="empty"] .logo-uploader-actions { display:none; }
+  .lu-replace-btn, .lu-remove-btn { padding:6px 12px; font-size:12px; border-radius:6px; border:1px solid var(--rule); background:#fff; cursor:pointer; font-family:inherit; transition:border-color .15s, color .15s; }
+  .lu-replace-btn:hover { border-color:var(--navy); }
+  .lu-remove-btn:hover { border-color:var(--red); color:var(--red); }
+  .logo-uploader-status { font-size:12px; min-height:16px; }
   .partner-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
   .pd-section-title { font-size:11px; font-weight:700; color:var(--grey); letter-spacing:0.5px; margin:0 0 8px; text-transform:uppercase; }
   .pd-row { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px; color:var(--navy); }
@@ -438,11 +567,16 @@
   .dash-empty { color: var(--grey); font-size: 13px; padding: 24px 0; text-align: center; }
   @media (max-width: 900px) { .dash-grid-primary { grid-template-columns: 1fr !important; } }
   /* Verlof + Uren */
-  .btn.btn-ghost { background:#fff; color:var(--navy); border:1.5px solid var(--rule); }
-  .btn.btn-ghost:hover { border-color:var(--navy); background:#f9fafb; }
   .u-period-btn { padding:6px 14px; font-size:12px; font-weight:600; background:#fff; border:none; border-right:1px solid var(--rule); cursor:pointer; color:var(--grey); font-family:inherit; }
   .u-period-btn:last-child { border-right:none; }
   .u-period-btn.active { background:var(--navy); color:#fff; }
+  .le-period-btn { padding:6px 14px; font-size:12px; font-weight:600; background:#fff; border:none; border-right:1px solid var(--rule); cursor:pointer; color:var(--grey); font-family:inherit; }
+  .le-period-btn:last-child { border-right:none; }
+  .le-period-btn.active { background:var(--navy); color:#fff; }
+  .u-tab { background:transparent; border:none; padding:12px 20px; font-size:13px; font-weight:600; color:var(--grey); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1.5px; font-family:inherit; display:inline-flex; align-items:center; gap:6px; transition:all .15s; }
+  .u-tab:hover { color:var(--navy); }
+  .u-tab.active { color:var(--navy); border-bottom-color:var(--navy); }
+  .u-tab-badge { background:var(--red); color:#fff; font-size:10px; padding:2px 6px; border-radius:9px; font-weight:700; }
   .btn-nav { padding:4px 10px; font-size:14px; background:#fff; border:1.5px solid var(--rule); border-radius:6px; cursor:pointer; color:var(--navy); font-family:inherit; }
   .btn-nav:hover { background:var(--light); }
   .saldo-card { background:#fff; border:1px solid var(--rule); border-left:3px solid var(--accent); border-radius:8px; padding:10px 12px; font-size:12px; }
@@ -875,6 +1009,7 @@
                 </button>
               </div>
             </div>
+            <button type="button" id="btn-select-mode" class="btn btn-ghost admin-only" onclick="toggleSelectMode()" style="margin:0;font-size:12px">Selecteer</button>
             <button class="btn-save" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
           </div>
         </div>
@@ -885,8 +1020,8 @@
           <button type="button" onclick="clearKlantenSelectie()" style="background:transparent;border:1px solid rgba(255,255,255,0.4)">Wissen</button>
         </div>
         <table>
-          <thead><tr>
-            <th class="admin-only" style="width:30px"><input type="checkbox" onchange="toggleKlantenAlles(this)"></th>
+          <thead id="klanten-thead"><tr>
+            <th style="width:36px"></th>
             <th>Naam / Bedrijf</th>
             <th class="admin-only">Partner</th>
             <th>Email</th>
@@ -939,10 +1074,10 @@
         <div class="card-header"><span class="card-title">Branding & weergave</span></div>
         <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Pas je huisstijl aan. Deze kleuren worden toegepast op je calculator en dit dashboard.</p>
         <div class="modal-row">
-          <div class="modal-field">
-            <label>Logo URL</label>
-            <input type="text" id="set-logo-url" placeholder="https://example.com/logo.png">
-            <small style="color:var(--grey);font-size:11px">Wordt getoond op je calculator en contracten</small>
+          <div class="modal-field" style="flex:1">
+            <label>Logo</label>
+            <div id="set-logo-uploader"></div>
+            <input type="hidden" id="set-logo-url">
           </div>
         </div>
         <div class="modal-row">
@@ -1077,7 +1212,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             Item toevoegen
           </button>
-          <button onclick="saveChecklistTemplate()" style="padding:8px 16px;background:var(--green);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Opslaan</button>
+          <button type="button" class="btn btn-primary" onclick="saveChecklistTemplate()">Opslaan</button>
         </div>
       </div>
     </div>
@@ -1200,7 +1335,7 @@
               <option value="geexporteerd">Geëxporteerd</option>
             </select>
             <button class="admin-only" onclick="createFacturatieRecord()" style="padding:6px 14px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">+ Nieuw</button>
-            <button onclick="exportFacturatieCSV()" style="padding:6px 14px;background:var(--green);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">
+            <button type="button" class="btn btn-ghost" onclick="exportFacturatieCSV()" style="padding:6px 14px;font-size:12px">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               CSV Export
             </button>
@@ -1427,39 +1562,141 @@
     </div>
 
     <div class="page admin-only perm-verlof-beheer" id="page-uren">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <div class="view-toggle" style="display:inline-flex;gap:0;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden">
-              <button class="u-period-btn active" data-period="week" onclick="switchUrenPeriode('week')">Week</button>
-              <button class="u-period-btn" data-period="maand" onclick="switchUrenPeriode('maand')">Maand</button>
-              <button class="u-period-btn" data-period="kwartaal" onclick="switchUrenPeriode('kwartaal')">Kwartaal</button>
-              <button class="u-period-btn" data-period="jaar" onclick="switchUrenPeriode('jaar')">Jaar</button>
+      <div style="display:flex;gap:0;border-bottom:1.5px solid var(--rule);margin-bottom:20px;flex-wrap:wrap">
+        <button class="u-tab active" data-utab="overzicht" onclick="switchUrenTab('overzicht')">Overzicht personeel</button>
+        <button class="u-tab" data-utab="loon" onclick="switchUrenTab('loon')">Loon-export (CAO)</button>
+        <button class="u-tab" data-utab="facturatie" onclick="switchUrenTab('facturatie')">
+          Interventie-facturatie
+          <span id="fact-queue-badge" class="u-tab-badge" style="display:none"></span>
+        </button>
+      </div>
+
+      <!-- TAB 1: OVERZICHT PERSONEEL (legacy) -->
+      <div class="u-tab-pane" id="utab-overzicht">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <div class="view-toggle" style="display:inline-flex;gap:0;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden">
+                <button class="u-period-btn active" data-period="week" onclick="switchUrenPeriode('week')">Week</button>
+                <button class="u-period-btn" data-period="maand" onclick="switchUrenPeriode('maand')">Maand</button>
+                <button class="u-period-btn" data-period="kwartaal" onclick="switchUrenPeriode('kwartaal')">Kwartaal</button>
+                <button class="u-period-btn" data-period="jaar" onclick="switchUrenPeriode('jaar')">Jaar</button>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <button class="btn-nav" onclick="urenNavPeriode(-1)">‹</button>
+                <span id="uren-periode-label" style="font-weight:600;font-size:13px;min-width:140px;text-align:center"></span>
+                <button class="btn-nav" onclick="urenNavPeriode(1)">›</button>
+              </div>
             </div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <button class="btn-nav" onclick="urenNavPeriode(-1)">‹</button>
-              <span id="uren-periode-label" style="font-weight:600;font-size:13px;min-width:140px;text-align:center"></span>
-              <button class="btn-nav" onclick="urenNavPeriode(1)">›</button>
+            <button class="btn btn-ghost" onclick="exportUrenCsv()">Export CSV</button>
+          </div>
+
+          <div id="uren-openstaand-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:#FEF3C7;border:1px solid #FBBF24;border-radius:8px;font-size:13px;color:#92400E"></div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Technieker</th>
+                <th style="text-align:right">Gewerkte uren</th>
+                <th style="text-align:right">Verlof (d)</th>
+                <th style="text-align:right">Ziekte (d)</th>
+                <th style="text-align:right">Overuren</th>
+                <th style="text-align:right">Contract</th>
+                <th>Vulling</th>
+              </tr>
+            </thead>
+            <tbody id="uren-tbody"></tbody>
+          </table>
+          <div id="uren-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen gegevens voor deze periode.</div>
+        </div>
+      </div>
+
+      <!-- TAB 2: LOON-EXPORT (CAO) -->
+      <div class="u-tab-pane" id="utab-loon" style="display:none">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <div class="view-toggle" style="display:inline-flex;gap:0;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden">
+                <button class="le-period-btn active" data-period="maand" onclick="switchLoonPeriode('maand')">Maand</button>
+                <button class="le-period-btn" data-period="kwartaal" onclick="switchLoonPeriode('kwartaal')">Kwartaal</button>
+                <button class="le-period-btn" data-period="jaar" onclick="switchLoonPeriode('jaar')">Jaar</button>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <button class="btn-nav" onclick="loonNavPeriode(-1)">‹</button>
+                <span id="loon-periode-label" style="font-weight:600;font-size:13px;min-width:160px;text-align:center"></span>
+                <button class="btn-nav" onclick="loonNavPeriode(1)">›</button>
+              </div>
+              <select id="loon-filter-tech" onchange="renderLoonExport()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+                <option value="">Alle techniekers</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" onclick="openLoonRegelsModal()">Loon-regels</button>
+              <button class="btn btn-primary" onclick="exportLoonCsv()">Download CSV (sociaal secretariaat)</button>
             </div>
           </div>
-          <button class="btn btn-ghost" onclick="exportUrenCsv()">⬇ Export CSV</button>
-        </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Technieker</th>
-              <th style="text-align:right">Gewerkte uren</th>
-              <th style="text-align:right">Verlof (d)</th>
-              <th style="text-align:right">Ziekte (d)</th>
-              <th style="text-align:right">Overuren</th>
-              <th style="text-align:right">Contract</th>
-              <th>Vulling</th>
-            </tr>
-          </thead>
-          <tbody id="uren-tbody"></tbody>
-        </table>
-        <div id="uren-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen gegevens voor deze periode.</div>
+          <div id="loon-warning-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:#FEF3C7;border:1px solid #FBBF24;border-radius:8px;font-size:13px;color:#92400E"></div>
+
+          <div style="overflow-x:auto">
+            <table id="loon-tbl">
+              <thead>
+                <tr>
+                  <th>Technieker</th>
+                  <th>Week</th>
+                  <th style="text-align:right">Normaal</th>
+                  <th style="text-align:right">Overuren 1 (150%)</th>
+                  <th style="text-align:right">Overuren 2 (200%)</th>
+                  <th style="text-align:right">Zaterdag (150%)</th>
+                  <th style="text-align:right">Zondag (200%)</th>
+                  <th style="text-align:right">Feestdag (200%)</th>
+                  <th style="text-align:right">Nacht (+20%)</th>
+                  <th style="text-align:right">Totaal</th>
+                  <th style="text-align:right">Km</th>
+                </tr>
+              </thead>
+              <tbody id="loon-tbody"></tbody>
+              <tfoot id="loon-tfoot"></tfoot>
+            </table>
+          </div>
+          <div id="loon-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen urenregistraties in deze periode.</div>
+        </div>
+      </div>
+
+      <!-- TAB 3: INTERVENTIE-FACTURATIE QUEUE -->
+      <div class="u-tab-pane" id="utab-facturatie" style="display:none">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h3 style="margin:0 0 4px;font-size:15px;font-weight:700;color:var(--navy)">Openstaande interventie-uren</h3>
+              <p style="margin:0;font-size:12px;color:var(--grey)">Bevestigde uren op interventie-beurten die nog niet gefactureerd zijn</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--grey);cursor:pointer">
+                <input type="checkbox" id="fact-show-gefactureerd" onchange="renderInterventieFacturatie()"> Toon reeds gefactureerde
+              </label>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Klant</th>
+                  <th>Technieker</th>
+                  <th style="text-align:right">Uren</th>
+                  <th style="text-align:right">Tarief</th>
+                  <th style="text-align:right">Bedrag</th>
+                  <th>Tarief-bron</th>
+                  <th style="text-align:right">Acties</th>
+                </tr>
+              </thead>
+              <tbody id="fact-tbody"></tbody>
+            </table>
+          </div>
+          <div id="fact-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen openstaande interventie-uren.</div>
+        </div>
       </div>
     </div>
 
@@ -1797,6 +2034,15 @@
 
       <!-- TAB: BASIS -->
       <div class="modal-tab-pane active" data-pane="basis">
+        <div class="modal-field admin-only" id="kl-partner-wrap" style="margin-bottom:16px">
+          <label>Partner *</label>
+          <select id="kl-partner-select" onchange="document.getElementById('kl-partner').value = this.value"></select>
+          <small style="color:var(--grey);font-size:11px">Onder welke partner valt deze klant commercieel.</small>
+        </div>
+        <div class="modal-field partner-only" id="kl-partner-display-wrap" style="margin-bottom:16px">
+          <label>Partner</label>
+          <input type="text" id="kl-partner-display" disabled style="background:var(--light);color:var(--grey)">
+        </div>
         <div class="modal-row">
           <div class="modal-field"><label>Voornaam *</label><input id="kl-voornaam" placeholder="Jan"></div>
           <div class="modal-field"><label>Achternaam *</label><input id="kl-achternaam" placeholder="Janssen"></div>
@@ -1857,11 +2103,11 @@
     </div>
     <div class="modal-lg-footer">
       <div class="footer-left">
-        <button class="btn-submit" id="btn-delete-klant" onclick="deleteKlant()" style="background:var(--red);display:none;padding:10px 16px;flex:none">Verwijderen</button>
+        <button type="button" class="btn btn-danger" id="btn-delete-klant" onclick="deleteKlant()" style="display:none">Verwijderen</button>
       </div>
       <div class="footer-right">
-        <button class="btn-cancel" onclick="closeKlantModal()" style="padding:10px 20px;flex:none;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--light);color:var(--grey)">Annuleren</button>
-        <button class="btn-submit" onclick="saveKlant()" style="padding:10px 20px;flex:none">Opslaan</button>
+        <button type="button" class="btn btn-ghost" onclick="closeKlantModal()">Annuleren</button>
+        <button type="button" class="btn btn-primary" onclick="saveKlant()">Opslaan</button>
       </div>
     </div>
   </div>
@@ -2395,6 +2641,16 @@ function applyBranding(p) {
 
 function loadSettings(p) {
   document.getElementById('set-logo-url').value = p.logo_url || '';
+  var uploaderEl = document.getElementById('set-logo-uploader');
+  if (uploaderEl && p && p.id) {
+    mountLogoUploader(uploaderEl, p.id, p.logo_url || null, function(newUrl) {
+      document.getElementById('set-logo-url').value = newUrl || '';
+      var headerLogo = document.querySelector('#sidebar .sidebar-logo-img');
+      if (headerLogo) {
+        if (newUrl) headerLogo.innerHTML = '<img src="' + esc(newUrl) + '" alt="" style="width:100%;height:100%;object-fit:contain">';
+      }
+    });
+  }
   document.getElementById('set-kleur1').value = p.kleur_primair || '#098979';
   document.getElementById('set-kleur1-hex').value = p.kleur_primair || '#098979';
   document.getElementById('set-kleur2').value = p.kleur_donker || '#066b5e';
@@ -2645,7 +2901,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob] = await Promise.all([
+  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob, locAll, bUrenReg, loonR, feestR] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('staffel_min'),
     sb.from('supplementen').select('*'),
@@ -2659,7 +2915,11 @@ async function loadAllData() {
     sb.from('verlof_types').select('*').order('volgorde'),
     sb.from('technieker_afwezigheden').select('*').order('van_datum', { ascending: false }),
     sb.from('verlof_saldi').select('*'),
-    sb.from('onderhoudsbeurten').select('id, contract_id, technieker_id, plan_datum, plan_tijd, duur_minuten, status').order('plan_datum', { ascending: false })
+    sb.from('onderhoudsbeurten').select('id, contract_id, technieker_id, plan_datum, plan_tijd, duur_minuten, status').order('plan_datum', { ascending: false }),
+    sb.from('client_locations').select('*').order('is_primary', { ascending: false }),
+    sb.from('beurt_uren_registraties').select('*').order('start_tijd', { ascending: false }).then(function(r){return r;}, function(_){return {data:[]};}),
+    sb.from('loon_regels').select('*').order('actief_vanaf', { ascending: false }).then(function(r){return r;}, function(_){return {data:[]};}),
+    sb.from('feestdagen').select('*').order('datum', { ascending: true }).then(function(r){return r;}, function(_){return {data:[]};})
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
@@ -2675,6 +2935,12 @@ async function loadAllData() {
   allVerlof = vaf.data || [];
   allVerlofSaldi = vsa.data || [];
   allOnderhoudsbeurten = ob.data || [];
+  window._allClientLocations = (locAll && locAll.data) ? locAll.data : [];
+  window._allBeurten = allOnderhoudsbeurten;
+  // Nieuwe uren-bronnen (sectie I migraties)
+  window._allBeurtUrenReg = (bUrenReg && bUrenReg.data) ? bUrenReg.data : [];
+  window._allLoonRegels   = (loonR    && loonR.data)    ? loonR.data    : [];
+  window._allFeestdagen   = (feestR   && feestR.data)   ? feestR.data   : [];
 
   renderDashboard();
   renderPartners();
@@ -2712,6 +2978,7 @@ async function loadAllData() {
     }
   }
   renderFacturatie();
+  if (typeof updateFactQueueBadge === 'function') updateFactQueueBadge();
 
 
   // Deep-link: ?page=techniekers etc.
@@ -3435,7 +3702,7 @@ function renderPartners() {
     html += '<td><button class="expand-btn" type="button" onclick="event.stopPropagation();togglePartnerDetail(\'' + p.id + '\')">▸</button></td>';
     html += '<td>';
     if (p.logo_url) {
-      html += '<img src="' + esc(p.logo_url) + '" class="partner-logo-sm" alt="">';
+      html += renderPartnerLogo(p.logo_url, 'avatar');
     } else {
       html += '<div class="partner-logo-ph" style="background:' + (p.kleur_primair || '#098979') + '">' + esc((naam[0] || '?').toUpperCase()) + '</div>';
     }
@@ -3693,7 +3960,7 @@ function renderAdminSettings() {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
     html += '<div><label style="font-size:11px;color:var(--grey)">Primaire kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur1-' + p.id + '" value="' + (p.kleur_primair || '#098979') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px"><input type="text" id="adm-kleur1t-' + p.id + '" value="' + (p.kleur_primair || '#098979') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="document.getElementById(\'adm-kleur1-' + p.id + '\').value=this.value"></div></div>';
     html += '<div><label style="font-size:11px;color:var(--grey)">Donkere kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur2-' + p.id + '" value="' + (p.kleur_donker || '#066b5e') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px"><input type="text" id="adm-kleur2t-' + p.id + '" value="' + (p.kleur_donker || '#066b5e') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="document.getElementById(\'adm-kleur2-' + p.id + '\').value=this.value"></div></div>';
-    html += '<div><label style="font-size:11px;color:var(--grey)">Logo URL</label><input type="text" id="adm-logo-' + p.id + '" value="' + esc(p.logo_url || '') + '" placeholder="https://..." style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px"></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Logo</label><div id="adm-logo-uploader-' + p.id + '" style="margin-top:4px"></div><input type="hidden" id="adm-logo-' + p.id + '" value="' + esc(p.logo_url || '') + '"></div>';
     html += '</div></div>';
 
     // Machtigingen
@@ -3727,8 +3994,8 @@ function renderAdminSettings() {
 
     // Save button + invite button
     html += '<div style="display:flex;gap:8px;align-items:center">';
-    html += '<button onclick="saveAdminPartner(\'' + p.id + '\')" style="padding:8px 20px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Opslaan</button>';
-    html += '<button onclick="openInviteModal(\'' + p.id + '\')" style="padding:8px 16px;background:white;color:var(--navy);border:1.5px solid var(--navy);border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">';
+    html += '<button type="button" class="btn btn-primary" onclick="saveAdminPartner(\'' + p.id + '\')">Opslaan</button>';
+    html += '<button type="button" class="btn btn-ghost" onclick="openInviteModal(\'' + p.id + '\')">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
     html += 'Uitnodigen</button>';
     html += '<span id="adm-saved-' + p.id + '" style="font-size:12px;color:var(--green);display:none">Opgeslagen!</span>';
@@ -3737,6 +4004,16 @@ function renderAdminSettings() {
     html += '</div></div>';
     return html;
   }).join('');
+
+  // Mount logo-uploaders voor elke partner-detail (lazy: alleen zichtbaar als detail open, maar mount doen we meteen)
+  partners.forEach(function(p) {
+    var mountEl = document.getElementById('adm-logo-uploader-' + p.id);
+    if (!mountEl) return;
+    mountLogoUploader(mountEl, p.id, p.logo_url || null, function(newUrl) {
+      var hidden = document.getElementById('adm-logo-' + p.id);
+      if (hidden) hidden.value = newUrl || '';
+    });
+  });
 }
 
 function toggleAdminPartner(id) {
@@ -4062,22 +4339,18 @@ function onbCollectStep() {
 async function onbHandleLogoUpload(ev) {
   var file = ev.target.files && ev.target.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { showToast('Logo mag max. 2 MB zijn', 'error'); return; }
-  if (!/^image\//.test(file.type)) { showToast('Selecteer een afbeelding', 'error'); return; }
   var preview = document.getElementById('onb-logo-preview');
-  preview.innerHTML = '<span style="font-size:12px;color:var(--grey)">Uploaden…</span>';
+  if (preview) preview.innerHTML = '<span style="font-size:12px;color:var(--grey)">Logo verwerken…</span>';
   try {
-    var ext = (file.name.split('.').pop() || 'png').toLowerCase();
-    var path = userPartner.id + '/logo-' + Date.now() + '.' + ext;
-    var up = await sb.storage.from('partner-logos').upload(path, file, { upsert: true, cacheControl: '3600' });
-    if (up.error) throw up.error;
-    var pub = sb.storage.from('partner-logos').getPublicUrl(path);
-    onbDraft.logo_url = pub.data.publicUrl;
-    preview.innerHTML = '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="max-height:60px;max-width:100%;object-fit:contain">';
+    var url = await uploadPartnerLogo(file, userPartner.id);
+    onbDraft.logo_url = url;
+    if (userPartner) userPartner.logo_url = url;
+    if (preview) preview.innerHTML = '<img src="' + esc(url) + '" alt="" style="max-height:60px;max-width:100%;object-fit:contain">';
     var headerLogo = document.getElementById('onb-logo');
-    if (headerLogo) headerLogo.innerHTML = '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:4px">';
+    if (headerLogo) headerLogo.innerHTML = '<img src="' + esc(url) + '" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:4px">';
   } catch (e) {
-    preview.innerHTML = '<span style="font-size:12px;color:var(--red)">Upload mislukt: ' + esc(e.message || 'onbekende fout') + '</span>';
+    if (preview) preview.innerHTML = '<span style="font-size:12px;color:var(--red)">Upload mislukt: ' + esc(e.message || 'onbekende fout') + '</span>';
+    showToast(e.message || 'Upload mislukt', 'error');
   }
 }
 
@@ -4679,7 +4952,7 @@ function renderPricing() {
       html += '<button class="btn-edit-pricing" onclick="editPricing(\'' + p.id + '\', this)" style="background:var(--white);color:var(--navy);border:1.5px solid var(--rule);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;font-family:inherit" onmouseenter="this.style.borderColor=\'var(--navy)\'" onmouseleave="this.style.borderColor=\'var(--rule)\'">';
       html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
       html += 'Tarieven bewerken</button>';
-      html += '<button class="btn-save" onclick="savePricing(\'' + p.id + '\', this)" style="display:none;padding:8px 18px;background:var(--green);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Opslaan</button>';
+      html += '<button type="button" class="btn btn-primary" onclick="savePricing(\'' + p.id + '\', this)" style="display:none;padding:8px 18px;font-size:12px">Opslaan</button>';
       html += '<span class="save-msg" style="font-size:12px;color:var(--green);display:none">Opgeslagen!</span>';
       html += '</div>';
 
@@ -5605,6 +5878,219 @@ async function saveNewContract() {
 // =============================================
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+// =============================================
+// LOGO UPLOAD & NORMALISATIE
+// =============================================
+var LOGO_MAX_SIDE = 512;
+var LOGO_MAX_BYTES = 2 * 1024 * 1024;
+var LOGO_TRIM_ALPHA_THRESHOLD = 10;
+
+function loadImageFromFile(file) {
+  return new Promise(function(resolve, reject) {
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function() { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Kan afbeelding niet laden')); };
+    img.src = url;
+  });
+}
+
+function canvasToBlob(canvas, type) {
+  return new Promise(function(resolve, reject) {
+    canvas.toBlob(function(b) { b ? resolve(b) : reject(new Error('Canvas export faalde')); }, type, 0.92);
+  });
+}
+
+function detectContentBounds(ctx, w, h, alphaThreshold) {
+  var data;
+  try { data = ctx.getImageData(0, 0, w, h).data; } catch (_) { return { top:0, left:0, right:w-1, bottom:h-1 }; }
+  var top = -1, left = -1, right = -1, bottom = -1;
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var idx = (y * w + x) * 4 + 3;
+      if (data[idx] > alphaThreshold) {
+        if (top === -1) top = y;
+        bottom = y;
+        if (left === -1 || x < left) left = x;
+        if (x > right) right = x;
+      }
+    }
+  }
+  if (top === -1) return null;
+  return { top: top, left: left, right: right, bottom: bottom };
+}
+
+async function normalizeLogoForUpload(file) {
+  if (file.type === 'image/svg+xml') {
+    return { blob: file, ext: 'svg', width: 0, height: 0 };
+  }
+  var img = await loadImageFromFile(file);
+  var src = document.createElement('canvas');
+  src.width = img.naturalWidth;
+  src.height = img.naturalHeight;
+  var sctx = src.getContext('2d');
+  sctx.drawImage(img, 0, 0);
+
+  var bounds = detectContentBounds(sctx, src.width, src.height, LOGO_TRIM_ALPHA_THRESHOLD);
+  if (!bounds) throw new Error('Logo lijkt leeg of volledig transparant');
+
+  var cropW = bounds.right - bounds.left + 1;
+  var cropH = bounds.bottom - bounds.top + 1;
+  var scale = Math.min(1, LOGO_MAX_SIDE / Math.max(cropW, cropH));
+  var outW = Math.max(1, Math.round(cropW * scale));
+  var outH = Math.max(1, Math.round(cropH * scale));
+
+  var out = document.createElement('canvas');
+  out.width = outW;
+  out.height = outH;
+  var octx = out.getContext('2d');
+  octx.imageSmoothingEnabled = true;
+  octx.imageSmoothingQuality = 'high';
+  octx.drawImage(src, bounds.left, bounds.top, cropW, cropH, 0, 0, outW, outH);
+
+  var blob = await canvasToBlob(out, 'image/png');
+  return { blob: blob, ext: 'png', width: outW, height: outH };
+}
+
+function extractStoragePath(publicUrl) {
+  var m = /\/partner-logos\/(.+?)(?:\?|$)/.exec(publicUrl || '');
+  return m ? m[1] : null;
+}
+
+async function uploadPartnerLogo(file, partnerId) {
+  if (!file) throw new Error('Geen bestand geselecteerd');
+  if (file.size > LOGO_MAX_BYTES) throw new Error('Logo mag max. 2 MB zijn');
+  if (!/^image\/(png|jpe?g|webp|svg\+xml)$/.test(file.type)) {
+    throw new Error('Formaat niet ondersteund. Gebruik PNG, JPG, WEBP of SVG.');
+  }
+  var normalized = await normalizeLogoForUpload(file);
+  var path = partnerId + '/logo-' + Date.now() + '.' + normalized.ext;
+
+  var up = await sb.storage.from('partner-logos').upload(path, normalized.blob, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: normalized.ext === 'svg' ? 'image/svg+xml' : 'image/png'
+  });
+  if (up.error) throw up.error;
+
+  try {
+    var partner = (allPartners || []).find(function(p) { return p.id === partnerId; });
+    if (partner && partner.logo_url) {
+      var oldPath = extractStoragePath(partner.logo_url);
+      if (oldPath && oldPath !== path) {
+        await sb.storage.from('partner-logos').remove([oldPath]);
+      }
+    }
+  } catch (_) { /* silent: upload is gelukt, cleanup is best-effort */ }
+
+  var pub = sb.storage.from('partner-logos').getPublicUrl(path);
+  return pub.data.publicUrl;
+}
+
+function renderPartnerLogo(url, variant) {
+  variant = variant || 'avatar';
+  var sizes = {
+    avatar: 'width:36px;height:36px;border-radius:6px',
+    card:   'width:48px;height:48px;border-radius:8px',
+    hero:   'max-height:60px;max-width:100%'
+  };
+  var style = (sizes[variant] || sizes.avatar) + ';object-fit:contain;background:#fff;border:1px solid var(--rule);padding:2px;display:inline-block';
+  if (!url) return '<div style="' + style + ';background:var(--light);display:inline-flex;align-items:center;justify-content:center;color:var(--grey);font-size:10px;font-weight:700;padding:0">LOGO</div>';
+  return '<img src="' + esc(url) + '" alt="" style="' + style + '">';
+}
+
+function mountLogoUploader(container, partnerId, currentLogoUrl, onChange) {
+  if (!container) return;
+  var uploadCloud = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>';
+  container.innerHTML = '' +
+    '<div class="logo-uploader" data-state="' + (currentLogoUrl ? 'filled' : 'empty') + '">' +
+      '<div class="logo-uploader-preview">' +
+        '<div class="lu-bg lu-bg-light"><div class="lu-img-holder"></div></div>' +
+        '<div class="lu-bg lu-bg-dark"><div class="lu-img-holder"></div></div>' +
+        '<div class="lu-bg lu-bg-brand"><div class="lu-img-holder"></div></div>' +
+      '</div>' +
+      '<div class="logo-uploader-dropzone">' +
+        '<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">' +
+        '<div class="lu-dz-inner">' +
+          '<div class="lu-dz-icon">' + uploadCloud + '</div>' +
+          '<div class="lu-dz-text"><strong>Sleep logo hier</strong> of klik om te bladeren</div>' +
+          '<div class="lu-dz-hint">PNG, JPG, WEBP of SVG — max. 2 MB. Wordt automatisch bijgesneden en geschaald tot 512px.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="logo-uploader-actions">' +
+        '<button type="button" class="lu-replace-btn">Logo vervangen</button>' +
+        '<button type="button" class="lu-remove-btn">Verwijderen</button>' +
+      '</div>' +
+      '<div class="logo-uploader-status" role="status" aria-live="polite"></div>' +
+    '</div>';
+
+  var fileInput = container.querySelector('input[type=file]');
+  var dropzone  = container.querySelector('.logo-uploader-dropzone');
+  var status    = container.querySelector('.logo-uploader-status');
+  var root      = container.querySelector('.logo-uploader');
+
+  function setPreview(url) {
+    container.querySelectorAll('.lu-img-holder').forEach(function(el) {
+      el.innerHTML = url ? '<img src="' + esc(url) + '" alt="">' : '';
+    });
+    root.dataset.state = url ? 'filled' : 'empty';
+  }
+  setPreview(currentLogoUrl);
+
+  async function handleFile(file) {
+    status.textContent = 'Logo verwerken…';
+    status.style.color = 'var(--grey)';
+    try {
+      var url = await uploadPartnerLogo(file, partnerId);
+      var partner = (allPartners || []).find(function(p) { return p.id === partnerId; });
+      if (partner) partner.logo_url = url;
+      setPreview(url);
+      status.textContent = 'Logo bijgewerkt';
+      status.style.color = 'var(--green)';
+      if (typeof onChange === 'function') onChange(url);
+    } catch (e) {
+      status.textContent = 'Upload mislukt: ' + (e.message || 'onbekende fout');
+      status.style.color = 'var(--red)';
+    }
+  }
+
+  dropzone.addEventListener('click', function() { fileInput.click(); });
+  fileInput.addEventListener('change', function(ev) {
+    var f = ev.target.files && ev.target.files[0];
+    if (f) handleFile(f);
+    ev.target.value = '';
+  });
+  ['dragenter','dragover'].forEach(function(evt) {
+    dropzone.addEventListener(evt, function(e) { e.preventDefault(); dropzone.classList.add('dragover'); });
+  });
+  ['dragleave','drop'].forEach(function(evt) {
+    dropzone.addEventListener(evt, function(e) { e.preventDefault(); dropzone.classList.remove('dragover'); });
+  });
+  dropzone.addEventListener('drop', function(e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  container.querySelector('.lu-replace-btn').addEventListener('click', function() { fileInput.click(); });
+  container.querySelector('.lu-remove-btn').addEventListener('click', async function() {
+    if (!confirm('Logo verwijderen?')) return;
+    try {
+      var partner = (allPartners || []).find(function(p) { return p.id === partnerId; });
+      if (partner && partner.logo_url) {
+        var oldPath = extractStoragePath(partner.logo_url);
+        if (oldPath) await sb.storage.from('partner-logos').remove([oldPath]);
+        partner.logo_url = null;
+      }
+      setPreview(null);
+      status.textContent = 'Logo verwijderd';
+      status.style.color = 'var(--grey)';
+      if (typeof onChange === 'function') onChange(null);
+    } catch (e) {
+      status.textContent = 'Fout: ' + (e.message || 'onbekend');
+      status.style.color = 'var(--red)';
+    }
+  });
+}
+
 function getPartnerDisplayName(partner, sector) {
   return getPartnerBranding(partner, sector).naam;
 }
@@ -5635,12 +6121,102 @@ function showToast(msg, type) {
   el.id = 'admin-toast';
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
   el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
-  var bg = type === 'error' ? '#EF4444' : '#27AE60';
-  el.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;background:' + bg + ';color:#fff;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;';
+  var bg = type === 'error' ? '#EF4444' : (type === 'info' ? '#1A1A2E' : '#27AE60');
+  el.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;background:' + bg + ';color:#fff;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;max-width:420px;';
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 300); }, 3000);
+  var duration = type === 'error' ? 5000 : 3000;
+  setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 300); }, duration);
 }
+
+// =============================================
+// FLANCCO-STIJL DIALOGS — vervangt native alert/confirm
+// =============================================
+/**
+ * Flancco-stijl confirm-dialog. Async, returnt Promise<boolean>.
+ * @param {object} opts - { title, message, confirmLabel, cancelLabel, variant: 'primary'|'danger' }
+ */
+function confirmDialog(opts) {
+  return new Promise(function(resolve) {
+    opts = opts || {};
+    var title = opts.title || 'Bevestigen';
+    var message = opts.message || '';
+    var confirmLabel = opts.confirmLabel || 'Bevestigen';
+    var cancelLabel = opts.cancelLabel || 'Annuleren';
+    var variant = opts.variant || 'primary';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.style.zIndex = '9999';
+    overlay.innerHTML =
+      '<div class="modal" style="max-width:440px;padding:28px" role="alertdialog" aria-modal="true">' +
+        '<h2 style="margin:0 0 10px;font-size:18px;color:var(--navy)">' + esc(title) + '</h2>' +
+        '<p style="margin:0 0 24px;color:#4B5563;font-size:14px;line-height:1.5;white-space:pre-wrap">' + esc(message) + '</p>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+          (cancelLabel ? '<button type="button" class="btn btn-ghost" data-role="cancel">' + esc(cancelLabel) + '</button>' : '') +
+          '<button type="button" class="btn btn-' + (variant === 'danger' ? 'danger' : 'primary') + '" data-role="confirm">' + esc(confirmLabel) + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    function finish(result) {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(result);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+      if (e.key === 'Enter')  { e.preventDefault(); finish(true);  }
+    }
+    var cancelBtn = overlay.querySelector('[data-role=cancel]');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { finish(false); });
+    overlay.querySelector('[data-role=confirm]').addEventListener('click', function() { finish(true); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) finish(false); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(function() {
+      var btn = overlay.querySelector('[data-role=confirm]');
+      if (btn) btn.focus();
+    }, 0);
+  });
+}
+
+/** Flancco-stijl info-dialog (enkel OK-knop). */
+function infoDialog(message, title) {
+  return confirmDialog({
+    title: title || 'Opgelet',
+    message: message,
+    confirmLabel: 'OK',
+    cancelLabel: ''
+  });
+}
+
+/**
+ * Globale override: native alert() → Flancco-toast.
+ * Alle bestaande alert(msg) calls in de codebase tonen nu een toast i.p.v. browser-dialog.
+ * Kort bericht (< 80 chars) = toast; langere berichten → infoDialog (modal-blocker).
+ */
+(function overrideAlert() {
+  if (window.__flanccoAlertOverridden) return;
+  window.__flanccoAlertOverridden = true;
+  var nativeAlert = window.alert;
+  window.alert = function(msg) {
+    try {
+      var text = (msg == null) ? '' : String(msg);
+      if (text.length > 120 || text.indexOf('\n') >= 0) {
+        // Langere of meerregelige berichten → modal-dialog
+        if (typeof infoDialog === 'function') { infoDialog(text); return; }
+      }
+      if (typeof showToast === 'function') {
+        // Heuristiek: error als tekst fout-keywords bevat
+        var t = text.toLowerCase();
+        var isErr = /fout|error|mislukt|niet|kan niet|ongeldig|verplicht|selecteer|vul|kies/.test(t);
+        showToast(text, isErr ? 'error' : 'info');
+        return;
+      }
+    } catch (_) { /* fallback */ }
+    nativeAlert.call(window, msg);
+  };
+})();
 
 function populateKlantFilterDropdown() {
   var sel = document.getElementById('filter-klant-partner');
@@ -5649,7 +6225,48 @@ function populateKlantFilterDropdown() {
     partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('');
 }
 
+// Selectiemodus state (sectie G — progressive disclosure van checkboxes)
+var selectModeActief = false;
+// Expanded-state voor expandable klant-rij (sectie F)
+var expandedKlantId = null;
+
+function toggleSelectMode() {
+  selectModeActief = !selectModeActief;
+  var btn = document.getElementById('btn-select-mode');
+  if (btn) {
+    btn.textContent = selectModeActief ? 'Selectie annuleren' : 'Selecteer';
+    btn.classList.toggle('btn-ghost', !selectModeActief);
+    btn.classList.toggle('btn-primary', selectModeActief);
+  }
+  // Clear selection bij uitschakelen modus
+  if (!selectModeActief) {
+    document.querySelectorAll('.klant-checkbox:checked').forEach(function(cb) { cb.checked = false; });
+    var bulkBar = document.getElementById('klanten-bulk-bar');
+    if (bulkBar) bulkBar.classList.remove('open');
+  }
+  renderKlanten();
+}
+
+function renderKlantenThead() {
+  var thead = document.getElementById('klanten-thead');
+  if (!thead) return;
+  thead.innerHTML = '<tr>' +
+    (selectModeActief && userRole === 'admin'
+      ? '<th style="width:30px"><input type="checkbox" onchange="toggleKlantenAlles(this)"></th>'
+      : '') +
+    '<th style="width:36px"></th>' +
+    '<th>Naam / Bedrijf</th>' +
+    '<th class="admin-only">Partner</th>' +
+    '<th>Email</th>' +
+    '<th>Telefoon</th>' +
+    '<th>Gemeente</th>' +
+    '<th>Contracten</th>' +
+    '<th class="not-technieker" style="width:90px;text-align:right">ACTIES</th>' +
+  '</tr>';
+}
+
 function renderKlanten() {
+  renderKlantenThead();
   var list = allClients.slice();
 
   // Role-based filtering (partners see own clients + shared clients)
@@ -5683,29 +6300,216 @@ function renderKlanten() {
     noEl.style.display = 'block';
   } else {
     noEl.style.display = 'none';
+    // Hoeveel kolommen voor de colspan van de detail-rij?
+    var colCount = 7; // expand + naam + email + telefoon + gemeente + contracten + acties
+    if (userRole === 'admin') colCount += 1; // partner kolom
+    if (selectModeActief && userRole === 'admin') colCount += 1; // checkbox kolom
+
     tbody.innerHTML = list.map(function(c) {
       var partner = partners.find(function(p) { return p.id === c.partner_id; });
       var contractCount = allContracten.filter(function(ct) { return ct.client_id === c.id; }).length;
       var isShared = c._shared ? ' <span style="font-size:10px;color:var(--blue);font-weight:600;background:#EFF6FF;padding:1px 6px;border-radius:3px">Gedeeld</span>' : '';
       var editSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
       var delSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+      var expandSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="expand-chevron"><polyline points="9 18 15 12 9 6"/></svg>';
       var actiesHtml = '<td class="not-technieker" onclick="event.stopPropagation()" style="text-align:right;white-space:nowrap">' +
         '<button class="icon-btn" title="Bewerken" onclick="editKlant(\'' + c.id + '\')">' + editSvg + '</button>' +
         '<button class="icon-btn icon-btn-danger" title="Verwijderen" onclick="deleteKlantRow(\'' + c.id + '\')">' + delSvg + '</button>' +
       '</td>';
-      return '<tr style="cursor:pointer">' +
-        (userRole === 'admin' ? '<td onclick="event.stopPropagation()"><input type="checkbox" class="klant-checkbox" value="' + c.id + '"></td>' : '') +
-        '<td onclick="showKlantDossier(\'' + c.id + '\')"><strong>' + esc(c.contact_person || '') + '</strong>' + isShared +
+
+      var isExpanded = (expandedKlantId === c.id);
+
+      var mainRow = '<tr class="klant-row' + (isExpanded ? ' expanded' : '') + '" data-cid="' + c.id + '" style="cursor:pointer">' +
+        (selectModeActief && userRole === 'admin'
+          ? '<td class="klant-checkbox-cell" onclick="event.stopPropagation()"><input type="checkbox" class="klant-checkbox" value="' + c.id + '"></td>'
+          : '') +
+        '<td class="klant-expand-cell" onclick="toggleKlantDetail(\'' + c.id + '\')"><button type="button" class="expand-btn" aria-label="Toon details">' + expandSvg + '</button></td>' +
+        '<td onclick="toggleKlantDetail(\'' + c.id + '\')"><strong>' + esc(c.contact_person || '') + '</strong>' + isShared +
           (c.company_name ? '<br><small style="color:var(--grey)">' + esc(c.company_name) + '</small>' : '') + '</td>' +
-        '<td class="admin-only">' + (partner ? esc(partner.naam) : '—') + '</td>' +
-        '<td>' + esc(c.email || '') + '</td>' +
-        '<td>' + esc(c.phone || '') + '</td>' +
-        '<td>' + esc(c.city || '') + '</td>' +
-        '<td>' + contractCount + '</td>' +
+        '<td class="admin-only" onclick="toggleKlantDetail(\'' + c.id + '\')">' + (partner ? esc(partner.naam) : '—') + '</td>' +
+        '<td onclick="toggleKlantDetail(\'' + c.id + '\')">' + esc(c.email || '') + '</td>' +
+        '<td onclick="toggleKlantDetail(\'' + c.id + '\')">' + esc(c.phone || '') + '</td>' +
+        '<td onclick="toggleKlantDetail(\'' + c.id + '\')">' + esc(c.city || '') + '</td>' +
+        '<td onclick="toggleKlantDetail(\'' + c.id + '\')">' + contractCount + '</td>' +
         actiesHtml +
       '</tr>';
+
+      var detailRow = '<tr class="klant-detail-row" id="klant-detail-' + c.id + '"' + (isExpanded ? '' : ' hidden') + '>' +
+        '<td colspan="' + colCount + '" class="klant-detail-cell">' +
+          '<div class="klant-detail-inner" data-loaded="false">Laden…</div>' +
+        '</td>' +
+      '</tr>';
+
+      return mainRow + detailRow;
     }).join('');
+
+    // Als er nog een expanded klant was → hydrate de content van die rij
+    if (expandedKlantId) {
+      var inner = document.querySelector('#klant-detail-' + expandedKlantId + ' .klant-detail-inner');
+      if (inner && inner.dataset.loaded !== 'true') {
+        hydrateKlantDetail(expandedKlantId, inner);
+      }
+    }
   }
+}
+
+/**
+ * Toggle expandable klant-detail rij (sectie F).
+ * Enkel één rij tegelijk open. Lazy-load content bij eerste open.
+ */
+async function toggleKlantDetail(clientId) {
+  // Sluit andere open rij
+  if (expandedKlantId && expandedKlantId !== clientId) {
+    var prev = document.getElementById('klant-detail-' + expandedKlantId);
+    if (prev) prev.hidden = true;
+    var prevRow = document.querySelector('.klant-row[data-cid="' + expandedKlantId + '"]');
+    if (prevRow) prevRow.classList.remove('expanded');
+  }
+
+  var row = document.getElementById('klant-detail-' + clientId);
+  if (!row) return;
+  var mainRow = document.querySelector('.klant-row[data-cid="' + clientId + '"]');
+
+  if (row.hidden) {
+    row.hidden = false;
+    if (mainRow) mainRow.classList.add('expanded');
+    expandedKlantId = clientId;
+
+    var inner = row.querySelector('.klant-detail-inner');
+    if (inner && inner.dataset.loaded !== 'true') {
+      await hydrateKlantDetail(clientId, inner);
+    }
+  } else {
+    row.hidden = true;
+    if (mainRow) mainRow.classList.remove('expanded');
+    expandedKlantId = null;
+  }
+}
+
+async function hydrateKlantDetail(clientId, inner) {
+  inner.innerHTML = '<p style="font-size:12px;color:var(--grey);margin:0">Klantdossier laden...</p>';
+  try {
+    var html = buildKlantDetailHTML(clientId);
+    inner.innerHTML = html;
+    inner.dataset.loaded = 'true';
+  } catch (e) {
+    inner.innerHTML = '<p style="color:var(--red);font-size:13px;margin:0">Kan dossier niet laden: ' + esc(e.message || 'fout') + '</p>';
+  }
+}
+
+function buildKlantDetailHTML(clientId) {
+  var c = allClients.find(function(x) { return x.id === clientId; });
+  if (!c) throw new Error('Klant niet gevonden');
+  var partner = partners.find(function(p) { return p.id === c.partner_id; });
+  var locaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === clientId; });
+  var contracten = allContracten.filter(function(ct) { return ct.client_id === clientId; });
+  var actieveContracten = contracten.filter(function(ct) {
+    var st = (ct.status || '').toLowerCase();
+    return st === 'actief' || st === 'getekend' || st === 'lopend';
+  });
+
+  // Recente beurten
+  var klantBeurten = (window._allBeurten || []).filter(function(b) {
+    var ct = allContracten.find(function(x) { return x.id === b.contract_id; });
+    return ct && ct.client_id === clientId;
+  });
+  var afgewerkt = klantBeurten.filter(function(b) { return b.status === 'afgewerkt' || b.status === 'uitgevoerd'; })
+    .sort(function(a, b) { return (b.plan_datum || '').localeCompare(a.plan_datum || ''); }).slice(0, 5);
+  var gepland = klantBeurten.filter(function(b) { return b.status === 'ingepland'; })
+    .sort(function(a, b) { return (a.plan_datum || '').localeCompare(b.plan_datum || ''); }).slice(0, 2);
+
+  var totaalOmzet = contracten.reduce(function(s, ct) { return s + (parseFloat(ct.totaal_excl_btw) || 0); }, 0);
+
+  var html = '';
+  html += '<div class="kd-grid">';
+
+  // Kolom 1 — Gegevens
+  html += '<div class="kd-col">';
+  html += '<h4 class="kd-title">Gegevens</h4>';
+  html += '<div class="kd-row"><strong>' + esc(c.contact_person || '—') + '</strong></div>';
+  if (c.company_name) html += '<div class="kd-row">' + esc(c.company_name) + '</div>';
+  if (c.email) html += '<div class="kd-row"><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a></div>';
+  if (c.phone) html += '<div class="kd-row"><a href="tel:' + esc(c.phone) + '">' + esc(c.phone) + '</a></div>';
+  if (c.vat_number) html += '<div class="kd-row"><span class="kd-lab">BTW:</span> ' + esc(c.vat_number) + '</div>';
+  if (c.po_number) html += '<div class="kd-row"><span class="kd-lab">Standaard PO:</span> ' + esc(c.po_number) + '</div>';
+  html += '<div class="kd-row"><span class="kd-lab">Partner:</span> ' + esc(partner ? partner.naam : '—') + '</div>';
+  html += '</div>';
+
+  // Kolom 2 — Werklocaties
+  html += '<div class="kd-col">';
+  html += '<h4 class="kd-title">Werklocaties (' + (locaties.length || 1) + ')</h4>';
+  html += '<div class="kd-row"><strong>Factuuradres</strong><br>' +
+    esc([c.street, c.house_number].filter(Boolean).join(' ')) + '<br>' +
+    esc((c.postal_code || '') + ' ' + (c.city || '')) + '</div>';
+  locaties.filter(function(l) { return !l.is_primary; }).forEach(function(l) {
+    html += '<div class="kd-row" style="margin-top:6px">' +
+      '<strong>' + esc(l.label || 'Werklocatie') + '</strong>' +
+      (l.po_number ? ' <small style="color:var(--grey)">· PO: ' + esc(l.po_number) + '</small>' : '') +
+      '<br>' + esc([l.street, l.house_number].filter(Boolean).join(' ')) +
+      '<br>' + esc((l.postal_code || '') + ' ' + (l.city || '')) +
+      '</div>';
+  });
+  html += '</div>';
+
+  // Kolom 3 — Contracten
+  html += '<div class="kd-col">';
+  html += '<h4 class="kd-title">Contracten (' + actieveContracten.length + ' actief)</h4>';
+  if (contracten.length === 0) {
+    html += '<p class="kd-empty">Geen contracten.</p>';
+  } else {
+    var topContracten = contracten.slice().sort(function(a, b) {
+      return (b.created_at || '').localeCompare(a.created_at || '');
+    }).slice(0, 3);
+    topContracten.forEach(function(ct) {
+      var sectors = (ct.sectors_gekozen && ct.sectors_gekozen.length) ? ct.sectors_gekozen.join(', ') : (ct.sector || '—');
+      html += '<div class="kd-contract-item" onclick="event.stopPropagation(); openContractDetail && openContractDetail(\'' + ct.id + '\')">' +
+        '<strong>' + esc(sectors) + '</strong> · €' + (parseFloat(ct.totaal_excl_btw) || 0).toFixed(0) +
+        '<br><small style="color:var(--grey)">' + esc(ct.status || '—') + ' · ' + (ct.frequentie || 1) + '×/jaar</small>' +
+        '</div>';
+    });
+    if (contracten.length > 3) html += '<button class="btn-link" onclick="event.stopPropagation(); switchPage(\'contracten\'); setTimeout(function(){ var f=document.getElementById(\'filter-contract-klant\'); if(f){f.value=\'' + clientId + '\'; renderContracten && renderContracten();} }, 100)">Alle ' + contracten.length + ' contracten →</button>';
+  }
+  html += '<div class="kd-stat">Totale omzet (excl.): €' + totaalOmzet.toFixed(0) + '</div>';
+  html += '</div>';
+
+  html += '</div>'; // einde kd-grid
+
+  // Beurten-rij
+  html += '<div class="kd-section">';
+  html += '<h4 class="kd-title">Recente beurten</h4>';
+  if (afgewerkt.length === 0 && gepland.length === 0) {
+    html += '<p class="kd-empty">Geen beurten.</p>';
+  } else {
+    gepland.forEach(function(b) {
+      html += '<div class="kd-beurt"><span class="kd-badge kd-badge-planned">Gepland</span>' + esc(b.plan_datum || '—') + '</div>';
+    });
+    afgewerkt.forEach(function(b) {
+      html += '<div class="kd-beurt"><span class="kd-badge kd-badge-done">Afgewerkt</span>' + esc(b.plan_datum || b.uitvoer_datum || '—') + '</div>';
+    });
+  }
+  html += '</div>';
+
+  // Notities
+  if (c.notes) {
+    html += '<div class="kd-section">';
+    html += '<h4 class="kd-title">Notities</h4>';
+    html += '<p class="kd-notities">' + esc(c.notes) + '</p>';
+    html += '</div>';
+  }
+
+  // Actie-knoppen
+  html += '<div class="kd-actions">';
+  html += '<button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); editKlant(\'' + clientId + '\')">Volledig bewerken</button>';
+  html += '<button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); openNieuwContractVoorKlant(\'' + clientId + '\')">+ Nieuw contract</button>';
+  html += '<button type="button" class="btn btn-primary" onclick="event.stopPropagation(); window.location.href=\'planning.html?client=' + clientId + '\'">Plan taak</button>';
+  html += '</div>';
+
+  return html;
+}
+
+// Helper voor nieuw contract met client_id voorgekozen
+function openNieuwContractVoorKlant(clientId) {
+  window.location.href = 'contracten-wizard.html?client=' + clientId;
 }
 
 // Werklocaties buffer voor de open modal (niet-primaire locaties). Gesynct naar DB op save.
@@ -5745,6 +6549,9 @@ function renderKlantLocaties() {
         '<div class="modal-field" style="flex:2"><label>Gemeente</label><input data-loc-field="city" value="' + esc(loc.city || '') + '"></div>' +
       '</div>' +
       '<div class="modal-row">' +
+        '<div class="modal-field" style="flex:2"><label>PO-nummer <span style="color:var(--grey);font-weight:400">(optioneel)</span></label><input data-loc-field="po_number" value="' + esc(loc.po_number || '') + '" placeholder="Specifieke referentie voor deze locatie"><small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Overruled het klant-PO bij taken op deze locatie.</small></div>' +
+      '</div>' +
+      '<div class="modal-row">' +
         '<div class="modal-field" style="flex:2"><label>Contactpersoon</label><input data-loc-field="contact_name" value="' + esc(loc.contact_name || '') + '" placeholder="Naam ter plaatse"></div>' +
         '<div class="modal-field"><label>Telefoon</label><input data-loc-field="contact_phone" value="' + esc(loc.contact_phone || '') + '"></div>' +
       '</div>' +
@@ -5765,7 +6572,7 @@ function renderKlantLocaties() {
 }
 
 function addKlantLocatie() {
-  klantLocatiesBuffer.push({ label: '', street: '', house_number: '', postal_code: '', city: '', country: 'BE', contact_name: '', contact_phone: '', contact_email: '', access_info: '' });
+  klantLocatiesBuffer.push({ label: '', street: '', house_number: '', postal_code: '', city: '', country: 'BE', contact_name: '', contact_phone: '', contact_email: '', access_info: '', po_number: '' });
   renderKlantLocaties();
 }
 
@@ -5800,15 +6607,30 @@ async function openKlantModal(editData) {
   document.getElementById('kl-btw').value = editData ? editData.vat_number || '' : '';
   document.getElementById('kl-po').value = editData ? editData.po_number || '' : '';
 
-  // Auto-assign partner
+  // Populate partner dropdown (admin) of disabled-display (partner)
   var partnerField = document.getElementById('kl-partner');
+  var selEl = document.getElementById('kl-partner-select');
+  var dispEl = document.getElementById('kl-partner-display');
+  if (selEl) {
+    var opts = '<option value="">— Kies een partner —</option>';
+    (allPartners || partners || []).forEach(function(p) {
+      opts += '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam || '') + '</option>';
+    });
+    selEl.innerHTML = opts;
+  }
+  var pre = '';
   if (editData && editData.partner_id) {
-    partnerField.value = editData.partner_id;
+    pre = editData.partner_id;
   } else if (userRole === 'partner' && userPartner) {
-    partnerField.value = userPartner.id;
+    pre = userPartner.id;
   } else {
-    var filterVal = document.getElementById('filter-klant-partner').value;
-    partnerField.value = filterVal || '';
+    var filterEl = document.getElementById('filter-klant-partner');
+    pre = (filterEl && filterEl.value) || '';
+  }
+  partnerField.value = pre;
+  if (selEl) selEl.value = pre;
+  if (dispEl && userRole === 'partner' && userPartner) {
+    dispEl.value = userPartner.bedrijfsnaam || userPartner.naam || '';
   }
 
   // Reset naar tab Basis
@@ -5824,7 +6646,8 @@ async function openKlantModal(editData) {
         label: l.label || '', street: l.street || '', house_number: l.house_number || '',
         postal_code: l.postal_code || '', city: l.city || '', country: l.country || 'BE',
         contact_name: l.contact_name || '', contact_phone: l.contact_phone || '',
-        contact_email: l.contact_email || '', access_info: l.access_info || ''
+        contact_email: l.contact_email || '', access_info: l.access_info || '',
+        po_number: l.po_number || ''
       };
     });
   }
@@ -5899,16 +6722,22 @@ async function saveKlant() {
   // Verplichte basis-velden — switch automatisch naar de tab met ontbrekende data
   if (!voornaam || !achternaam || !email || !telefoon) {
     switchKlantTab('basis');
-    alert('Vul voornaam, achternaam, email en telefoon in.');
+    showToast('Vul voornaam, achternaam, email en telefoon in.', 'error');
+    var firstEmpty = !voornaam ? 'kl-voornaam' : !achternaam ? 'kl-achternaam' : !email ? 'kl-email' : 'kl-telefoon';
+    var el = document.getElementById(firstEmpty); if (el) el.focus();
     return;
   }
   if (!straat || !huisnr || !postcode || !gemeente) {
     switchKlantTab('locaties');
-    alert('Vul het factuuradres (straat, huisnr, postcode, gemeente) in.');
+    showToast('Vul het factuuradres (straat, huisnr, postcode, gemeente) in.', 'error');
+    var firstAddr = !straat ? 'kl-straat' : !huisnr ? 'kl-huisnr' : !postcode ? 'kl-postcode' : 'kl-gemeente';
+    var el2 = document.getElementById(firstAddr); if (el2) el2.focus();
     return;
   }
   if (!partnerId) {
-    alert('Selecteer eerst een partner in het filter bovenaan de klantenlijst.');
+    switchKlantTab('basis');
+    showToast('Kies een partner in het dropdown-veld', 'error');
+    var pSel = document.getElementById('kl-partner-select'); if (pSel) pSel.focus();
     return;
   }
 
@@ -5917,7 +6746,7 @@ async function saveKlant() {
     var L = klantLocatiesBuffer[i];
     if (!L.label || !L.label.trim()) {
       switchKlantTab('locaties');
-      alert('Werklocatie ' + (i + 1) + ': label is verplicht. Verwijder de rij als ze leeg moet blijven.');
+      showToast('Werklocatie ' + (i + 1) + ': label is verplicht. Verwijder de rij als ze leeg moet blijven.', 'error');
       return;
     }
   }
@@ -5980,7 +6809,8 @@ async function saveKlant() {
           contact_name: (L2.contact_name || '').trim() || null,
           contact_phone: (L2.contact_phone || '').trim() || null,
           contact_email: (L2.contact_email || '').trim() || null,
-          access_info: (L2.access_info || '').trim() || null
+          access_info: (L2.access_info || '').trim() || null,
+          po_number: (L2.po_number || '').trim() || null
         };
         if (L2._id) {
           await sb.from('client_locations').update(locPayload).eq('id', L2._id);
@@ -9381,12 +10211,37 @@ async function importeerFeestdagen() {
 }
 
 // =============================================
-// UREN-pagina
+// UREN-pagina (tabs: Overzicht / Loon-export / Interventie-facturatie)
 // =============================================
+var urenActiveTab = 'overzicht';
+var loonPeriode = 'maand';
+var loonPeriodeRef = new Date();
+
 function renderUrenPage() {
-  updateUrenPeriodeLabel();
-  renderUren();
+  switchUrenTab(urenActiveTab || 'overzicht');
+  updateFactQueueBadge();
 }
+
+function switchUrenTab(tab) {
+  urenActiveTab = tab;
+  document.querySelectorAll('.u-tab').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.utab === tab);
+  });
+  document.querySelectorAll('.u-tab-pane').forEach(function(p) {
+    p.style.display = (p.id === ('utab-' + tab)) ? '' : 'none';
+  });
+  if (tab === 'overzicht') {
+    updateUrenPeriodeLabel();
+    renderUren();
+  } else if (tab === 'loon') {
+    populateLoonTechFilter();
+    updateLoonPeriodeLabel();
+    renderLoonExport();
+  } else if (tab === 'facturatie') {
+    renderInterventieFacturatie();
+  }
+}
+
 function switchUrenPeriode(p) {
   urenPeriode = p;
   document.querySelectorAll('.u-period-btn').forEach(function(b) {
@@ -9441,6 +10296,40 @@ function updateUrenPeriodeLabel() {
   document.getElementById('uren-periode-label').textContent = b.label;
 }
 
+function getGewerkteUrenForTech(techId, van, tot) {
+  // Nieuwe bron: beurt_uren_registraties (genormaliseerd + CAO-compatible)
+  var uit_registraties = 0;
+  (window._allBeurtUrenReg || []).forEach(function(r) {
+    if (r.technieker_id !== techId) return;
+    var d = (r.start_tijd || '').substring(0, 10);
+    if (d < van || d > tot) return;
+    uit_registraties += (parseFloat(r.duur_minuten) || 0) / 60;
+  });
+  // Legacy-bron: rapporten.uren_data (blijft mee-tellen voor oude data zonder registratie)
+  var uit_rapport = 0;
+  (allRapporten || []).forEach(function(r) {
+    if (r.technieker_id !== techId) return;
+    if (!r.datum_onderhoud || r.datum_onderhoud < van || r.datum_onderhoud > tot) return;
+    if (Array.isArray(r.uren_data)) {
+      r.uren_data.forEach(function(u) { uit_rapport += parseFloat(u.uren) || 0; });
+    }
+  });
+  // Belangrijk: als registraties bestaan, gebruiken we die als authoritative bron en negeren we rapport-data
+  // om dubbel-tellen te voorkomen. Enkel fallback op rapport als registraties leeg zijn voor deze tech/periode.
+  return uit_registraties > 0 ? uit_registraties : uit_rapport;
+}
+
+function getOpenstaandeBeurtenZonderUren(van, tot) {
+  // Beurten die uitgevoerd zijn maar geen registratie hebben
+  var regBeurten = {};
+  (window._allBeurtUrenReg || []).forEach(function(r) { regBeurten[r.beurt_id] = true; });
+  return (allOnderhoudsbeurten || []).filter(function(b) {
+    return b.status === 'uitgevoerd' &&
+           b.plan_datum && b.plan_datum >= van && b.plan_datum <= tot &&
+           !regBeurten[b.id];
+  });
+}
+
 function renderUren() {
   var bereik = getUrenPeriodeBereik();
   var van = bereik.van, tot = bereik.tot;
@@ -9450,19 +10339,24 @@ function renderUren() {
   if (!techs.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
+  // Banner: openstaande uren-bevestigingen in periode
+  var openstaand = getOpenstaandeBeurtenZonderUren(van, tot);
+  var banner = document.getElementById('uren-openstaand-banner');
+  if (banner) {
+    if (openstaand.length > 0) {
+      banner.style.display = 'block';
+      banner.innerHTML = '<strong>' + openstaand.length + ' beurt' + (openstaand.length === 1 ? '' : 'en') + ' uitgevoerd zonder urenbevestiging.</strong> Bevestig via planning om in loon-export op te nemen.';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
   // Werkdagen in periode (ma-vr)
   var werkdagenInPeriode = countWerkdagen(van, tot, null);
 
   tbody.innerHTML = techs.map(function(t) {
-    // Gewerkte uren: som rapporten.uren_data in periode voor deze tech
-    var gewerkt = 0;
-    allRapporten.forEach(function(r) {
-      if (r.technieker_id !== t.id) return;
-      if (!r.datum_onderhoud || r.datum_onderhoud < van || r.datum_onderhoud > tot) return;
-      if (Array.isArray(r.uren_data)) {
-        r.uren_data.forEach(function(u) { gewerkt += parseFloat(u.uren) || 0; });
-      }
-    });
+    // Gewerkte uren: genormaliseerd via helper (beurt_uren_registraties + legacy fallback)
+    var gewerkt = getGewerkteUrenForTech(t.id, van, tot);
 
     // Verlof-dagen (betaald niet-ziekte) + ziekte-dagen apart
     var verlofDagen = 0, ziekteDagen = 0;
@@ -9512,12 +10406,7 @@ function exportUrenCsv() {
   var rows = [['Technieker','Gewerkte uren','Verlof (dagen)','Ziekte (dagen)','Overuren','Contract-uren verwacht','Vulling %']];
   var werkdagenInPeriode = countWerkdagen(bereik.van, bereik.tot, null);
   allTechniekers.filter(function(t) { return t.actief !== false && (t.type_personeel || 'technieker') !== 'bediende'; }).forEach(function(t) {
-    var gewerkt = 0;
-    allRapporten.forEach(function(r) {
-      if (r.technieker_id !== t.id || !r.datum_onderhoud) return;
-      if (r.datum_onderhoud < bereik.van || r.datum_onderhoud > bereik.tot) return;
-      if (Array.isArray(r.uren_data)) r.uren_data.forEach(function(u) { gewerkt += parseFloat(u.uren) || 0; });
-    });
+    var gewerkt = getGewerkteUrenForTech(t.id, bereik.van, bereik.tot);
     var verlofDagen = 0, ziekteDagen = 0;
     allVerlof.forEach(function(v) {
       if (v.technieker_id !== t.id) return;
@@ -9534,12 +10423,515 @@ function exportUrenCsv() {
     rows.push([techNaam(t.id), gewerkt.toFixed(1), verlofDagen.toFixed(1), ziekteDagen.toFixed(1), overuren.toFixed(1), verwacht.toFixed(1), vulling]);
   });
   var csv = rows.map(function(r) { return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  // UTF-8 BOM voor Excel-compatibiliteit
+  var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url; a.download = 'uren-' + urenPeriode + '-' + bereik.van + '.csv';
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// =============================================
+// LOON-EXPORT (CAO-categorisatie per week)
+// =============================================
+function switchLoonPeriode(p) {
+  loonPeriode = p;
+  document.querySelectorAll('.le-period-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.period === p);
+  });
+  updateLoonPeriodeLabel();
+  renderLoonExport();
+}
+
+function loonNavPeriode(dir) {
+  var d = new Date(loonPeriodeRef);
+  if (loonPeriode === 'maand') d.setMonth(d.getMonth() + dir);
+  else if (loonPeriode === 'kwartaal') d.setMonth(d.getMonth() + 3 * dir);
+  else if (loonPeriode === 'jaar') d.setFullYear(d.getFullYear() + dir);
+  loonPeriodeRef = d;
+  updateLoonPeriodeLabel();
+  renderLoonExport();
+}
+
+function getLoonPeriodeBereik() {
+  var d = new Date(loonPeriodeRef);
+  var van, tot, label;
+  if (loonPeriode === 'maand') {
+    van = new Date(d.getFullYear(), d.getMonth(), 1);
+    tot = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    var mnm = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+    label = mnm[d.getMonth()] + ' ' + d.getFullYear();
+  } else if (loonPeriode === 'kwartaal') {
+    var q = Math.floor(d.getMonth() / 3);
+    van = new Date(d.getFullYear(), q * 3, 1);
+    tot = new Date(d.getFullYear(), q * 3 + 3, 0);
+    label = 'Kwartaal ' + (q + 1) + ' ' + d.getFullYear();
+  } else {
+    van = new Date(d.getFullYear(), 0, 1);
+    tot = new Date(d.getFullYear(), 11, 31);
+    label = 'Jaar ' + d.getFullYear();
+  }
+  return { van: dateISO(van), tot: dateISO(tot), label: label };
+}
+
+function updateLoonPeriodeLabel() {
+  var el = document.getElementById('loon-periode-label');
+  if (el) el.textContent = getLoonPeriodeBereik().label;
+}
+
+function populateLoonTechFilter() {
+  var sel = document.getElementById('loon-filter-tech');
+  if (!sel) return;
+  var techs = allTechniekers.filter(function(t) { return t.actief !== false && (t.type_personeel || 'technieker') !== 'bediende'; });
+  var currentVal = sel.value;
+  sel.innerHTML = '<option value="">Alle techniekers</option>' +
+    techs.map(function(t) { return '<option value="' + t.id + '">' + esc(techNaam(t.id)) + '</option>'; }).join('');
+  sel.value = currentVal || '';
+}
+
+function getActiveLoonRegels() {
+  // Kies meest recente regel die vandaag van toepassing is (partner_id NULL = default)
+  var vandaag = dateISO(new Date());
+  var actief = (window._allLoonRegels || []).filter(function(lr) {
+    return !lr.partner_id && lr.actief_vanaf <= vandaag;
+  });
+  actief.sort(function(a, b) { return (b.actief_vanaf || '').localeCompare(a.actief_vanaf || ''); });
+  if (actief.length) return actief[0];
+  // Fallback op hardcoded CAO-defaults (PC111-standaard)
+  return {
+    week_uren_norm: 38, dag_uren_norm: 9, dag_uren_max: 11,
+    toeslag_overuren_1_pct: 150, toeslag_overuren_2_pct: 200,
+    toeslag_zaterdag_pct: 150, toeslag_zondag_pct: 200, toeslag_feestdag_pct: 200,
+    toeslag_nacht_extra_pct: 20, nacht_start_uur: 20, nacht_eind_uur: 6
+  };
+}
+
+/**
+ * ISO-week-key (YYYY-Www) voor een datum.
+ */
+function isoWeekKey(dateLike) {
+  var d = (dateLike instanceof Date) ? dateLike : new Date(dateLike);
+  var dd = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  dd.setUTCDate(dd.getUTCDate() + 4 - (dd.getUTCDay() || 7));
+  var yearStart = new Date(Date.UTC(dd.getUTCFullYear(), 0, 1));
+  var week = Math.ceil((((dd - yearStart) / 86400000) + 1) / 7);
+  return dd.getUTCFullYear() + '-W' + (week < 10 ? '0' + week : week);
+}
+
+/**
+ * Bereken CAO-categorieën (normaal / overuren_1 / overuren_2 / zaterdag / zondag / feestdag / nacht_extra)
+ * per technieker per ISO-week voor een set registraties.
+ * @param {Array} registraties — rijen uit beurt_uren_registraties gefilterd op technieker+periode
+ * @param {Object} loonRegels — actieve loon_regels rij
+ * @returns {Object} per-week buckets
+ */
+function berekenLoonCategorieen(registraties, loonRegels) {
+  var weekNormMin = (loonRegels.week_uren_norm || 38) * 60;
+  var dagNormMin  = (loonRegels.dag_uren_norm || 9) * 60;
+  var dagMaxMin   = (loonRegels.dag_uren_max || 11) * 60;
+
+  // Groepeer per week
+  var perWeek = {};
+  registraties.forEach(function(r) {
+    var key = isoWeekKey(r.start_tijd);
+    if (!perWeek[key]) perWeek[key] = { rows: [], week: key };
+    perWeek[key].rows.push(r);
+  });
+
+  Object.keys(perWeek).forEach(function(key) {
+    var w = perWeek[key];
+    // Init buckets
+    w.normaal_min = 0; w.overuren_1_min = 0; w.overuren_2_min = 0;
+    w.zaterdag_min = 0; w.zondag_min = 0; w.feestdag_min = 0; w.nacht_extra_min = 0;
+    w.km = 0; w.beurten = 0;
+
+    // Sorteer op start_tijd voor deterministische week-cumulatie
+    w.rows.sort(function(a, b) { return (a.start_tijd || '').localeCompare(b.start_tijd || ''); });
+
+    var cumulatiefWerkdagMin = 0;
+    // Per dag cumulatief voor dag-overuren-logica
+    var perDag = {};
+    w.rows.forEach(function(r) {
+      var minuten = parseFloat(r.duur_minuten) || 0;
+      w.km += parseInt(r.km, 10) || 0;
+      w.beurten += 1;
+      if (r.is_nachtwerk) w.nacht_extra_min += minuten;
+
+      if (r.tijdstype === 'feestdag') { w.feestdag_min += minuten; return; }
+      if (r.tijdstype === 'zondag')   { w.zondag_min   += minuten; return; }
+      if (r.tijdstype === 'zaterdag') { w.zaterdag_min += minuten; return; }
+
+      // Werkdag: split op dag-norm én week-norm
+      var dagKey = (r.start_tijd || '').substring(0, 10);
+      if (!perDag[dagKey]) perDag[dagKey] = 0;
+      var dagSoFar = perDag[dagKey];
+      var dagNa = dagSoFar + minuten;
+      perDag[dagKey] = dagNa;
+
+      // Per minuut nog-beschikbaar: dag-plafonds
+      var dagNormaalBesch = Math.max(0, dagNormMin - dagSoFar);
+      var dagO1Besch      = Math.max(0, dagMaxMin - Math.max(dagSoFar, dagNormMin));
+      // Alles boven dagMaxMin is overuren_2
+
+      var restMin = minuten;
+      // Normaal deel (dag)
+      var normaal = Math.min(restMin, dagNormaalBesch); restMin -= normaal;
+      var overuren1 = Math.min(restMin, dagO1Besch);    restMin -= overuren1;
+      var overuren2 = restMin;
+
+      // Week-cap: normaal telt maar tot weekNormMin, daarna schuift het naar overuren1
+      var weekNormBesch = Math.max(0, weekNormMin - cumulatiefWerkdagMin);
+      var normaalInWeek = Math.min(normaal, weekNormBesch);
+      var overuren1FromWeekCap = normaal - normaalInWeek;
+      w.normaal_min    += normaalInWeek;
+      w.overuren_1_min += overuren1 + overuren1FromWeekCap;
+      w.overuren_2_min += overuren2;
+      cumulatiefWerkdagMin += minuten;
+    });
+
+    w.totaal_min = w.normaal_min + w.overuren_1_min + w.overuren_2_min +
+                   w.zaterdag_min + w.zondag_min + w.feestdag_min;
+  });
+
+  return perWeek;
+}
+
+function renderLoonExport() {
+  var bereik = getLoonPeriodeBereik();
+  var van = bereik.van, tot = bereik.tot;
+  var filterTech = document.getElementById('loon-filter-tech').value;
+  var loonRegels = getActiveLoonRegels();
+
+  var techs = allTechniekers.filter(function(t) { return t.actief !== false && (t.type_personeel || 'technieker') !== 'bediende'; });
+  if (filterTech) techs = techs.filter(function(t) { return t.id === filterTech; });
+
+  // Filter registraties
+  var registraties = (window._allBeurtUrenReg || []).filter(function(r) {
+    var d = (r.start_tijd || '').substring(0, 10);
+    return d >= van && d <= tot;
+  });
+
+  // Warning banner: uitgevoerde beurten zonder registratie in periode
+  var openstaand = getOpenstaandeBeurtenZonderUren(van, tot);
+  var banner = document.getElementById('loon-warning-banner');
+  if (banner) {
+    if (openstaand.length > 0) {
+      banner.style.display = 'block';
+      banner.innerHTML = '<strong>' + openstaand.length + ' uitgevoerde beurt' + (openstaand.length === 1 ? '' : 'en') + ' zonder urenbevestiging</strong> — deze worden NIET opgenomen in de CSV-export. Bevestig via planning.';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  var tbody = document.getElementById('loon-tbody');
+  var tfoot = document.getElementById('loon-tfoot');
+  var empty = document.getElementById('loon-empty');
+
+  if (registraties.length === 0 || techs.length === 0) {
+    tbody.innerHTML = ''; tfoot.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  var rows = [];
+  var grandTotals = { normaal:0, o1:0, o2:0, zat:0, zon:0, feest:0, nacht:0, totaal:0, km:0 };
+
+  techs.forEach(function(t) {
+    var techReg = registraties.filter(function(r) { return r.technieker_id === t.id; });
+    if (techReg.length === 0) return;
+    var perWeek = berekenLoonCategorieen(techReg, loonRegels);
+    var weekKeys = Object.keys(perWeek).sort();
+    weekKeys.forEach(function(wk) {
+      var w = perWeek[wk];
+      grandTotals.normaal += w.normaal_min;
+      grandTotals.o1      += w.overuren_1_min;
+      grandTotals.o2      += w.overuren_2_min;
+      grandTotals.zat     += w.zaterdag_min;
+      grandTotals.zon     += w.zondag_min;
+      grandTotals.feest   += w.feestdag_min;
+      grandTotals.nacht   += w.nacht_extra_min;
+      grandTotals.totaal  += w.totaal_min;
+      grandTotals.km      += w.km;
+
+      rows.push('<tr>' +
+        '<td><strong>' + esc(techNaam(t.id)) + '</strong></td>' +
+        '<td style="font-variant-numeric:tabular-nums">' + wk + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + formatMinAsUren(w.normaal_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;color:' + (w.overuren_1_min > 0 ? 'var(--orange)' : 'inherit') + '">' + formatMinAsUren(w.overuren_1_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;color:' + (w.overuren_2_min > 0 ? 'var(--red)' : 'inherit') + '">' + formatMinAsUren(w.overuren_2_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + formatMinAsUren(w.zaterdag_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + formatMinAsUren(w.zondag_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + formatMinAsUren(w.feestdag_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + formatMinAsUren(w.nacht_extra_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">' + formatMinAsUren(w.totaal_min) + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + w.km + '</td>' +
+      '</tr>');
+    });
+  });
+
+  tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--grey)">Geen registraties.</td></tr>';
+
+  tfoot.innerHTML = '<tr style="background:#F9FAFB;font-weight:700">' +
+    '<td colspan="2">TOTAAL</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.normaal) + '</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.o1) + '</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.o2) + '</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.zat) + '</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.zon) + '</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.feest) + '</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.nacht) + '</td>' +
+    '<td style="text-align:right">' + formatMinAsUren(grandTotals.totaal) + '</td>' +
+    '<td style="text-align:right">' + grandTotals.km + '</td>' +
+    '</tr>';
+}
+
+function formatMinAsUren(min) {
+  if (!min || min === 0) return '0,00';
+  return (min / 60).toFixed(2).replace('.', ',');
+}
+
+function exportLoonCsv() {
+  var bereik = getLoonPeriodeBereik();
+  var van = bereik.van, tot = bereik.tot;
+  var filterTech = document.getElementById('loon-filter-tech').value;
+  var loonRegels = getActiveLoonRegels();
+
+  var techs = allTechniekers.filter(function(t) { return t.actief !== false && (t.type_personeel || 'technieker') !== 'bediende'; });
+  if (filterTech) techs = techs.filter(function(t) { return t.id === filterTech; });
+
+  var registraties = (window._allBeurtUrenReg || []).filter(function(r) {
+    var d = (r.start_tijd || '').substring(0, 10);
+    return d >= van && d <= tot;
+  });
+
+  var rows = [[
+    'technieker_id','technieker_naam','rijksregisternummer','week_iso',
+    'normaal_uren','overuren_1_uren','overuren_2_uren',
+    'zaterdag_uren','zondag_uren','feestdag_uren','nacht_extra_uren',
+    'totaal_uren','totaal_km','totaal_beurten'
+  ]];
+
+  techs.forEach(function(t) {
+    var techReg = registraties.filter(function(r) { return r.technieker_id === t.id; });
+    if (techReg.length === 0) return;
+    var perWeek = berekenLoonCategorieen(techReg, loonRegels);
+    Object.keys(perWeek).sort().forEach(function(wk) {
+      var w = perWeek[wk];
+      rows.push([
+        t.id,
+        techNaam(t.id),
+        t.rijksregisternummer || '',
+        wk,
+        (w.normaal_min    / 60).toFixed(2).replace('.', ','),
+        (w.overuren_1_min / 60).toFixed(2).replace('.', ','),
+        (w.overuren_2_min / 60).toFixed(2).replace('.', ','),
+        (w.zaterdag_min   / 60).toFixed(2).replace('.', ','),
+        (w.zondag_min     / 60).toFixed(2).replace('.', ','),
+        (w.feestdag_min   / 60).toFixed(2).replace('.', ','),
+        (w.nacht_extra_min/ 60).toFixed(2).replace('.', ','),
+        (w.totaal_min     / 60).toFixed(2).replace('.', ','),
+        w.km,
+        w.beurten
+      ]);
+    });
+  });
+
+  // Semicolon-separator voor BE Excel (komma's in decimalen)
+  var csv = rows.map(function(r) { return r.map(function(c) {
+    var s = String(c == null ? '' : c);
+    return '"' + s.replace(/"/g, '""') + '"';
+  }).join(';'); }).join('\n');
+
+  // UTF-8 BOM + Excel-compatible
+  var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'loon-export-' + van + '-tot-' + tot + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  if (typeof showToast === 'function') showToast('CSV geëxporteerd — klaar voor sociaal secretariaat', 'success');
+}
+
+// =============================================
+// INTERVENTIE-FACTURATIE-QUEUE
+// =============================================
+function updateFactQueueBadge() {
+  var badge = document.getElementById('fact-queue-badge');
+  if (!badge) return;
+  var n = (window._allBeurtUrenReg || []).filter(function(r) {
+    return r.is_interventie && !r.gefactureerd;
+  }).length;
+  if (n > 0) { badge.textContent = n; badge.style.display = ''; }
+  else badge.style.display = 'none';
+}
+
+function renderInterventieFacturatie() {
+  var showGefactureerd = document.getElementById('fact-show-gefactureerd').checked;
+  var rijen = (window._allBeurtUrenReg || []).filter(function(r) {
+    if (!r.is_interventie) return false;
+    if (!showGefactureerd && r.gefactureerd) return false;
+    return true;
+  });
+
+  // Sorteer: openstaand oudst eerst, gefactureerd recentst eerst
+  rijen.sort(function(a, b) {
+    if (a.gefactureerd !== b.gefactureerd) return a.gefactureerd ? 1 : -1;
+    return (a.start_tijd || '').localeCompare(b.start_tijd || '');
+  });
+
+  var tbody = document.getElementById('fact-tbody');
+  var empty = document.getElementById('fact-empty');
+
+  if (rijen.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rijen.map(function(r) {
+    var beurt = (allOnderhoudsbeurten || []).find(function(b) { return b.id === r.beurt_id; });
+    var contract = beurt ? (allContracten || []).find(function(c) { return c.id === beurt.contract_id; }) : null;
+    var klantNaam = contract ? (contract.klant_bedrijfsnaam || contract.klant_naam || '—') : '—';
+    var tech = (allTechniekers || []).find(function(t) { return t.id === r.technieker_id; });
+    var techName = tech ? techNaam(tech.id) : '—';
+    var datum = r.start_tijd ? formatBE(r.start_tijd.substring(0, 10)) : '—';
+    var uren = (parseFloat(r.duur_minuten) || 0) / 60;
+    var tarief = parseFloat(r.uurtarief_facturatie_snapshot) || 0;
+    var bedrag = uren * tarief;
+    var bron = (r.uurtarief_contract_snapshot && r.uurtarief_contract_snapshot > 0) ? 'Contract' : 'Technieker';
+    var bronKleur = bron === 'Contract' ? 'var(--green)' : 'var(--grey)';
+
+    return '<tr' + (r.gefactureerd ? ' style="opacity:0.6"' : '') + '>' +
+      '<td>' + datum + '</td>' +
+      '<td><strong>' + esc(klantNaam) + '</strong></td>' +
+      '<td>' + esc(techName) + '</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">' + uren.toFixed(2).replace('.', ',') + 'u</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">€ ' + tarief.toFixed(2).replace('.', ',') + '</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">€ ' + bedrag.toFixed(2).replace('.', ',') + '</td>' +
+      '<td><span style="color:' + bronKleur + ';font-size:11px;font-weight:600">' + bron + '</span></td>' +
+      '<td style="text-align:right">' +
+        (r.gefactureerd
+          ? '<span style="color:var(--grey);font-size:12px">Gefactureerd</span>'
+          : '<button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="markeerGefactureerd(\'' + r.id + '\')">Op factuur zetten</button>'
+        ) +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+async function markeerGefactureerd(burId) {
+  var reg = (window._allBeurtUrenReg || []).find(function(r) { return r.id === burId; });
+  if (!reg) return;
+
+  var ok = (typeof confirmDialog === 'function')
+    ? await confirmDialog({ title: 'Op factuur zetten?', message: 'Deze interventie-uren worden gemarkeerd als gefactureerd. Je kan dit terugdraaien via de DB.', confirmLabel: 'Markeer gefactureerd', variant: 'primary' })
+    : confirm('Markeer deze uren als gefactureerd?');
+  if (!ok) return;
+
+  var res = await sb.from('beurt_uren_registraties')
+    .update({ gefactureerd: true, updated_at: new Date().toISOString() })
+    .eq('id', burId);
+
+  if (res.error) {
+    if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
+    return;
+  }
+  reg.gefactureerd = true;
+  renderInterventieFacturatie();
+  updateFactQueueBadge();
+  if (typeof showToast === 'function') showToast('Uren gemarkeerd als gefactureerd', 'success');
+}
+
+// =============================================
+// LOON-REGELS MODAL (beheer CAO-parameters)
+// =============================================
+function openLoonRegelsModal() {
+  var lr = getActiveLoonRegels();
+  var html = '' +
+    '<div class="modal-overlay active" id="modal-loon-regels" onclick="if(event.target===this)closeLoonRegelsModal()">' +
+      '<div class="modal" style="max-width:560px">' +
+        '<h2 style="margin:0 0 6px;font-size:18px">Loon-regels (CAO)</h2>' +
+        '<p style="margin:0 0 16px;color:var(--grey);font-size:12px">Parameters voor overuren- en weekend-toeslagen. Pas aan volgens jullie sector-CAO (default: PC111 metaal/HVAC).</p>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+          lrField('Weekuren-norm', 'lr-week-uren-norm', lr.week_uren_norm, 'u/week') +
+          lrField('Daguren-norm', 'lr-dag-uren-norm', lr.dag_uren_norm, 'u/dag') +
+          lrField('Max uren/dag', 'lr-dag-uren-max', lr.dag_uren_max, 'u/dag') +
+          lrField('Overuren 1 toeslag', 'lr-o1', lr.toeslag_overuren_1_pct, '%') +
+          lrField('Overuren 2 toeslag', 'lr-o2', lr.toeslag_overuren_2_pct, '%') +
+          lrField('Zaterdag toeslag', 'lr-zat', lr.toeslag_zaterdag_pct, '%') +
+          lrField('Zondag toeslag', 'lr-zon', lr.toeslag_zondag_pct, '%') +
+          lrField('Feestdag toeslag', 'lr-feest', lr.toeslag_feestdag_pct, '%') +
+          lrField('Nacht extra', 'lr-nacht', lr.toeslag_nacht_extra_pct, '%') +
+          lrField('Nacht start (uur)', 'lr-nacht-start', lr.nacht_start_uur, 'u') +
+          lrField('Nacht eind (uur)', 'lr-nacht-eind', lr.nacht_eind_uur, 'u') +
+        '</div>' +
+        '<div class="modal-buttons" style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">' +
+          '<button type="button" class="btn btn-ghost" onclick="closeLoonRegelsModal()">Annuleren</button>' +
+          '<button type="button" class="btn btn-primary" onclick="saveLoonRegels()">Opslaan</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  var wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap.firstChild);
+}
+
+function lrField(label, id, value, unit) {
+  return '<div><label style="font-size:12px;color:var(--grey);display:block;margin-bottom:4px">' + esc(label) + '</label>' +
+    '<div style="display:flex;align-items:center;gap:6px">' +
+    '<input type="number" id="' + id + '" value="' + (value != null ? value : '') + '" style="flex:1;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">' +
+    '<span style="font-size:11px;color:var(--grey)">' + esc(unit) + '</span>' +
+    '</div></div>';
+}
+
+function closeLoonRegelsModal() {
+  var m = document.getElementById('modal-loon-regels');
+  if (m) m.remove();
+}
+
+async function saveLoonRegels() {
+  var payload = {
+    partner_id: null,
+    week_uren_norm: parseInt(document.getElementById('lr-week-uren-norm').value, 10),
+    dag_uren_norm:  parseInt(document.getElementById('lr-dag-uren-norm').value, 10),
+    dag_uren_max:   parseInt(document.getElementById('lr-dag-uren-max').value, 10),
+    toeslag_overuren_1_pct: parseInt(document.getElementById('lr-o1').value, 10),
+    toeslag_overuren_2_pct: parseInt(document.getElementById('lr-o2').value, 10),
+    toeslag_zaterdag_pct:   parseInt(document.getElementById('lr-zat').value, 10),
+    toeslag_zondag_pct:     parseInt(document.getElementById('lr-zon').value, 10),
+    toeslag_feestdag_pct:   parseInt(document.getElementById('lr-feest').value, 10),
+    toeslag_nacht_extra_pct:parseInt(document.getElementById('lr-nacht').value, 10),
+    nacht_start_uur:        parseInt(document.getElementById('lr-nacht-start').value, 10),
+    nacht_eind_uur:         parseInt(document.getElementById('lr-nacht-eind').value, 10),
+    actief_vanaf: dateISO(new Date())
+  };
+
+  // Insert of update op natural key (partner_id, actief_vanaf)
+  var existing = (window._allLoonRegels || []).find(function(lr) {
+    return !lr.partner_id && lr.actief_vanaf === payload.actief_vanaf;
+  });
+
+  var res;
+  if (existing) {
+    res = await sb.from('loon_regels').update(payload).eq('id', existing.id).select();
+  } else {
+    res = await sb.from('loon_regels').insert(payload).select();
+  }
+  if (res.error) {
+    if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
+    return;
+  }
+
+  // Herladen
+  var q = await sb.from('loon_regels').select('*').order('actief_vanaf', { ascending: false });
+  window._allLoonRegels = q.data || [];
+  closeLoonRegelsModal();
+  if (typeof showToast === 'function') showToast('Loon-regels opgeslagen', 'success');
+  renderLoonExport();
 }
 
 // =============================================
