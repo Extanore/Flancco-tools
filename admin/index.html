@@ -484,6 +484,15 @@
   .kd-badge-done { background:#D1FAE5; color:#065F46; }
   .kd-notities { font-size:13px; color:var(--navy); white-space:pre-wrap; margin:0; }
   .kd-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; padding-top:16px; border-top:1px solid var(--rule); flex-wrap:wrap; }
+  .kd-addr-block { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); }
+  .kd-addr-label { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:600; color:var(--grey); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }
+  .kd-addr-label svg { width:12px; height:12px; flex-shrink:0; color:var(--grey); }
+  .kd-addr-body { font-size:13px; color:var(--navy); line-height:1.5; }
+  .kd-werf { padding:10px 12px; background:#fff; border:1px solid var(--rule); border-radius:6px; margin-bottom:8px; }
+  .kd-werf-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; font-size:13px; color:var(--navy); }
+  .kd-werf-header svg { width:13px; height:13px; flex-shrink:0; color:var(--navy); }
+  .kd-werf-po { margin-left:auto; font-size:11px; color:var(--grey); }
+  .kd-werf-body { font-size:12px; color:var(--navy); line-height:1.45; padding-left:19px; }
   .btn-link { background:none; border:none; color:var(--navy); text-decoration:underline; cursor:pointer; font-size:12px; font-family:inherit; padding:4px 0; }
   @media (max-width:900px) {
     .kd-grid { grid-template-columns:1fr; }
@@ -6512,7 +6521,7 @@ function buildKlantDetailHTML(clientId) {
   var html = '';
   html += '<div class="kd-grid">';
 
-  // Kolom 1 — Gegevens
+  // Kolom 1 — Gegevens (met factuuradres onderaan)
   html += '<div class="kd-col">';
   html += '<h4 class="kd-title">Gegevens</h4>';
   html += '<div class="kd-row"><strong>' + esc(c.contact_person || '—') + '</strong></div>';
@@ -6522,22 +6531,43 @@ function buildKlantDetailHTML(clientId) {
   if (c.vat_number) html += '<div class="kd-row"><span class="kd-lab">BTW:</span> ' + esc(c.vat_number) + '</div>';
   if (c.po_number) html += '<div class="kd-row"><span class="kd-lab">Standaard PO:</span> ' + esc(c.po_number) + '</div>';
   html += '<div class="kd-row"><span class="kd-lab">Partner:</span> ' + esc(partner ? partner.naam : '—') + '</div>';
+  // Factuuradres apart geblokt
+  var hasFactuurAdres = !!(c.street || c.postal_code || c.city);
+  if (hasFactuurAdres) {
+    html += '<div class="kd-addr-block">' +
+      '<div class="kd-addr-label">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M16 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg>' +
+        'Factuuradres' +
+      '</div>' +
+      '<div class="kd-addr-body">' +
+        esc([c.street, c.house_number].filter(Boolean).join(' ')) +
+        ((c.postal_code || c.city) ? '<br>' + esc(((c.postal_code || '') + ' ' + (c.city || '')).trim()) : '') +
+      '</div>' +
+    '</div>';
+  }
   html += '</div>';
 
-  // Kolom 2 — Werklocaties
+  // Kolom 2 — Werflocaties (enkel niet-primary uit client_locations)
+  var werfLocaties = locaties.filter(function(l) { return !l.is_primary; });
   html += '<div class="kd-col">';
-  html += '<h4 class="kd-title">Werklocaties (' + (locaties.length || 1) + ')</h4>';
-  html += '<div class="kd-row"><strong>Factuuradres</strong><br>' +
-    esc([c.street, c.house_number].filter(Boolean).join(' ')) + '<br>' +
-    esc((c.postal_code || '') + ' ' + (c.city || '')) + '</div>';
-  locaties.filter(function(l) { return !l.is_primary; }).forEach(function(l) {
-    html += '<div class="kd-row" style="margin-top:6px">' +
-      '<strong>' + esc(l.label || 'Werklocatie') + '</strong>' +
-      (l.po_number ? ' <small style="color:var(--grey)">· PO: ' + esc(l.po_number) + '</small>' : '') +
-      '<br>' + esc([l.street, l.house_number].filter(Boolean).join(' ')) +
-      '<br>' + esc((l.postal_code || '') + ' ' + (l.city || '')) +
+  html += '<h4 class="kd-title">Werflocaties (' + werfLocaties.length + ')</h4>';
+  if (werfLocaties.length === 0) {
+    html += '<p class="kd-empty">Geen aparte werven — werk vindt plaats op het factuuradres.</p>';
+  } else {
+    werfLocaties.forEach(function(l) {
+      html += '<div class="kd-werf">' +
+        '<div class="kd-werf-header">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+          '<strong>' + esc(l.label || 'Werklocatie') + '</strong>' +
+          (l.po_number ? '<span class="kd-werf-po">PO: ' + esc(l.po_number) + '</span>' : '') +
+        '</div>' +
+        '<div class="kd-werf-body">' +
+          esc([l.street, l.house_number].filter(Boolean).join(' ')) +
+          ((l.postal_code || l.city) ? '<br>' + esc(((l.postal_code || '') + ' ' + (l.city || '')).trim()) : '') +
+        '</div>' +
       '</div>';
-  });
+    });
+  }
   html += '</div>';
 
   // Kolom 3 — Contracten
