@@ -2414,8 +2414,8 @@ function renderWeekView() {
           var hoofdNaam = hoofdTech ? (hoofdTech.voornaam + ' ' + hoofdTech.naam) : '';
           var dStartTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
           var dEndTime = dStartTime && b.duur_minuten ? calcEndTime(dStartTime, b.duur_minuten) : '';
-          var dTimeStr = dStartTime ? (dStartTime + (dEndTime ? '-' + dEndTime : '')) : '';
-          var dDuurStr = b.duur_minuten ? formatDuration(b.duur_minuten) : '';
+          var dTimeStr = b.hele_dag ? 'Hele dag' : (dStartTime ? (dStartTime + (dEndTime ? '-' + dEndTime : '')) : '');
+          var dDuurStr = b.hele_dag ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
           html += '<div class="appt-card ' + getSectorClass(info.sector) + '" ' +
             'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
             'style="cursor:pointer;position:relative" ' +
@@ -2575,8 +2575,8 @@ function renderApptCard(b, info) {
   }
   var startTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
   var endTime = startTime && b.duur_minuten ? calcEndTime(startTime, b.duur_minuten) : '';
-  var timeStr = startTime ? (startTime + (endTime ? '-' + endTime : '')) : '';
-  var duurStr = b.duur_minuten ? formatDuration(b.duur_minuten) : '';
+  var timeStr = b.hele_dag ? 'Hele dag' : (startTime ? (startTime + (endTime ? '-' + endTime : '')) : '');
+  var duurStr = b.hele_dag ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
   var installStr = getInstallationSummary(b);
 
   var losseBadge = (info && info.isLosseOpdracht) ?
@@ -2847,8 +2847,10 @@ function renderSidebarCard(b) {
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ' +
       formatDateFull(due) + '</span>';
   }
-  if (b.duur_minuten) {
-    html += '<span class="sc-duration">\u23F1 ' + b.duur_minuten + ' min</span>';
+  if (b.hele_dag) {
+    html += '<span class="sc-duration" style="background:var(--navy);color:#fff;border-radius:6px;padding:2px 8px;font-weight:600">\u23F1 Hele dag</span>';
+  } else if (b.duur_minuten) {
+    html += '<span class="sc-duration">\u23F1 ' + formatDuration(b.duur_minuten) + '</span>';
   }
   html += '</div></div>';
   return html;
@@ -5860,12 +5862,23 @@ function renderAfgewerkLijst() {
         }
       }
 
-      // Action-set verschilt: losse opdracht heeft geen rapport → enkel "Ongedaan maken"
-      var actions = isLosse
-        ? '<button class="workflow-btn" style="color:#E74C3C;border-color:#E74C3C" onclick="ongedaanMaakLosse(\'' + b.id + '\')">Ongedaan maken</button>'
-        : '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
+      // Action-set verschilt: losse opdracht is rapport optioneel.
+      //   - geen rapport     → "Rapport opmaken" (primary) links van "Ongedaan maken"
+      //   - rapport bestaat  → "Bekijk rapport" + "Bewerken" links van "Ongedaan maken"
+      var heeftRapport = (allRapporten || []).some(function(r) { return r.onderhoudsbeurt_id === b.id; });
+      var actions;
+      if (isLosse) {
+        var losseRapportBtns = heeftRapport
+          ? '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
+            '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '\',\'_blank\')">Bewerken</button>'
+          : '<button class="workflow-btn workflow-btn-primary" onclick="window.open(\'rapport.html?beurt=' + b.id + '\',\'_blank\')">Rapport opmaken</button>';
+        actions = losseRapportBtns +
+          '<button class="workflow-btn" style="color:#E74C3C;border-color:#E74C3C" onclick="ongedaanMaakLosse(\'' + b.id + '\')">Ongedaan maken</button>';
+      } else {
+        actions = '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
           '<button class="workflow-btn" onclick="window.open(\'rapport.html?beurt=' + b.id + '\',\'_blank\')">Bewerken</button>' +
           '<button class="workflow-btn" style="color:#E74C3C;border-color:#E74C3C" onclick="deleteAfgewerkRapport(\'' + b.id + '\')">Verwijderen</button>';
+      }
 
       return '<div class="workflow-card">' +
         '<div class="workflow-card-sector" style="background:' + color + '"></div>' +
