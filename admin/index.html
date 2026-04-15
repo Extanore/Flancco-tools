@@ -1187,7 +1187,7 @@
           </select>
         </div>
       </div>
-      <div id="pricing-grid"></div>
+      <div id="pricing-grid" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
 
     <!-- INSTELLINGEN PAGE (partner only) -->
@@ -5106,28 +5106,31 @@ function renderPricing() {
     var sectorKeys = Object.keys(sectors);
     if (sectorKeys.length === 0 && !filterSector) return '';
 
-    // Partner header card
-    var html = '<div class="pricing-partner" style="background:var(--white);border-radius:12px;border:1px solid var(--rule);overflow:hidden">';
+    // Partner card — compact list-row stijl
+    var brandColor = p.kleur_primair || '#098979';
+    var html = '<div class="pricing-partner" style="background:var(--white);border-radius:10px;border:1px solid var(--rule);overflow:hidden;transition:border-color 0.15s">';
 
-    // Partner header with brand color accent — klikbaar om details te tonen/verbergen
-    html += '<div onclick="togglePricingDetail(\'' + p.id + '\')" style="display:flex;align-items:center;gap:14px;padding:20px 24px;background:linear-gradient(135deg,' + (p.kleur_primair || '#098979') + '08 0%,transparent 60%);cursor:pointer;user-select:none" onmouseenter="this.style.background=\'linear-gradient(135deg,' + (p.kleur_primair || '#098979') + '12 0%,transparent 60%)\'" onmouseleave="this.style.background=\'linear-gradient(135deg,' + (p.kleur_primair || '#098979') + '08 0%,transparent 60%)\'">';
-    html += '<div style="width:40px;height:40px;border-radius:10px;background:' + (p.kleur_primair || '#098979') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    // Partner header — strakke compacte rij
+    html += '<div onclick="togglePricingDetail(\'' + p.id + '\')" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;user-select:none;transition:background 0.15s" onmouseenter="this.style.background=\'#FAFBFC\'" onmouseleave="this.style.background=\'transparent\'">';
+    // Logo / avatar
+    html += '<div style="width:28px;height:28px;border-radius:6px;background:' + brandColor + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
     if (p.logo_url) {
-      html += '<img src="' + esc(p.logo_url) + '" style="width:28px;height:28px;object-fit:contain;border-radius:4px">';
+      html += '<img src="' + esc(p.logo_url) + '" style="width:20px;height:20px;object-fit:contain;border-radius:3px">';
     } else {
-      html += '<span style="color:white;font-weight:700;font-size:16px">' + esc((p.naam || '')[0]) + '</span>';
+      html += '<span style="color:white;font-weight:700;font-size:12px">' + esc((p.naam || '')[0]) + '</span>';
     }
     html += '</div>';
-    html += '<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;color:var(--navy)">' + esc(p.bedrijfsnaam || p.naam) + '</div>';
-    html += '<div style="font-size:12px;color:var(--grey);margin-top:2px">' + esc(p.email || '') + '</div></div>';
-    // Stats badges
-    html += '<div style="display:flex;gap:12px;flex-shrink:0;align-items:center">';
-    html += '<div style="text-align:center;padding:8px 16px;background:var(--light);border-radius:8px"><div style="font-size:18px;font-weight:700;color:var(--navy)">' + pricing.length + '</div><div style="font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tarieven</div></div>';
-    html += '<div style="text-align:center;padding:8px 16px;background:var(--light);border-radius:8px"><div style="font-size:18px;font-weight:700;color:var(--navy)">' + (p.marge_pct || 0) + '%</div><div style="font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Marge</div></div>';
-    html += '<div style="text-align:center;padding:8px 16px;background:var(--light);border-radius:8px"><div style="font-size:18px;font-weight:700;color:var(--navy)">&euro;' + (p.planning_fee || 0) + '</div><div style="font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Plan fee</div></div>';
-    // Chevron expand/collapse
-    html += '<div id="pricing-chevron-' + p.id + '" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--grey);transition:transform 0.2s"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>';
-    html += '</div></div>';
+    // Naam (email als hover-titel om ruis te beperken)
+    html += '<div style="flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"' + (p.email ? ' title="' + esc(p.email) + '"' : '') + '>' + esc(p.bedrijfsnaam || p.naam) + '</div>';
+    // Inline stats: licht en strak
+    html += '<div style="display:flex;gap:18px;align-items:center;flex-shrink:0;font-size:12px;color:var(--grey)">';
+    html += '<span><strong style="color:var(--navy);font-weight:600">' + pricing.length + '</strong> tarieven</span>';
+    html += '<span><strong style="color:var(--navy);font-weight:600">' + (p.marge_pct || 0) + '%</strong> marge</span>';
+    html += '<span><strong style="color:var(--navy);font-weight:600">&euro;' + (p.planning_fee || 0) + '</strong> fee</span>';
+    html += '</div>';
+    // Chevron
+    html += '<div id="pricing-chevron-' + p.id + '" style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--grey);transition:transform 0.2s;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>';
+    html += '</div>';
 
     // Detail-wrapper (collapsed by default)
     html += '<div id="pricing-detail-' + p.id + '" style="display:none;border-top:1px solid var(--rule)">';
