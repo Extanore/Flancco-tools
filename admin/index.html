@@ -1171,6 +1171,7 @@
           <p style="font-size:13px;color:var(--grey);margin:0">Basisforfaits per partner en sector. Eindklantprijs = (forfait × marge%) + planning fee + BTW.</p>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" id="btn-toggle-all-pricing" onclick="toggleAllPricingDetails()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:12px;font-weight:600;background:var(--white);color:var(--navy);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" onmouseenter="this.style.borderColor='var(--navy)'" onmouseleave="this.style.borderColor='var(--rule)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg> Alles uitklappen</button>
           <select id="pricing-filter-partner" onchange="renderPricing()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);cursor:pointer">
             <option value="">Alle partners</option>
           </select>
@@ -5108,8 +5109,8 @@ function renderPricing() {
     // Partner header card
     var html = '<div class="pricing-partner" style="background:var(--white);border-radius:12px;border:1px solid var(--rule);overflow:hidden">';
 
-    // Partner header with brand color accent
-    html += '<div style="display:flex;align-items:center;gap:14px;padding:20px 24px;background:linear-gradient(135deg,' + (p.kleur_primair || '#098979') + '08 0%,transparent 60%);border-bottom:1px solid var(--rule)">';
+    // Partner header with brand color accent — klikbaar om details te tonen/verbergen
+    html += '<div onclick="togglePricingDetail(\'' + p.id + '\')" style="display:flex;align-items:center;gap:14px;padding:20px 24px;background:linear-gradient(135deg,' + (p.kleur_primair || '#098979') + '08 0%,transparent 60%);cursor:pointer;user-select:none" onmouseenter="this.style.background=\'linear-gradient(135deg,' + (p.kleur_primair || '#098979') + '12 0%,transparent 60%)\'" onmouseleave="this.style.background=\'linear-gradient(135deg,' + (p.kleur_primair || '#098979') + '08 0%,transparent 60%)\'">';
     html += '<div style="width:40px;height:40px;border-radius:10px;background:' + (p.kleur_primair || '#098979') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
     if (p.logo_url) {
       html += '<img src="' + esc(p.logo_url) + '" style="width:28px;height:28px;object-fit:contain;border-radius:4px">';
@@ -5120,11 +5121,16 @@ function renderPricing() {
     html += '<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;color:var(--navy)">' + esc(p.bedrijfsnaam || p.naam) + '</div>';
     html += '<div style="font-size:12px;color:var(--grey);margin-top:2px">' + esc(p.email || '') + '</div></div>';
     // Stats badges
-    html += '<div style="display:flex;gap:12px;flex-shrink:0">';
+    html += '<div style="display:flex;gap:12px;flex-shrink:0;align-items:center">';
     html += '<div style="text-align:center;padding:8px 16px;background:var(--light);border-radius:8px"><div style="font-size:18px;font-weight:700;color:var(--navy)">' + pricing.length + '</div><div style="font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tarieven</div></div>';
     html += '<div style="text-align:center;padding:8px 16px;background:var(--light);border-radius:8px"><div style="font-size:18px;font-weight:700;color:var(--navy)">' + (p.marge_pct || 0) + '%</div><div style="font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Marge</div></div>';
     html += '<div style="text-align:center;padding:8px 16px;background:var(--light);border-radius:8px"><div style="font-size:18px;font-weight:700;color:var(--navy)">&euro;' + (p.planning_fee || 0) + '</div><div style="font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Plan fee</div></div>';
+    // Chevron expand/collapse
+    html += '<div id="pricing-chevron-' + p.id + '" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--grey);transition:transform 0.2s"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>';
     html += '</div></div>';
+
+    // Detail-wrapper (collapsed by default)
+    html += '<div id="pricing-detail-' + p.id + '" style="display:none;border-top:1px solid var(--rule)">';
 
     // Sector tabs
     if (sectorKeys.length > 1) {
@@ -5203,6 +5209,7 @@ function renderPricing() {
       html += '</div>'; // panel close
     });
 
+    html += '</div>'; // detail-wrapper close
     html += '</div>'; // partner card close
     return html;
   }).join('');
@@ -5230,12 +5237,33 @@ function switchPricingSectorTab(partnerId, sector, btn) {
 function togglePricingDetail(partnerId) {
   var el = document.getElementById('pricing-detail-' + partnerId);
   var chev = document.getElementById('pricing-chevron-' + partnerId);
-  if (el.style.display === 'none') {
+  if (!el) return;
+  if (el.style.display === 'none' || el.style.display === '') {
     el.style.display = 'block';
-    chev.style.transform = 'rotate(180deg)';
+    if (chev) chev.style.transform = 'rotate(180deg)';
   } else {
     el.style.display = 'none';
-    chev.style.transform = '';
+    if (chev) chev.style.transform = '';
+  }
+}
+
+function toggleAllPricingDetails() {
+  var btn = document.getElementById('btn-toggle-all-pricing');
+  var details = document.querySelectorAll('[id^="pricing-detail-"]');
+  if (!details.length) return;
+  // Bepaal nieuwe stand op basis van eerste paneel
+  var first = details[0];
+  var shouldOpen = (first.style.display === 'none' || first.style.display === '');
+  details.forEach(function(el) {
+    el.style.display = shouldOpen ? 'block' : 'none';
+    var pid = el.id.replace('pricing-detail-', '');
+    var chev = document.getElementById('pricing-chevron-' + pid);
+    if (chev) chev.style.transform = shouldOpen ? 'rotate(180deg)' : '';
+  });
+  if (btn) {
+    btn.innerHTML = shouldOpen
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg> Alles inklappen'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg> Alles uitklappen';
   }
 }
 
