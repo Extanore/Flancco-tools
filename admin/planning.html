@@ -229,6 +229,11 @@
   }
   .week-grid tr:hover td:first-child { background: #f0f4f8; }
   .week-grid td.today-col { background: #FAFAFF; }
+  /* Weekend-kolommen: subtiele grijs-tint zodat Za/Zo visueel onderscheiden zijn van werkdagen,
+     maar volledig interactief blijven (drop-zone, context-menu, beurten renderen). */
+  .week-grid th.weekend-col { background: #F8FAFC; color: #94A3B8; }
+  .week-grid td.weekend-col { background: #FBFCFD; }
+  .week-grid td.weekend-col.today-col { background: #F5F3FF; }
   .week-grid td.drop-hover { background: #e8f4fd; outline: 2px dashed var(--blue); outline-offset: -2px; animation: pulse-border 1.5s ease infinite; }
   @keyframes pulse-border { 0%, 100% { outline-color: var(--blue); } 50% { outline-color: rgba(52,152,219,0.3); } }
   .week-grid td.absent-cell {
@@ -333,6 +338,23 @@
     vertical-align: middle;
   }
   /* LO-afspraken: enkel badge (rechts naast klantnaam) als visuele indicator — border-left blijft solide sector-kleur */
+  /* Fix #6: Multi-dag badge + visuele band — toont aan welke dag in een multi-dag beurt dit is */
+  .appt-card .appt-multidag-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700; letter-spacing: 0.3px;
+    padding: 1px 5px; border-radius: 3px; margin-left: 6px;
+    background: rgba(245,158,11,0.12); color: #B45309;
+    border: 1px solid rgba(245,158,11,0.35);
+    vertical-align: middle; text-transform: uppercase;
+  }
+  .appt-card.is-multidag { position: relative; }
+  .appt-card.is-multidag::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+    height: 3px; background: #F59E0B; border-radius: 0 0 4px 4px;
+  }
+  .appt-card.is-multidag.multidag-start::after { right: 0; background: linear-gradient(90deg, #F59E0B 30%, rgba(245,158,11,0.4) 100%); }
+  .appt-card.is-multidag.multidag-end::after   { background: linear-gradient(90deg, rgba(245,158,11,0.4) 0%, #F59E0B 70%); }
+  .appt-card.is-multidag.multidag-mid::after   { background: rgba(245,158,11,0.55); }
   .appt-card.dragging { opacity: 0.4; transform: scale(0.95); }
   .appt-card .appt-extra-techs { display: flex; gap: 3px; margin-top: 3px; }
   .extra-tech-badge {
@@ -477,6 +499,20 @@
   .sidebar-card .sc-due { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
   .sidebar-card .sc-due svg { width: 12px; height: 12px; flex-shrink: 0; }
   .sidebar-card .sc-duration { font-size: 11px; color: var(--grey); font-weight: 600; background: var(--light); padding: 2px 8px; border-radius: 6px; }
+  /* Sidebar-card actie-rij (edit/delete) — enkel voor losse opdrachten en interventies */
+  .sidebar-card .sc-actions {
+    display: flex; gap: 6px; margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--rule); justify-content: flex-end;
+  }
+  .sidebar-card .sc-action-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px solid var(--rule); background: #fff; cursor: pointer;
+    color: var(--grey); transition: all 0.15s var(--ease); padding: 0;
+  }
+  .sidebar-card .sc-action-btn svg { width: 14px; height: 14px; pointer-events: none; }
+  .sidebar-card .sc-action-btn:hover { color: var(--navy); border-color: var(--navy); background: var(--light); }
+  .sidebar-card .sc-action-btn.sc-action-del:hover { color: var(--red); border-color: var(--red); background: rgba(231,76,60,0.06); }
   .due-overdue { color: var(--red); }
   .due-overdue svg { stroke: var(--red); }
   .due-warning { color: var(--orange); }
@@ -994,35 +1030,12 @@
         <button type="button" onclick="qaSelectNewKlant()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
       </div>
     </div>
-    <div class="modal-field" id="qa-tarief-wrap" style="display:none">
-      <label>Facturatie *</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <label class="qa-tarief-option" data-value="forfait">
-          <input type="radio" name="qa-tarief-type" value="forfait" onchange="qaTariefTypeChanged()">
-          <div class="qa-tarief-content">
-            <div class="qa-tarief-title">Forfait</div>
-            <div class="qa-tarief-desc">Vast bedrag afgesproken</div>
-          </div>
-        </label>
-        <label class="qa-tarief-option" data-value="uurtarief">
-          <input type="radio" name="qa-tarief-type" value="uurtarief" onchange="qaTariefTypeChanged()">
-          <div class="qa-tarief-content">
-            <div class="qa-tarief-title">Uurtarief</div>
-            <div class="qa-tarief-desc">Afrekenen per gewerkt uur</div>
-          </div>
-        </label>
-      </div>
-      <div id="qa-forfait-wrap" style="display:none;margin-top:10px">
-        <label style="font-size:12px;color:var(--grey);display:block;margin-bottom:4px">Forfaitbedrag (excl. btw) *</label>
-        <div style="position:relative">
-          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--grey);font-size:13px;pointer-events:none">€</span>
-          <input type="number" id="qa-forfait-bedrag" min="0" step="0.01" placeholder="0.00" style="padding-left:28px">
-        </div>
-      </div>
-      <div id="qa-uurtarief-hint" style="display:none;margin-top:10px;padding:10px 12px;background:var(--light);border-radius:8px;font-size:11px;color:var(--grey);line-height:1.5">
-        Totaal wordt berekend na uren-registratie op basis van het technieker- of contracttarief.
-      </div>
-    </div>
+    <!-- Facturatie-keuze (forfait/uurtarief) is verwijderd uit de inplannings-flow.
+         Planner vult enkel uren in; backend verrekent automatisch via contract-tarief
+         of technieker-tarief (zie facturatie-queue). Hidden inputs bewaard voor
+         backwards-compat met saveQuickAdd() — tarief_type default = 'uurtarief'. -->
+    <input type="hidden" id="qa-tarief-type-hidden" value="uurtarief">
+    <input type="hidden" id="qa-forfait-bedrag" value="">
     <div class="modal-field" id="qa-loc-wrap" style="display:none">
       <label>Werklocatie</label>
       <select id="qa-locatie" onchange="qaLocatieChanged()"></select>
@@ -1338,6 +1351,63 @@
   </div>
 </div>
 
+<!-- INTERVENTIE BEWERKEN MODAL (Fix #9) -->
+<!-- Compacte edit-modal: enkel omschrijving/ernst/duur/gewenste-datum aanpasbaar.
+     Klant/contract/sector zijn immutable na aanmaak (bij wijziging → delete + re-create). -->
+<div class="modal-overlay" id="modal-edit-interventie">
+  <div class="modal" style="max-width:520px">
+    <h2>Interventie bewerken</h2>
+    <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Pas de details aan. Klant en contract zijn onveranderbaar — verwijder en maak opnieuw aan indien die moeten wijzigen.</p>
+    <input type="hidden" id="ei-id">
+
+    <div id="ei-partner-warning" style="display:none;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:#92400E">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+          <strong>Deze taak valt onder partner <span id="ei-partner-name">—</span>.</strong><br>
+          Wijzigingen zijn zichtbaar voor die partner. Voer enkel aanpassingen door in samenspraak.
+        </div>
+      </div>
+    </div>
+
+    <div id="ei-info" style="background:var(--light);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--grey)"></div>
+
+    <div class="modal-field">
+      <label>Omschrijving *</label>
+      <textarea id="ei-omschrijving" rows="3" placeholder="Wat is het probleem?"></textarea>
+    </div>
+
+    <div class="modal-row" style="align-items:flex-end;gap:12px">
+      <div class="modal-field" style="flex:1">
+        <label>Ernst</label>
+        <select id="ei-ernst">
+          <option value="urgent">Urgent</option>
+          <option value="normaal">Normaal</option>
+          <option value="laag">Laag</option>
+        </select>
+      </div>
+      <div class="modal-field" style="flex:0 0 140px">
+        <label>Geschatte duur (min)</label>
+        <input type="number" id="ei-duur" min="15" step="15">
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <label>Gewenste datum (optioneel)</label>
+      <input type="date" id="ei-gewenste-datum">
+      <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Indicatief — geen vaste planning. Gebruikt voor urgency-sortering.</small>
+    </div>
+
+    <div class="modal-buttons" style="display:flex;justify-content:space-between;gap:8px;margin-top:16px">
+      <button type="button" class="btn btn-danger-ghost" onclick="deleteInterventieFromEditModal()" style="border:1.5px solid var(--red);background:#fff;color:var(--red);padding:10px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13px">Verwijderen</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-ghost" onclick="closeEditInterventieModal()">Annuleren</button>
+        <button type="button" class="btn btn-primary" onclick="saveEditInterventie()">Opslaan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- BEURT BEWERKEN MODAL -->
 <div class="modal-overlay" id="modal-edit-beurt">
   <div class="modal" style="max-width:480px">
@@ -1363,11 +1433,24 @@
     <div class="modal-row">
       <div class="modal-field" style="flex:1">
         <label>Datum</label>
-        <input type="date" id="edit-beurt-datum">
+        <input type="date" id="edit-beurt-datum" onchange="editBeurtDatumChanged()">
       </div>
       <div class="modal-field" id="edit-beurt-start-wrap" style="flex:1">
         <label>Starttijd</label>
         <input type="time" id="edit-beurt-start" step="900" value="08:00">
+      </div>
+    </div>
+
+    <!-- Fix #6: Multi-dag planning -->
+    <div class="modal-row" id="edit-beurt-multi-row" style="align-items:flex-end;gap:12px">
+      <label id="edit-beurt-multi-toggle" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
+        <input type="checkbox" id="edit-beurt-meerdere-dagen" onchange="editBeurtMultiDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
+        <span style="font-size:13px;font-weight:500;color:var(--navy)">Over meerdere dagen</span>
+      </label>
+      <div class="modal-field" id="edit-beurt-eind-wrap" style="flex:1;display:none">
+        <label>Eind-datum</label>
+        <input type="date" id="edit-beurt-eind-datum">
+        <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">De beurt verschijnt op elke dag van start tot einde.</small>
       </div>
     </div>
 
@@ -1534,17 +1617,23 @@
 </div>
 
 <!-- CONTEXT MENU -->
+<!-- Status-afhankelijk context-menu (Fix #3): items worden dynamisch zichtbaar/verborgen
+     o.b.v. beurt.status via onCardContext(). -->
 <div class="ctx-menu" id="ctx-menu">
-  <button class="ctx-item" onclick="ctxUnplan()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
-    Terug naar In te plannen
-  </button>
-  <button class="ctx-item" onclick="ctxMarkDone()">
+  <button class="ctx-item" id="ctx-mark-done" onclick="ctxMarkDone()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
     Markeer als uitgevoerd
   </button>
-  <div class="ctx-separator"></div>
-  <button class="ctx-item danger" onclick="ctxCancel()">
+  <button class="ctx-item" id="ctx-reopen" onclick="ctxReopen()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+    Terug naar ingepland
+  </button>
+  <button class="ctx-item" id="ctx-unplan" onclick="ctxUnplan()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
+    Uitplannen
+  </button>
+  <div class="ctx-separator" id="ctx-sep-1"></div>
+  <button class="ctx-item danger" id="ctx-cancel" onclick="ctxCancel()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
     Annuleer beurt
   </button>
@@ -1626,7 +1715,7 @@ function getWeekNumber(d) {
   return Math.ceil((((dt - yearStart) / 86400000) + 1) / 7);
 }
 
-function getDayNames() { return ['Ma','Di','Wo','Do','Vr']; }
+function getDayNames() { return ['Ma','Di','Wo','Do','Vr','Za','Zo']; }
 
 function getWeekDates(date) {
   var d = new Date(date);
@@ -1635,7 +1724,7 @@ function getWeekDates(date) {
   var monday = new Date(d.setDate(diff));
   monday.setHours(0,0,0,0);
   var dates = [];
-  for (var i = 0; i < 5; i++) {
+  for (var i = 0; i < 7; i++) {
     var dd = new Date(monday);
     dd.setDate(monday.getDate() + i);
     dates.push(dd);
@@ -1791,11 +1880,37 @@ function techHasSector(techId, sector) {
 }
 var techHasCert = techHasSector; // backward compat
 
+// Fix #6 Multi-dag helpers: range-check i.p.v. exact-match op plan_datum.
+// Een beurt spant [plan_datum, eind_datum]. Als eind_datum NULL is → eendaags.
+function isBeurtOnDay(beurt, dateISO) {
+  if (!beurt || !beurt.plan_datum || !dateISO) return false;
+  var einde = beurt.eind_datum || beurt.plan_datum;
+  return dateISO >= beurt.plan_datum && dateISO <= einde;
+}
+
+// Bepaalt voor een multi-dag beurt welke dag in de reeks `dateISO` is (1-based).
+// Returns { dayIndex, totalDays, isMultiDay } — isMultiDay=false voor eendaags.
+function getBeurtDayInfo(beurt, dateISO) {
+  var noInfo = { dayIndex: 1, totalDays: 1, isMultiDay: false };
+  if (!beurt || !beurt.plan_datum) return noInfo;
+  var einde = beurt.eind_datum || beurt.plan_datum;
+  if (einde === beurt.plan_datum) return noInfo;
+  var start = parseDate(beurt.plan_datum);
+  var end = parseDate(einde);
+  var cur = parseDate(dateISO);
+  if (!start || !end || !cur) return noInfo;
+  var totalDays = Math.round((end - start) / 86400000) + 1;
+  var dayIndex = Math.round((cur - start) / 86400000) + 1;
+  if (dayIndex < 1 || dayIndex > totalDays) return noInfo;
+  return { dayIndex: dayIndex, totalDays: totalDays, isMultiDay: true };
+}
+
 function getBeurtenForTechDay(techId, date) {
   var ds = formatDateISO(date);
   return allBeurten.filter(function(b) {
-    return b.technieker_id === techId && b.plan_datum === ds &&
-      (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
+    if (b.technieker_id !== techId) return false;
+    if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+    return isBeurtOnDay(b, ds);
   });
 }
 
@@ -1832,9 +1947,12 @@ function getEffectieveMinutenForBeurt(beurt, techId) {
 function getWeekBeurten(dates) {
   var start = formatDateISO(dates[0]);
   var end = formatDateISO(dates[dates.length - 1]);
+  // Fix #6: range-overlap — beurt valt in week als [plan_datum, eind_datum] overlapt [start, end]
   return allBeurten.filter(function(b) {
-    return b.plan_datum && b.plan_datum >= start && b.plan_datum <= end &&
-      (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
+    if (!b.plan_datum) return false;
+    if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+    var einde = b.eind_datum || b.plan_datum;
+    return b.plan_datum <= end && einde >= start;
   });
 }
 
@@ -2246,8 +2364,13 @@ function renderStats() {
     if (b.status === 'ingepland') ingepland++;
     // Afgewerkt-KPI telt zowel 'uitgevoerd' (contract-beurten die wachten op rapport) als 'afgewerkt' (rapport klaar óf losse opdracht zonder rapport)
     if (b.status === 'uitgevoerd' || b.status === 'afgewerkt') afgewerkt++;
-    if (b.plan_datum === todayStr && b.status === 'ingepland') vandaag++;
-    if (weekStrs.indexOf(b.plan_datum) !== -1 && (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt')) week++;
+    // Fix #6: multi-dag beurt telt als "vandaag" zolang today in range valt
+    if (b.status === 'ingepland' && isBeurtOnDay(b, todayStr)) vandaag++;
+    if (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt') {
+      for (var wi = 0; wi < weekStrs.length; wi++) {
+        if (isBeurtOnDay(b, weekStrs[wi])) { week++; break; }
+      }
+    }
     if (b.due_date && b.due_date < todayStr && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt' && b.status !== 'geannuleerd') verlopen++;
   });
 
@@ -2257,16 +2380,19 @@ function renderStats() {
     if (isTechAbsent(t.id, todayDate)) verlof++;
   });
 
-  // Overbezet: techniekers met >100% weekuren — consistent met week/beschikbaarheidsview
+  // Overbezet: techniekers met >100% weekuren — consistent met week/beschikbaarheidsview.
+  // Fix #6: multi-dag beurten tellen per dag in range die binnen deze week valt.
   allTechniekers.filter(isTechnieker).forEach(function(t) {
     var weekMin = 0;
     allBeurten.forEach(function(b) {
       var isPri = b.technieker_id === t.id;
       var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(t.id) !== -1;
       if (!isPri && !isExt) return;
-      if (weekStrs.indexOf(b.plan_datum) === -1) return;
       if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return;
-      weekMin += getEffectieveMinutenForBeurt(b, t.id);
+      var minPerDag = getEffectieveMinutenForBeurt(b, t.id);
+      for (var i = 0; i < weekStrs.length; i++) {
+        if (isBeurtOnDay(b, weekStrs[i])) weekMin += minPerDag;
+      }
     });
     var contractMin = (t.contract_uren_week || 38) * 60;
     if (weekMin > contractMin) overbezet++;
@@ -2320,20 +2446,22 @@ function renderWeekView() {
   var months = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
 
   document.getElementById('period-label').textContent =
-    'Week ' + weekNum + ' \u2014 ' + formatDateFull(dates[0]) + ' \u2013 ' + formatDateFull(dates[4]);
+    'Week ' + weekNum + ' \u2014 ' + formatDateFull(dates[0]) + ' \u2013 ' + formatDateFull(dates[6]);
 
   var techniekers = getFilteredTechniekers();
 
   var html = '<table class="week-grid"><thead><tr><th>Technieker</th>';
-  for (var d = 0; d < 5; d++) {
+  for (var d = 0; d < 7; d++) {
     var isToday = isSameDay(dates[d], today);
-    html += '<th class="' + (isToday ? 'today-col' : '') + '">' +
+    var isWeekend = d >= 5; // 5=Za, 6=Zo
+    var cls = (isToday ? 'today-col' : '') + (isWeekend ? ' weekend-col' : '');
+    html += '<th class="' + cls.trim() + '">' +
       dayNames[d] + ' ' + formatDate(dates[d]) + '</th>';
   }
   html += '</tr></thead><tbody>';
 
   if (techniekers.length === 0) {
-    html += '<tr><td colspan="6"><div class="empty-state-card">' +
+    html += '<tr><td colspan="8"><div class="empty-state-card">' +
       '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' +
       '<h3>Geen actieve techniekers</h3>' +
       '<p>Voeg techniekers toe via het admin dashboard.</p>' +
@@ -2344,18 +2472,18 @@ function renderWeekView() {
   techniekers.forEach(function(tech) {
     html += '<tr>';
 
-    // C3: Uren naast technieker-naam — tel alle ingepland/uitgevoerd/afgewerkt, gebruik effectieve uren uit rapport
+    // C3 + Fix #6: Uren naast technieker-naam — tel alle ingepland/uitgevoerd/afgewerkt.
+    // Voor multi-dag beurten: duur_minuten telt per dag in de range die binnen deze week valt.
     var weekMin = 0;
     allBeurten.forEach(function(b) {
       var isPrimary = b.technieker_id === tech.id;
       var isExtra = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
       if (!isPrimary && !isExtra) return;
       if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return;
-      var pd = b.plan_datum;
-      for (var wd = 0; wd < 5; wd++) {
-        if (formatDateISO(dates[wd]) === pd) {
-          weekMin += getEffectieveMinutenForBeurt(b, tech.id);
-          break;
+      var minPerDag = getEffectieveMinutenForBeurt(b, tech.id);
+      for (var wd = 0; wd < 7; wd++) {
+        if (isBeurtOnDay(b, formatDateISO(dates[wd]))) {
+          weekMin += minPerDag;
         }
       }
     });
@@ -2373,8 +2501,10 @@ function renderWeekView() {
         '</span>' +
       '</div></div></td>';
 
-    for (var d = 0; d < 5; d++) {
+    for (var d = 0; d < 7; d++) {
       var isToday = isSameDay(dates[d], today);
+      var isWeekend = d >= 5;
+      var weekendCls = isWeekend ? ' weekend-col' : '';
       var absent = isTechAbsent(tech.id, dates[d]);
 
       if (absent) {
@@ -2385,42 +2515,58 @@ function renderWeekView() {
         var halveCls = afwInfo.halve_dag === 'vm' ? ' halve-vm' : afwInfo.halve_dag === 'nm' ? ' halve-nm' : '';
         var halveLbl = afwInfo.halve_dag === 'vm' ? ' (VM)' : afwInfo.halve_dag === 'nm' ? ' (NM)' : '';
         var afwTitle = esc(afwInfo.type_naam + halveLbl + (afwInfo.reden ? ' — ' + afwInfo.reden : ''));
-        html += '<td class="absent-cell' + halveCls + ' ' + (isToday ? 'today-col' : '') + '" ' +
+        html += '<td class="absent-cell' + halveCls + ' ' + (isToday ? 'today-col' : '') + weekendCls + '" ' +
           'style="--afw-bg:' + afwBg + ';--afw-stripe:' + afwStripe + '" ' +
           'title="' + afwTitle + '" ' +
           'oncontextmenu="openPlanningCtxMenu(event, \'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\', true, \'' + (afwInfo.id || '') + '\')">' +
           '<span class="absent-label" style="color:' + afwInfo.kleur + '">' + esc(afwInfo.type_naam) + halveLbl + '</span></td>';
       } else {
+        var dayISO = formatDateISO(dates[d]);
         var beurten = getBeurtenForTechDay(tech.id, dates[d]).filter(passesFilters);
         beurten.sort(function(a, b) { return (a.start_tijd || '99:99').localeCompare(b.start_tijd || '99:99'); });
-        // Also show ghost cards for duo-beurten where this tech is extra
+        // Fix #6: ghost-beurten voor duo — nu ook range-based voor multi-dag beurten
         var ghostBeurten = allBeurten.filter(function(b) {
-          return b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1 &&
-            b.plan_datum === formatDateISO(dates[d]) && (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
+          if (!b.extra_technieker_ids || b.extra_technieker_ids.indexOf(tech.id) === -1) return false;
+          if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+          return isBeurtOnDay(b, dayISO);
         }).filter(passesFilters);
         ghostBeurten.sort(function(a, b) { return (a.start_tijd || '99:99').localeCompare(b.start_tijd || '99:99'); });
 
-        html += '<td class="' + (isToday ? 'today-col' : '') + '" ' +
-          'ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\')" ' +
-          'oncontextmenu="openPlanningCtxMenu(event, \'' + tech.id + '\', \'' + formatDateISO(dates[d]) + '\', false, \'\')">';
+        html += '<td class="' + (isToday ? 'today-col' : '') + weekendCls + '" ' +
+          'ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + tech.id + '\', \'' + dayISO + '\')" ' +
+          'oncontextmenu="openPlanningCtxMenu(event, \'' + tech.id + '\', \'' + dayISO + '\', false, \'\')">';
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
-          html += renderApptCard(b, info);
+          var dayInfo = getBeurtDayInfo(b, dayISO);
+          html += renderApptCard(b, info, dayInfo);
         });
-        // Duo-beurten: toon als volwaardige kaart met duo-indicator
+        // Duo-beurten: toon als volwaardige kaart met duo-indicator (+ multi-dag badge)
         ghostBeurten.forEach(function(b) {
           var info = getClientInfo(b);
           var hoofdTech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
           var hoofdNaam = hoofdTech ? (hoofdTech.voornaam + ' ' + hoofdTech.naam) : '';
+          var ghostDayInfo = getBeurtDayInfo(b, dayISO);
+          var ghostIsFirst = ghostDayInfo.dayIndex === 1;
+          var ghostIsLast = ghostDayInfo.dayIndex === ghostDayInfo.totalDays;
           var dStartTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
           var dEndTime = dStartTime && b.duur_minuten ? calcEndTime(dStartTime, b.duur_minuten) : '';
-          var dTimeStr = b.hele_dag ? 'Hele dag' : (dStartTime ? (dStartTime + (dEndTime ? '-' + dEndTime : '')) : '');
-          var dDuurStr = b.hele_dag ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
-          html += '<div class="appt-card ' + getSectorClass(info.sector) + '" ' +
+          var dTimeStr;
+          if (ghostDayInfo.isMultiDay) {
+            if (ghostIsFirst && dStartTime) dTimeStr = 'Start ' + dStartTime;
+            else if (ghostIsLast && dEndTime) dTimeStr = 'Einde ' + dEndTime;
+            else dTimeStr = 'Hele dag';
+          } else {
+            dTimeStr = b.hele_dag ? 'Hele dag' : (dStartTime ? (dStartTime + (dEndTime ? '-' + dEndTime : '')) : '');
+          }
+          var dDuurStr = (b.hele_dag || ghostDayInfo.isMultiDay) ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
+          var ghostMultiBadge = ghostDayInfo.isMultiDay ?
+            '<span class="appt-multidag-badge" title="Meerdaagse opdracht">Dag ' + ghostDayInfo.dayIndex + '/' + ghostDayInfo.totalDays + '</span>' : '';
+          var ghostMultiClass = ghostDayInfo.isMultiDay ? ' is-multidag' : '';
+          html += '<div class="appt-card ' + getSectorClass(info.sector) + ghostMultiClass + '" ' +
             'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
             'style="cursor:pointer;position:relative" ' +
-            'title="Duo-beurt met ' + esc(hoofdNaam) + '">' +
-            '<div class="appt-klant">' + esc(info.naam) + '</div>' +
+            'title="Duo-beurt met ' + esc(hoofdNaam) + (ghostDayInfo.isMultiDay ? ' (dag ' + ghostDayInfo.dayIndex + '/' + ghostDayInfo.totalDays + ')' : '') + '">' +
+            '<div class="appt-klant">' + esc(info.naam) + ghostMultiBadge + '</div>' +
             '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
             (dTimeStr ? '<div class="appt-time">' + dTimeStr + (dDuurStr ? '<span class="appt-duur">· ' + dDuurStr + '</span>' : '') + '</div>' : '') +
             '<div class="appt-meta">' + esc(info.gemeente) + '</div>' +
@@ -2459,8 +2605,10 @@ function renderWeekView() {
           '<span style="font-size:11px;color:var(--grey)">' + esc(tech.functie || 'Bediende') + '</span>' +
         '</div></div></td>';
 
-      for (var d = 0; d < 5; d++) {
+      for (var d = 0; d < 7; d++) {
         var isToday = isSameDay(dates[d], today);
+        var isWeekend = d >= 5;
+        var weekendCls = isWeekend ? ' weekend-col' : '';
         var absent = isTechAbsent(tech.id, dates[d]);
         if (absent) {
           var afwInfo = getAfwezigheidInfo(tech.id, dates[d]);
@@ -2469,12 +2617,12 @@ function renderWeekView() {
           var halveCls = afwInfo.halve_dag === 'vm' ? ' halve-vm' : afwInfo.halve_dag === 'nm' ? ' halve-nm' : '';
           var halveLbl = afwInfo.halve_dag === 'vm' ? ' (VM)' : afwInfo.halve_dag === 'nm' ? ' (NM)' : '';
           var afwTitle = esc(afwInfo.type_naam + halveLbl + (afwInfo.reden ? ' \u2014 ' + afwInfo.reden : ''));
-          html += '<td class="absent-cell' + halveCls + ' ' + (isToday ? 'today-col' : '') + '" ' +
+          html += '<td class="absent-cell' + halveCls + ' ' + (isToday ? 'today-col' : '') + weekendCls + '" ' +
             'style="--afw-bg:' + afwBg + ';--afw-stripe:' + afwStripe + '" ' +
             'title="' + afwTitle + '">' +
             '<span class="absent-label" style="color:' + afwInfo.kleur + '">' + esc(afwInfo.type_naam) + halveLbl + '</span></td>';
         } else {
-          html += '<td class="bediende-cell ' + (isToday ? 'today-col' : '') + '"></td>';
+          html += '<td class="bediende-cell ' + (isToday ? 'today-col' : '') + weekendCls + '"></td>';
         }
       }
       html += '</tr>';
@@ -2561,7 +2709,12 @@ function getInstallatieDetail(beurt) {
   return parts.join(' — ');
 }
 
-function renderApptCard(b, info) {
+function renderApptCard(b, info, dayInfo) {
+  // Fix #6: dayInfo = { dayIndex, totalDays, isMultiDay } voor multi-dag beurten; default eendaags.
+  dayInfo = dayInfo || { dayIndex: 1, totalDays: 1, isMultiDay: false };
+  var isFirstDay = dayInfo.dayIndex === 1;
+  var isLastDay  = dayInfo.dayIndex === dayInfo.totalDays;
+
   var extraHtml = '';
   if (b.extra_technieker_ids && b.extra_technieker_ids.length > 0) {
     var extraNames = [];
@@ -2575,20 +2728,35 @@ function renderApptCard(b, info) {
   }
   var startTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
   var endTime = startTime && b.duur_minuten ? calcEndTime(startTime, b.duur_minuten) : '';
-  var timeStr = b.hele_dag ? 'Hele dag' : (startTime ? (startTime + (endTime ? '-' + endTime : '')) : '');
-  var duurStr = b.hele_dag ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
+  // Multi-dag: starttijd toont alleen op dag 1, eindtijd alleen op laatste dag; tussendagen = 'Hele dag'
+  var timeStr;
+  if (dayInfo.isMultiDay) {
+    if (isFirstDay && startTime) timeStr = 'Start ' + startTime;
+    else if (isLastDay && endTime) timeStr = 'Einde ' + endTime;
+    else timeStr = 'Hele dag';
+  } else {
+    timeStr = b.hele_dag ? 'Hele dag' : (startTime ? (startTime + (endTime ? '-' + endTime : '')) : '');
+  }
+  var duurStr = (b.hele_dag || dayInfo.isMultiDay) ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
   var installStr = getInstallationSummary(b);
 
   var losseBadge = (info && info.isLosseOpdracht) ?
     '<span class="appt-losse-tag" title="Losse opdracht — geen contract">LO</span>' : '';
+  var multiDagBadge = dayInfo.isMultiDay ?
+    '<span class="appt-multidag-badge" title="Meerdaagse opdracht">Dag ' + dayInfo.dayIndex + '/' + dayInfo.totalDays + '</span>' : '';
 
-  return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + '" ' +
-    'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')" ' +
+  // Alleen dag 1 is draggable — drag op dag 2+ zou verwarrend zijn (welke dag verplaatst?)
+  var dragAttr = isFirstDay ? 'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')" ' : 'draggable="false" ';
+  var multiDagClass = dayInfo.isMultiDay ? ' is-multidag' + (isFirstDay ? ' multidag-start' : '') + (isLastDay ? ' multidag-end' : '') + (!isFirstDay && !isLastDay ? ' multidag-mid' : '') : '';
+  var titleSuffix = dayInfo.isMultiDay ? ' (dag ' + dayInfo.dayIndex + '/' + dayInfo.totalDays + ')' : '';
+
+  return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + multiDagClass + '" ' +
+    dragAttr +
     'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
     'oncontextmenu="onCardContext(event, \'' + b.id + '\')" ' +
     'style="cursor:pointer;position:relative" ' +
-    'title="' + esc(info.naam) + ' - ' + esc(info.sector) + (info && info.isLosseOpdracht ? ' (losse opdracht)' : '') + '">' +
-    '<div class="appt-klant">' + esc(info.naam) + losseBadge + '</div>' +
+    'title="' + esc(info.naam) + ' - ' + esc(info.sector) + (info && info.isLosseOpdracht ? ' (losse opdracht)' : '') + titleSuffix + '">' +
+    '<div class="appt-klant">' + esc(info.naam) + losseBadge + multiDagBadge + '</div>' +
     '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
     (timeStr ? '<div class="appt-time">' + timeStr + (duurStr ? '<span class="appt-duur">· ' + duurStr + '</span>' : '') + '</div>' : '') +
     '<div class="appt-meta">' + esc(info.gemeente) + '</div>' +
@@ -2641,19 +2809,27 @@ function renderDayView() {
           '<span class="absent-label" style="color:' + dayAfwInfo.kleur + '">' + esc(dayAfwInfo.type_naam) + dHalveLbl + '</span></td>';
       } else {
         // Find beurten that start at this time slot (incl. duo-beurten)
+        // Fix #6: voor multi-dag beurten toont enkel dag 1 op start_tijd-slot; tussendagen + laatste dag = eerste slot van de dag (08:00)
         var beurten = allBeurten.filter(function(b) {
           var isPri = b.technieker_id === tech.id;
           var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
-          return (isPri || isExt) && b.plan_datum === dateStr &&
-            b.start_tijd && b.start_tijd.substring(0,5) === slot &&
-            (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
+          if (!isPri && !isExt) return false;
+          if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+          if (!isBeurtOnDay(b, dateStr)) return false;
+          var dInfo = getBeurtDayInfo(b, dateStr);
+          if (dInfo.isMultiDay && dInfo.dayIndex > 1) {
+            // Tussendagen + laatste dag: toon in eerste slot (08:00) ongeacht start_tijd
+            return slot === '08:00';
+          }
+          return b.start_tijd && b.start_tijd.substring(0,5) === slot;
         }).filter(passesFilters);
 
         html += '<td ondragover="onDragOver(event)" ondrop="onDropDay(event, \'' + tech.id + '\', \'' + dateStr + '\', \'' + slot + '\')" ' +
           'oncontextmenu="openPlanningCtxMenu(event, \'' + tech.id + '\', \'' + dateStr + '\', false, \'\')">';
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
-          html += renderApptCard(b, info);
+          var dayInfo = getBeurtDayInfo(b, dateStr);
+          html += renderApptCard(b, info, dayInfo);
         });
         html += '</td>';
       }
@@ -2664,9 +2840,13 @@ function renderDayView() {
   html += '</tbody></table></div>';
 
   // Also show unscheduled beurten for this day (no start_tijd)
+  // Fix #6: voor multi-dag beurten — enkel tonen op dag 1, niet op vervolgdagen (anders dubbel)
   var unscheduled = allBeurten.filter(function(b) {
-    return b.plan_datum === dateStr && !b.start_tijd &&
-      (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
+    if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+    if (b.start_tijd) return false;
+    if (!isBeurtOnDay(b, dateStr)) return false;
+    var dInfo = getBeurtDayInfo(b, dateStr);
+    return !dInfo.isMultiDay || dInfo.dayIndex === 1;
   }).filter(passesFilters);
 
   if (unscheduled.length > 0) {
@@ -2852,7 +3032,28 @@ function renderSidebarCard(b) {
   } else if (b.duur_minuten) {
     html += '<span class="sc-duration">\u23F1 ' + formatDuration(b.duur_minuten) + '</span>';
   }
-  html += '</div></div>';
+  html += '</div>';
+
+  // Actie-knoppen: enkel voor beurten die NIET deel zijn van een vast onderhoudscontract.
+  // - Interventies: bewerken + verwijderen (ook gekoppelde beurt cascade).
+  // - Losse opdrachten: bewerken + verwijderen.
+  // - Contract-onderhoudsbeurten: geen acties in sidebar (zijn deel van contract-schema).
+  var editSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var delSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+
+  if (b._isInterventie && b._interventie) {
+    html += '<div class="sc-actions">' +
+      '<button type="button" class="sc-action-btn" title="Bewerken" onclick="event.stopPropagation(); sidebarEditInterventie(\'' + b._interventie.id + '\')">' + editSvg + '</button>' +
+      '<button type="button" class="sc-action-btn sc-action-del" title="Verwijderen" onclick="event.stopPropagation(); sidebarDeleteInterventie(\'' + b._interventie.id + '\')">' + delSvg + '</button>' +
+      '</div>';
+  } else if (info && info.isLosseOpdracht) {
+    html += '<div class="sc-actions">' +
+      '<button type="button" class="sc-action-btn" title="Bewerken" onclick="event.stopPropagation(); sidebarEditBeurt(\'' + b.id + '\')">' + editSvg + '</button>' +
+      '<button type="button" class="sc-action-btn sc-action-del" title="Verwijderen" onclick="event.stopPropagation(); sidebarDeleteBeurt(\'' + b.id + '\')">' + delSvg + '</button>' +
+      '</div>';
+  }
+
+  html += '</div>';
   return html;
 }
 
@@ -2866,6 +3067,282 @@ function switchSidebarType(type) {
   var title = document.getElementById('sidebar-title');
   if (title) title.textContent = (type === 'interventie') ? 'Open interventies' : 'In te plannen';
   renderSidebar();
+}
+
+// =============================================
+// SIDEBAR ACTIES — edit/delete voor losse opdrachten en interventies
+// Contract-beurten zijn beschermd (geen knoppen in de card).
+// =============================================
+
+/**
+ * Opent de edit-modal voor een losse opdracht of geplande interventie-beurt
+ * vanuit de sidebar "In te plannen".
+ */
+function sidebarEditBeurt(beurtId) {
+  openEditBeurtModal(beurtId);
+}
+
+/**
+ * Verwijdert een losse opdracht uit de sidebar.
+ * Gaat langs dezelfde pre-checks als deleteBeurtFromModal:
+ *   - niet verwijderen als al gefactureerd
+ *   - gekoppelde interventie wordt meegenomen (SET NULL via FK)
+ */
+async function sidebarDeleteBeurt(beurtId) {
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) { showToast('Beurt niet gevonden', 'error'); return; }
+
+  var info = getClientInfo(beurt);
+  var label = (info.naam || 'deze losse opdracht') + (info.gemeente ? ' (' + info.gemeente + ')' : '');
+
+  // Pre-check: al gefactureerd?
+  try {
+    var fr = await sb.from('facturatie_regels').select('id').eq('onderhoudsbeurt_id', beurtId).limit(1);
+    if (fr && fr.data && fr.data.length > 0) {
+      showToast('Deze opdracht staat al op een factuur en kan niet worden verwijderd.', 'error');
+      return;
+    }
+  } catch (_) { /* tabel optioneel */ }
+
+  if (!confirm('Losse opdracht verwijderen?\n\n' + label + '\n\nDeze actie kan niet ongedaan gemaakt worden.')) return;
+
+  try {
+    var res = await sb.from('onderhoudsbeurten').delete().eq('id', beurtId);
+    if (res.error) throw res.error;
+    allBeurten = (allBeurten || []).filter(function(x) { return x.id !== beurtId; });
+    renderSidebar();
+    if (typeof renderWeekView === 'function') renderWeekView();
+    showToast('Losse opdracht verwijderd', 'success');
+  } catch (e) {
+    var msg = (e && e.message) || 'Onbekende fout';
+    if (/facturatie_regels|foreign key/i.test(msg)) {
+      showToast('Deze opdracht staat al op een factuur en kan niet worden verwijderd.', 'error');
+    } else {
+      showToast('Verwijderen mislukt: ' + msg, 'error');
+    }
+  }
+}
+
+/**
+ * Bewerken van een interventie vanuit de sidebar.
+ * Hook naar de nieuwe edit-interventie flow (Fix #9) — delegeert voor nu naar
+ * de bestaande plan-interventie-modal waar omschrijving/ernst/duur aanpasbaar zijn.
+ */
+function sidebarEditInterventie(ivId) {
+  if (typeof openEditInterventieModal === 'function') {
+    openEditInterventieModal(ivId);
+  } else {
+    // Fallback zolang Fix #9 niet geland is: open plan-modal (bewerken = herplannen)
+    openPlanInterventieModal(ivId);
+  }
+}
+
+/**
+ * Verwijdert een interventie uit de sidebar met partner-ownership check (Fix #9).
+ * Dependent onderhoudsbeurt wordt automatisch ontkoppeld via FK ON DELETE SET NULL.
+ */
+async function sidebarDeleteInterventie(ivId) {
+  if (typeof deleteInterventieWithOwnershipCheck === 'function') {
+    return deleteInterventieWithOwnershipCheck(ivId);
+  }
+  // Tijdelijke fallback zolang Fix #9 niet geland is
+  var iv = (allInterventies || []).find(function(x) { return x.id === ivId; });
+  if (!iv) { showToast('Interventie niet gevonden', 'error'); return; }
+  var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+  var label = (iv.omschrijving || 'deze interventie').slice(0, 80);
+  if (!confirm('Interventie verwijderen?\n\n' + label + '\n\nDeze actie kan niet ongedaan gemaakt worden.')) return;
+  try {
+    // Eerst gekoppelde beurt verwijderen (als aanwezig)
+    if (iv.onderhoudsbeurt_id) {
+      await sb.from('onderhoudsbeurten').delete().eq('id', iv.onderhoudsbeurt_id);
+      allBeurten = (allBeurten || []).filter(function(b) { return b.id !== iv.onderhoudsbeurt_id; });
+    }
+    var res = await sb.from('interventies').delete().eq('id', ivId);
+    if (res.error) throw res.error;
+    allInterventies = (allInterventies || []).filter(function(x) { return x.id !== ivId; });
+    renderSidebar();
+    if (typeof renderWeekView === 'function') renderWeekView();
+    showToast('Interventie verwijderd', 'success');
+  } catch (e) {
+    showToast('Verwijderen mislukt: ' + ((e && e.message) || 'onbekend'), 'error');
+  }
+}
+
+// =============================================
+// FIX #9 — INTERVENTIE EDIT/DELETE MET PARTNER-OWNERSHIP CHECK
+// =============================================
+
+/**
+ * Opent de compacte edit-modal voor een bestaande interventie.
+ * Pre-vult omschrijving/ernst/duur/gewenste_datum. Toont partner-warning
+ * als de onderliggende contract-partner niet Flancco is.
+ */
+function openEditInterventieModal(ivId) {
+  var iv = (allInterventies || []).find(function(x) { return x.id === ivId; });
+  if (!iv) { showToast('Interventie niet gevonden', 'error'); return; }
+
+  document.getElementById('ei-id').value = iv.id;
+  document.getElementById('ei-omschrijving').value = iv.omschrijving || '';
+  document.getElementById('ei-ernst').value = iv.ernst || 'normaal';
+  document.getElementById('ei-duur').value = iv.geschatte_duur || 60;
+  document.getElementById('ei-gewenste-datum').value = iv.gewenste_datum || '';
+
+  // Info-preview met klant + sector
+  var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+  var infoEl = document.getElementById('ei-info');
+  if (contract) {
+    var sector = contract.sector || '';
+    var klant = contract.klant_naam || (contract.klant_gemeente ? '— ' + contract.klant_gemeente : '');
+    infoEl.innerHTML = '<strong>' + esc(klant) + '</strong>' +
+      (sector ? ' <span style="background:' + getSectorColor(sector) + '22;color:' + getSectorColor(sector) + ';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;margin-left:6px">' + esc(getSectorLabel(sector)) + '</span>' : '');
+  } else {
+    infoEl.innerHTML = '<em>Geen contract gekoppeld</em>';
+  }
+
+  // Partner-ownership warning
+  var warn = document.getElementById('ei-partner-warning');
+  var partnerName = document.getElementById('ei-partner-name');
+  if (contract && contract.partner_id && contract.partner_id !== FLANCCO_PARTNER_ID) {
+    var partner = (allPartners || []).find(function(p) { return p.id === contract.partner_id; });
+    partnerName.textContent = partner ? (partner.bedrijfsnaam || partner.naam || 'externe partner') : 'externe partner';
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
+  }
+
+  document.getElementById('modal-edit-interventie').classList.add('open');
+}
+
+function closeEditInterventieModal() {
+  document.getElementById('modal-edit-interventie').classList.remove('open');
+}
+
+/**
+ * Opslaan wijzigingen aan bestaande interventie.
+ * Update enkel de bewerkbare velden. Contract/klant/sector blijven immutable.
+ */
+async function saveEditInterventie() {
+  var ivId = document.getElementById('ei-id').value;
+  if (!ivId) { showToast('Geen interventie geselecteerd', 'error'); return; }
+
+  var omschrijving = (document.getElementById('ei-omschrijving').value || '').trim();
+  var ernst = document.getElementById('ei-ernst').value;
+  var duur = parseInt(document.getElementById('ei-duur').value, 10);
+  var gewensteDatum = document.getElementById('ei-gewenste-datum').value || null;
+
+  if (!omschrijving) { showToast('Omschrijving is verplicht', 'error'); return; }
+  if (!duur || duur < 15) { showToast('Duur moet minstens 15 minuten zijn', 'error'); return; }
+
+  var payload = {
+    omschrijving: omschrijving,
+    ernst: ernst,
+    geschatte_duur: duur,
+    gewenste_datum: gewensteDatum
+  };
+
+  try {
+    var res = await sb.from('interventies').update(payload).eq('id', ivId).select().single();
+    if (res.error) throw res.error;
+
+    // Lokale state synchroniseren
+    var idx = (allInterventies || []).findIndex(function(x) { return x.id === ivId; });
+    if (idx >= 0) allInterventies[idx] = res.data;
+
+    // Gekoppelde beurt: duur + notitie synchroniseren zodat kalender consistent blijft
+    if (res.data.onderhoudsbeurt_id) {
+      try {
+        await sb.from('onderhoudsbeurten').update({
+          duur_minuten: duur,
+          notities: 'Interventie: ' + omschrijving.slice(0, 200)
+        }).eq('id', res.data.onderhoudsbeurt_id);
+        var bIdx = (allBeurten || []).findIndex(function(b) { return b.id === res.data.onderhoudsbeurt_id; });
+        if (bIdx >= 0) {
+          allBeurten[bIdx].duur_minuten = duur;
+          allBeurten[bIdx].notities = 'Interventie: ' + omschrijving.slice(0, 200);
+        }
+      } catch (_) { /* beurt-sync is best-effort */ }
+    }
+
+    closeEditInterventieModal();
+    renderSidebar();
+    if (typeof renderWeekView === 'function') renderWeekView();
+    showToast('Interventie bijgewerkt', 'success');
+  } catch (e) {
+    showToast('Opslaan mislukt: ' + ((e && e.message) || 'onbekend'), 'error');
+  }
+}
+
+/**
+ * Triggerd vanuit de edit-modal ("Verwijderen"-knop).
+ * Delegeert naar deleteInterventieWithOwnershipCheck zodat dezelfde partner-warning
+ * flow gebruikt wordt als vanuit de sidebar.
+ */
+function deleteInterventieFromEditModal() {
+  var ivId = document.getElementById('ei-id').value;
+  if (!ivId) return;
+  closeEditInterventieModal();
+  deleteInterventieWithOwnershipCheck(ivId);
+}
+
+/**
+ * Verwijdert een interventie met partner-ownership check.
+ * Als het onderliggende contract bij een externe partner (niet Flancco) hoort:
+ *   → toon expliciete waarschuwing met partner-naam vóór delete.
+ * Gekoppelde onderhoudsbeurt wordt meegewist (cascade).
+ */
+async function deleteInterventieWithOwnershipCheck(ivId) {
+  var iv = (allInterventies || []).find(function(x) { return x.id === ivId; });
+  if (!iv) { showToast('Interventie niet gevonden', 'error'); return; }
+
+  var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+  var partnerId = contract && contract.partner_id;
+  var partner = (allPartners || []).find(function(p) { return p.id === partnerId; });
+  var isExternalPartner = partnerId && partnerId !== FLANCCO_PARTNER_ID;
+  var label = (iv.omschrijving || 'deze interventie').slice(0, 100);
+
+  var prompt = 'Interventie verwijderen?\n\n' + label;
+  if (isExternalPartner) {
+    prompt = 'LET OP — Deze taak valt onder partner "' +
+      (partner ? (partner.bedrijfsnaam || partner.naam) : 'externe partner') +
+      '".\n\nDe partner verliest zichtbaarheid op deze interventie.\n\n' + label +
+      '\n\nWeet je zeker dat je deze wilt verwijderen?';
+  }
+  prompt += '\n\nDeze actie kan niet ongedaan gemaakt worden.';
+
+  if (!confirm(prompt)) return;
+
+  try {
+    // Eerst: gekoppelde onderhoudsbeurt verwijderen (als aanwezig + nog niet uitgevoerd/gefactureerd)
+    if (iv.onderhoudsbeurt_id) {
+      // Pre-check: al gefactureerd?
+      try {
+        var fr = await sb.from('facturatie_regels').select('id').eq('onderhoudsbeurt_id', iv.onderhoudsbeurt_id).limit(1);
+        if (fr && fr.data && fr.data.length > 0) {
+          showToast('Gekoppelde beurt staat al op een factuur. Verwijder eerst de factuurregel.', 'error');
+          return;
+        }
+      } catch (_) {}
+      var bDel = await sb.from('onderhoudsbeurten').delete().eq('id', iv.onderhoudsbeurt_id);
+      if (bDel.error) {
+        // FK-constraint? → informeer gebruiker
+        if (/foreign key|facturatie_regels/i.test(bDel.error.message || '')) {
+          showToast('Gekoppelde beurt kan niet worden verwijderd (al gefactureerd).', 'error');
+          return;
+        }
+        throw bDel.error;
+      }
+      allBeurten = (allBeurten || []).filter(function(b) { return b.id !== iv.onderhoudsbeurt_id; });
+    }
+
+    var res = await sb.from('interventies').delete().eq('id', ivId);
+    if (res.error) throw res.error;
+    allInterventies = (allInterventies || []).filter(function(x) { return x.id !== ivId; });
+    renderSidebar();
+    if (typeof renderWeekView === 'function') renderWeekView();
+    showToast('Interventie verwijderd', 'success');
+  } catch (e) {
+    showToast('Verwijderen mislukt: ' + ((e && e.message) || 'onbekend'), 'error');
+  }
 }
 
 // Router: kiest juiste create-modal o.b.v. actieve sidebar-tab
@@ -3599,6 +4076,28 @@ function onCardContext(e, beurtId) {
   e.preventDefault();
   ctxBeurtId = beurtId;
   var menu = document.getElementById('ctx-menu');
+
+  // Status-afhankelijke items (Fix #3)
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  var status = (beurt && beurt.status) || '';
+  var isIngepland  = status === 'ingepland';
+  var isUitgevoerd = status === 'uitgevoerd' || status === 'afgewerkt';
+  var isGeannuleerd = status === 'geannuleerd';
+
+  // Tonen/verbergen per item
+  function setShown(id, shown) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = shown ? '' : 'none';
+  }
+  setShown('ctx-mark-done', isIngepland);
+  setShown('ctx-reopen',    isUitgevoerd || isGeannuleerd);
+  setShown('ctx-unplan',    isIngepland);
+  // Annuleer enkel voor niet-geannuleerde beurten
+  setShown('ctx-cancel',    !isGeannuleerd);
+  // Separator verbergen als er geen items boven/onder staan
+  var hasTopItems = isIngepland || isUitgevoerd || isGeannuleerd;
+  setShown('ctx-sep-1', hasTopItems && !isGeannuleerd);
+
   menu.style.display = 'block';
   menu.style.left = e.clientX + 'px';
   menu.style.top = e.clientY + 'px';
@@ -3611,6 +4110,70 @@ function onCardContext(e, beurtId) {
   if (rect.bottom > window.innerHeight) {
     menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
   }
+}
+
+/**
+ * Fix #3: Reopen flow vanuit het context-menu voor afgewerkte/uitgevoerde
+ * (of geannuleerde) beurten. Zet status terug naar 'ingepland' en veegt
+ * uren-registraties op zodat de loon-export niet meer op deze beurt telt.
+ */
+async function ctxReopen() {
+  if (!ctxBeurtId) return;
+  var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
+  if (!beurt) { ctxBeurtId = null; return; }
+
+  var hadUren = false;
+  try {
+    if (window._allUrenRegistraties) {
+      hadUren = window._allUrenRegistraties.some(function(u) { return u.beurt_id === beurt.id; });
+    }
+  } catch (_) {}
+
+  var waarschuwing = hadUren
+    ? 'De uren-registraties van deze beurt worden verwijderd uit de loon-export.\n\n'
+    : '';
+  if (!confirm(waarschuwing + 'Terug naar ingepland?\n\nDe beurt komt terug in het kalenderoverzicht als openstaande taak.')) {
+    ctxBeurtId = null; return;
+  }
+
+  var oldStatus = beurt.status;
+  try {
+    // Uren-registraties opruimen (best-effort)
+    try {
+      await sb.from('beurt_uren_registraties').delete().eq('beurt_id', beurt.id);
+    } catch (_) { /* tabel ontbreekt in oudere schemas */ }
+
+    var res = await sb.from('onderhoudsbeurten').update({
+      status: 'ingepland',
+      uitvoer_datum: null,
+      updated_at: new Date().toISOString()
+    }).eq('id', beurt.id);
+
+    if (res.error && /uitvoer_datum/.test(res.error.message || '')) {
+      // Forward-compat: kolom ontbreekt in oud schema
+      res = await sb.from('onderhoudsbeurten').update({
+        status: 'ingepland', updated_at: new Date().toISOString()
+      }).eq('id', beurt.id);
+    }
+    if (res.error) throw res.error;
+
+    beurt.status = 'ingepland';
+    if ('uitvoer_datum' in beurt) beurt.uitvoer_datum = null;
+    if (window._allUrenRegistraties) {
+      window._allUrenRegistraties = window._allUrenRegistraties.filter(function(u) {
+        return u.beurt_id !== beurt.id;
+      });
+    }
+    if (typeof auditLog === 'function') {
+      auditLog('onderhoudsbeurten', beurt.id, 'status_wijziging', oldStatus, 'ingepland');
+    }
+    showToast('Beurt terug naar ingepland', 'success');
+    renderView();
+    renderSidebar();
+  } catch (e) {
+    showToast('Fout: ' + ((e && e.message) || 'onbekend'), 'error');
+  }
+  ctxBeurtId = null;
 }
 
 document.addEventListener('click', function() {
@@ -3930,6 +4493,34 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
     editBeurtHeleDagChanged();
   }
 
+  // Fix #6: Multi-dag planning — pre-fill eind-datum, auto-shift bij drag-drop
+  var multiCb = document.getElementById('edit-beurt-meerdere-dagen');
+  var eindInput = document.getElementById('edit-beurt-eind-datum');
+  if (multiCb && eindInput) {
+    if (beurt.eind_datum && beurt.eind_datum !== beurt.plan_datum) {
+      multiCb.checked = true;
+      // Bij drag-drop: schuif eind_datum met dezelfde delta mee als plan_datum
+      if (dropDate && beurt.plan_datum && dropDate !== beurt.plan_datum) {
+        var oldStart = parseDate(beurt.plan_datum);
+        var oldEnd   = parseDate(beurt.eind_datum);
+        var newStart = parseDate(dropDate);
+        if (oldStart && oldEnd && newStart) {
+          var spanDagen = Math.round((oldEnd - oldStart) / 86400000);
+          var newEnd = new Date(newStart); newEnd.setDate(newEnd.getDate() + spanDagen);
+          eindInput.value = formatDateISO(newEnd);
+        } else {
+          eindInput.value = beurt.eind_datum;
+        }
+      } else {
+        eindInput.value = beurt.eind_datum;
+      }
+    } else {
+      multiCb.checked = false;
+      eindInput.value = '';
+    }
+    editBeurtMultiDagChanged();
+  }
+
   // Set notities
   document.getElementById('edit-beurt-notities').value = beurt.notities || '';
 
@@ -4015,6 +4606,57 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
 
 function closeEditBeurtModal() {
   document.getElementById('modal-edit-beurt').classList.remove('open');
+}
+
+// =============================================
+// FIX #6 — MULTI-DAG PLANNING (edit-beurt modal)
+// =============================================
+
+/**
+ * Togglet de eind-datum input. Bij aanvinken: pre-vullen op plan_datum + 1 dag.
+ * Bij uitvinken: eind-datum clearen (wordt NULL in DB = eendaagse beurt).
+ */
+function editBeurtMultiDagChanged() {
+  var cb = document.getElementById('edit-beurt-meerdere-dagen');
+  var wrap = document.getElementById('edit-beurt-eind-wrap');
+  var eindInput = document.getElementById('edit-beurt-eind-datum');
+  var startInput = document.getElementById('edit-beurt-datum');
+  if (!cb || !wrap || !eindInput) return;
+
+  if (cb.checked) {
+    wrap.style.display = 'block';
+    if (!eindInput.value && startInput && startInput.value) {
+      // Pre-fill op start + 1 dag
+      var d = new Date(startInput.value);
+      d.setDate(d.getDate() + 1);
+      eindInput.value = formatDateISO(d);
+    }
+    if (startInput && startInput.value) {
+      eindInput.min = startInput.value;
+    }
+  } else {
+    wrap.style.display = 'none';
+    eindInput.value = '';
+  }
+}
+
+/**
+ * Houdt eind-datum min-constraint in sync als de start-datum verschuift.
+ * Als eind-datum nu voor start-datum ligt: reset naar start + 1 dag.
+ */
+function editBeurtDatumChanged() {
+  var startInput = document.getElementById('edit-beurt-datum');
+  var eindInput = document.getElementById('edit-beurt-eind-datum');
+  var cb = document.getElementById('edit-beurt-meerdere-dagen');
+  if (!startInput || !eindInput) return;
+
+  if (startInput.value) eindInput.min = startInput.value;
+
+  if (cb && cb.checked && eindInput.value && eindInput.value < startInput.value) {
+    var d = new Date(startInput.value);
+    d.setDate(d.getDate() + 1);
+    eindInput.value = formatDateISO(d);
+  }
 }
 
 /**
@@ -4299,11 +4941,32 @@ async function deleteBeurtFromModal() {
   var beurtId = document.getElementById('edit-beurt-id').value;
   var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
   if (!beurt) return;
+
+  // Pre-check 1: al gefactureerd? (FK facturatie_regels → NO ACTION, blokkeert delete)
+  try {
+    var fr = await sb.from('facturatie_regels').select('id').eq('onderhoudsbeurt_id', beurtId).limit(1);
+    if (fr && fr.data && fr.data.length > 0) {
+      showToast('Deze beurt staat al op een factuur en kan niet worden verwijderd.', 'error');
+      return;
+    }
+  } catch (_) { /* tabel bestaat mogelijk niet — fall through */ }
+
   var hasUren = !!(window._allUrenRegistraties || []).find(function(u) { return u.beurt_id === beurtId; });
   var isUitgevoerd = (beurt.status === 'uitgevoerd' || beurt.status === 'afgewerkt');
+
+  // Pre-check 2: gekoppelde interventie? (FK → SET NULL sinds migratie, dus interventie-ticket blijft)
+  var linkedInterventie = null;
+  try {
+    var iv = await sb.from('interventies').select('id, omschrijving').eq('onderhoudsbeurt_id', beurtId).limit(1);
+    if (iv && iv.data && iv.data.length > 0) linkedInterventie = iv.data[0];
+  } catch (_) { /* niet fataal */ }
+
   var msg = 'Deze beurt wordt definitief verwijderd. Deze actie kan niet ongedaan gemaakt worden.';
   if (hasUren || isUitgevoerd) {
     msg += '\n\nLet op: geregistreerde uren worden mee verwijderd en verdwijnen uit de loon-export.';
+  }
+  if (linkedInterventie) {
+    msg += '\n\nDe gekoppelde interventie blijft bestaan (als ticket) en kan opnieuw ingepland worden.';
   }
   var ok = await confirmDialog({
     title: 'Beurt verwijderen?',
@@ -4320,13 +4983,28 @@ async function deleteBeurtFromModal() {
   } catch (_) { /* niet-fataal */ }
 
   var res = await sb.from('onderhoudsbeurten').delete().eq('id', beurtId);
-  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+  if (res.error) {
+    // User-vriendelijke messages voor gekende error-codes
+    var errMsg = res.error.message || '';
+    if (/foreign key/i.test(errMsg) || res.error.code === '23503') {
+      showToast('Beurt kan niet verwijderd worden: er zijn nog verwijzingen (factuur, rapport of ander record). Controleer de koppelingen.', 'error');
+    } else {
+      showToast('Fout bij verwijderen: ' + errMsg, 'error');
+    }
+    return;
+  }
 
   // Lokale state opruimen
   allBeurten = allBeurten.filter(function(b) { return b.id !== beurtId; });
   if (window._allUrenRegistraties) {
     window._allUrenRegistraties = window._allUrenRegistraties.filter(function(u) {
       return u.beurt_id !== beurtId;
+    });
+  }
+  // Lokale interventies-state: onderhoudsbeurt_id naar null zetten (DB heeft dit al via SET NULL)
+  if (window._allInterventies) {
+    window._allInterventies.forEach(function(i) {
+      if (i.onderhoudsbeurt_id === beurtId) i.onderhoudsbeurt_id = null;
     });
   }
   closeEditBeurtModal();
@@ -4633,9 +5311,23 @@ async function saveEditBeurt() {
     extraIds.push(chip.getAttribute('data-tech'));
   });
 
+  // Fix #6: Multi-dag planning — eind-datum (NULL = eendaags)
+  var multiCb = document.getElementById('edit-beurt-meerdere-dagen');
+  var eindInputEl = document.getElementById('edit-beurt-eind-datum');
+  var eindDatum = null;
+  if (multiCb && multiCb.checked && eindInputEl && eindInputEl.value) {
+    eindDatum = eindInputEl.value;
+    if (eindDatum < datum) {
+      showToast('Eind-datum mag niet voor start-datum liggen', 'error');
+      return;
+    }
+    if (eindDatum === datum) eindDatum = null; // gelijke dag = eendaags
+  }
+
   var updateData = {
     technieker_id: techId,
     plan_datum: datum,
+    eind_datum: eindDatum,
     start_tijd: startTijd,
     duur_minuten: duur,
     notities: notities || null,
@@ -4676,6 +5368,7 @@ async function saveEditBeurt() {
   var oldStatus = beurt.status;
   beurt.technieker_id = techId;
   beurt.plan_datum = datum;
+  beurt.eind_datum = eindDatum;
   beurt.start_tijd = startTijd;
   beurt.duur_minuten = duur;
   beurt.notities = notities || null;
@@ -4730,7 +5423,9 @@ function renderMonthView() {
         var ds = formatDateISO(d);
 
         var dayBeurten = allBeurten.filter(function(b) {
-          return b.plan_datum === ds && (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt');
+          // Fix #6: range-match voor multi-dag beurten
+          if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+          return isBeurtOnDay(b, ds);
         });
 
         html += '<td class="' + (isOther ? 'other-month' : '') + (isToday ? ' today-cell' : '') + '" ' +
@@ -4900,11 +5595,11 @@ function quickAdd(techId, datum, mode, opdrachtType) {
     document.getElementById('qa-info').textContent = 'Maak een nieuwe taak aan — vul klant + duur in, daarna opmaken of direct inplannen.';
   }
 
-  // Toon banner + schakel contract vs client vs tarief-blok
+  // Toon banner + schakel contract vs client
   document.getElementById('qa-losse-banner').style.display = isLosse ? 'block' : 'none';
   document.getElementById('qa-contract-wrap').style.display = isLosse ? 'none' : 'block';
   document.getElementById('qa-client-wrap').style.display = isLosse ? 'block' : 'none';
-  document.getElementById('qa-tarief-wrap').style.display = isLosse ? 'block' : 'none';
+  // Facturatie-keuze is verwijderd uit UI — zie hidden input 'qa-tarief-type-hidden' (default 'uurtarief').
 
   // Populate contract dropdown (nieuwe klant via knop rechts ernaast)
   var sel = document.getElementById('qa-contract');
@@ -4932,10 +5627,8 @@ function quickAdd(techId, datum, mode, opdrachtType) {
     });
   }
 
-  // Reset tarief-keuze
-  document.querySelectorAll('input[name="qa-tarief-type"]').forEach(function(r) { r.checked = false; });
-  document.getElementById('qa-forfait-wrap').style.display = 'none';
-  document.getElementById('qa-uurtarief-hint').style.display = 'none';
+  // Reset hidden tarief-keuze (default = uurtarief, backend verrekent)
+  var hiddenT = document.getElementById('qa-tarief-type-hidden'); if (hiddenT) hiddenT.value = 'uurtarief';
   var fBedrag = document.getElementById('qa-forfait-bedrag'); if (fBedrag) fBedrag.value = '';
 
   // Populate partner dropdown — Flancco Direct als standaard
@@ -5295,18 +5988,11 @@ function qaLocatieChangedFromClient(clientId) {
   }
 }
 
-function qaTariefTypeChanged() {
-  var checked = document.querySelector('input[name="qa-tarief-type"]:checked');
-  var val = checked ? checked.value : '';
-  document.getElementById('qa-forfait-wrap').style.display = (val === 'forfait') ? 'block' : 'none';
-  document.getElementById('qa-uurtarief-hint').style.display = (val === 'uurtarief') ? 'block' : 'none';
-  if (val === 'forfait') {
-    setTimeout(function() {
-      var f = document.getElementById('qa-forfait-bedrag');
-      if (f) f.focus();
-    }, 50);
-  }
-}
+// Legacy: facturatie-keuze (forfait vs uurtarief) werd verwijderd uit de inplannings-UI.
+// Losse opdrachten defaulten nu naar 'uurtarief' → backend verrekent via contract- of technieker-tarief
+// na uren-bevestiging. Zie ook saveQuickAdd() + facturatie-queue in admin/index.html.
+// Functie stub behouden voor backwards-compat (edit-beurt modal kan er nog naar verwijzen).
+function qaTariefTypeChanged() { /* no-op */ }
 
 function toggleTechChip(el) {
   el.classList.toggle('selected');
@@ -5356,18 +6042,15 @@ async function saveQuickAdd(action) {
   var sector = document.getElementById('qa-sector').value;
   if (!sector) { alert('Kies een sector.'); return; }
 
-  // Losse opdracht: tarief-type + evt. bedrag verplicht
+  // Facturatie-keuze werd verwijderd uit de inplannings-UI (geen forfait/uurtarief-radio meer).
+  // Losse opdrachten defaulten naar uurtarief → backend verrekent na uren-bevestiging
+  // via contract-tarief (indien aanwezig) of technieker-tarief. Zie facturatie-queue.
   var tariefType = null;
   var forfaitBedrag = null;
   if (isLosse) {
-    var tariefRadio = document.querySelector('input[name="qa-tarief-type"]:checked');
-    tariefType = tariefRadio ? tariefRadio.value : null;
-    if (!tariefType) { alert('Kies een facturatiemethode: forfait of uurtarief.'); return; }
-    if (tariefType === 'forfait') {
-      var bedragRaw = parseFloat((document.getElementById('qa-forfait-bedrag').value || '').replace(',', '.'));
-      if (!bedragRaw || bedragRaw <= 0) { alert('Vul een geldig forfaitbedrag in (groter dan €0).'); document.getElementById('qa-forfait-bedrag').focus(); return; }
-      forfaitBedrag = Math.round(bedragRaw * 100) / 100;
-    }
+    var hiddenTarief = document.getElementById('qa-tarief-type-hidden');
+    tariefType = (hiddenTarief && hiddenTarief.value) || 'uurtarief';
+    // forfaitBedrag blijft null — backend gebruikt uurtarief-logica
   }
 
   var heleDag = document.getElementById('qa-hele-dag').checked;
@@ -5585,7 +6268,7 @@ function renderBeschikbaarheid() {
   var dates = getWeekDates(currentDate);
   var todayDate = new Date(); todayDate.setHours(0,0,0,0);
   var todayStr = formatDateISO(todayDate);
-  var dayLabels = ['Ma','Di','Wo','Do','Vr'];
+  var dayLabels = ['Ma','Di','Wo','Do','Vr','Za','Zo'];
 
   document.getElementById('period-label').textContent =
     'Beschikbaarheid — Week ' + getWeekNumber(dates[0]);
@@ -5597,18 +6280,20 @@ function renderBeschikbaarheid() {
 
     // Calculate week workload
     var weekMin = 0;
-    var dayTaken = [0,0,0,0,0];
-    var dayAbsent = [false,false,false,false,false];
+    var dayTaken = [0,0,0,0,0,0,0];
+    var dayAbsent = [false,false,false,false,false,false,false];
     var dayAfwInfo = [];
 
-    for (var d = 0; d < 5; d++) {
+    for (var d = 0; d < 7; d++) {
       dayAbsent[d] = isTechAbsent(tech.id, dates[d]);
       dayAfwInfo[d] = dayAbsent[d] ? getAfwezigheidInfo(tech.id, dates[d]) : null;
       allBeurten.forEach(function(b) {
         var isPri = b.technieker_id === tech.id;
         var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
-        if ((isPri || isExt) && b.plan_datum === formatDateISO(dates[d]) &&
-            (b.status === 'ingepland' || b.status === 'uitgevoerd' || b.status === 'afgewerkt')) {
+        if (!isPri && !isExt) return;
+        if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return;
+        // Fix #6: multi-dag beurt telt op elke dag in range
+        if (isBeurtOnDay(b, formatDateISO(dates[d]))) {
           weekMin += getEffectieveMinutenForBeurt(b, tech.id);
           dayTaken[d]++;
         }
@@ -5626,7 +6311,9 @@ function renderBeschikbaarheid() {
       badgeStyle = 'background:' + aInfo.kleur + '20;color:' + aInfo.kleur;
       badgeText = aInfo.type_naam;
     } else {
-      var todayTaken = dayTaken[todayDate.getDay() - 1] || 0;
+      var _rawDow = todayDate.getDay();
+      var _todayIdx = _rawDow === 0 ? 6 : _rawDow - 1;
+      var todayTaken = dayTaken[_todayIdx] || 0;
       if (todayTaken === 0) {
         badgeStyle = 'background:#DCFCE7;color:#166534';
         badgeText = 'Beschikbaar';
@@ -5650,13 +6337,15 @@ function renderBeschikbaarheid() {
 
     // Mini week blocks
     html += '<div class="mini-week">';
-    for (var d = 0; d < 5; d++) {
+    for (var d = 0; d < 7; d++) {
       var bgColor, textColor;
+      var isWeekendD = d >= 5;
       if (dayAbsent[d]) {
         bgColor = dayAfwInfo[d].kleur + '20';
         textColor = dayAfwInfo[d].kleur;
       } else if (dayTaken[d] === 0) {
-        bgColor = '#DCFCE720'; textColor = '#166534';
+        bgColor = isWeekendD ? '#F1F5F9' : '#DCFCE720';
+        textColor = isWeekendD ? '#94A3B8' : '#166534';
       } else if (dayTaken[d] <= 2) {
         bgColor = '#DBEAFE'; textColor = '#1E40AF';
       } else {
@@ -5669,12 +6358,15 @@ function renderBeschikbaarheid() {
     html += '</div>';
 
     // Taken vandaag
-    var todayIdx = todayDate.getDay() - 1; // 0=ma
-    if (todayIdx >= 0 && todayIdx < 5 && !dayAbsent[todayIdx]) {
+    // getDay(): 0=zo, 1=ma, 2=di, ..., 6=za. Dus idx = (d+6)%7 mapping naar ma=0, di=1, ..., zo=6.
+    var rawDow = todayDate.getDay();
+    var todayIdx = rawDow === 0 ? 6 : rawDow - 1;
+    if (!dayAbsent[todayIdx]) {
       var todayBeurten = allBeurten.filter(function(b) {
         var isPri = b.technieker_id === tech.id;
         var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
-        return (isPri || isExt) && b.plan_datum === todayStr && b.status === 'ingepland';
+        // Fix #6: multi-dag beurt telt als "vandaag" zolang today in range valt
+        return (isPri || isExt) && b.status === 'ingepland' && isBeurtOnDay(b, todayStr);
       });
       if (todayBeurten.length > 0) {
         html += '<div class="taken-vandaag">';
@@ -5709,9 +6401,9 @@ function renderBeschikbaarheid() {
 
     bedienden.forEach(function(tech) {
       var isAbsentToday = isTechAbsent(tech.id, todayDate);
-      var bDayAbsent = [false,false,false,false,false];
+      var bDayAbsent = [false,false,false,false,false,false,false];
       var bDayAfwInfo = [];
-      for (var d = 0; d < 5; d++) {
+      for (var d = 0; d < 7; d++) {
         bDayAbsent[d] = isTechAbsent(tech.id, dates[d]);
         bDayAfwInfo[d] = bDayAbsent[d] ? getAfwezigheidInfo(tech.id, dates[d]) : null;
       }
@@ -5736,13 +6428,16 @@ function renderBeschikbaarheid() {
         '</div>';
 
       html += '<div class="mini-week">';
-      for (var d = 0; d < 5; d++) {
+      for (var d = 0; d < 7; d++) {
         var bgColor, textColor, dayContent;
+        var isWeekendD = d >= 5;
         if (bDayAbsent[d]) {
           bgColor = bDayAfwInfo[d].kleur + '20'; textColor = bDayAfwInfo[d].kleur;
           dayContent = bDayAfwInfo[d].type_naam.substring(0,3);
         } else {
-          bgColor = '#F1F5F9'; textColor = '#64748B'; dayContent = '\u2022';
+          bgColor = isWeekendD ? '#E2E8F0' : '#F1F5F9';
+          textColor = isWeekendD ? '#94A3B8' : '#64748B';
+          dayContent = '\u2022';
         }
         html += '<div class="mini-day" style="background:' + bgColor + ';color:' + textColor + '">' +
           '<span class="mini-day-label">' + dayLabels[d] + '</span>' + dayContent + '</div>';
