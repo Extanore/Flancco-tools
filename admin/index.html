@@ -426,6 +426,14 @@
   .btn-add-loc { width: 100%; padding: 10px; background: none; border: 1.5px dashed var(--rule); border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; transition: border-color 0.2s, background 0.2s; }
   .btn-add-loc:hover { border-color: var(--navy); background: var(--light); }
 
+  /* PARTNER-PRESELECT — locked chip + unlock checkbox */
+  .kl-partner-locked { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--light); border: 1.5px solid var(--rule); border-radius: 10px; }
+  .kl-partner-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--navy); }
+  .kl-partner-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--navy); }
+  .kl-partner-unlock-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--grey); cursor: pointer; user-select: none; }
+  .kl-partner-unlock-toggle input { width: 14px; height: 14px; cursor: pointer; accent-color: var(--navy); }
+  .kl-partner-unlock-toggle:hover { color: var(--navy); }
+
   /* KLANTTYPE TOGGLE — pill-style radio */
   .kl-type-toggle { display: inline-flex; background: var(--light); border: 1.5px solid var(--rule); border-radius: 10px; padding: 3px; gap: 2px; }
   .kl-type-toggle label { flex: 1; cursor: pointer; }
@@ -2166,8 +2174,19 @@
       <div class="modal-tab-pane active" data-pane="basis">
         <div class="modal-field admin-only" id="kl-partner-wrap" style="margin-bottom:16px">
           <label>Partner *</label>
-          <select id="kl-partner-select" onchange="document.getElementById('kl-partner').value = this.value"></select>
-          <small style="color:var(--grey);font-size:11px">Onder welke partner valt deze klant commercieel.</small>
+          <div id="kl-partner-locked" class="kl-partner-locked">
+            <div class="kl-partner-chip">
+              <span id="kl-partner-locked-name">Flancco Direct</span>
+            </div>
+            <label class="kl-partner-unlock-toggle">
+              <input type="checkbox" id="kl-partner-unlock" onchange="klPartnerUnlockChanged()">
+              <span>Andere partner kiezen</span>
+            </label>
+          </div>
+          <div id="kl-partner-select-wrap" style="display:none;margin-top:10px">
+            <select id="kl-partner-select" onchange="klPartnerSelectChanged(this)"></select>
+            <small style="color:var(--grey);font-size:11px;display:block;margin-top:4px">Onder welke partner valt deze klant commercieel.</small>
+          </div>
         </div>
         <div class="modal-field partner-only" id="kl-partner-display-wrap" style="margin-bottom:16px">
           <label>Partner</label>
@@ -6769,6 +6788,49 @@ var klantContactsBuffer = [];
 // Snapshot van contact-ids die bij openen al bestonden — om te bepalen welke we moeten DELETE-en.
 var klantContactsInitialIds = [];
 
+// Sync van dropdown-keuze naar hidden input + locked-chip-label.
+function klPartnerSelectChanged(selEl) {
+  var partnerField = document.getElementById('kl-partner');
+  if (partnerField) partnerField.value = selEl.value;
+  var partnersList = (typeof allPartners !== 'undefined' ? allPartners : null) || partners || [];
+  var selected = partnersList.find(function(p) { return p.id === selEl.value; });
+  var lockedNameEl = document.getElementById('kl-partner-locked-name');
+  if (lockedNameEl) {
+    lockedNameEl.textContent = selected ? (selected.bedrijfsnaam || selected.naam || '—') : '— Geen partner gekozen —';
+  }
+}
+
+// Toggle de partner-dropdown: standaard tonen we een locked-chip met de gekozen partner.
+// Checkbox "Andere partner kiezen" klapt de volledige dropdown open zodat admin een andere partner kan selecteren.
+function klPartnerUnlockChanged() {
+  var cb = document.getElementById('kl-partner-unlock');
+  var lockedBox = document.getElementById('kl-partner-locked');
+  var selectWrap = document.getElementById('kl-partner-select-wrap');
+  if (!cb || !lockedBox || !selectWrap) return;
+  if (cb.checked) {
+    selectWrap.style.display = '';
+    lockedBox.style.opacity = '0.6';
+    var sel = document.getElementById('kl-partner-select');
+    if (sel) {
+      setTimeout(function() { sel.focus(); }, 50);
+    }
+  } else {
+    selectWrap.style.display = 'none';
+    lockedBox.style.opacity = '';
+    // Re-sync: als dropdown ondertussen een andere partner had, reset naar de locked-waarde (Flancco Direct / actieve klant-partner)
+    var partnerField = document.getElementById('kl-partner');
+    var partnersList = (typeof allPartners !== 'undefined' ? allPartners : null) || partners || [];
+    var flanccoPartner = partnersList.find(function(p) { return (p.slug || '').toLowerCase() === 'flancco'; });
+    if (flanccoPartner) {
+      partnerField.value = flanccoPartner.id;
+      var sel = document.getElementById('kl-partner-select');
+      if (sel) sel.value = flanccoPartner.id;
+      var lockedNameEl = document.getElementById('kl-partner-locked-name');
+      if (lockedNameEl) lockedNameEl.textContent = flanccoPartner.bedrijfsnaam || flanccoPartner.naam || 'Flancco Direct';
+    }
+  }
+}
+
 function klTypeChanged() {
   var type = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
   var bedrijfWrap    = document.getElementById('kl-bedrijf-wrap');
@@ -7054,19 +7116,42 @@ async function openKlantModal(editData) {
     });
     selEl.innerHTML = opts;
   }
+  // Partner-preselect logica (enkel admin-flow; partner-rol krijgt disabled display)
+  var partnersList = (typeof allPartners !== 'undefined' ? allPartners : null) || partners || [];
+  var flanccoPartner = partnersList.find(function(p) { return (p.slug || '').toLowerCase() === 'flancco'; });
   var pre = '';
+  var shouldUnlock = false;
   if (editData && editData.partner_id) {
     pre = editData.partner_id;
+    // Als klant reeds een niet-Flancco partner heeft: toon dropdown direct (unlock)
+    shouldUnlock = !flanccoPartner || editData.partner_id !== flanccoPartner.id;
   } else if (userRole === 'partner' && userPartner) {
     pre = userPartner.id;
   } else {
-    var filterEl = document.getElementById('filter-klant-partner');
-    pre = (filterEl && filterEl.value) || '';
+    // Nieuwe klant als admin → default Flancco Direct; indien niet gevonden, fallback op lijst-filter
+    if (flanccoPartner) {
+      pre = flanccoPartner.id;
+    } else {
+      var filterEl = document.getElementById('filter-klant-partner');
+      pre = (filterEl && filterEl.value) || '';
+    }
   }
   partnerField.value = pre;
   if (selEl) selEl.value = pre;
   if (dispEl && userRole === 'partner' && userPartner) {
     dispEl.value = userPartner.bedrijfsnaam || userPartner.naam || '';
+  }
+
+  // Locked-chip label + unlock-state instellen (enkel relevant voor admin)
+  if (userRole !== 'partner') {
+    var lockedNameEl = document.getElementById('kl-partner-locked-name');
+    var selectedPartner = partnersList.find(function(p) { return p.id === pre; });
+    if (lockedNameEl) {
+      lockedNameEl.textContent = selectedPartner ? (selectedPartner.bedrijfsnaam || selectedPartner.naam || '—') : '— Geen partner gekozen —';
+    }
+    var unlockCb = document.getElementById('kl-partner-unlock');
+    if (unlockCb) unlockCb.checked = shouldUnlock;
+    klPartnerUnlockChanged();
   }
 
   // Reset naar tab Basis
