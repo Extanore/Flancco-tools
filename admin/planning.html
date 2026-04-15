@@ -1233,11 +1233,13 @@
       <textarea id="edit-beurt-notities" rows="2" placeholder="Optioneel..."></textarea>
     </div>
 
-    <div class="modal-buttons" style="flex-wrap:wrap;gap:8px">
-      <button onclick="closeEditBeurtModal()">Annuleren</button>
-      <button id="edit-beurt-unplan-btn" style="margin-right:auto;background:#FEE2E2;color:#DC2626" onclick="unplanFromModal()">Uitplannen</button>
-      <button id="edit-beurt-uitgevoerd-btn" class="btn-save" style="background:#059669" onclick="markUitgevoerdFromModal()">Markeer als uitgevoerd</button>
-      <button class="btn-save" onclick="saveEditBeurt()">Opslaan</button>
+    <div class="modal-buttons" style="flex-wrap:wrap;gap:8px;align-items:center">
+      <button id="edit-beurt-delete-btn" type="button" style="margin-right:auto;background:#fff;color:#DC2626;border:1.5px solid #FCA5A5;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="deleteBeurtFromModal()">Verwijderen</button>
+      <button id="edit-beurt-unplan-btn" type="button" style="background:#FEE2E2;color:#DC2626;border:none;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="unplanFromModal()">Uitplannen</button>
+      <button id="edit-beurt-reopen-btn" type="button" style="display:none;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="reopenBeurtFromModal()">Terug naar ingepland</button>
+      <button type="button" onclick="closeEditBeurtModal()">Annuleren</button>
+      <button id="edit-beurt-uitgevoerd-btn" type="button" class="btn-save" style="background:#059669" onclick="markUitgevoerdFromModal()">Markeer als uitgevoerd</button>
+      <button type="button" class="btn-save" onclick="saveEditBeurt()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -3636,13 +3638,21 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
     });
   }
 
-  // Show/hide uitplannen button (only for already planned beurten)
+  // Knop-zichtbaarheid afhankelijk van beurt-status:
+  // - Uitplannen: enkel op 'ingepland' (verwijdert datum/technieker, zet terug naar backlog)
+  // - Markeer als uitgevoerd: enkel op 'ingepland'
+  // - Terug naar ingepland: enkel op 'uitgevoerd' (undo-flow)
+  // - Verwijderen: altijd, behalve voor nieuwe beurten die nog niet in DB staan
+  var isUitgevoerd = (beurt.status === 'uitgevoerd' || beurt.status === 'afgewerkt');
+  var isIngepland  = (beurt.status === 'ingepland');
   var unplanBtn = document.getElementById('edit-beurt-unplan-btn');
-  if (unplanBtn) unplanBtn.style.display = (beurt.status === 'ingepland') ? '' : 'none';
-
-  // Show/hide uitgevoerd button (only for ingepland)
+  if (unplanBtn) unplanBtn.style.display = isIngepland ? '' : 'none';
   var uitgevoerdBtn = document.getElementById('edit-beurt-uitgevoerd-btn');
-  if (uitgevoerdBtn) uitgevoerdBtn.style.display = (beurt.status === 'ingepland') ? '' : 'none';
+  if (uitgevoerdBtn) uitgevoerdBtn.style.display = isIngepland ? '' : 'none';
+  var reopenBtn = document.getElementById('edit-beurt-reopen-btn');
+  if (reopenBtn) reopenBtn.style.display = isUitgevoerd ? '' : 'none';
+  var deleteBtn = document.getElementById('edit-beurt-delete-btn');
+  if (deleteBtn) deleteBtn.style.display = isNew ? 'none' : '';
 
   document.getElementById('modal-edit-beurt').classList.add('open');
 }
@@ -3874,6 +3884,103 @@ async function markUitgevoerdFromModal() {
   if (!beurt) return;
   closeEditBeurtModal();
   openUrenBevestigenModal(beurt);
+}
+
+/**
+ * Undo van "Markeer als uitgevoerd": zet status terug naar 'ingepland' en
+ * verwijdert gekoppelde uren-registraties zodat loon-export zuiver blijft.
+ * Datum + technieker blijven staan — planner kan daarna via "Uitplannen"
+ * de backlog-flow kiezen als de beurt ook qua planning moet verschuiven.
+ */
+async function reopenBeurtFromModal() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+  var ok = await confirmDialog({
+    title: 'Terug naar ingepland?',
+    message: 'De uren-registraties van deze beurt worden verwijderd uit de loon-export. De datum en technieker blijven bewaard.',
+    confirmLabel: 'Ja, terug naar ingepland',
+    cancelLabel: 'Annuleren',
+    variant: 'primary'
+  });
+  if (!ok) return;
+
+  // Eerst uren-registraties opruimen — cascade niet gegarandeerd, dus expliciet.
+  try {
+    await sb.from('beurt_uren_registraties').delete().eq('beurt_id', beurtId);
+  } catch (_) { /* tabel kan ontbreken in oudere schemas — niet-fataal */ }
+
+  var res = await sb.from('onderhoudsbeurten').update({
+    status: 'ingepland',
+    uitvoer_datum: null,
+    updated_at: new Date().toISOString()
+  }).eq('id', beurtId);
+  if (res.error) {
+    // Forward-compat: als uitvoer_datum-kolom niet bestaat, retry zonder.
+    if (/uitvoer_datum/.test(res.error.message || '')) {
+      res = await sb.from('onderhoudsbeurten').update({
+        status: 'ingepland', updated_at: new Date().toISOString()
+      }).eq('id', beurtId);
+    }
+  }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+
+  beurt.status = 'ingepland';
+  if ('uitvoer_datum' in beurt) beurt.uitvoer_datum = null;
+  // Lokale uren-cache opruimen zodat sidebar direct klopt.
+  if (window._allUrenRegistraties) {
+    window._allUrenRegistraties = window._allUrenRegistraties.filter(function(u) {
+      return u.beurt_id !== beurtId;
+    });
+  }
+  closeEditBeurtModal();
+  showToast('Beurt terug naar ingepland');
+  renderView();
+  renderSidebar();
+}
+
+/**
+ * Definitief verwijderen van een beurt. Vraagt bevestiging — extra waarschuwing
+ * als er al uren geregistreerd zijn (die verdwijnen mee via cascade of expliciet).
+ */
+async function deleteBeurtFromModal() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var beurt = allBeurten.find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+  var hasUren = !!(window._allUrenRegistraties || []).find(function(u) { return u.beurt_id === beurtId; });
+  var isUitgevoerd = (beurt.status === 'uitgevoerd' || beurt.status === 'afgewerkt');
+  var msg = 'Deze beurt wordt definitief verwijderd. Deze actie kan niet ongedaan gemaakt worden.';
+  if (hasUren || isUitgevoerd) {
+    msg += '\n\nLet op: geregistreerde uren worden mee verwijderd en verdwijnen uit de loon-export.';
+  }
+  var ok = await confirmDialog({
+    title: 'Beurt verwijderen?',
+    message: msg,
+    confirmLabel: 'Ja, verwijderen',
+    cancelLabel: 'Annuleren',
+    variant: 'danger'
+  });
+  if (!ok) return;
+
+  // Expliciet uren opruimen (CASCADE-onafhankelijk).
+  try {
+    await sb.from('beurt_uren_registraties').delete().eq('beurt_id', beurtId);
+  } catch (_) { /* niet-fataal */ }
+
+  var res = await sb.from('onderhoudsbeurten').delete().eq('id', beurtId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+
+  // Lokale state opruimen
+  allBeurten = allBeurten.filter(function(b) { return b.id !== beurtId; });
+  if (window._allUrenRegistraties) {
+    window._allUrenRegistraties = window._allUrenRegistraties.filter(function(u) {
+      return u.beurt_id !== beurtId;
+    });
+  }
+  closeEditBeurtModal();
+  showToast('Beurt verwijderd');
+  renderView();
+  renderSidebar();
 }
 
 // =============================================
