@@ -3104,7 +3104,7 @@ async function sidebarDeleteBeurt(beurtId) {
     }
   } catch (_) { /* tabel optioneel */ }
 
-  if (!confirm('Losse opdracht verwijderen?\n\n' + label + '\n\nDeze actie kan niet ongedaan gemaakt worden.')) return;
+  if (!(await confirmDialog({ title: 'Losse opdracht verwijderen?', message: label + '\n\nDeze actie kan niet ongedaan gemaakt worden.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   try {
     var res = await sb.from('onderhoudsbeurten').delete().eq('id', beurtId);
@@ -3150,7 +3150,7 @@ async function sidebarDeleteInterventie(ivId) {
   if (!iv) { showToast('Interventie niet gevonden', 'error'); return; }
   var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
   var label = (iv.omschrijving || 'deze interventie').slice(0, 80);
-  if (!confirm('Interventie verwijderen?\n\n' + label + '\n\nDeze actie kan niet ongedaan gemaakt worden.')) return;
+  if (!(await confirmDialog({ title: 'Interventie verwijderen?', message: label + '\n\nDeze actie kan niet ongedaan gemaakt worden.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   try {
     // Eerst gekoppelde beurt verwijderen (als aanwezig)
     if (iv.onderhoudsbeurt_id) {
@@ -3309,7 +3309,7 @@ async function deleteInterventieWithOwnershipCheck(ivId) {
   }
   prompt += '\n\nDeze actie kan niet ongedaan gemaakt worden.';
 
-  if (!confirm(prompt)) return;
+  if (!(await confirmDialog({ title: isExternalPartner ? 'Let op — partner-interventie' : 'Interventie verwijderen?', message: prompt, variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   try {
     // Eerst: gekoppelde onderhoudsbeurt verwijderen (als aanwezig + nog niet uitgevoerd/gefactureerd)
@@ -4132,7 +4132,7 @@ async function ctxReopen() {
   var waarschuwing = hadUren
     ? 'De uren-registraties van deze beurt worden verwijderd uit de loon-export.\n\n'
     : '';
-  if (!confirm(waarschuwing + 'Terug naar ingepland?\n\nDe beurt komt terug in het kalenderoverzicht als openstaande taak.')) {
+  if (!(await confirmDialog({ title: 'Terug naar ingepland?', message: waarschuwing + 'De beurt komt terug in het kalenderoverzicht als openstaande taak.', variant: 'danger', confirmLabel: 'Terug naar ingepland' }))) {
     ctxBeurtId = null; return;
   }
 
@@ -4208,7 +4208,7 @@ async function _legacyCtxMarkDoneConfirm() {
     return;
   }
 
-  if (!confirm('Markeer als uitgevoerd? De beurt verschijnt in de Rapportage-tab voor rapportopmaak.')) {
+  if (!(await confirmDialog({ title: 'Markeer als uitgevoerd?', message: 'De beurt verschijnt in de Rapportage-tab voor rapportopmaak.', confirmLabel: 'Markeren' }))) {
     ctxBeurtId = null; return;
   }
   try {
@@ -4229,7 +4229,7 @@ async function _legacyCtxMarkDoneConfirm() {
 
 async function ctxCancel() {
   if (!ctxBeurtId) return;
-  if (!confirm('Weet je zeker dat je deze beurt wil annuleren?')) { ctxBeurtId = null; return; }
+  if (!(await confirmDialog({ title: 'Beurt annuleren?', message: 'Weet je zeker dat je deze beurt wil annuleren?', variant: 'danger', confirmLabel: 'Annuleren beurt', cancelLabel: 'Terug' }))) { ctxBeurtId = null; return; }
 
   var beurt = allBeurten.find(function(b) { return b.id === ctxBeurtId; });
   if (!beurt) return;
@@ -4314,7 +4314,7 @@ function ctxEditAfw() {
 }
 async function ctxDeleteAfw() {
   if (!ctxCellAfwId) return;
-  if (!confirm('Verlof van deze technieker verwijderen?')) return;
+  if (!(await confirmDialog({ title: 'Verlof verwijderen?', message: 'Verlof van deze technieker verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var res = await sb.from('technieker_afwezigheden').delete().eq('id', ctxCellAfwId);
   if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
   await loadPlanningData();
@@ -4413,7 +4413,7 @@ async function saveQuickVerlof() {
 async function deleteQuickVerlof() {
   var editId = document.getElementById('qv-edit-id').value;
   if (!editId) return;
-  if (!confirm('Verlof verwijderen?')) return;
+  if (!(await confirmDialog({ title: 'Verlof verwijderen?', message: 'Deze verlof-registratie definitief verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var res = await sb.from('technieker_afwezigheden').delete().eq('id', editId);
   if (res.error) { alert('Fout: ' + res.error.message); return; }
   closeQuickVerlofModal();
@@ -6599,7 +6599,7 @@ function renderAfgewerkLijst() {
 
 // Ongedaan maken voor losse opdrachten: reset afgewerkt → ingepland (geen rapport om te verwijderen)
 async function ongedaanMaakLosse(beurtId) {
-  if (!confirm('Deze losse opdracht terug op "ingepland" zetten? De uren-registratie blijft bewaard.')) return;
+  if (!(await confirmDialog({ title: 'Terug naar ingepland?', message: 'Deze losse opdracht terug op "ingepland" zetten? De uren-registratie blijft bewaard.', confirmLabel: 'Terugzetten' }))) return;
   try {
     var upd = await sb.from('onderhoudsbeurten').update({
       status: 'ingepland',
@@ -6621,7 +6621,7 @@ async function ongedaanMaakLosse(beurtId) {
 }
 
 async function deleteAfgewerkRapport(beurtId) {
-  if (!confirm('Ben je zeker dat je dit rapport wilt verwijderen? Dit kan niet ongedaan gemaakt worden.')) return;
+  if (!(await confirmDialog({ title: 'Rapport verwijderen?', message: 'Ben je zeker dat je dit rapport wilt verwijderen? Dit kan niet ongedaan gemaakt worden.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   // Find and delete rapport linked to this beurt
   var rapRes = await sb.from('rapporten').select('id').eq('onderhoudsbeurt_id', beurtId).limit(1);
   if (rapRes.data && rapRes.data.length > 0) {

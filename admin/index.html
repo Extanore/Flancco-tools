@@ -1091,7 +1091,7 @@
           <select id="filter-partner" class="admin-only" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
             <option value="">Alle partners</option>
           </select>
-          <button class="btn-save" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
+          <button type="button" class="btn btn-primary" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
         </div>
         <div class="contracten-tabs" style="display:flex;gap:6px;padding:0 16px 12px;border-bottom:1px solid var(--rule)">
           <button type="button" class="c-tab active" data-ctab="lopend" onclick="switchContractTab('lopend')">
@@ -1136,7 +1136,7 @@
               </div>
             </div>
             <button type="button" id="btn-select-mode" class="btn btn-ghost admin-only" onclick="toggleSelectMode()" style="margin:0;font-size:12px">Selecteer</button>
-            <button class="btn-save" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
+            <button type="button" class="btn btn-primary" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
           </div>
         </div>
         <div class="bulk-bar" id="klanten-bulk-bar">
@@ -1317,7 +1317,7 @@
         </div>
       </div>
 
-      <button class="btn-save" onclick="saveSettings()" style="margin-top:4px">Instellingen opslaan</button>
+      <button type="button" class="btn btn-primary" onclick="saveSettings()" style="margin-top:4px">Instellingen opslaan</button>
       <span class="save-msg" id="settings-saved">Opgeslagen!</span>
     </div>
 
@@ -2202,8 +2202,8 @@
     </div>
 
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
-      <button class="btn-submit" onclick="saveNewContract()">Contract opslaan</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuleren</button>
+      <button type="button" class="btn btn-primary" onclick="saveNewContract()">Contract opslaan</button>
     </div>
   </div>
 </div>
@@ -2453,9 +2453,9 @@
       <textarea id="inst-notes" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;resize:vertical;font-family:inherit;font-size:13px"></textarea>
     </div>
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeInstallatieModal()">Annuleren</button>
-      <button class="btn-submit" id="btn-delete-inst" onclick="deleteInstallatie()" style="background:var(--red);display:none">Verwijderen</button>
-      <button class="btn-submit" onclick="saveInstallatie()">Opslaan</button>
+      <button type="button" class="btn btn-danger" id="btn-delete-inst" onclick="deleteInstallatie()" style="display:none;margin-right:auto">Verwijderen</button>
+      <button type="button" class="btn btn-ghost" onclick="closeInstallatieModal()">Annuleren</button>
+      <button type="button" class="btn btn-primary" onclick="saveInstallatie()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -2486,9 +2486,9 @@
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:12px 0"><input type="checkbox" id="loc-primary"> Dit is het hoofdadres</label>
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeLocatieModal()">Annuleren</button>
-      <button class="btn-submit" id="btn-delete-loc" onclick="deleteLocatieFromModal()" style="background:var(--red);display:none">Verwijderen</button>
-      <button class="btn-submit" onclick="saveLocatie()">Opslaan</button>
+      <button type="button" class="btn btn-danger" id="btn-delete-loc" onclick="deleteLocatieFromModal()" style="display:none;margin-right:auto">Verwijderen</button>
+      <button type="button" class="btn btn-ghost" onclick="closeLocatieModal()">Annuleren</button>
+      <button type="button" class="btn btn-primary" onclick="saveLocatie()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -3212,7 +3212,7 @@ function rcGetArr(path) {
 async function loadRapportConfig(forceReset) {
   var container = document.getElementById('rc-container');
   if (!container) return;
-  if (forceReset && !confirm('Alle niet-opgeslagen wijzigingen vervallen. Doorgaan?')) return;
+  if (forceReset && !(await confirmDialog({ title: 'Reset wijzigingen?', message: 'Alle niet-opgeslagen wijzigingen vervallen. Doorgaan?', variant: 'danger', confirmLabel: 'Doorgaan' }))) return;
   try {
     var res = await sb.from('app_settings').select('value').eq('key', 'rapport_config').maybeSingle();
     if (res.error) throw res.error;
@@ -3905,7 +3905,7 @@ async function deleteUser(userId, email) {
     }
   } catch(e) { /* ignore — count queries mogen falen */ }
 
-  if (!confirm('Gebruiker "' + email + '" definitief verwijderen?\nDit wist zowel het auth-account als de rol/permissies.')) return;
+  if (!(await confirmDialog({ title: 'Gebruiker verwijderen?', message: 'Gebruiker "' + email + '" definitief verwijderen?\n\nDit wist zowel het auth-account als de rol/permissies.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   try {
     var res = await sb.functions.invoke('delete-user', { body: { userIdToDelete: userId } });
@@ -4432,7 +4432,7 @@ async function deletePartner(partnerId) {
   // Pricing & partner_sectors cascade we zelf (geen blokker maar wel opruimen)
   var naam = p.bedrijfsnaam || p.naam;
   var extra = cnt.pricing ? '\n(' + cnt.pricing + ' pricing-staffel(s) worden ook verwijderd.)' : '';
-  if (!confirm('Partner "' + naam + '" definitief verwijderen?' + extra)) return;
+  if (!(await confirmDialog({ title: 'Partner verwijderen?', message: 'Partner "' + naam + '" definitief verwijderen?' + extra, variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   await sb.from('pricing').delete().eq('partner_id', partnerId);
   await sb.from('partner_sectors').delete().eq('partner_id', partnerId);
@@ -4975,8 +4975,8 @@ async function onbFinish() {
   }
 }
 
-function skipOnboarding() {
-  if (!confirm('Wizard overslaan?\n\nJe kan je gegevens later aanvullen via Instellingen. Dit venster verschijnt opnieuw bij je volgende login.')) return;
+async function skipOnboarding() {
+  if (!(await confirmDialog({ title: 'Wizard overslaan?', message: 'Je kan je gegevens later aanvullen via Instellingen. Dit venster verschijnt opnieuw bij je volgende login.', confirmLabel: 'Overslaan', cancelLabel: 'Terug' }))) return;
   closeOnboardingWizard();
 }
 
@@ -5221,7 +5221,7 @@ async function updateFacturatieStatus(id, newStatus) {
 }
 
 async function deleteFacturatieRecord(id) {
-  if (!confirm('Facturatie-record definitief verwijderen?')) return;
+  if (!(await confirmDialog({ title: 'Record verwijderen?', message: 'Facturatie-record definitief verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var { error } = await sb.from('facturatie_records').delete().eq('id', id);
   if (error) { showToast('Fout: ' + error.message, 'error'); return; }
   await loadFacturatie();
@@ -6116,14 +6116,14 @@ function addSupplementRow(btn, partnerId, sector) {
   }
 }
 
-function removeSupplementRow(btn) {
+async function removeSupplementRow(btn) {
   var tr = btn.closest('tr');
   if (!tr) return;
   // Markeer voor delete: nieuw + onbewaard → gewoon DOM-verwijderen; bestaand → markeer
   if (tr.dataset.new === '1' || !tr.dataset.id) {
     tr.remove();
   } else {
-    if (!confirm('Deze meerprijs verwijderen bij opslaan?')) return;
+    if (!(await confirmDialog({ title: 'Meerprijs verwijderen?', message: 'Deze meerprijs verwijderen bij opslaan?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
     tr.dataset.delete = '1';
     tr.style.opacity = '0.4';
     tr.style.textDecoration = 'line-through';
@@ -6322,7 +6322,7 @@ function copyTekenLink(token) {
 }
 
 async function annuleerContract(id) {
-  if (!confirm('Contract annuleren? Dit kan niet ongedaan worden.')) return;
+  if (!(await confirmDialog({ title: 'Contract annuleren?', message: 'Contract annuleren? Dit kan niet ongedaan worden.', variant: 'danger', confirmLabel: 'Annuleren contract', cancelLabel: 'Terug' }))) return;
   await sb.from('contracten').update({ status: 'geannuleerd' }).eq('id', id);
   await loadAllData();
   renderContracten();
@@ -6362,7 +6362,7 @@ async function deleteContract(id) {
     if (nFact > 0) msg += '  • ' + nFact + ' facturatieregel(s)\n';
     msg += '\nDit kan niet ongedaan worden. Doorgaan?';
   }
-  if (!confirm(msg)) return;
+  if (!(await confirmDialog({ title: 'Contract verwijderen?', message: msg, variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   // Verwijder eerst alle niet-cascaderende koppelingen
   try {
@@ -7226,7 +7226,7 @@ function mountLogoUploader(container, partnerId, currentLogoUrl, onChange) {
   });
   container.querySelector('.lu-replace-btn').addEventListener('click', function() { fileInput.click(); });
   container.querySelector('.lu-remove-btn').addEventListener('click', async function() {
-    if (!confirm('Logo verwijderen?')) return;
+    if (!(await confirmDialog({ title: 'Logo verwijderen?', message: 'Logo verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
     try {
       var partner = ((typeof allPartners !== 'undefined' ? allPartners : null) || partners || []).find(function(p) { return p.id === partnerId; });
       if (partner && partner.logo_url) {
@@ -8455,7 +8455,7 @@ async function saveKlant() {
 async function deleteKlant() {
   var id = document.getElementById('kl-id').value;
   if (!id) return;
-  if (!confirm('Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden.')) return;
+  if (!(await confirmDialog({ title: 'Klant verwijderen?', message: 'Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   var { error } = await sb.from('clients').delete().eq('id', id);
   if (error) {
@@ -8493,7 +8493,7 @@ async function deleteKlantRow(klantId) {
 
     var klant = allClients.find(function(c) { return c.id === klantId; });
     var naam = klant ? (klant.company_name || klant.contact_person || 'deze klant') : 'deze klant';
-    if (!confirm('Klant "' + naam + '" definitief verwijderen?\nDit verwijdert ook alle werklocaties van deze klant.')) return;
+    if (!(await confirmDialog({ title: 'Klant verwijderen?', message: 'Klant "' + naam + '" definitief verwijderen?\n\nDit verwijdert ook alle werklocaties van deze klant.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
     await sb.from('client_locations').delete().eq('client_id', klantId);
     var res = await sb.from('clients').delete().eq('id', klantId);
@@ -8638,10 +8638,10 @@ async function showKlantDossier(clientId) {
       '</div>' +
       (client.notes ? '<p style="font-size:13px;color:var(--text-muted);margin:8px 0 0"><em>' + esc(client.notes) + '</em></p>' : '') +
       '<div class="dossier-actions">' +
-        '<button onclick="editKlant(\'' + client.id + '\')">Bewerken</button>' +
-        '<button onclick="copyPortalLink(\'' + esc(client.portal_token) + '\')">Portaallink kopiëren</button>' +
-        '<button class="btn-danger" onclick="deleteKlantFromDossier(\'' + client.id + '\')">Verwijderen</button>' +
-        '<button class="btn-danger" onclick="deleteKlantFromDossier(\'' + client.id + '\', true)" title="Verwijdert ALLE data inclusief contracten, rapporten, foto\'s (AVG/GDPR)">GDPR Verwijdering</button>' +
+        '<button type="button" class="btn btn-ghost" onclick="editKlant(\'' + client.id + '\')">Bewerken</button>' +
+        '<button type="button" class="btn btn-ghost" onclick="copyPortalLink(\'' + esc(client.portal_token) + '\')">Portaallink kopiëren</button>' +
+        '<button type="button" class="btn btn-danger-ghost" onclick="deleteKlantFromDossier(\'' + client.id + '\')">Verwijderen</button>' +
+        '<button type="button" class="btn btn-danger" onclick="deleteKlantFromDossier(\'' + client.id + '\', true)" title="Verwijdert ALLE data inclusief contracten, rapporten, foto\'s (AVG/GDPR)">GDPR Verwijdering</button>' +
       '</div>' +
     '</div>' +
 
@@ -8806,7 +8806,7 @@ function renderDossierOverzicht(client, contracts) {
 function renderDossierInstallaties(clientId) {
   var panel = document.getElementById('dossier-panel-installaties');
   var instData = currentDossierData.installaties;
-  var addBtn = '<button class="btn-save" onclick="openInstallatieModal(\'' + clientId + '\')" style="margin-bottom:12px;font-size:12px">+ Installatie toevoegen</button>';
+  var addBtn = '<button type="button" class="btn btn-primary" onclick="openInstallatieModal(\'' + clientId + '\')" style="margin-bottom:12px;font-size:12px">+ Installatie toevoegen</button>';
 
   if (instData.length === 0) {
     panel.innerHTML = addBtn + '<p class="placeholder-msg">Nog geen installaties geregistreerd.</p>';
@@ -9122,7 +9122,7 @@ async function saveShareKlant(clientId) {
 }
 
 async function intrekkenDeling(delingId, clientId) {
-  if (!confirm('Deling intrekken? De partner verliest toegang tot deze klant.')) return;
+  if (!(await confirmDialog({ title: 'Deling intrekken?', message: 'Deling intrekken? De partner verliest toegang tot deze klant.', variant: 'danger', confirmLabel: 'Intrekken' }))) return;
   var res = await sb.from('klant_delingen').update({ status: 'ingetrokken' }).eq('id', delingId);
   if (res.error) { alert('Fout: ' + res.error.message); return; }
   currentDossierData = await loadDossierData(clientId);
@@ -9408,7 +9408,7 @@ async function deleteKlantFromDossier(id, gdpr) {
   var msg = gdpr
     ? 'GDPR VERWIJDERING\n\nDit verwijdert ALLE data van deze klant:\n- Klantgegevens\n- Contracten + handtekeningen\n- Onderhoudsbeurten\n- Rapporten + foto\'s\n- Interventies\n\nDit kan NIET ongedaan worden. Doorgaan?'
     : 'Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden.';
-  if (!confirm(msg)) return;
+  if (!(await confirmDialog({ title: gdpr ? 'GDPR-verwijdering?' : 'Klant verwijderen?', message: msg, variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   try {
     // Get all contract IDs for this client
@@ -9636,7 +9636,8 @@ async function saveInstallatie() {
 async function deleteInstallatie() {
   var instId = document.getElementById('inst-id').value;
   var clientId = document.getElementById('inst-client-id').value;
-  if (!instId || !confirm('Weet je zeker dat je deze installatie wilt verwijderen?')) return;
+  if (!instId) return;
+  if (!(await confirmDialog({ title: 'Installatie verwijderen?', message: 'Weet je zeker dat je deze installatie wilt verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   try {
     var { error } = await sb.from('klant_installaties').delete().eq('id', instId);
     if (error) throw error;
@@ -9733,7 +9734,8 @@ async function saveLocatie() {
 }
 
 async function deleteLocatie(locId) {
-  if (!locId || !confirm('Weet je zeker dat je deze locatie wilt verwijderen?')) return;
+  if (!locId) return;
+  if (!(await confirmDialog({ title: 'Locatie verwijderen?', message: 'Weet je zeker dat je deze locatie wilt verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   try {
     var { error } = await sb.from('client_locations').delete().eq('id', locId);
     if (error) throw error;
@@ -10159,7 +10161,7 @@ async function saveBediende() {
 }
 
 async function deleteBediende(bedId, naam) {
-  if (!confirm('Bediende "' + naam + '" definitief verwijderen?\n\nDit wist zowel de bediende-rij als het login-account.')) return;
+  if (!(await confirmDialog({ title: 'Bediende verwijderen?', message: 'Bediende "' + naam + '" definitief verwijderen?\n\nDit wist zowel de bediende-rij als het login-account.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   var b = (allTechniekers || []).find(function(x) { return x.id === bedId; });
   if (!b) { alert('Bediende niet gevonden'); return; }
@@ -10168,7 +10170,7 @@ async function deleteBediende(bedId, naam) {
   try {
     var chk = await sb.from('verlof').select('id', { count: 'exact', head: true }).eq('technieker_id', bedId);
     if ((chk.count || 0) > 0) {
-      if (!confirm('Deze bediende heeft ' + chk.count + ' verlof-aanvraag/aanvragen. Ook deze wissen?')) return;
+      if (!(await confirmDialog({ title: 'Ook verlof wissen?', message: 'Deze bediende heeft ' + chk.count + ' verlof-aanvraag/aanvragen. Ook deze wissen?', variant: 'danger', confirmLabel: 'Wissen' }))) return;
       await sb.from('verlof').delete().eq('technieker_id', bedId);
     }
     await sb.from('verlof_saldi').delete().eq('technieker_id', bedId);
@@ -10444,7 +10446,7 @@ async function saveTechnieker() {
 async function deleteTechnieker() {
   var editId = document.getElementById('tech-edit-id').value;
   if (!editId) return;
-  if (!confirm('Weet u zeker dat u deze medewerker wilt verwijderen? Alle gekoppelde certificeringen worden ook verwijderd.')) return;
+  if (!(await confirmDialog({ title: 'Medewerker verwijderen?', message: 'Weet u zeker dat u deze medewerker wilt verwijderen?\n\nAlle gekoppelde certificeringen worden ook verwijderd.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   await sb.from('technieker_certificeringen').delete().eq('technieker_id', editId);
   await sb.from('technieker_sectoren').delete().eq('technieker_id', editId);
@@ -10555,7 +10557,7 @@ async function saveTechCert() {
 }
 
 async function deleteTechCert(certId) {
-  if (!confirm('Certificering verwijderen?')) return;
+  if (!(await confirmDialog({ title: 'Certificering verwijderen?', message: 'Certificering definitief verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var techId = document.getElementById('tech-edit-id').value;
   var res = await sb.from('technieker_certificeringen').delete().eq('id', certId);
   if (res.error) { alert('Fout: ' + res.error.message); return; }
@@ -10985,7 +10987,7 @@ async function saveVoertuig() {
 async function deleteVoertuig() {
   var editId = document.getElementById('wagen-edit-id').value;
   if (!editId) return;
-  if (!confirm('Weet u zeker dat u dit voertuig wilt verwijderen?')) return;
+  if (!(await confirmDialog({ title: 'Voertuig verwijderen?', message: 'Weet u zeker dat u dit voertuig wilt verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   await sb.from('voertuig_km_log').delete().eq('voertuig_id', editId);
   await sb.from('voertuig_kosten').delete().eq('voertuig_id', editId);
@@ -11482,7 +11484,7 @@ function renderRapportenPage() {
 }
 
 async function deleteRapport(rapportId, beurtId) {
-  if (!confirm('Ben je zeker dat je dit rapport wilt verwijderen? Dit kan niet ongedaan gemaakt worden.')) return;
+  if (!(await confirmDialog({ title: 'Rapport verwijderen?', message: 'Ben je zeker dat je dit rapport wilt verwijderen? Dit kan niet ongedaan gemaakt worden.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var res = await sb.from('rapporten').delete().eq('id', rapportId);
   if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
   // Reset beurt status back to 'uitgevoerd' so it appears in rapportage tab
@@ -12065,7 +12067,7 @@ async function saveBulkToekennen() {
     return;
   }
 
-  if (!confirm('Dit overschrijft de saldi van ' + techs.length + ' personeelsleden voor ' + toApply.length + ' verloftype(s) in ' + fJaar + '. Doorgaan?')) return;
+  if (!(await confirmDialog({ title: 'Saldi overschrijven?', message: 'Dit overschrijft de saldi van ' + techs.length + ' personeelsleden voor ' + toApply.length + ' verloftype(s) in ' + fJaar + '. Doorgaan?', confirmLabel: 'Overschrijven' }))) return;
 
   var btn = document.querySelector('#modal-bulk-saldo .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Bezig…'; }
@@ -12400,7 +12402,7 @@ async function saveVerlof() {
 
   // Saldo blokkade
   if (document.getElementById('verlof-saldo-warn').style.display === 'block') {
-    if (!confirm('Saldo onvoldoende. Toch opslaan?')) return;
+    if (!(await confirmDialog({ title: 'Saldo onvoldoende', message: 'Het saldo is onvoldoende voor deze verlofaanvraag. Toch opslaan?', variant: 'danger', confirmLabel: 'Toch opslaan' }))) return;
   }
 
   var payload = { technieker_id: techId, verlof_type_id: typeId, van_datum: van, tot_datum: tot, halve_dag: half, reden: reden, status: 'goedgekeurd' };
@@ -12438,7 +12440,7 @@ async function deleteVerlof() {
   closeVerlofModal();
 }
 async function deleteVerlofById(id) {
-  if (!confirm('Verlof verwijderen?')) return;
+  if (!(await confirmDialog({ title: 'Verlof verwijderen?', message: 'Deze verlofaanvraag definitief verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var res = await sb.from('technieker_afwezigheden').delete().eq('id', id);
   if (res.error) { alert('Fout: ' + res.error.message); return; }
   allVerlof = allVerlof.filter(function(v) { return v.id !== id; });
@@ -12536,7 +12538,7 @@ async function importeerFeestdagen() {
   });
 
   if (!nieuwe.length) { alert('Alle feestdagen van ' + jaar + ' zijn al toegewezen.'); return; }
-  if (!confirm(nieuwe.length + ' feestdag-records aanmaken voor ' + techs.length + ' tech(s)?')) return;
+  if (!(await confirmDialog({ title: 'Feestdagen aanmaken?', message: nieuwe.length + ' feestdag-records aanmaken voor ' + techs.length + ' medewerker(s)?', confirmLabel: 'Aanmaken' }))) return;
 
   var res = await sb.from('technieker_afwezigheden').insert(nieuwe);
   if (res.error) { alert('Fout: ' + res.error.message); return; }
