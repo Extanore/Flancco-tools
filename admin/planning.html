@@ -1468,6 +1468,20 @@ function getSectorIcon(sector) {
   return map[(sector || '').toLowerCase()] || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 }
 
+function getSectorLabel(sector) {
+  var map = {
+    zonnepanelen: 'Zonnepanelen',
+    warmtepomp: 'Warmtepomp',
+    ventilatie: 'Ventilatie',
+    verwarming: 'Verwarming',
+    airco: 'Airco',
+    ic: 'Industriële reiniging',
+    klussen: 'Klussen'
+  };
+  var key = (sector || '').toLowerCase();
+  return map[key] || (sector ? (sector.charAt(0).toUpperCase() + sector.slice(1)) : '—');
+}
+
 function getSectorClass(sector) {
   return 'sector-' + (sector || 'overig').toLowerCase();
 }
@@ -2391,7 +2405,7 @@ function renderDayView() {
       var tech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
       html += '<div class="appt-card ' + getSectorClass(info.sector) + '" style="min-width:180px;" ' +
         'oncontextmenu="onCardContext(event, \'' + b.id + '\')">' +
-        '<div class="appt-sector">' + getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</div>' +
+        '<div class="appt-sector">' + getSectorIcon(info.sector) + ' ' + esc(getSectorLabel(info.sector)) + '</div>' +
         '<div class="appt-klant">' + esc(info.naam) + '</div>' +
         '<div class="appt-meta">' + (tech ? esc(tech.voornaam) + ' ' + esc(tech.naam) : '') + '</div>' +
         '</div>';
@@ -2527,7 +2541,7 @@ function renderSidebarCard(b) {
       '<span class="sc-klant">' + esc(info.naam) + '</span>' +
     '</div>' +
     '<div><span class="sc-sector" style="background:' + sectorBg + '22; color:' + sectorBg + ';">' +
-    getSectorIcon(info.sector) + ' ' + esc(info.sector) + '</span></div>' +
+    getSectorIcon(info.sector) + ' ' + esc(getSectorLabel(info.sector)) + '</span></div>' +
     '<div class="sc-detail">' +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' +
       esc(info.postcode) + ' ' + esc(info.gemeente) +
@@ -3568,15 +3582,22 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   document.getElementById('edit-beurt-id').value = beurtId;
   document.getElementById('edit-beurt-title').textContent = isNew || dropTechId ? 'Beurt inplannen' : 'Beurt bewerken';
 
-  // Info preview
-  var sectorIcons = { zonnepanelen: '&#9728;', warmtepomp: '&#127777;', ventilatie: '&#9741;', verwarming: '&#128293;', ic: '&#9881;', klussen: '&#128295;' };
+  // Info preview — gebruikt gedeelde Lucide-iconen + nette sector-labels
+  var sectorColor = getSectorColor(info.sector);
+  var sectorLabel = getSectorLabel(info.sector);
   var infoHtml = '<div style="display:flex;gap:12px;align-items:flex-start">' +
     '<div style="flex:1">' +
       '<strong>' + esc(info.naam) + '</strong><br>' +
       '<span style="color:var(--grey);font-size:12px">' + esc(info.adres || '') + ', ' + esc(info.postcode || '') + ' ' + esc(info.gemeente || '') + '</span><br>' +
-      '<span style="font-size:12px">' + (sectorIcons[info.sector] || '') + ' ' + esc(info.sector || '') + '</span>' +
+      '<span style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;color:var(--navy)">' +
+        getSectorIcon(info.sector) +
+        '<span>' + esc(sectorLabel) + '</span>' +
+      '</span>' +
     '</div>' +
-    '<span class="appt-badge" style="background:' + getSectorColor(info.sector) + '20;color:' + getSectorColor(info.sector) + '">' + esc(info.sector || '') + '</span>' +
+    '<span class="appt-badge" style="display:inline-flex;align-items:center;gap:6px;background:' + sectorColor + '1A;color:' + sectorColor + ';padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600">' +
+      getSectorIcon(info.sector) +
+      '<span>' + esc(sectorLabel) + '</span>' +
+    '</span>' +
   '</div>';
   document.getElementById('edit-beurt-info').innerHTML = infoHtml;
 
@@ -3786,11 +3807,6 @@ function editBeurtHeleDagChanged() {
       toggle.querySelector('span').style.color = 'var(--navy)';
     }
   }
-}
-
-function getSectorColor(sector) {
-  var colors = { zonnepanelen: '#D97706', warmtepomp: '#DC2626', ventilatie: '#7C3AED', verwarming: '#EF4444', airco: '#0891B2', ic: '#059669', klussen: '#D97706' };
-  return colors[(sector || '').toLowerCase()] || '#6B7280';
 }
 
 function getProvincie(postcode) {
