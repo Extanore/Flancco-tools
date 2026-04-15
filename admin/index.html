@@ -1706,7 +1706,7 @@
         <button class="u-tab active" data-utab="overzicht" onclick="switchUrenTab('overzicht')">Overzicht personeel</button>
         <button class="u-tab" data-utab="loon" onclick="switchUrenTab('loon')">Loon-export (CAO)</button>
         <button class="u-tab" data-utab="facturatie" onclick="switchUrenTab('facturatie')">
-          Interventie-facturatie
+          Te factureren
           <span id="fact-queue-badge" class="u-tab-badge" style="display:none"></span>
         </button>
       </div>
@@ -1803,21 +1803,29 @@
         </div>
       </div>
 
-      <!-- TAB 3: INTERVENTIE-FACTURATIE QUEUE -->
+      <!-- TAB 3: TE FACTUREREN (uurtarief + forfait) -->
       <div class="u-tab-pane" id="utab-facturatie" style="display:none">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
-            <div>
-              <h3 style="margin:0 0 4px;font-size:15px;font-weight:700;color:var(--navy)">Openstaande interventie-uren</h3>
-              <p style="margin:0;font-size:12px;color:var(--grey)">Bevestigde uren op interventie-beurten die nog niet gefactureerd zijn</p>
-            </div>
-            <div style="display:flex;gap:8px">
-              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--grey);cursor:pointer">
-                <input type="checkbox" id="fact-show-gefactureerd" onchange="renderInterventieFacturatie()"> Toon reeds gefactureerde
-              </label>
-            </div>
+        <!-- Gedeelde toolbar: één toggle stuurt beide secties aan -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:12px">
+          <div>
+            <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--navy)">Te factureren</h3>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--grey)">Afgewerkte interventies en losse opdrachten — uurtarief wordt uit uren-registratie berekend, forfait is contractueel vast bedrag.</p>
           </div>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--grey);cursor:pointer">
+            <input type="checkbox" id="fact-show-gefactureerd" onchange="renderInterventieFacturatie();renderForfaitFacturatie()"> Toon reeds gefactureerde
+          </label>
+        </div>
 
+        <!-- Sectie A: Uurtarief -->
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <div style="width:8px;height:24px;background:#0891B2;border-radius:2px"></div>
+            <div>
+              <h4 style="margin:0;font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.3px">Uurtarief</h4>
+              <p style="margin:2px 0 0;font-size:11px;color:var(--grey)">Bevestigde uren × tarief · interventies en losse opdrachten met uurtarief</p>
+            </div>
+            <span id="fact-uur-count" style="margin-left:auto;padding:2px 10px;background:#F3F4F6;border-radius:10px;font-size:11px;font-weight:600;color:var(--navy)">0</span>
+          </div>
           <div style="overflow-x:auto">
             <table>
               <thead>
@@ -1835,7 +1843,35 @@
               <tbody id="fact-tbody"></tbody>
             </table>
           </div>
-          <div id="fact-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen openstaande interventie-uren.</div>
+          <div id="fact-empty" style="display:none;text-align:center;padding:28px;color:var(--grey);font-size:13px">Geen openstaande uurtarief-facturatie.</div>
+        </div>
+
+        <!-- Sectie B: Forfait -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <div style="width:8px;height:24px;background:#7C3AED;border-radius:2px"></div>
+            <div>
+              <h4 style="margin:0;font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.3px">Forfait</h4>
+              <p style="margin:2px 0 0;font-size:11px;color:var(--grey)">Afgewerkte losse opdrachten met vast forfait-bedrag</p>
+            </div>
+            <span id="fact-forfait-count" style="margin-left:auto;padding:2px 10px;background:#F3F4F6;border-radius:10px;font-size:11px;font-weight:600;color:var(--navy)">0</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Klant</th>
+                  <th>Omschrijving</th>
+                  <th>Technieker</th>
+                  <th style="text-align:right">Forfait</th>
+                  <th style="text-align:right">Acties</th>
+                </tr>
+              </thead>
+              <tbody id="fact-forfait-tbody"></tbody>
+            </table>
+          </div>
+          <div id="fact-forfait-empty" style="display:none;text-align:center;padding:28px;color:var(--grey);font-size:13px">Geen openstaande forfait-facturatie.</div>
         </div>
       </div>
     </div>
@@ -3103,7 +3139,7 @@ async function loadAllData() {
     sb.from('verlof_types').select('*').order('volgorde'),
     sb.from('technieker_afwezigheden').select('*').order('van_datum', { ascending: false }),
     sb.from('verlof_saldi').select('*'),
-    sb.from('onderhoudsbeurten').select('id, contract_id, technieker_id, plan_datum, plan_tijd, duur_minuten, status').order('plan_datum', { ascending: false }),
+    sb.from('onderhoudsbeurten').select('id, contract_id, client_id, technieker_id, plan_datum, plan_tijd, duur_minuten, status, opdracht_type, tarief_type, forfait_bedrag, sector, notities, facturatie_status, gefactureerd_op').order('plan_datum', { ascending: false }).then(function(r){return r;}, function(_){return sb.from('onderhoudsbeurten').select('id, contract_id, technieker_id, plan_datum, plan_tijd, duur_minuten, status').order('plan_datum', { ascending: false });}),
     sb.from('client_locations').select('*').order('is_primary', { ascending: false }),
     sb.from('beurt_uren_registraties').select('*').order('start_tijd', { ascending: false }).then(function(r){return r;}, function(_){return {data:[]};}),
     sb.from('loon_regels').select('*').order('actief_vanaf', { ascending: false }).then(function(r){return r;}, function(_){return {data:[]};}),
@@ -5152,7 +5188,7 @@ function renderPricing() {
       html += '<button class="btn-edit-pricing" onclick="editPricing(\'' + p.id + '\', this)" style="background:var(--white);color:var(--navy);border:1.5px solid var(--rule);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;font-family:inherit" onmouseenter="this.style.borderColor=\'var(--navy)\'" onmouseleave="this.style.borderColor=\'var(--rule)\'">';
       html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
       html += 'Tarieven bewerken</button>';
-      html += '<button type="button" class="btn btn-primary" onclick="savePricing(\'' + p.id + '\', this)" style="display:none;padding:8px 18px;font-size:12px">Opslaan</button>';
+      html += '<button type="button" class="btn btn-primary btn-save-pricing" onclick="savePricing(\'' + p.id + '\', this)" style="display:none;padding:8px 18px;font-size:12px">Opslaan</button>';
       html += '<span class="save-msg" style="font-size:12px;color:var(--green);display:none">Opgeslagen!</span>';
       html += '</div>';
 
@@ -5196,46 +5232,65 @@ function togglePricingDetail(partnerId) {
 }
 
 function editPricing(partnerId, btn) {
-  var container = btn.closest('.pricing-partner');
-  var inputs = container.querySelectorAll('.pricing-input');
-  inputs.forEach(function(inp) { inp.removeAttribute('readonly'); inp.style.background = '#fff'; inp.style.border = '1px solid #ddd'; });
+  // Scope: huidige sector-panel (bij multi-sector), anders hele partner-card
+  var scope = btn.closest('.pricing-sec-panel') || btn.closest('.pricing-partner');
+  var inputs = scope.querySelectorAll('.pricing-input');
+  inputs.forEach(function(inp) {
+    inp.removeAttribute('readonly');
+    inp.style.background = '#fff';
+    inp.style.border = '1.5px solid var(--rule)';
+  });
   btn.style.display = 'none';
-  container.querySelector('.btn-save').style.display = '';
+  var saveBtn = scope.querySelector('.btn-save-pricing');
+  if (saveBtn) saveBtn.style.display = '';
 }
 
 function calcPriceRow(input, marge, plan) {
-  const row = input.closest('tr');
-  const val = parseFloat(input.value) || 0;
-  const partnerPrice = val * (1 + marge) + plan;
-  const clientPrice = Math.round(partnerPrice * 1.21);
-  row.cells[2].textContent = '€ ' + partnerPrice.toFixed(2).replace('.',',');
-  row.cells[3].innerHTML = '<strong>€ ' + clientPrice + '</strong>';
+  var row = input.closest('tr');
+  var val = parseFloat(input.value) || 0;
+  var partnerPrice = val * (1 + marge) + plan;
+  var clientPrice = partnerPrice * 1.21;
+  // Cells: 0=staffel, 1=bereik, 2=input (NIET overschrijven!), 3=partnerprijs, 4=eindklant incl.
+  row.cells[3].textContent = '€ ' + partnerPrice.toFixed(2).replace('.', ',');
+  row.cells[4].innerHTML = '€ ' + clientPrice.toFixed(2).replace('.', ',');
 }
 
 async function savePricing(partnerId, btn) {
-  const inputs = btn.closest('.pricing-partner').querySelectorAll('.pricing-input');
-  const updates = Array.from(inputs).map(inp => ({
-    id: inp.dataset.id,
-    flancco_forfait: parseFloat(inp.value)
-  }));
+  var scope = btn.closest('.pricing-sec-panel') || btn.closest('.pricing-partner');
+  var inputs = scope.querySelectorAll('.pricing-input');
+  var updates = Array.from(inputs).map(function(inp) {
+    return { id: inp.dataset.id, flancco_forfait: parseFloat(inp.value) };
+  });
 
-  for (const u of updates) {
-    await sb.from('pricing').update({ flancco_forfait: u.flancco_forfait }).eq('id', u.id);
+  var errCount = 0;
+  for (var i = 0; i < updates.length; i++) {
+    var u = updates[i];
+    if (isNaN(u.flancco_forfait) || u.flancco_forfait < 0) { errCount++; continue; }
+    var res = await sb.from('pricing').update({ flancco_forfait: u.flancco_forfait }).eq('id', u.id);
+    if (res.error) errCount++;
   }
 
-  // Reset to readonly
-  inputs.forEach(function(inp) { inp.setAttribute('readonly', ''); inp.style.background = ''; inp.style.border = ''; });
+  // Reset naar readonly — gebruik exact dezelfde styling als initial render
+  inputs.forEach(function(inp) {
+    inp.setAttribute('readonly', '');
+    inp.style.background = 'transparent';
+    inp.style.border = '1.5px solid transparent';
+  });
   btn.style.display = 'none';
-  var editBtn = btn.closest('.pricing-partner').querySelector('.btn-edit-pricing');
+  var editBtn = scope.querySelector('.btn-edit-pricing');
   if (editBtn) editBtn.style.display = '';
 
-  const msg = btn.nextElementSibling;
-  msg.style.display = 'inline';
-  setTimeout(() => msg.style.display = 'none', 2000);
+  var msg = btn.nextElementSibling;
+  if (msg && msg.classList.contains('save-msg')) {
+    msg.textContent = errCount > 0 ? (errCount + ' fout(en)') : 'Opgeslagen!';
+    msg.style.color = errCount > 0 ? 'var(--red)' : 'var(--green)';
+    msg.style.display = 'inline';
+    setTimeout(function() { msg.style.display = 'none'; }, 2500);
+  }
 
-  // Reload
-  const { data } = await sb.from('pricing').select('*').order('staffel_min');
-  allPricing = data || [];
+  // Reload local state
+  var reload = await sb.from('pricing').select('*').order('staffel_min');
+  allPricing = reload.data || [];
 }
 
 // =============================================
@@ -11624,6 +11679,7 @@ function switchUrenTab(tab) {
     renderLoonExport();
   } else if (tab === 'facturatie') {
     renderInterventieFacturatie();
+    renderForfaitFacturatie();
   }
 }
 
@@ -12143,12 +12199,42 @@ function exportLoonCsv() {
 // =============================================
 // INTERVENTIE-FACTURATIE-QUEUE
 // =============================================
+/**
+ * Een uren-registratie is facturabel aan de klant als:
+ *  - het een echte interventie is (r.is_interventie = true), OF
+ *  - het een losse opdracht met tarief_type='uurtarief' is (beurt-niveau).
+ * Forfait-losse opdrachten gaan NIET door de uurtarief-queue — die worden via hun forfait-bedrag gefactureerd.
+ * Onderhoudsbeurten vallen onder contract-forfait en komen hier nooit in.
+ */
+function isFactureerbareUurtariefRegistratie(r) {
+  if (!r) return false;
+  if (r.is_interventie) return true;
+  var beurt = (allOnderhoudsbeurten || []).find(function(b) { return b.id === r.beurt_id; });
+  return !!(beurt && beurt.opdracht_type === 'losse_opdracht' && beurt.tarief_type === 'uurtarief');
+}
+
+/**
+ * Losse-opdracht-beurten met forfait die nog niet gefactureerd zijn.
+ * Voorwaarden: afgewerkt + tarief_type='forfait' + geen factuur-status 'gefactureerd'.
+ */
+function getOpenstaandeForfaitBeurten() {
+  return (allOnderhoudsbeurten || []).filter(function(b) {
+    if (b.opdracht_type !== 'losse_opdracht') return false;
+    if (b.tarief_type !== 'forfait') return false;
+    if (b.status !== 'afgewerkt') return false;
+    if (b.facturatie_status === 'gefactureerd') return false;
+    return true;
+  });
+}
+
 function updateFactQueueBadge() {
   var badge = document.getElementById('fact-queue-badge');
   if (!badge) return;
-  var n = (window._allBeurtUrenReg || []).filter(function(r) {
-    return r.is_interventie && !r.gefactureerd;
+  var nUur = (window._allBeurtUrenReg || []).filter(function(r) {
+    return isFactureerbareUurtariefRegistratie(r) && !r.gefactureerd;
   }).length;
+  var nForfait = getOpenstaandeForfaitBeurten().length;
+  var n = nUur + nForfait;
   if (n > 0) { badge.textContent = n; badge.style.display = ''; }
   else badge.style.display = 'none';
 }
@@ -12156,7 +12242,7 @@ function updateFactQueueBadge() {
 function renderInterventieFacturatie() {
   var showGefactureerd = document.getElementById('fact-show-gefactureerd').checked;
   var rijen = (window._allBeurtUrenReg || []).filter(function(r) {
-    if (!r.is_interventie) return false;
+    if (!isFactureerbareUurtariefRegistratie(r)) return false;
     if (!showGefactureerd && r.gefactureerd) return false;
     return true;
   });
@@ -12169,6 +12255,9 @@ function renderInterventieFacturatie() {
 
   var tbody = document.getElementById('fact-tbody');
   var empty = document.getElementById('fact-empty');
+  var countEl = document.getElementById('fact-uur-count');
+  var openCount = rijen.filter(function(r) { return !r.gefactureerd; }).length;
+  if (countEl) countEl.textContent = openCount;
 
   if (rijen.length === 0) {
     tbody.innerHTML = '';
@@ -12180,7 +12269,19 @@ function renderInterventieFacturatie() {
   tbody.innerHTML = rijen.map(function(r) {
     var beurt = (allOnderhoudsbeurten || []).find(function(b) { return b.id === r.beurt_id; });
     var contract = beurt ? (allContracten || []).find(function(c) { return c.id === beurt.contract_id; }) : null;
-    var klantNaam = contract ? (contract.klant_bedrijfsnaam || contract.klant_naam || '—') : '—';
+    // Klant-resolve: contract-pad óf direct via beurt.client_id (losse opdracht zonder contract)
+    var client = null;
+    if (contract) {
+      client = (allClients || []).find(function(c) { return c.id === contract.client_id; });
+    } else if (beurt && beurt.client_id) {
+      client = (allClients || []).find(function(c) { return c.id === beurt.client_id; });
+    }
+    var klantNaam = (client && (client.company_name || client.contact_person)) ||
+                    (contract && (contract.klant_bedrijfsnaam || contract.klant_naam)) || '—';
+    var isLosseUurtarief = !!(beurt && beurt.opdracht_type === 'losse_opdracht' && beurt.tarief_type === 'uurtarief');
+    var klantBadge = isLosseUurtarief
+      ? ' <span style="display:inline-block;padding:1px 6px;border-radius:10px;background:rgba(139,92,246,0.12);color:#6D28D9;font-size:9px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;vertical-align:middle">Losse opdracht</span>'
+      : '';
     var tech = (allTechniekers || []).find(function(t) { return t.id === r.technieker_id; });
     var techName = tech ? techNaam(tech.id) : '—';
     var datum = r.start_tijd ? formatBE(r.start_tijd.substring(0, 10)) : '—';
@@ -12192,7 +12293,7 @@ function renderInterventieFacturatie() {
 
     return '<tr' + (r.gefactureerd ? ' style="opacity:0.6"' : '') + '>' +
       '<td>' + datum + '</td>' +
-      '<td><strong>' + esc(klantNaam) + '</strong></td>' +
+      '<td><strong>' + esc(klantNaam) + '</strong>' + klantBadge + '</td>' +
       '<td>' + esc(techName) + '</td>' +
       '<td style="text-align:right;font-variant-numeric:tabular-nums">' + uren.toFixed(2).replace('.', ',') + 'u</td>' +
       '<td style="text-align:right;font-variant-numeric:tabular-nums">€ ' + tarief.toFixed(2).replace('.', ',') + '</td>' +
@@ -12200,7 +12301,10 @@ function renderInterventieFacturatie() {
       '<td><span style="color:' + bronKleur + ';font-size:11px;font-weight:600">' + bron + '</span></td>' +
       '<td style="text-align:right">' +
         (r.gefactureerd
-          ? '<span style="color:var(--grey);font-size:12px">Gefactureerd</span>'
+          ? (function(){
+              var gd = r.gefactureerd_op ? formatBE(r.gefactureerd_op.substring(0, 10)) : '';
+              return '<span style="color:var(--grey);font-size:11px" title="Gefactureerd op ' + gd + '">Gefactureerd' + (gd ? ' · ' + gd : '') + '</span>';
+            })()
           : '<button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="markeerGefactureerd(\'' + r.id + '\')">Op factuur zetten</button>'
         ) +
       '</td>' +
@@ -12217,8 +12321,9 @@ async function markeerGefactureerd(burId) {
     : confirm('Markeer deze uren als gefactureerd?');
   if (!ok) return;
 
+  var nowIso = new Date().toISOString();
   var res = await sb.from('beurt_uren_registraties')
-    .update({ gefactureerd: true, updated_at: new Date().toISOString() })
+    .update({ gefactureerd: true, gefactureerd_op: nowIso, updated_at: nowIso })
     .eq('id', burId);
 
   if (res.error) {
@@ -12226,9 +12331,150 @@ async function markeerGefactureerd(burId) {
     return;
   }
   reg.gefactureerd = true;
+  reg.gefactureerd_op = nowIso;
   renderInterventieFacturatie();
   updateFactQueueBadge();
   if (typeof showToast === 'function') showToast('Uren gemarkeerd als gefactureerd', 'success');
+}
+
+// =============================================
+// FORFAIT-FACTURATIE (losse opdrachten met vast bedrag)
+// =============================================
+function renderForfaitFacturatie() {
+  var tbody = document.getElementById('fact-forfait-tbody');
+  var empty = document.getElementById('fact-forfait-empty');
+  var countEl = document.getElementById('fact-forfait-count');
+  if (!tbody || !empty) return;
+
+  var showGefactureerd = document.getElementById('fact-show-gefactureerd');
+  var toonGefactureerd = showGefactureerd ? showGefactureerd.checked : false;
+
+  // Basis: alle afgewerkte losse opdrachten met forfait
+  var rijen = (allOnderhoudsbeurten || []).filter(function(b) {
+    if (b.opdracht_type !== 'losse_opdracht') return false;
+    if (b.tarief_type !== 'forfait') return false;
+    if (b.status !== 'afgewerkt') return false;
+    if (!toonGefactureerd && b.facturatie_status === 'gefactureerd') return false;
+    return true;
+  });
+
+  // Sorteer: openstaand oudst eerst, gefactureerd recentst eerst
+  rijen.sort(function(a, b) {
+    var aGef = a.facturatie_status === 'gefactureerd';
+    var bGef = b.facturatie_status === 'gefactureerd';
+    if (aGef !== bGef) return aGef ? 1 : -1;
+    return (a.plan_datum || '').localeCompare(b.plan_datum || '');
+  });
+
+  var openCount = rijen.filter(function(b) { return b.facturatie_status !== 'gefactureerd'; }).length;
+  if (countEl) countEl.textContent = openCount;
+
+  if (rijen.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rijen.map(function(b) {
+    var isGef = b.facturatie_status === 'gefactureerd';
+    var client = (allClients || []).find(function(c) { return c.id === b.client_id; });
+    var klantNaam = (client && (client.company_name || client.contact_person)) || '—';
+    var tech = (allTechniekers || []).find(function(t) { return t.id === b.technieker_id; });
+    var techName = tech ? techNaam(tech.id) : '—';
+    var datum = b.plan_datum ? formatBE(b.plan_datum) : '—';
+    var bedrag = parseFloat(b.forfait_bedrag) || 0;
+    // Omschrijving: prefer notities (eerste regel), anders sector-label
+    var omschrijving = '';
+    if (b.notities) {
+      omschrijving = b.notities.split('\n')[0].slice(0, 80);
+    } else if (b.sector) {
+      omschrijving = b.sector.charAt(0).toUpperCase() + b.sector.slice(1);
+    } else {
+      omschrijving = 'Losse opdracht';
+    }
+
+    var gefDatum = (isGef && b.gefactureerd_op) ? formatBE(b.gefactureerd_op.substring(0, 10)) : '';
+    var actieCell = isGef
+      ? '<div style="display:inline-flex;gap:8px;align-items:center;justify-content:flex-end">' +
+          '<span style="color:var(--grey);font-size:11px" title="Gefactureerd op ' + gefDatum + '">Gefactureerd' + (gefDatum ? ' · ' + gefDatum : '') + '</span>' +
+          '<button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="ongedaanForfaitFacturatie(\'' + b.id + '\')" title="Markeer terug als openstaand">Ongedaan</button>' +
+        '</div>'
+      : '<button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="markeerForfaitGefactureerd(\'' + b.id + '\')">Op factuur zetten</button>';
+
+    return '<tr' + (isGef ? ' style="opacity:0.6"' : '') + '>' +
+      '<td>' + datum + '</td>' +
+      '<td><strong>' + esc(klantNaam) + '</strong> <span style="display:inline-block;padding:1px 6px;border-radius:10px;background:rgba(139,92,246,0.12);color:#6D28D9;font-size:9px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;vertical-align:middle">Losse opdracht</span></td>' +
+      '<td style="color:var(--grey);font-size:12px">' + esc(omschrijving) + '</td>' +
+      '<td>' + esc(techName) + '</td>' +
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">€ ' + bedrag.toFixed(2).replace('.', ',') + '</td>' +
+      '<td style="text-align:right">' + actieCell + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+async function markeerForfaitGefactureerd(beurtId) {
+  var beurt = (allOnderhoudsbeurten || []).find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+
+  var ok = (typeof confirmDialog === 'function')
+    ? await confirmDialog({
+        title: 'Op factuur zetten?',
+        message: 'Deze losse opdracht wordt gemarkeerd als gefactureerd. Je kan dit via de "Ongedaan"-knop terugdraaien.',
+        confirmLabel: 'Markeer gefactureerd',
+        variant: 'primary'
+      })
+    : confirm('Markeer als gefactureerd?');
+  if (!ok) return;
+
+  var nowIso = new Date().toISOString();
+  var res = await sb.from('onderhoudsbeurten')
+    .update({ facturatie_status: 'gefactureerd', gefactureerd_op: nowIso, updated_at: nowIso })
+    .eq('id', beurtId);
+
+  if (res.error) {
+    if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
+    else alert('Fout: ' + res.error.message);
+    return;
+  }
+
+  beurt.facturatie_status = 'gefactureerd';
+  beurt.gefactureerd_op = nowIso;
+  renderForfaitFacturatie();
+  updateFactQueueBadge();
+  if (typeof showToast === 'function') showToast('Forfait gemarkeerd als gefactureerd', 'success');
+}
+
+async function ongedaanForfaitFacturatie(beurtId) {
+  var beurt = (allOnderhoudsbeurten || []).find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+
+  var ok = (typeof confirmDialog === 'function')
+    ? await confirmDialog({
+        title: 'Ongedaan maken?',
+        message: 'Deze opdracht wordt terug in de facturatie-queue geplaatst.',
+        confirmLabel: 'Ongedaan maken',
+        variant: 'primary'
+      })
+    : confirm('Ongedaan maken?');
+  if (!ok) return;
+
+  var nowIso = new Date().toISOString();
+  var res = await sb.from('onderhoudsbeurten')
+    .update({ facturatie_status: null, gefactureerd_op: null, updated_at: nowIso })
+    .eq('id', beurtId);
+
+  if (res.error) {
+    if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
+    else alert('Fout: ' + res.error.message);
+    return;
+  }
+
+  beurt.facturatie_status = null;
+  beurt.gefactureerd_op = null;
+  renderForfaitFacturatie();
+  updateFactQueueBadge();
+  if (typeof showToast === 'function') showToast('Terug als openstaand gemarkeerd', 'success');
 }
 
 // =============================================
