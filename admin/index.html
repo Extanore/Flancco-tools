@@ -426,6 +426,31 @@
   .btn-add-loc { width: 100%; padding: 10px; background: none; border: 1.5px dashed var(--rule); border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; transition: border-color 0.2s, background 0.2s; }
   .btn-add-loc:hover { border-color: var(--navy); background: var(--light); }
 
+  /* KLANTTYPE TOGGLE — pill-style radio */
+  .kl-type-toggle { display: inline-flex; background: var(--light); border: 1.5px solid var(--rule); border-radius: 10px; padding: 3px; gap: 2px; }
+  .kl-type-toggle label { flex: 1; cursor: pointer; }
+  .kl-type-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .kl-type-toggle span { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--grey); transition: background 0.15s, color 0.15s; user-select: none; }
+  .kl-type-toggle span svg { width: 14px; height: 14px; }
+  .kl-type-toggle input:checked + span { background: var(--navy); color: #fff; }
+  .kl-type-toggle label:hover input:not(:checked) + span { color: var(--navy); }
+
+  /* CONTACTPERSONEN REPEATER */
+  .contact-repeater { display: flex; flex-direction: column; gap: 10px; }
+  .contact-card { background: var(--light); border: 1.5px solid var(--rule); border-radius: 10px; padding: 14px 16px; position: relative; }
+  .contact-card.is-primary { border-color: var(--navy); background: #fff; box-shadow: 0 0 0 1px var(--navy) inset; }
+  .contact-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; }
+  .contact-card-title { font-size: 12px; font-weight: 600; color: var(--navy); display: inline-flex; align-items: center; gap: 8px; }
+  .contact-card-title .contact-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--navy); color: #fff; text-transform: uppercase; letter-spacing: 0.5px; }
+  .contact-card-actions { display: inline-flex; gap: 6px; align-items: center; }
+  .contact-card-actions .btn-set-primary { font-size: 11px; font-weight: 600; color: var(--navy); background: #fff; border: 1px solid var(--rule); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+  .contact-card-actions .btn-set-primary:hover { border-color: var(--navy); background: var(--light); }
+  .contact-card-actions .btn-remove-contact { background: none; border: none; color: var(--grey); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; }
+  .contact-card-actions .btn-remove-contact:hover { color: var(--red); background: #fff; }
+  .contact-card .modal-field { margin-bottom: 8px; }
+  .contact-card .modal-field label { font-size: 11px; }
+  .contact-card .modal-field input { font-size: 13px; padding: 8px 10px; background: #fff; }
+
   /* DROPDOWN MENU — toolbar */
   .dropdown { position: relative; display: inline-block; }
   .dropdown-btn { padding: 6px 12px; background: #fff; color: var(--navy); border: 1.5px solid var(--rule); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
@@ -493,7 +518,26 @@
   .kd-werf-header svg { width:13px; height:13px; flex-shrink:0; color:var(--navy); }
   .kd-werf-po { margin-left:auto; font-size:11px; color:var(--grey); }
   .kd-werf-body { font-size:12px; color:var(--navy); line-height:1.45; padding-left:19px; }
+  .kd-werf-contact { font-size:11px; color:var(--grey); padding-left:19px; margin-top:4px; display:flex; align-items:center; gap:4px; }
+  .kd-werf-contact svg { width:11px; height:11px; flex-shrink:0; }
   .btn-link { background:none; border:none; color:var(--navy); text-decoration:underline; cursor:pointer; font-size:12px; font-family:inherit; padding:4px 0; }
+
+  /* KLANT TYPE CHIP */
+  .kd-type-chip { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; letter-spacing:0.3px; margin-left:6px; vertical-align:middle; text-transform:uppercase; }
+  .kd-type-chip-bedrijf { background:#E0E7FF; color:#3730A3; }
+  .kd-type-chip-particulier { background:#FCE7F3; color:#9D174D; }
+
+  /* CONTACTPERSONEN in klant-detail panel */
+  .kd-contacts-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; }
+  .kd-contact-card { padding:10px 12px; background:#fff; border:1px solid var(--rule); border-radius:6px; font-size:13px; color:var(--navy); }
+  .kd-contact-card.is-primary { border-color:var(--navy); box-shadow:0 0 0 1px var(--navy) inset; }
+  .kd-contact-name { display:flex; align-items:center; gap:6px; margin-bottom:2px; }
+  .kd-contact-badge { font-size:9px; font-weight:700; padding:2px 6px; border-radius:8px; background:var(--navy); color:#fff; letter-spacing:0.3px; text-transform:uppercase; }
+  .kd-contact-role { font-size:11px; color:var(--grey); margin-bottom:4px; font-style:italic; }
+  .kd-contact-line { font-size:12px; line-height:1.4; }
+  .kd-contact-line a { color:var(--navy); text-decoration:none; }
+  .kd-contact-line a:hover { text-decoration:underline; }
+
   @media (max-width:900px) {
     .kd-grid { grid-template-columns:1fr; }
   }
@@ -2129,15 +2173,51 @@
           <label>Partner</label>
           <input type="text" id="kl-partner-display" disabled style="background:var(--light);color:var(--grey)">
         </div>
-        <div class="modal-row">
-          <div class="modal-field"><label>Voornaam *</label><input id="kl-voornaam" placeholder="Jan"></div>
-          <div class="modal-field"><label>Achternaam *</label><input id="kl-achternaam" placeholder="Janssen"></div>
+
+        <!-- Klanttype toggle -->
+        <div class="modal-field" style="margin-bottom:18px">
+          <label>Type klant *</label>
+          <div class="kl-type-toggle" role="radiogroup" aria-label="Type klant">
+            <label>
+              <input type="radio" name="kl-type" value="bedrijf" checked onchange="klTypeChanged()">
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M10 9h4"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>Bedrijf</span>
+            </label>
+            <label>
+              <input type="radio" name="kl-type" value="particulier" onchange="klTypeChanged()">
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Particulier</span>
+            </label>
+          </div>
         </div>
-        <div class="modal-field"><label>Bedrijfsnaam</label><input id="kl-bedrijf" placeholder="Optioneel — laat leeg voor particulier"></div>
-        <div class="modal-row">
-          <div class="modal-field"><label>Email *</label><input type="email" id="kl-email" placeholder="naam@voorbeeld.be"></div>
-          <div class="modal-field"><label>Telefoon *</label><input id="kl-telefoon" placeholder="+32 ..."></div>
+
+        <!-- Bedrijfsnaam (alleen bij bedrijf) -->
+        <div class="modal-field" id="kl-bedrijf-wrap">
+          <label>Bedrijfsnaam *</label>
+          <input id="kl-bedrijf" placeholder="Naam van de organisatie">
         </div>
+
+        <!-- Contactpersonen -->
+        <div class="modal-field" id="kl-contacts-wrap" style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <label style="margin:0" id="kl-contacts-label">Contactpersonen</label>
+            <small style="color:var(--grey);font-size:11px" id="kl-contacts-hint">Een primair contact is verplicht — andere contacten zijn optioneel.</small>
+          </div>
+          <div class="contact-repeater" id="kl-contacts-repeater"></div>
+          <button type="button" class="btn-add-loc" id="btn-add-contact" style="margin-top:10px" onclick="addKlantContact()">+ Contactpersoon toevoegen</button>
+        </div>
+
+        <!-- Algemene contactgegevens (factuur/hoofdkanaal) -->
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--rule)">
+          <p class="loc-section-title" id="kl-algemeen-title">Algemene contactgegevens</p>
+          <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px" id="kl-algemeen-hint">Voor facturen en algemene communicatie. Laat leeg om de gegevens van de primaire contactpersoon te gebruiken.</small>
+          <div class="modal-row">
+            <div class="modal-field"><label>Algemene email</label><input type="email" id="kl-email" placeholder="facturatie@bedrijf.be"></div>
+            <div class="modal-field"><label>Algemene telefoon</label><input id="kl-telefoon" placeholder="+32 ..."></div>
+          </div>
+        </div>
+
+        <!-- Hidden legacy fields voor backward-compat -->
+        <input type="hidden" id="kl-voornaam">
+        <input type="hidden" id="kl-achternaam">
       </div>
 
       <!-- TAB: LOCATIES -->
@@ -6487,7 +6567,7 @@ async function toggleKlantDetail(clientId) {
 async function hydrateKlantDetail(clientId, inner) {
   inner.innerHTML = '<p style="font-size:12px;color:var(--grey);margin:0">Klantdossier laden...</p>';
   try {
-    var html = buildKlantDetailHTML(clientId);
+    var html = await buildKlantDetailHTML(clientId);
     inner.innerHTML = html;
     inner.dataset.loaded = 'true';
   } catch (e) {
@@ -6495,7 +6575,7 @@ async function hydrateKlantDetail(clientId, inner) {
   }
 }
 
-function buildKlantDetailHTML(clientId) {
+async function buildKlantDetailHTML(clientId) {
   var c = allClients.find(function(x) { return x.id === clientId; });
   if (!c) throw new Error('Klant niet gevonden');
   var partner = partners.find(function(p) { return p.id === c.partner_id; });
@@ -6505,6 +6585,11 @@ function buildKlantDetailHTML(clientId) {
     var st = (ct.status || '').toLowerCase();
     return st === 'actief' || st === 'getekend' || st === 'lopend';
   });
+  // Contactpersonen ophalen — forward-compat: val terug op legacy contact_person bij DB-drift
+  var contacts = [];
+  try { contacts = await loadContactsVoorKlant(clientId); } catch (_) { /* ignore */ }
+  var primaryContact = contacts.find(function(ct) { return ct.is_primary; }) || contacts[0] || null;
+  var klantType = c.client_type || (c.company_name ? 'bedrijf' : 'particulier');
 
   // Recente beurten
   var klantBeurten = (window._allBeurten || []).filter(function(b) {
@@ -6524,13 +6609,23 @@ function buildKlantDetailHTML(clientId) {
   // Kolom 1 — Gegevens (met factuuradres onderaan)
   html += '<div class="kd-col">';
   html += '<h4 class="kd-title">Gegevens</h4>';
-  html += '<div class="kd-row"><strong>' + esc(c.contact_person || '—') + '</strong></div>';
-  if (c.company_name) html += '<div class="kd-row">' + esc(c.company_name) + '</div>';
+  // Headline: bij bedrijf = company_name prominent; bij particulier = persoon prominent.
+  if (klantType === 'bedrijf' && c.company_name) {
+    html += '<div class="kd-row"><strong>' + esc(c.company_name) + '</strong> <span class="kd-type-chip kd-type-chip-bedrijf">Bedrijf</span></div>';
+    if (primaryContact) {
+      var primaryNaam = ((primaryContact.first_name || '') + ' ' + (primaryContact.last_name || '')).trim() || c.contact_person || '';
+      if (primaryNaam) html += '<div class="kd-row" style="color:var(--grey);font-size:12px">Primair contact: ' + esc(primaryNaam) + (primaryContact.role ? ' — ' + esc(primaryContact.role) : '') + '</div>';
+    } else if (c.contact_person) {
+      html += '<div class="kd-row" style="color:var(--grey);font-size:12px">Contact: ' + esc(c.contact_person) + '</div>';
+    }
+  } else {
+    html += '<div class="kd-row"><strong>' + esc(c.contact_person || '—') + '</strong> <span class="kd-type-chip kd-type-chip-particulier">Particulier</span></div>';
+  }
   if (c.email) html += '<div class="kd-row"><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a></div>';
   if (c.phone) html += '<div class="kd-row"><a href="tel:' + esc(c.phone) + '">' + esc(c.phone) + '</a></div>';
   if (c.vat_number) html += '<div class="kd-row"><span class="kd-lab">BTW:</span> ' + esc(c.vat_number) + '</div>';
   if (c.po_number) html += '<div class="kd-row"><span class="kd-lab">Standaard PO:</span> ' + esc(c.po_number) + '</div>';
-  html += '<div class="kd-row"><span class="kd-lab">Partner:</span> ' + esc(partner ? partner.naam : '—') + '</div>';
+  html += '<div class="kd-row"><span class="kd-lab">Partner:</span> ' + esc(partner ? (partner.bedrijfsnaam || partner.naam || '—') : '—') + '</div>';
   // Factuuradres apart geblokt
   var hasFactuurAdres = !!(c.street || c.postal_code || c.city);
   if (hasFactuurAdres) {
@@ -6555,6 +6650,18 @@ function buildKlantDetailHTML(clientId) {
     html += '<p class="kd-empty">Geen aparte werven — werk vindt plaats op het factuuradres.</p>';
   } else {
     werfLocaties.forEach(function(l) {
+      // Resolve gekoppelde contactpersoon (via contact_id) of val terug op los ingevulde contact_name
+      var linkedContact = null;
+      if (l.contact_id) {
+        linkedContact = contacts.find(function(ct) { return ct.id === l.contact_id; }) || null;
+      }
+      var contactDisp = '';
+      if (linkedContact) {
+        var cn = ((linkedContact.first_name || '') + ' ' + (linkedContact.last_name || '')).trim();
+        contactDisp = cn + (linkedContact.role ? ' — ' + linkedContact.role : '');
+      } else if (l.contact_name) {
+        contactDisp = l.contact_name;
+      }
       html += '<div class="kd-werf">' +
         '<div class="kd-werf-header">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
@@ -6565,6 +6672,9 @@ function buildKlantDetailHTML(clientId) {
           esc([l.street, l.house_number].filter(Boolean).join(' ')) +
           ((l.postal_code || l.city) ? '<br>' + esc(((l.postal_code || '') + ' ' + (l.city || '')).trim()) : '') +
         '</div>' +
+        (contactDisp
+          ? '<div class="kd-werf-contact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>' + esc(contactDisp) + '</div>'
+          : '') +
       '</div>';
     });
   }
@@ -6592,6 +6702,26 @@ function buildKlantDetailHTML(clientId) {
   html += '</div>';
 
   html += '</div>'; // einde kd-grid
+
+  // Contactpersonen-sectie (enkel tonen bij bedrijf met meerdere contacten of met rol-info)
+  var extraContacts = contacts.filter(function(ct) { return !ct.is_primary; });
+  var showContactsSection = klantType === 'bedrijf' && (extraContacts.length > 0 || (primaryContact && primaryContact.role));
+  if (showContactsSection) {
+    html += '<div class="kd-section">';
+    html += '<h4 class="kd-title">Contactpersonen (' + contacts.length + ')</h4>';
+    html += '<div class="kd-contacts-grid">';
+    contacts.forEach(function(ct) {
+      var naam = ((ct.first_name || '') + ' ' + (ct.last_name || '')).trim() || '—';
+      html += '<div class="kd-contact-card' + (ct.is_primary ? ' is-primary' : '') + '">' +
+        '<div class="kd-contact-name"><strong>' + esc(naam) + '</strong>' + (ct.is_primary ? ' <span class="kd-contact-badge">Primair</span>' : '') + '</div>' +
+        (ct.role ? '<div class="kd-contact-role">' + esc(ct.role) + '</div>' : '') +
+        (ct.email ? '<div class="kd-contact-line"><a href="mailto:' + esc(ct.email) + '">' + esc(ct.email) + '</a></div>' : '') +
+        (ct.phone ? '<div class="kd-contact-line"><a href="tel:' + esc(ct.phone) + '">' + esc(ct.phone) + '</a></div>' : '') +
+      '</div>';
+    });
+    html += '</div>';
+    html += '</div>';
+  }
 
   // Beurten-rij
   html += '<div class="kd-section">';
@@ -6634,6 +6764,162 @@ function openNieuwContractVoorKlant(clientId) {
 // Werklocaties buffer voor de open modal (niet-primaire locaties). Gesynct naar DB op save.
 var klantLocatiesBuffer = [];
 
+// Contactpersonen-buffer voor de open modal. Gesynct naar DB op save via upsert + delete.
+var klantContactsBuffer = [];
+// Snapshot van contact-ids die bij openen al bestonden — om te bepalen welke we moeten DELETE-en.
+var klantContactsInitialIds = [];
+
+function klTypeChanged() {
+  var type = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
+  var bedrijfWrap    = document.getElementById('kl-bedrijf-wrap');
+  var bedrijfInput   = document.getElementById('kl-bedrijf');
+  var contactsLabel  = document.getElementById('kl-contacts-label');
+  var contactsHint   = document.getElementById('kl-contacts-hint');
+  var btnAddContact  = document.getElementById('btn-add-contact');
+  var algemeenTitle  = document.getElementById('kl-algemeen-title');
+  var algemeenHint   = document.getElementById('kl-algemeen-hint');
+
+  if (type === 'particulier') {
+    // Bedrijfsnaam verbergen + input leegmaken zodat die bij save als null gaat
+    bedrijfWrap.style.display = 'none';
+    bedrijfInput.value = '';
+    // Particulier = exact 1 contactpersoon (geen "meerdere")
+    if (contactsLabel) contactsLabel.textContent = 'Persoonsgegevens';
+    if (contactsHint) contactsHint.textContent = 'Naam en gegevens van de klant.';
+    if (btnAddContact) btnAddContact.style.display = 'none';
+    if (algemeenTitle) algemeenTitle.textContent = 'Factuurgegevens';
+    if (algemeenHint) algemeenHint.textContent = 'Optioneel — voor facturen. Laat leeg om de gegevens van de persoon hierboven te gebruiken.';
+    // Forceer exact 1 contact (behoud eerste, primary)
+    if (klantContactsBuffer.length === 0) {
+      klantContactsBuffer.push(emptyContact(true));
+    } else if (klantContactsBuffer.length > 1) {
+      klantContactsBuffer = [klantContactsBuffer.find(function(c) { return c.is_primary; }) || klantContactsBuffer[0]];
+      klantContactsBuffer[0].is_primary = true;
+    } else {
+      klantContactsBuffer[0].is_primary = true;
+    }
+  } else {
+    bedrijfWrap.style.display = '';
+    if (contactsLabel) contactsLabel.textContent = 'Contactpersonen';
+    if (contactsHint) contactsHint.textContent = 'Een primair contact is verplicht — andere contacten zijn optioneel.';
+    if (btnAddContact) btnAddContact.style.display = '';
+    if (algemeenTitle) algemeenTitle.textContent = 'Algemene contactgegevens';
+    if (algemeenHint) algemeenHint.textContent = 'Voor facturen en algemene communicatie. Laat leeg om de gegevens van de primaire contactpersoon te gebruiken.';
+    if (klantContactsBuffer.length === 0) {
+      klantContactsBuffer.push(emptyContact(true));
+    }
+  }
+  renderKlantContacts();
+  // Werklocatie-contact-picker ververst ook
+  if (typeof renderKlantLocaties === 'function') renderKlantLocaties();
+}
+
+function emptyContact(isPrimary) {
+  return {
+    _id: null,
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    role: '',
+    is_primary: !!isPrimary
+  };
+}
+
+function renderKlantContacts() {
+  var cont = document.getElementById('kl-contacts-repeater');
+  if (!cont) return;
+  var type = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
+  var showRole = type === 'bedrijf';
+  var showPrimaryControls = type === 'bedrijf' && klantContactsBuffer.length > 1;
+
+  // Zorg dat exact één is_primary = true staat
+  var primaryCount = klantContactsBuffer.filter(function(c) { return c.is_primary; }).length;
+  if (primaryCount === 0 && klantContactsBuffer.length > 0) {
+    klantContactsBuffer[0].is_primary = true;
+  } else if (primaryCount > 1) {
+    var first = true;
+    klantContactsBuffer.forEach(function(c) {
+      if (c.is_primary && first) { first = false; } else { c.is_primary = false; }
+    });
+  }
+
+  if (klantContactsBuffer.length === 0) {
+    cont.innerHTML = '<p style="color:var(--grey);font-size:12px;text-align:center;padding:12px 0;margin:0">Nog geen contactpersoon. Klik "+ Contactpersoon toevoegen".</p>';
+    return;
+  }
+
+  cont.innerHTML = klantContactsBuffer.map(function(ct, idx) {
+    var isPrimary = !!ct.is_primary;
+    var canRemove = type === 'bedrijf' && klantContactsBuffer.length > 1 && !isPrimary;
+    var headerTitle = (type === 'particulier')
+      ? 'Klantgegevens'
+      : (isPrimary ? 'Primair contact' : 'Contactpersoon ' + (idx + 1));
+    var actions = '';
+    if (showPrimaryControls && !isPrimary) {
+      actions += '<button type="button" class="btn-set-primary" onclick="setPrimaryKlantContact(' + idx + ')">Maak primair</button>';
+    }
+    if (canRemove) {
+      actions += '<button type="button" class="btn-remove-contact" onclick="removeKlantContact(' + idx + ')">Verwijderen</button>';
+    }
+    return '<div class="contact-card' + (isPrimary ? ' is-primary' : '') + '" data-idx="' + idx + '">' +
+      '<div class="contact-card-header">' +
+        '<div class="contact-card-title">' + esc(headerTitle) + (isPrimary && type === 'bedrijf' ? ' <span class="contact-badge">Primair</span>' : '') + '</div>' +
+        (actions ? '<div class="contact-card-actions">' + actions + '</div>' : '') +
+      '</div>' +
+      '<div class="modal-row">' +
+        '<div class="modal-field"><label>Voornaam *</label><input data-contact-field="first_name" value="' + esc(ct.first_name || '') + '" placeholder="Voornaam"></div>' +
+        '<div class="modal-field"><label>Achternaam *</label><input data-contact-field="last_name" value="' + esc(ct.last_name || '') + '" placeholder="Achternaam"></div>' +
+      '</div>' +
+      '<div class="modal-row">' +
+        '<div class="modal-field"><label>Email</label><input type="email" data-contact-field="email" value="' + esc(ct.email || '') + '" placeholder="naam@voorbeeld.be"></div>' +
+        '<div class="modal-field"><label>Telefoon</label><input data-contact-field="phone" value="' + esc(ct.phone || '') + '" placeholder="+32 ..."></div>' +
+      '</div>' +
+      (showRole
+        ? '<div class="modal-field"><label>Functie / Rol <span style="color:var(--grey);font-weight:400">(optioneel)</span></label><input data-contact-field="role" value="' + esc(ct.role || '') + '" placeholder="bv. Inkoop, Technisch, Facility..."></div>'
+        : '') +
+    '</div>';
+  }).join('');
+
+  // Bind inputs → buffer
+  cont.querySelectorAll('.contact-card').forEach(function(card) {
+    var idx = parseInt(card.dataset.idx, 10);
+    card.querySelectorAll('[data-contact-field]').forEach(function(inp) {
+      inp.addEventListener('input', function() {
+        klantContactsBuffer[idx][inp.dataset.contactField] = inp.value;
+        // Werklocatie-dropdowns tonen contactnaam → herrenderen bij naamwijziging
+        if (inp.dataset.contactField === 'first_name' || inp.dataset.contactField === 'last_name') {
+          if (typeof renderKlantLocaties === 'function') renderKlantLocaties();
+        }
+      });
+    });
+  });
+}
+
+function addKlantContact() {
+  klantContactsBuffer.push(emptyContact(false));
+  renderKlantContacts();
+}
+
+function removeKlantContact(idx) {
+  if (klantContactsBuffer[idx] && klantContactsBuffer[idx].is_primary) return;
+  klantContactsBuffer.splice(idx, 1);
+  renderKlantContacts();
+  if (typeof renderKlantLocaties === 'function') renderKlantLocaties();
+}
+
+function setPrimaryKlantContact(idx) {
+  klantContactsBuffer.forEach(function(c, i) { c.is_primary = (i === idx); });
+  renderKlantContacts();
+}
+
+async function loadContactsVoorKlant(clientId) {
+  if (!clientId) return [];
+  var res = await sb.from('client_contacts').select('*').eq('client_id', clientId).order('is_primary', { ascending: false }).order('created_at', { ascending: true });
+  if (res.error) { console.warn('Laden contactpersonen faalde:', res.error); return []; }
+  return res.data || [];
+}
+
 function switchKlantTab(tab) {
   document.querySelectorAll('#modal-klant .modal-tab').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tab === tab);
@@ -6670,11 +6956,15 @@ function renderKlantLocaties() {
       '<div class="modal-row">' +
         '<div class="modal-field" style="flex:2"><label>PO-nummer <span style="color:var(--grey);font-weight:400">(optioneel)</span></label><input data-loc-field="po_number" value="' + esc(loc.po_number || '') + '" placeholder="Specifieke referentie voor deze locatie"><small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Overruled het klant-PO bij taken op deze locatie.</small></div>' +
       '</div>' +
+      '<div class="modal-field"><label>Gekoppelde contactpersoon <span style="color:var(--grey);font-weight:400">(optioneel)</span></label>' +
+        renderLocContactPicker(loc, idx) +
+        '<small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Kies een contactpersoon van deze klant, of vul hieronder een aparte contact ter plaatse in.</small>' +
+      '</div>' +
       '<div class="modal-row">' +
-        '<div class="modal-field" style="flex:2"><label>Contactpersoon</label><input data-loc-field="contact_name" value="' + esc(loc.contact_name || '') + '" placeholder="Naam ter plaatse"></div>' +
+        '<div class="modal-field" style="flex:2"><label>Contact ter plaatse <span style="color:var(--grey);font-weight:400">(optioneel)</span></label><input data-loc-field="contact_name" value="' + esc(loc.contact_name || '') + '" placeholder="Naam ter plaatse"></div>' +
         '<div class="modal-field"><label>Telefoon</label><input data-loc-field="contact_phone" value="' + esc(loc.contact_phone || '') + '"></div>' +
       '</div>' +
-      '<div class="modal-field"><label>Email contactpersoon</label><input data-loc-field="contact_email" value="' + esc(loc.contact_email || '') + '"></div>' +
+      '<div class="modal-field"><label>Email contact ter plaatse</label><input data-loc-field="contact_email" value="' + esc(loc.contact_email || '') + '"></div>' +
       '<div class="modal-field"><label>Toegangsinfo / Notities</label><textarea data-loc-field="access_info" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:8px;resize:vertical;font-family:inherit;font-size:13px;background:#fff" placeholder="Toegangscode, sleutel ophalen bij..., parkeerinfo...">' + esc(loc.access_info || '') + '</textarea></div>' +
     '</div>';
   }).join('');
@@ -6687,11 +6977,33 @@ function renderKlantLocaties() {
         klantLocatiesBuffer[idx][inp.dataset.locField] = inp.value;
       });
     });
+    // contact-picker select (separate event)
+    var pickerSel = card.querySelector('[data-loc-contact-picker]');
+    if (pickerSel) {
+      pickerSel.addEventListener('change', function() {
+        klantLocatiesBuffer[idx].contact_id = pickerSel.value || null;
+      });
+    }
   });
 }
 
+function renderLocContactPicker(loc, idx) {
+  // Bouw dropdown met de huidige klantContactsBuffer-inhoud; toont "nog geen contactpersoon" als buffer leeg.
+  var opts = '<option value="">— Geen gekoppeld contact —</option>';
+  (klantContactsBuffer || []).forEach(function(ct, ci) {
+    var naam = ((ct.first_name || '') + ' ' + (ct.last_name || '')).trim();
+    if (!naam && !ct.email && !ct.phone) return; // skip volledig lege rijen
+    if (!naam) naam = ct.email || ct.phone || ('Contact ' + (ci + 1));
+    var key = ct._id || ('buffer:' + ci); // nieuwe contacten krijgen later een echte id na save
+    var label = naam + (ct.role ? ' — ' + ct.role : '') + (ct.is_primary ? ' (primair)' : '');
+    var selected = (loc.contact_id && loc.contact_id === key) ? ' selected' : '';
+    opts += '<option value="' + esc(key) + '"' + selected + '>' + esc(label) + '</option>';
+  });
+  return '<select data-loc-contact-picker style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:#fff">' + opts + '</select>';
+}
+
 function addKlantLocatie() {
-  klantLocatiesBuffer.push({ label: '', street: '', house_number: '', postal_code: '', city: '', country: 'BE', contact_name: '', contact_phone: '', contact_email: '', access_info: '', po_number: '' });
+  klantLocatiesBuffer.push({ label: '', street: '', house_number: '', postal_code: '', city: '', country: 'BE', contact_name: '', contact_phone: '', contact_email: '', access_info: '', po_number: '', contact_id: null });
   renderKlantLocaties();
 }
 
@@ -6726,6 +7038,11 @@ async function openKlantModal(editData) {
   document.getElementById('kl-btw').value = editData ? editData.vat_number || '' : '';
   document.getElementById('kl-po').value = editData ? editData.po_number || '' : '';
 
+  // Zet type-toggle (default: bedrijf voor nieuwe klant, anders uit DB)
+  var klType = (editData && editData.client_type) ? editData.client_type : 'bedrijf';
+  var typeRadio = document.querySelector('input[name="kl-type"][value="' + klType + '"]');
+  if (typeRadio) typeRadio.checked = true;
+
   // Populate partner dropdown (admin) of disabled-display (partner)
   var partnerField = document.getElementById('kl-partner');
   var selEl = document.getElementById('kl-partner-select');
@@ -6755,21 +7072,61 @@ async function openKlantModal(editData) {
   // Reset naar tab Basis
   switchKlantTab('basis');
 
+  // Laad contactpersonen in buffer
+  klantContactsBuffer = [];
+  klantContactsInitialIds = [];
+  if (editData && editData.id) {
+    var contacts = await loadContactsVoorKlant(editData.id);
+    if (contacts.length > 0) {
+      klantContactsBuffer = contacts.map(function(ct) {
+        return {
+          _id: ct.id,
+          first_name: ct.first_name || '',
+          last_name: ct.last_name || '',
+          email: ct.email || '',
+          phone: ct.phone || '',
+          role: ct.role || '',
+          is_primary: !!ct.is_primary
+        };
+      });
+      klantContactsInitialIds = contacts.map(function(ct) { return ct.id; });
+    }
+  }
+  // Nieuwe klant of geen contacten in DB: pre-fill één primary uit legacy clients-velden
+  if (klantContactsBuffer.length === 0) {
+    var legacyFirst = editData ? (nameParts[0] || '') : '';
+    var legacyLast  = editData ? (nameParts.slice(1).join(' ') || '') : '';
+    klantContactsBuffer.push({
+      _id: null,
+      first_name: legacyFirst,
+      last_name: legacyLast,
+      email: editData ? (editData.email || '') : '',
+      phone: editData ? (editData.phone || '') : '',
+      role: '',
+      is_primary: true
+    });
+  }
+
   // Laad werklocaties (niet-primaire) in de buffer
   klantLocatiesBuffer = [];
   if (editData && editData.id) {
     var extras = await loadWerklocatiesVoorKlant(editData.id);
     klantLocatiesBuffer = extras.map(function(l) {
+      // contact_id blijft een DB-id; we matchen later via buffer-_id bij save
       return {
         _id: l.id,
         label: l.label || '', street: l.street || '', house_number: l.house_number || '',
         postal_code: l.postal_code || '', city: l.city || '', country: l.country || 'BE',
         contact_name: l.contact_name || '', contact_phone: l.contact_phone || '',
         contact_email: l.contact_email || '', access_info: l.access_info || '',
-        po_number: l.po_number || ''
+        po_number: l.po_number || '',
+        contact_id: l.contact_id || null
       };
     });
   }
+
+  // Render type-afhankelijke UI + repeaters
+  klTypeChanged();
   renderKlantLocaties();
 
   document.getElementById('btn-delete-klant').style.display = editData ? 'inline-block' : 'none';
@@ -6827,36 +7184,60 @@ document.addEventListener('change', function(e) {
 
 async function saveKlant() {
   var id = document.getElementById('kl-id').value;
-  var voornaam = document.getElementById('kl-voornaam').value.trim();
-  var achternaam = document.getElementById('kl-achternaam').value.trim();
-  var contact = (voornaam + ' ' + achternaam).trim();
-  var email = document.getElementById('kl-email').value.trim();
-  var telefoon = document.getElementById('kl-telefoon').value.trim();
+  var klType = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
+  var bedrijfsnaam = document.getElementById('kl-bedrijf').value.trim();
+  var algEmail = document.getElementById('kl-email').value.trim();
+  var algTelefoon = document.getElementById('kl-telefoon').value.trim();
   var straat = document.getElementById('kl-straat').value.trim();
   var huisnr = document.getElementById('kl-huisnr').value.trim();
   var postcode = document.getElementById('kl-postcode').value.trim();
   var gemeente = document.getElementById('kl-gemeente').value.trim();
   var partnerId = document.getElementById('kl-partner').value;
 
-  // Verplichte basis-velden — switch automatisch naar de tab met ontbrekende data
-  if (!voornaam || !achternaam || !email || !telefoon) {
+  // Validatie: type + partner
+  if (!partnerId) {
     switchKlantTab('basis');
-    showToast('Vul voornaam, achternaam, email en telefoon in.', 'error');
-    var firstEmpty = !voornaam ? 'kl-voornaam' : !achternaam ? 'kl-achternaam' : !email ? 'kl-email' : 'kl-telefoon';
-    var el = document.getElementById(firstEmpty); if (el) el.focus();
+    showToast('Kies een partner in het dropdown-veld', 'error');
+    var pSel = document.getElementById('kl-partner-select'); if (pSel) pSel.focus();
     return;
   }
+  if (klType === 'bedrijf' && !bedrijfsnaam) {
+    switchKlantTab('basis');
+    showToast('Bedrijfsnaam is verplicht voor een bedrijf-klant.', 'error');
+    var belInput = document.getElementById('kl-bedrijf'); if (belInput) belInput.focus();
+    return;
+  }
+
+  // Validatie: primaire contactpersoon is verplicht (voor- en achternaam)
+  var primary = klantContactsBuffer.find(function(c) { return c.is_primary; }) || klantContactsBuffer[0];
+  if (!primary) {
+    switchKlantTab('basis');
+    showToast('Voeg minstens één contactpersoon toe.', 'error');
+    var addBtn = document.getElementById('btn-add-contact'); if (addBtn) addBtn.focus();
+    return;
+  }
+  primary.first_name = (primary.first_name || '').trim();
+  primary.last_name  = (primary.last_name  || '').trim();
+  if (!primary.first_name || !primary.last_name) {
+    switchKlantTab('basis');
+    showToast(klType === 'particulier'
+      ? 'Vul voor- en achternaam van de klant in.'
+      : 'Vul voor- en achternaam van de primaire contactpersoon in.', 'error');
+    return;
+  }
+
+  // Legacy display-cache: contact_person, email en phone op clients-niveau
+  // Primair contact is bron; algemene email/tel overrulen indien ingevuld.
+  var primaryFullName = (primary.first_name + ' ' + primary.last_name).trim();
+  var finalEmail = algEmail || (primary.email || '').trim();
+  var finalTelefoon = algTelefoon || (primary.phone || '').trim();
+
+  // Factuuradres verplicht
   if (!straat || !huisnr || !postcode || !gemeente) {
     switchKlantTab('locaties');
     showToast('Vul het factuuradres (straat, huisnr, postcode, gemeente) in.', 'error');
     var firstAddr = !straat ? 'kl-straat' : !huisnr ? 'kl-huisnr' : !postcode ? 'kl-postcode' : 'kl-gemeente';
     var el2 = document.getElementById(firstAddr); if (el2) el2.focus();
-    return;
-  }
-  if (!partnerId) {
-    switchKlantTab('basis');
-    showToast('Kies een partner in het dropdown-veld', 'error');
-    var pSel = document.getElementById('kl-partner-select'); if (pSel) pSel.focus();
     return;
   }
 
@@ -6872,10 +7253,11 @@ async function saveKlant() {
 
   var payload = {
     partner_id: partnerId,
-    contact_person: contact,
-    company_name: document.getElementById('kl-bedrijf').value.trim() || null,
-    email: email,
-    phone: telefoon,
+    client_type: klType,
+    contact_person: primaryFullName,
+    company_name: (klType === 'bedrijf' ? (bedrijfsnaam || null) : null),
+    email: finalEmail || null,
+    phone: finalTelefoon || null,
     street: straat,
     house_number: huisnr,
     postal_code: postcode,
@@ -6886,19 +7268,79 @@ async function saveKlant() {
     po_number: document.getElementById('kl-po').value.trim() || null
   };
 
-  var result;
-  if (id) {
-    result = await sb.from('clients').update(payload).eq('id', id).select();
-  } else {
-    result = await sb.from('clients').insert([payload]).select();
+  // Forward-compat retry: als client_type nog niet bestaat in DB (pre-migratie-cache)
+  // halen we die uit de payload en doen we een tweede poging.
+  async function upsertClient(p) {
+    if (id) return await sb.from('clients').update(p).eq('id', id).select();
+    return await sb.from('clients').insert([p]).select();
+  }
+  var result = await upsertClient(payload);
+  if (result.error && /client_type/.test(result.error.message || '')) {
+    var fallback = Object.assign({}, payload);
+    delete fallback.client_type;
+    result = await upsertClient(fallback);
   }
 
   if (result.error) {
-    alert('Fout bij opslaan: ' + result.error.message);
+    showToast('Fout bij opslaan: ' + result.error.message, 'error');
     return;
   }
 
   var clientId = id || (result.data && result.data[0] && result.data[0].id);
+
+  // ─── Sync contactpersonen ───────────────────────────────────────────
+  // Map van buffer-index → DB-uuid (gevuld na insert) zodat werklocaties
+  // verwijzingen naar "buffer:<idx>" kunnen vervangen door een echte uuid.
+  var bufferIdxToDbId = {};
+  if (clientId) {
+    try {
+      // Verwijder contacten die niet meer in buffer zitten
+      var bufferExistingIds = klantContactsBuffer.map(function(c) { return c._id; }).filter(Boolean);
+      var removedIds = klantContactsInitialIds.filter(function(existId) { return bufferExistingIds.indexOf(existId) === -1; });
+      if (removedIds.length > 0) {
+        await sb.from('client_contacts').delete().in('id', removedIds);
+      }
+
+      // Unieke constraint op is_primary=true → zet primary-flag pas NA
+      // alle rijen bestaan, om race op upsert te vermijden.
+      // Stap A: upsert alle rijen met is_primary=false
+      for (var k = 0; k < klantContactsBuffer.length; k++) {
+        var C = klantContactsBuffer[k];
+        var cPayload = {
+          client_id: clientId,
+          first_name: (C.first_name || '').trim(),
+          last_name: (C.last_name || '').trim(),
+          email: (C.email || '').trim() || null,
+          phone: (C.phone || '').trim() || null,
+          role: (C.role || '').trim() || null,
+          is_primary: false
+        };
+        if (C._id) {
+          // Eerst alle op non-primary, daarna zetten we primary in stap B
+          await sb.from('client_contacts').update(cPayload).eq('id', C._id);
+          bufferIdxToDbId[k] = C._id;
+        } else {
+          var insRes = await sb.from('client_contacts').insert([cPayload]).select();
+          if (insRes.error) throw insRes.error;
+          var newId = insRes.data && insRes.data[0] && insRes.data[0].id;
+          if (newId) {
+            C._id = newId;
+            bufferIdxToDbId[k] = newId;
+          }
+        }
+      }
+      // Stap B: zet primary=true op één rij (met trigger-sync naar clients.contact_person)
+      var primaryIdx = klantContactsBuffer.findIndex(function(c) { return c.is_primary; });
+      if (primaryIdx === -1) primaryIdx = 0;
+      var primaryDbId = bufferIdxToDbId[primaryIdx] || (klantContactsBuffer[primaryIdx] && klantContactsBuffer[primaryIdx]._id);
+      if (primaryDbId) {
+        await sb.from('client_contacts').update({ is_primary: true }).eq('id', primaryDbId);
+      }
+    } catch (err) {
+      console.warn('Contact-sync faalde:', err);
+      showToast('Klant opgeslagen, maar contactpersonen konden niet volledig gesynct worden: ' + (err.message || err), 'error');
+    }
+  }
 
   // ─── Sync werklocaties ────────────────────────────────────────────────
   if (clientId) {
@@ -6913,9 +7355,18 @@ async function saveKlant() {
         await sb.from('client_locations').delete().in('id', toDelete);
       }
 
-      // 2. Upsert buffer
+      // 2. Upsert buffer (resolve contact_id: "buffer:<idx>" → echte uuid)
       for (var j = 0; j < klantLocatiesBuffer.length; j++) {
         var L2 = klantLocatiesBuffer[j];
+        var resolvedContactId = null;
+        if (L2.contact_id) {
+          if (typeof L2.contact_id === 'string' && L2.contact_id.indexOf('buffer:') === 0) {
+            var bIdx = parseInt(L2.contact_id.slice('buffer:'.length), 10);
+            resolvedContactId = bufferIdxToDbId[bIdx] || null;
+          } else {
+            resolvedContactId = L2.contact_id;
+          }
+        }
         var locPayload = {
           client_id: clientId,
           label: (L2.label || '').trim(),
@@ -6929,17 +7380,24 @@ async function saveKlant() {
           contact_phone: (L2.contact_phone || '').trim() || null,
           contact_email: (L2.contact_email || '').trim() || null,
           access_info: (L2.access_info || '').trim() || null,
-          po_number: (L2.po_number || '').trim() || null
+          po_number: (L2.po_number || '').trim() || null,
+          contact_id: resolvedContactId
         };
-        if (L2._id) {
-          await sb.from('client_locations').update(locPayload).eq('id', L2._id);
-        } else {
-          await sb.from('client_locations').insert([locPayload]);
+        // Forward-compat retry voor contact_id
+        async function upsertLoc(p) {
+          if (L2._id) return await sb.from('client_locations').update(p).eq('id', L2._id);
+          return await sb.from('client_locations').insert([p]);
+        }
+        var locRes = await upsertLoc(locPayload);
+        if (locRes && locRes.error && /contact_id/.test(locRes.error.message || '')) {
+          var fb = Object.assign({}, locPayload);
+          delete fb.contact_id;
+          await upsertLoc(fb);
         }
       }
     } catch (err) {
       console.warn('Locatie-sync faalde:', err);
-      alert('Klant opgeslagen, maar locaties konden niet volledig gesynct worden: ' + (err.message || err));
+      showToast('Klant opgeslagen, maar locaties konden niet volledig gesynct worden: ' + (err.message || err), 'error');
     }
   }
 
