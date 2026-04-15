@@ -598,7 +598,7 @@
   .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus {
     outline: none; border-color: var(--navy);
   }
-  .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  /* .modal-buttons base — uitgebreid in design-systeem hieronder met footer-left/footer-right */
 
   /* =============================================
      DESIGN-SYSTEEM BUTTONS — consistent met admin/index.html
@@ -627,6 +627,70 @@
   .btn.btn-secondary:hover:not(:disabled) { border-color: var(--navy); color: var(--navy); }
   .btn.btn-success { background: var(--green); color:#fff; border-color: var(--green); }
   .btn.btn-success:hover:not(:disabled) { filter: brightness(0.92); }
+
+  /* =============================================
+     SPLIT-BUTTON — primaire actie + dropdown voor varianten/status-transities
+     Pattern: één Opslaan-knop + chevron-toggle die menu opent met alternatieve acties.
+     ============================================= */
+  .btn-split { position: relative; display: inline-flex; align-items: stretch; }
+  .btn-split .btn-split-main {
+    border-top-right-radius: 0; border-bottom-right-radius: 0;
+    border-right-width: 0;
+  }
+  .btn-split .btn-split-toggle {
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
+    padding: 10px 10px;
+    border-left: 1.5px solid rgba(255,255,255,0.25);
+    margin-left: 0;
+  }
+  .btn-split .btn-split-toggle.btn-ghost { border-left-color: var(--rule); }
+  .btn-split .btn-split-toggle svg { width: 14px; height: 14px; transition: transform .15s; }
+  .btn-split.open .btn-split-toggle svg { transform: rotate(180deg); }
+  .btn-split-menu {
+    position: absolute; bottom: calc(100% + 6px); right: 0;
+    min-width: 240px; max-width: 320px;
+    background: #fff; border: 1px solid var(--rule); border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.16), 0 2px 4px rgba(15,23,42,0.06);
+    padding: 6px; z-index: 1200;
+    display: none; flex-direction: column; gap: 2px;
+    animation: bsMenuIn .12s ease-out;
+  }
+  @keyframes bsMenuIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .btn-split.open .btn-split-menu { display: flex; }
+  .btn-split-menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 6px; border: none; background: transparent;
+    text-align: left; cursor: pointer; font-family: inherit; font-size: 13px;
+    font-weight: 500; color: var(--navy); width: 100%; line-height: 1.3;
+  }
+  .btn-split-menu-item:hover:not(:disabled),
+  .btn-split-menu-item:focus-visible { background: #F3F4F6; outline: none; }
+  .btn-split-menu-item:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-split-menu-item .bsi-icon {
+    width: 18px; height: 18px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--grey);
+  }
+  .btn-split-menu-item .bsi-icon svg { width: 16px; height: 16px; }
+  .btn-split-menu-item .bsi-label { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .btn-split-menu-item .bsi-label small { font-size: 11px; color: var(--grey); font-weight: 400; margin-top: 2px; }
+  .btn-split-menu-item.danger { color: var(--red); }
+  .btn-split-menu-item.danger .bsi-icon { color: var(--red); }
+  .btn-split-menu-item.danger:hover:not(:disabled),
+  .btn-split-menu-item.danger:focus-visible { background: rgba(231,76,60,0.08); }
+  .btn-split-menu-sep { height: 1px; background: var(--rule); margin: 4px 6px; }
+
+  /* Modal-footer: standaard layout voor alle modals */
+  .modal-buttons {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 24px; padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+  .modal-buttons .footer-left  { display: flex; gap: 8px; margin-right: auto; }
+  .modal-buttons .footer-right { display: flex; gap: 8px; align-items: center; }
 
   /* Legacy aliases */
   .modal-buttons button {
@@ -1033,11 +1097,23 @@
         <div class="tech-chip-grid" id="qa-extra-techs"></div>
       </div>
     </div>
-    <!-- Buttons: inline (single) vs deferrable (dual) -->
+    <!-- Buttons: inline (single) vs deferrable (split-button met Opmaken-variant) -->
     <div class="modal-buttons">
-      <button type="button" onclick="closeQuickAdd()">Annuleren</button>
-      <button type="button" id="qa-btn-save" class="btn-save" onclick="saveQuickAdd('inplannen')">Inplannen</button>
-      <button type="button" id="qa-btn-opmaken" class="btn-blue" style="display:none" onclick="saveQuickAdd('opmaken')">Opmaken</button>
+      <div class="footer-right" style="margin-left:auto">
+        <button type="button" class="btn btn-ghost" onclick="closeQuickAdd()">Annuleren</button>
+        <div class="btn-split" id="qa-save-split">
+          <button type="button" id="qa-btn-save" class="btn btn-primary btn-split-main" onclick="saveQuickAdd('inplannen')">Inplannen</button>
+          <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer opties" onclick="toggleSplitMenu(this, event)" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="btn-split-menu" role="menu">
+            <button type="button" id="qa-btn-opmaken" class="btn-split-menu-item" role="menuitem" onclick="saveQuickAdd('opmaken'); closeAllSplitMenus()">
+              <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+              <span class="bsi-label">Enkel opmaken<small>Bewaar de beurt zonder direct in te plannen</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1062,7 +1138,9 @@
       </button>
     </div>
     <div class="modal-buttons">
-      <button onclick="closeDagPlusKiezer()">Annuleren</button>
+      <div class="footer-right" style="margin-left:auto">
+        <button type="button" class="btn btn-ghost" onclick="closeDagPlusKiezer()">Annuleren</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1085,8 +1163,10 @@
     <div class="werkbon-totaal" id="werkbon-totaal"></div>
 
     <div class="modal-buttons">
-      <button onclick="closeWerkbonModal()">Annuleren</button>
-      <button class="btn-save" onclick="saveWerkbon()">Voltooien &amp; werkbon aanmaken</button>
+      <div class="footer-right" style="margin-left:auto">
+        <button type="button" class="btn btn-ghost" onclick="closeWerkbonModal()">Annuleren</button>
+        <button type="button" class="btn btn-primary" onclick="saveWerkbon()">Voltooien &amp; werkbon aanmaken</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1120,8 +1200,10 @@
     </div>
 
     <div class="modal-buttons">
-      <button onclick="closePlanInterventieModal()">Annuleren</button>
-      <button class="btn-save" onclick="savePlanInterventie()">Inplannen</button>
+      <div class="footer-right" style="margin-left:auto">
+        <button type="button" class="btn btn-ghost" onclick="closePlanInterventieModal()">Annuleren</button>
+        <button type="button" class="btn btn-primary" onclick="savePlanInterventie()">Inplannen</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1237,9 +1319,21 @@
     </div>
 
     <div class="modal-buttons">
-      <button type="button" onclick="closeNieuweInterventieModal()">Annuleren</button>
-      <button type="button" id="ni-btn-save" class="btn-save" onclick="saveNieuweInterventie('inplannen')">Nu inplannen</button>
-      <button type="button" id="ni-btn-opmaken" class="btn-blue" onclick="saveNieuweInterventie('opmaken')">Opmaken</button>
+      <div class="footer-right" style="margin-left:auto">
+        <button type="button" class="btn btn-ghost" onclick="closeNieuweInterventieModal()">Annuleren</button>
+        <div class="btn-split" id="ni-save-split">
+          <button type="button" id="ni-btn-save" class="btn btn-primary btn-split-main" onclick="saveNieuweInterventie('inplannen')">Nu inplannen</button>
+          <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer opties" onclick="toggleSplitMenu(this, event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="btn-split-menu" role="menu">
+            <button type="button" id="ni-btn-opmaken" class="btn-split-menu-item" role="menuitem" onclick="saveNieuweInterventie('opmaken'); closeAllSplitMenus()">
+              <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+              <span class="bsi-label">Enkel opmaken<small>Bewaar als interventie zonder direct in te plannen</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1316,13 +1410,37 @@
       <textarea id="edit-beurt-notities" rows="2" placeholder="Optioneel..."></textarea>
     </div>
 
-    <div class="modal-buttons" style="flex-wrap:wrap;gap:8px;align-items:center">
-      <button id="edit-beurt-delete-btn" type="button" style="margin-right:auto;background:#fff;color:#DC2626;border:1.5px solid #FCA5A5;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="deleteBeurtFromModal()">Verwijderen</button>
-      <button id="edit-beurt-unplan-btn" type="button" style="background:#FEE2E2;color:#DC2626;border:none;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="unplanFromModal()">Uitplannen</button>
-      <button id="edit-beurt-reopen-btn" type="button" style="display:none;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="reopenBeurtFromModal()">Terug naar ingepland</button>
-      <button type="button" onclick="closeEditBeurtModal()">Annuleren</button>
-      <button id="edit-beurt-uitgevoerd-btn" type="button" class="btn-save" style="background:#059669" onclick="markUitgevoerdFromModal()">Markeer als uitgevoerd</button>
-      <button type="button" class="btn-save" onclick="saveEditBeurt()">Opslaan</button>
+    <div class="modal-buttons">
+      <div class="footer-left">
+        <button id="edit-beurt-delete-btn" type="button" class="btn btn-danger-ghost" onclick="deleteBeurtFromModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          Verwijderen
+        </button>
+      </div>
+      <div class="footer-right">
+        <button type="button" class="btn btn-ghost" onclick="closeEditBeurtModal()">Annuleren</button>
+        <div class="btn-split" id="edit-beurt-save-split">
+          <button type="button" class="btn btn-primary btn-split-main" onclick="saveEditBeurt()">Opslaan</button>
+          <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer acties" onclick="toggleSplitMenu(this, event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="btn-split-menu" role="menu">
+            <button type="button" id="edit-beurt-uitgevoerd-btn" class="btn-split-menu-item" role="menuitem" onclick="markUitgevoerdFromModal(); closeAllSplitMenus()">
+              <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="bsi-label">Markeer als uitgevoerd<small>Bevestig uren en sluit de beurt af</small></span>
+            </button>
+            <button type="button" id="edit-beurt-reopen-btn" class="btn-split-menu-item" role="menuitem" onclick="reopenBeurtFromModal(); closeAllSplitMenus()">
+              <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg></span>
+              <span class="bsi-label">Terug naar ingepland<small>Heropen een afgewerkte beurt</small></span>
+            </button>
+            <div class="btn-split-menu-sep"></div>
+            <button type="button" id="edit-beurt-unplan-btn" class="btn-split-menu-item danger" role="menuitem" onclick="unplanFromModal(); closeAllSplitMenus()">
+              <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg></span>
+              <span class="bsi-label">Uitplannen<small>Zet de beurt terug naar de backlog</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1340,10 +1458,22 @@
       <textarea id="ub-notitie" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-family:inherit;font-size:13px"></textarea>
     </div>
     <div id="ub-facturatie-badge" style="display:none;padding:10px 14px;border-radius:8px;background:#ECFDF5;border:1px solid #10B981;font-size:13px;color:#065F46;margin-bottom:14px"></div>
-    <div class="modal-buttons" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-      <button type="button" class="btn btn-ghost" onclick="closeUrenBevestigenModal()">Annuleren</button>
-      <button type="button" class="btn btn-ghost" onclick="ubSaveAsPlanned()">Exact zoals gepland</button>
-      <button type="button" class="btn btn-primary" onclick="saveUrenBevestiging()">Bevestigen &amp; uitvoeren</button>
+    <div class="modal-buttons">
+      <div class="footer-right" style="margin-left:auto">
+        <button type="button" class="btn btn-ghost" onclick="closeUrenBevestigenModal()">Annuleren</button>
+        <div class="btn-split">
+          <button type="button" class="btn btn-primary btn-split-main" onclick="saveUrenBevestiging()">Bevestigen &amp; uitvoeren</button>
+          <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer opties" onclick="toggleSplitMenu(this, event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="btn-split-menu" role="menu">
+            <button type="button" class="btn-split-menu-item" role="menuitem" onclick="ubSaveAsPlanned(); closeAllSplitMenus()">
+              <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
+              <span class="bsi-label">Exact zoals gepland<small>Neem de geplande uren één-op-één over</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1388,10 +1518,17 @@
 
     <div id="qv-warn" style="display:none;background:#FEF3C7;color:#92400E;padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px"></div>
 
-    <div class="modal-buttons" style="flex-wrap:wrap;gap:8px">
-      <button onclick="closeQuickVerlofModal()">Annuleren</button>
-      <button id="qv-delete-btn" style="margin-right:auto;background:#FEE2E2;color:#DC2626;display:none" onclick="deleteQuickVerlof()">Verwijderen</button>
-      <button class="btn-save" onclick="saveQuickVerlof()">Opslaan</button>
+    <div class="modal-buttons">
+      <div class="footer-left">
+        <button type="button" id="qv-delete-btn" class="btn btn-danger-ghost" style="display:none" onclick="deleteQuickVerlof()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          Verwijderen
+        </button>
+      </div>
+      <div class="footer-right">
+        <button type="button" class="btn btn-ghost" onclick="closeQuickVerlofModal()">Annuleren</button>
+        <button type="button" class="btn btn-primary" onclick="saveQuickVerlof()">Opslaan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1717,6 +1854,38 @@ function showToast(msg, type) {
   var duration = type === 'error' ? 5000 : 3000;
   setTimeout(function() { t.classList.remove('show'); }, duration);
 }
+
+// =============================================
+// SPLIT-BUTTON — generieke open/close + keyboard-handling
+// Pattern: <div class="btn-split" id="..."><button class="btn-split-main">...</button>
+//   <button class="btn-split-toggle" onclick="toggleSplitMenu(this)">▾</button>
+//   <div class="btn-split-menu">...</div></div>
+// Eén centrale handler sluit menus bij outside-click of Escape.
+// =============================================
+function toggleSplitMenu(toggleBtn, ev) {
+  if (ev) ev.stopPropagation();
+  var split = toggleBtn.closest('.btn-split');
+  if (!split) return;
+  var willOpen = !split.classList.contains('open');
+  closeAllSplitMenus();
+  if (willOpen) {
+    split.classList.add('open');
+    var first = split.querySelector('.btn-split-menu-item:not(:disabled)');
+    if (first) first.focus();
+  }
+}
+function closeAllSplitMenus() {
+  document.querySelectorAll('.btn-split.open').forEach(function(s) { s.classList.remove('open'); });
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.btn-split')) closeAllSplitMenus();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.querySelector('.btn-split.open')) {
+    closeAllSplitMenus();
+    e.stopPropagation();
+  }
+});
 
 // =============================================
 // FLANCCO-STIJL DIALOGS — vervangt native alert/confirm
@@ -2950,14 +3119,29 @@ function niApplyStepVisibility() {
   // Startuur verbergen bij hele dag
   document.getElementById('ni-start-wrap').style.display = (step === 'scheduling' && !heleDag) ? 'block' : 'none';
 
-  // Knoppen
+  // Knoppen — Opmaken zit als menu-item in split-button dropdown
   var btnOpmaken = document.getElementById('ni-btn-opmaken');
   var btnSave = document.getElementById('ni-btn-save');
+  var splitToggle = document.querySelector('#ni-save-split .btn-split-toggle');
+  var splitMain = document.querySelector('#ni-save-split .btn-split-main');
   if (step === 'input') {
-    btnOpmaken.style.display = 'inline-flex';
+    if (btnOpmaken) btnOpmaken.style.display = '';
+    if (splitToggle) splitToggle.style.display = '';
+    if (splitMain) {
+      splitMain.style.borderTopRightRadius = '';
+      splitMain.style.borderBottomRightRadius = '';
+      splitMain.style.borderRightWidth = '';
+    }
     btnSave.textContent = 'Nu inplannen';
   } else {
-    btnOpmaken.style.display = 'none';
+    if (btnOpmaken) btnOpmaken.style.display = 'none';
+    // Verberg dropdown-toggle bij scheduling-stap want geen alt-actie meer
+    if (splitToggle) splitToggle.style.display = 'none';
+    if (splitMain) {
+      splitMain.style.borderTopRightRadius = '8px';
+      splitMain.style.borderBottomRightRadius = '8px';
+      splitMain.style.borderRightWidth = '1.5px';
+    }
     btnSave.textContent = 'Bevestig inplanning';
   }
 }
@@ -3589,7 +3773,7 @@ function openQuickVerlofModal(techId, dateStr, editId, presetTypeId) {
 
   document.getElementById('qv-edit-id').value = editId || '';
   document.getElementById('qv-title').textContent = editId ? 'Verlof bewerken' : 'Verlof toevoegen';
-  document.getElementById('qv-delete-btn').style.display = editId ? 'inline-flex' : 'none';
+  document.getElementById('qv-delete-btn').style.display = editId ? '' : 'none';
   document.getElementById('qv-warn').style.display = 'none';
 
   if (editId) {
@@ -3778,7 +3962,7 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
     });
   }
 
-  // Knop-zichtbaarheid afhankelijk van beurt-status:
+  // Status-afhankelijke menu-items in de Opslaan-split-button:
   // - Uitplannen: enkel op 'ingepland' (verwijdert datum/technieker, zet terug naar backlog)
   // - Markeer als uitgevoerd: enkel op 'ingepland'
   // - Terug naar ingepland: enkel op 'uitgevoerd' (undo-flow)
@@ -3793,6 +3977,36 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   if (reopenBtn) reopenBtn.style.display = isUitgevoerd ? '' : 'none';
   var deleteBtn = document.getElementById('edit-beurt-delete-btn');
   if (deleteBtn) deleteBtn.style.display = isNew ? 'none' : '';
+
+  // Verberg de menu-separator als er geen menu-items boven OF onder zijn
+  // (bv. nieuwe beurt zonder status: enkel "Uitplannen" zou tonen wat zinloos is)
+  var split = document.getElementById('edit-beurt-save-split');
+  if (split) {
+    var anyTransition = isIngepland || isUitgevoerd;
+    var toggleBtn = split.querySelector('.btn-split-toggle');
+    if (toggleBtn) toggleBtn.style.display = anyTransition ? '' : 'none';
+    // Hoofdknop herstelt afgeronde rechterhoeken als toggle verborgen is
+    var mainBtn = split.querySelector('.btn-split-main');
+    if (mainBtn) {
+      if (!anyTransition) {
+        mainBtn.style.borderTopRightRadius = '8px';
+        mainBtn.style.borderBottomRightRadius = '8px';
+        mainBtn.style.borderRightWidth = '1.5px';
+      } else {
+        mainBtn.style.borderTopRightRadius = '';
+        mainBtn.style.borderBottomRightRadius = '';
+        mainBtn.style.borderRightWidth = '';
+      }
+    }
+    // Verberg separator als er enkel "Uitplannen" overblijft (want dan staat hij bovenaan)
+    var sep = split.querySelector('.btn-split-menu-sep');
+    if (sep) {
+      var anyAbove = (uitgevoerdBtn && uitgevoerdBtn.style.display !== 'none') ||
+                     (reopenBtn     && reopenBtn.style.display     !== 'none');
+      var anyBelow = (unplanBtn     && unplanBtn.style.display     !== 'none');
+      sep.style.display = (anyAbove && anyBelow) ? '' : 'none';
+    }
+  }
 
   document.getElementById('modal-edit-beurt').classList.add('open');
 }
@@ -4806,17 +5020,39 @@ function qaApplyModeVisibility() {
   // Datum-input in deferrable stap 2 zichtbaar; in inline verborgen (gebruikt hidden qa-datum)
   document.getElementById('qa-datum-wrap').style.display = (mode === 'deferrable' && step === 'scheduling') ? 'block' : 'none';
 
-  // Buttons
+  // Buttons — Opmaken zit als menu-item in split-button dropdown
   var btnOpmaken = document.getElementById('qa-btn-opmaken');
   var btnSave = document.getElementById('qa-btn-save');
+  var splitToggle = document.querySelector('#qa-save-split .btn-split-toggle');
+  var splitMain = document.querySelector('#qa-save-split .btn-split-main');
+  function setSplitMode(showAlt) {
+    if (showAlt) {
+      if (splitToggle) splitToggle.style.display = '';
+      if (splitMain) {
+        splitMain.style.borderTopRightRadius = '';
+        splitMain.style.borderBottomRightRadius = '';
+        splitMain.style.borderRightWidth = '';
+      }
+    } else {
+      if (splitToggle) splitToggle.style.display = 'none';
+      if (splitMain) {
+        splitMain.style.borderTopRightRadius = '8px';
+        splitMain.style.borderBottomRightRadius = '8px';
+        splitMain.style.borderRightWidth = '1.5px';
+      }
+    }
+  }
   if (mode === 'deferrable' && step === 'input') {
-    btnOpmaken.style.display = 'inline-flex';
+    if (btnOpmaken) btnOpmaken.style.display = '';
+    setSplitMode(true);
     btnSave.textContent = 'Nu inplannen';
   } else if (mode === 'deferrable' && step === 'scheduling') {
-    btnOpmaken.style.display = 'none';
+    if (btnOpmaken) btnOpmaken.style.display = 'none';
+    setSplitMode(false);
     btnSave.textContent = 'Bevestig inplanning';
   } else {
-    btnOpmaken.style.display = 'none';
+    if (btnOpmaken) btnOpmaken.style.display = 'none';
+    setSplitMode(false);
     btnSave.textContent = 'Inplannen';
   }
 }
