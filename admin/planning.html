@@ -187,26 +187,107 @@
   .taak-chip-tijd { color: var(--grey); font-size: 11px; margin-left: auto; }
 
   /* LAYOUT */
-  .planning-layout { display: flex; height: calc(100vh - 108px); overflow: hidden; }
+  .planning-layout {
+    display: flex; flex-direction: column;
+    height: calc(100vh - 108px); overflow: hidden;
+  }
+  .planning-main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
-  /* FILTERS SIDEBAR */
-  .filters-sidebar {
-    width: 180px; min-width: 180px; background: var(--white);
-    border-right: 1px solid var(--rule); padding: 20px 16px; overflow-y: auto;
+  /* FILTERS TOPBAR (horizontaal, sticky) */
+  .filters-topbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px;
+    background: var(--white);
+    border-bottom: 1px solid var(--rule);
     flex-shrink: 0;
+    min-height: 52px;
   }
-  .filter-group { margin-bottom: 20px; }
-  .filter-group label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.8px; color: var(--grey); margin-bottom: 8px; }
-  .filter-group select {
-    width: 100%; padding: 8px 10px; border: 1.5px solid var(--rule); border-radius: 8px;
-    font-size: 12px; background: var(--white); color: var(--navy); outline: none;
-    transition: border-color 0.2s; font-family: inherit;
+  .filters-topbar-group {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
-  .filter-group select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+  .filters-topbar-spacer { flex: 1; }
+
+  /* Filter-chip: compact pill met inline dropdown */
+  .filter-chip {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px 6px 12px;
+    border: 1.5px solid var(--rule);
+    border-radius: 999px;
+    background: var(--white);
+    font-size: 12px; font-weight: 600; color: var(--navy);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+  .filter-chip:hover { border-color: var(--navy); background: #F9FAFB; }
+  .filter-chip.is-active {
+    border-color: var(--navy);
+    background: var(--navy);
+    color: #fff;
+  }
+  .filter-chip.is-active .filter-chip-label { color: rgba(255,255,255,0.7); }
+  .filter-chip.is-active .filter-chip-caret { color: #fff; }
+  .filter-chip-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--grey);
+    pointer-events: none;
+  }
+  .filter-chip-caret {
+    color: var(--grey); pointer-events: none; flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+  .filter-chip:hover .filter-chip-caret { color: var(--navy); }
+  /* Native select transparant maken + over de hele chip leggen voor klikgebied */
+  .filter-chip select {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0; cursor: pointer;
+    font-family: inherit; font-size: 12px;
+    border: none; background: transparent;
+    appearance: none; -webkit-appearance: none;
+  }
+  .filter-chip select:focus { outline: none; }
+  .filter-chip:focus-within { box-shadow: 0 0 0 3px rgba(26,26,46,0.12); border-color: var(--navy); }
+
+  /* Reset-knop — enkel zichtbaar als 1+ filter actief is */
+  .filter-chip-reset {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--red);
+    font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+    min-height: 32px;
+  }
+  .filter-chip-reset:hover { background: rgba(231,76,60,0.08); border-color: rgba(231,76,60,0.3); }
+
+  /* LEGEND — icon-only chips, rechts in topbar */
+  .legend {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    background: var(--light);
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+  }
+  .legend .legend-item {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px;
+    color: var(--grey);
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    font-size: 0; /* label verbergen, SVG blijft */
+    cursor: default;
+  }
+  .legend .legend-item:hover { background: rgba(26,26,46,0.06); color: var(--navy); }
+  .legend .legend-item svg { width: 16px; height: 16px; }
 
   /* MAIN GRID */
-  .grid-area { flex: 1; overflow: auto; padding: 20px; }
+  .grid-area { flex: 1; overflow: auto; padding: 20px; min-width: 0; }
 
   /* WEEK VIEW */
   .week-grid { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
@@ -835,13 +916,18 @@
   .toast-success { background: linear-gradient(135deg, var(--green) 0%, #219a52 100%); }
   .toast-error { background: linear-gradient(135deg, var(--red) 0%, #c0392b 100%); }
 
+  @media (max-width: 1100px) {
+    .legend { display: none; }
+    .filter-chip-label { display: none; }
+    .filter-chip { padding: 6px 10px; }
+  }
   @media (max-width: 1024px) {
-    .filters-sidebar { display: none; }
     .planning-sidebar { width: 260px; min-width: 260px; }
     .secondary-bar-center .week-label { min-width: 160px; font-size: 12px; }
-    .legend { display: none; }
   }
   @media (max-width: 768px) {
+    .filters-topbar { padding: 8px 12px; gap: 6px; overflow-x: auto; flex-wrap: nowrap; }
+    .filters-topbar-group { flex-wrap: nowrap; }
     .planning-sidebar { position: fixed; right: -300px; top: 108px; bottom: 0; z-index: 50;
       transition: right 0.3s var(--ease); width: 300px; box-shadow: none; }
     .planning-sidebar.open { right: 0; box-shadow: -8px 0 24px rgba(0,0,0,0.12); }
@@ -911,47 +997,60 @@
   </div>
 
   <div class="planning-layout">
-    <!-- FILTERS -->
-    <div class="filters-sidebar">
-      <div class="filter-group">
-        <label>Partner</label>
-        <select id="filter-partner" onchange="applyFilters()">
-          <option value="">Alle partners</option>
-        </select>
+    <!-- FILTERS TOPBAR (horizontaal, sticky) -->
+    <div class="filters-topbar">
+      <div class="filters-topbar-group">
+        <div class="filter-chip" data-filter="partner">
+          <span class="filter-chip-label">Partner</span>
+          <select id="filter-partner" onchange="applyFilters(); updateFilterChipState(this);">
+            <option value="">Alle partners</option>
+          </select>
+          <svg class="filter-chip-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="filter-chip" data-filter="sector">
+          <span class="filter-chip-label">Sector</span>
+          <select id="filter-sector" onchange="applyFilters(); updateFilterChipState(this);">
+            <option value="">Alle sectoren</option>
+            <option value="zonnepanelen">Zonnepanelen</option>
+            <option value="warmtepomp">Warmtepomp</option>
+            <option value="ventilatie">Ventilatie</option>
+            <option value="verwarming">Verwarming</option>
+            <option value="airco">Airco</option>
+            <option value="ic">Industrial Cleaning</option>
+            <option value="klussen">Klussen</option>
+          </select>
+          <svg class="filter-chip-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="filter-chip" data-filter="regio">
+          <span class="filter-chip-label">Regio</span>
+          <select id="filter-regio" onchange="applyFilters(); updateFilterChipState(this);">
+            <option value="">Alle regio's</option>
+          </select>
+          <svg class="filter-chip-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="filter-chip" data-filter="tech">
+          <span class="filter-chip-label">Technieker</span>
+          <select id="filter-tech" onchange="applyFilters(); updateFilterChipState(this);">
+            <option value="">Alle techniekers</option>
+          </select>
+          <svg class="filter-chip-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <button type="button" class="filter-chip-reset" id="filter-reset-btn" onclick="resetAllFilters()" style="display:none" title="Filters wissen">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <span>Filters wissen</span>
+        </button>
       </div>
-      <div class="filter-group">
-        <label>Sector</label>
-        <select id="filter-sector" onchange="applyFilters()">
-          <option value="">Alle sectoren</option>
-          <option value="zonnepanelen">Zonnepanelen</option>
-          <option value="warmtepomp">Warmtepomp</option>
-          <option value="ventilatie">Ventilatie</option>
-          <option value="verwarming">Verwarming</option>
-          <option value="airco">Airco</option>
-          <option value="ic">Industrial Cleaning</option>
-          <option value="klussen">Klussen</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Regio</label>
-        <select id="filter-regio" onchange="applyFilters()">
-          <option value="">Alle regio's</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Technieker</label>
-        <select id="filter-tech" onchange="applyFilters()">
-          <option value="">Alle techniekers</option>
-        </select>
-      </div>
-      <div class="legend" id="sector-legend" style="margin-top:16px;"></div>
+      <div class="filters-topbar-spacer"></div>
+      <div class="legend" id="sector-legend"></div>
     </div>
 
-    <!-- MAIN GRID -->
-    <div class="grid-area" id="grid-area"></div>
+    <!-- MAIN (grid + rechter sidebar) -->
+    <div class="planning-main">
+      <!-- MAIN GRID -->
+      <div class="grid-area" id="grid-area"></div>
 
-    <!-- IN TE PLANNEN -->
-    <div class="planning-sidebar" id="planning-sidebar">
+      <!-- IN TE PLANNEN -->
+      <div class="planning-sidebar" id="planning-sidebar">
       <div class="sidebar-header">
         <h3 id="sidebar-title">In te plannen</h3>
         <span class="sidebar-count" id="sidebar-count">0</span>
@@ -979,6 +1078,7 @@
         </select>
       </div>
       <div class="sidebar-list" id="sidebar-list"></div>
+    </div>
     </div>
   </div>
 </div>
@@ -2136,22 +2236,72 @@ async function checkAuth() {
   await loadPlanningData();
   renderView();
   renderSidebar();
-  // Populate sector legend with SVG icons
+  // Populate sector legend — icon-only met title-tooltip, compacte row rechts in topbar
   var legendEl = document.getElementById('sector-legend');
   if (legendEl) {
     var sectors = [
-      { key: 'zonnepanelen', label: 'Zon' },
+      { key: 'zonnepanelen', label: 'Zonnepanelen' },
       { key: 'warmtepomp', label: 'Warmtepomp' },
       { key: 'airco', label: 'Airco' },
       { key: 'ventilatie', label: 'Ventilatie' },
       { key: 'verwarming', label: 'Verwarming' },
-      { key: 'ic', label: 'IC' },
+      { key: 'ic', label: 'Industrial Cleaning' },
       { key: 'klussen', label: 'Klussen' }
     ];
     legendEl.innerHTML = sectors.map(function(s) {
-      return '<span class="legend-item">' + getSectorIcon(s.key) + ' ' + s.label + '</span>';
+      return '<span class="legend-item sector-' + s.key + '" title="' + s.label + '" aria-label="' + s.label + '">' + getSectorIcon(s.key) + '</span>';
     }).join('');
   }
+
+  // Initial filter-chip state sync (in geval filters voor-ingevuld zijn via URL/storage)
+  ['filter-partner','filter-sector','filter-regio','filter-tech'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) updateFilterChipState(el);
+  });
+}
+
+// =============================================
+// FILTER-CHIP STATE (topbar)
+// =============================================
+function updateFilterChipState(selectEl) {
+  if (!selectEl) return;
+  var chip = selectEl.closest('.filter-chip');
+  if (!chip) return;
+  var hasValue = !!selectEl.value;
+  chip.classList.toggle('is-active', hasValue);
+
+  // Label van de chip updaten naar de gekozen waarde (of default)
+  var label = chip.querySelector('.filter-chip-label');
+  if (label) {
+    if (hasValue) {
+      var selectedText = selectEl.options[selectEl.selectedIndex] ? selectEl.options[selectEl.selectedIndex].text : '';
+      // Houd label compact — max 20 chars
+      label.textContent = selectedText.length > 20 ? selectedText.slice(0, 19) + '…' : selectedText;
+    } else {
+      // Reset naar originele label-tekst
+      var defaults = { 'filter-partner': 'Partner', 'filter-sector': 'Sector', 'filter-regio': 'Regio', 'filter-tech': 'Technieker' };
+      label.textContent = defaults[selectEl.id] || 'Filter';
+    }
+  }
+
+  // Toon/verberg reset-knop op basis van of er minstens één filter actief is
+  var anyActive = ['filter-partner','filter-sector','filter-regio','filter-tech'].some(function(id) {
+    var s = document.getElementById(id);
+    return s && s.value;
+  });
+  var resetBtn = document.getElementById('filter-reset-btn');
+  if (resetBtn) resetBtn.style.display = anyActive ? 'inline-flex' : 'none';
+}
+
+function resetAllFilters() {
+  ['filter-partner','filter-sector','filter-regio','filter-tech'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.value = '';
+      updateFilterChipState(el);
+    }
+  });
+  applyFilters();
 }
 
 async function doLogout() {
