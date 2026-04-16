@@ -104,8 +104,22 @@
   }
   .btn-nav.btn-today:hover { background: #c0392b; border-color: #c0392b; box-shadow: 0 2px 8px rgba(231,76,60,0.35); }
   .secondary-bar-right { display: flex; align-items: center; gap: 16px; justify-self: end; }
-  .view-toggle-workflow { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); }
-  .view-toggle-workflow .btn-view { padding: 6px 14px; font-size: 12px; }
+  /* Workflow-toggle (Rapportage/Afgewerkt/Interventies) — pill-shaped, staat in filters-topbar naast de sector-legend */
+  .view-toggle-workflow {
+    background: var(--light);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .view-toggle-workflow .btn-view {
+    padding: 5px 12px; font-size: 11px; font-weight: 600;
+    border-radius: 999px;
+    min-height: 24px;
+    letter-spacing: 0.1px;
+  }
+  .view-toggle-workflow .btn-view.active { background: var(--white); color: var(--navy); box-shadow: var(--shadow-sm); }
   .tab-badge { position:absolute; top:-4px; right:-4px; background:var(--red); color:white; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 5px; }
 
   /* RAPPORTAGE / AFGEWERKT / INTERVENTIE LIJSTEN */
@@ -1030,6 +1044,8 @@
     .legend { display: none; }
     .filter-chip-label { display: none; }
     .filter-chip { padding: 6px 10px; }
+    /* Workflow-toggle blijft zichtbaar — compactere labels */
+    .view-toggle-workflow .btn-view { padding: 5px 10px; }
   }
   @media (max-width: 1024px) {
     .planning-sidebar { width: 260px; min-width: 260px; }
@@ -1094,11 +1110,6 @@
       <button class="btn-nav btn-today" onclick="goToday()">Vandaag</button>
     </div>
     <div class="secondary-bar-right">
-      <div class="view-toggle view-toggle-workflow">
-        <button class="btn-view" data-view="rapportage" onclick="switchView('rapportage')" style="position:relative">Rapportage <span class="tab-badge" id="badge-rapportage" style="display:none"></span></button>
-        <button class="btn-view" data-view="afgewerkt" onclick="switchView('afgewerkt')">Afgewerkt</button>
-        <button class="btn-view" data-view="interventies-tab" onclick="switchView('interventies-tab')" style="position:relative">Interventies <span class="tab-badge" id="badge-interventies" style="display:none"></span></button>
-      </div>
       <div class="capacity-bar">
         <span class="capacity-label" id="capacity-label">0/25 ingepland</span>
         <div class="capacity-track"><div class="capacity-fill" id="capacity-fill"></div></div>
@@ -1157,6 +1168,11 @@
       </div>
       <div class="filters-topbar-spacer"></div>
       <div class="filter-presets" id="filter-presets" style="display:none"></div>
+      <div class="view-toggle view-toggle-workflow">
+        <button class="btn-view" data-view="rapportage" onclick="switchView('rapportage')" style="position:relative">Rapportage <span class="tab-badge" id="badge-rapportage" style="display:none"></span></button>
+        <button class="btn-view" data-view="afgewerkt" onclick="switchView('afgewerkt')">Afgewerkt</button>
+        <button class="btn-view" data-view="interventies-tab" onclick="switchView('interventies-tab')" style="position:relative">Interventies <span class="tab-badge" id="badge-interventies" style="display:none"></span></button>
+      </div>
       <div class="legend" id="sector-legend"></div>
     </div>
 
