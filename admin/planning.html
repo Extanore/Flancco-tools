@@ -1182,18 +1182,18 @@
         </button>
       </div>
       <div class="sb-new-split" id="sb-new-split">
-        <button type="button" id="sb-new-btn" class="sb-new-primary" onclick="onSidebarNewClick()">+ Nieuw contract</button>
+        <button type="button" id="sb-new-btn" class="sb-new-primary" onclick="onSidebarNewClick()" title="Nieuwe taak voor actieve tab — gebruik pijltje voor meer opties">+ Eenmalig onderhoud</button>
         <button type="button" class="sb-new-chevron" onclick="toggleSidebarCreateMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-label="Meer opties">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="sb-new-menu" id="sb-new-menu" role="menu" hidden>
           <button type="button" class="sb-menu-item" role="menuitem" onclick="createNewFromMenu('onderhoud')">
             <div class="sb-menu-icon" style="background:rgba(26,26,46,0.08)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             </div>
             <div class="sb-menu-body">
-              <div class="sb-menu-title">Nieuw contract</div>
-              <div class="sb-menu-hint">Contractuele onderhoudsreeks via wizard</div>
+              <div class="sb-menu-title">Eenmalig onderhoud</div>
+              <div class="sb-menu-hint">Losse onderhoudsbeurt zonder contract</div>
             </div>
           </button>
           <button type="button" class="sb-menu-item" role="menuitem" onclick="createNewFromMenu('interventie')">
@@ -1211,7 +1211,17 @@
             </div>
             <div class="sb-menu-body">
               <div class="sb-menu-title">Losse opdracht</div>
-              <div class="sb-menu-hint">Eenmalige klus zonder contract</div>
+              <div class="sb-menu-hint">Eenmalige klus (niet-onderhoud)</div>
+            </div>
+          </button>
+          <div style="height:1px;background:var(--rule);margin:4px 2px"></div>
+          <button type="button" class="sb-menu-item" role="menuitem" onclick="createNewFromMenu('contract')">
+            <div class="sb-menu-icon" style="background:rgba(26,26,46,0.08)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+            </div>
+            <div class="sb-menu-body">
+              <div class="sb-menu-title">Nieuw contract</div>
+              <div class="sb-menu-hint">Contractuele onderhoudsreeks via wizard</div>
             </div>
           </button>
         </div>
@@ -3337,11 +3347,25 @@ function monthDayClick(dateStr) {
 // =============================================
 // SIDEBAR - IN TE PLANNEN
 // =============================================
+// Sectors die als onderhoudswerk gelden (voor tab-categorisatie eenmalig onderhoud vs losse opdracht)
+var ONDERHOUDS_SECTORS = ['zonnepanelen', 'warmtepomp', 'ventilatie', 'airco', 'verwarming'];
+
+function isOnderhoudsSector(sector) {
+  return ONDERHOUDS_SECTORS.indexOf((sector || '').toLowerCase()) !== -1;
+}
+
 function renderSidebar() {
   // Counts per tab-categorie berekenen op totale "in te plannen" (geen sub-filters toepassen op badge)
+  // Onderhoud = contract-beurten + losse_opdracht met onderhoudssector (= eenmalig onderhoud)
+  // Losse = losse_opdracht met niet-onderhoudssector (echte klussen, industrial cleaning, ...)
   var inTePlannen = getInTePlannen();
-  var onderhoudCount = inTePlannen.filter(function(b) { return b.opdracht_type !== 'losse_opdracht'; }).length;
-  var losseCount = inTePlannen.filter(function(b) { return b.opdracht_type === 'losse_opdracht'; }).length;
+  var onderhoudCount = inTePlannen.filter(function(b) {
+    if (b.opdracht_type !== 'losse_opdracht') return true; // contract
+    return isOnderhoudsSector(b.sector); // eenmalig onderhoud
+  }).length;
+  var losseCount = inTePlannen.filter(function(b) {
+    return b.opdracht_type === 'losse_opdracht' && !isOnderhoudsSector(b.sector);
+  }).length;
   var intCount = (allInterventies || []).filter(function(iv) { return iv.status === 'open'; }).length;
 
   var elOnderhoudCount = document.getElementById('sb-onderhoud-count');
@@ -3375,10 +3399,16 @@ function renderSidebar() {
       };
     });
   } else if (sidebarType === 'losse') {
-    items = inTePlannen.filter(function(b) { return b.opdracht_type === 'losse_opdracht'; });
+    // Losse opdracht = eenmalig + niet-onderhoudssector (klussen, industrial cleaning, ...)
+    items = inTePlannen.filter(function(b) {
+      return b.opdracht_type === 'losse_opdracht' && !isOnderhoudsSector(b.sector);
+    });
   } else {
-    // 'onderhoud' tab: alleen contract-gebonden beurten
-    items = inTePlannen.filter(function(b) { return b.opdracht_type !== 'losse_opdracht'; });
+    // 'onderhoud' tab: contract-beurten + eenmalig onderhoud (losse_opdracht met onderhoudssector)
+    items = inTePlannen.filter(function(b) {
+      if (b.opdracht_type !== 'losse_opdracht') return true;
+      return isOnderhoudsSector(b.sector);
+    });
   }
 
   var sectorFilter = document.getElementById('sb-filter-sector').value;
@@ -3550,7 +3580,7 @@ function switchSidebarType(type) {
 
   // Primary button label + sidebar title per tab
   var labels = {
-    onderhoud:    { btn: '+ Nieuw contract',    title: 'In te plannen' },
+    onderhoud:    { btn: '+ Eenmalig onderhoud', title: 'In te plannen' },
     interventie:  { btn: '+ Nieuwe interventie', title: 'Open interventies' },
     losse:        { btn: '+ Nieuwe losse opdracht', title: 'Losse opdrachten' }
   };
@@ -3858,17 +3888,19 @@ function createNewFromMenu(action) {
     }
     return;
   }
-  if (action === 'losse') {
-    if (typeof openNieuweTaakModal === 'function') {
-      openNieuweTaakModal({ type: 'eenmalig' });
-    } else {
-      showToast('Losse opdracht aanmaken tijdelijk niet beschikbaar', 'error');
-    }
+  if (action === 'contract') {
+    // Contract-onderhoudsbeurten ontstaan automatisch bij contract-aanmaak via wizard.
+    window.location.href = 'contracten-wizard.html';
     return;
   }
-  // action === 'onderhoud' → nieuw contract via wizard (contracten worden daar gegenereerd)
-  // Contract-onderhoudsbeurten ontstaan automatisch bij contract-aanmaak, niet los in de sidebar.
-  window.location.href = 'contracten-wizard.html';
+  // 'onderhoud' (= eenmalig onderhoudsbeurt) en 'losse' (= klus zonder onderhoudskarakter)
+  // gebruiken beide de quickadd-modal met type='eenmalig' (= opdracht_type='losse_opdracht' in DB).
+  // Het onderscheid in de UI-tab gebeurt op sector (zie ONDERHOUDS_SECTORS).
+  if (typeof openNieuweTaakModal === 'function') {
+    openNieuweTaakModal({ type: 'eenmalig' });
+  } else {
+    showToast('Aanmaken tijdelijk niet beschikbaar', 'error');
+  }
 }
 
 // Dropdown menu controls — open/close + outside-click + Escape
