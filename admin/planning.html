@@ -574,25 +574,63 @@
     font-size: 11px; color: var(--white); background: linear-gradient(135deg, var(--red) 0%, #c0392b 100%);
     padding: 3px 10px; border-radius: 12px; font-weight: 700; min-width: 24px; text-align: center;
   }
-  .sidebar-type-toggle { display:flex; padding:10px 16px 0; gap:6px; }
+  .sidebar-type-toggle { display:flex; padding:10px 16px 0; gap:4px; }
   .sb-type-btn {
-    flex:1; padding:7px 8px; font-size:12px; font-weight:600;
-    background:transparent; border:1px solid var(--rule); border-radius:6px;
-    color:var(--grey); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
-    font-family: inherit; transition: all 0.2s var(--ease);
+    flex:1; min-width:0; padding:6px 6px; font-size:11px; font-weight:600;
+    background:transparent; border:1px solid var(--rule); border-radius:999px;
+    color:var(--grey); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:4px;
+    font-family: inherit; transition: all 0.15s var(--ease);
+    letter-spacing:0.2px; white-space:nowrap;
   }
-  .sb-type-btn:hover { color: var(--navy); }
+  .sb-type-btn:hover { color: var(--navy); border-color: var(--navy); }
   .sb-type-btn.active { background:var(--navy); color:#fff; border-color:var(--navy); }
   .sb-type-count {
-    background:var(--red); color:#fff; font-size:10px; padding:1px 6px; border-radius:8px; min-width:16px; font-weight:700;
+    background:var(--light); color:var(--grey); font-size:10px; padding:1px 6px; border-radius:9px;
+    min-width:16px; height:16px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; line-height:1;
   }
-  .sb-type-btn.active .sb-type-count { background:#fff; color:var(--navy); }
-  .sb-new-int-btn {
-    margin: 12px 16px 4px; padding: 9px 12px; background: var(--navy); color: #fff;
-    border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
-    font-family: inherit; width: calc(100% - 32px);
+  .sb-type-btn.active .sb-type-count { background:rgba(255,255,255,0.22); color:#fff; }
+  .sb-type-btn.has-items:not(.active) .sb-type-count { background:var(--red); color:#fff; }
+
+  /* Split-button voor "+ Nieuwe taak" met chevron-dropdown */
+  .sb-new-split {
+    position:relative; display:flex; margin:12px 16px 4px;
+    border-radius:8px; overflow:hidden; border:1.5px solid var(--navy); background:var(--navy);
   }
-  .sb-new-int-btn:hover { background: #2c2c4e; }
+  .sb-new-primary {
+    flex:1; padding:9px 12px; background:var(--navy); color:#fff; border:none;
+    font-size:12px; font-weight:600; font-family:inherit; cursor:pointer;
+    text-align:center; transition:background .15s;
+  }
+  .sb-new-primary:hover { background:#2c2c4e; }
+  .sb-new-chevron {
+    width:32px; padding:0; background:var(--navy); color:#fff; border:none;
+    border-left:1px solid rgba(255,255,255,0.22); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:background .15s;
+  }
+  .sb-new-chevron:hover { background:#2c2c4e; }
+  .sb-new-chevron svg { transition:transform .15s; }
+  .sb-new-split.menu-open .sb-new-chevron svg { transform:rotate(180deg); }
+  .sb-new-menu {
+    position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:120;
+    background:#fff; border:1px solid var(--rule); border-radius:10px;
+    box-shadow:0 12px 36px rgba(0,0,0,0.14); padding:6px;
+  }
+  .sb-new-menu[hidden] { display:none; }
+  .sb-menu-item {
+    display:flex; align-items:flex-start; gap:10px; width:100%;
+    padding:10px 10px; background:none; border:none; text-align:left; cursor:pointer;
+    border-radius:7px; font-family:inherit; transition:background .1s;
+  }
+  .sb-menu-item:hover { background:var(--light); }
+  .sb-menu-item:focus-visible { outline:2px solid var(--navy); outline-offset:-2px; }
+  .sb-menu-icon {
+    width:32px; height:32px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+    flex:none; color:var(--navy);
+  }
+  .sb-menu-icon svg { width:16px; height:16px; }
+  .sb-menu-body { min-width:0; flex:1; }
+  .sb-menu-title { font-size:13px; font-weight:600; color:var(--navy); margin:0 0 2px; line-height:1.2; }
+  .sb-menu-hint { font-size:11px; color:var(--grey); line-height:1.35; }
   .dp-optie {
     display:flex; flex-direction:column; align-items:flex-start; gap:2px;
     padding:14px 16px; border:1px solid var(--rule); border-radius:10px;
@@ -1131,12 +1169,51 @@
         <span class="sidebar-count" id="sidebar-count">0</span>
       </div>
       <div class="sidebar-type-toggle" role="tablist">
-        <button type="button" class="sb-type-btn active" data-sbtype="onderhoud" onclick="switchSidebarType('onderhoud')">Onderhoud</button>
-        <button type="button" class="sb-type-btn" data-sbtype="interventie" onclick="switchSidebarType('interventie')">
+        <button type="button" class="sb-type-btn active" data-sbtype="onderhoud" onclick="switchSidebarType('onderhoud')" role="tab" aria-selected="true">
+          Onderhoud <span class="sb-type-count" id="sb-onderhoud-count">0</span>
+        </button>
+        <button type="button" class="sb-type-btn" data-sbtype="interventie" onclick="switchSidebarType('interventie')" role="tab" aria-selected="false">
           Interventie <span class="sb-type-count" id="sb-int-count">0</span>
         </button>
+        <button type="button" class="sb-type-btn" data-sbtype="losse" onclick="switchSidebarType('losse')" role="tab" aria-selected="false">
+          Losse <span class="sb-type-count" id="sb-losse-count">0</span>
+        </button>
       </div>
-      <button type="button" id="sb-new-btn" class="sb-new-int-btn" onclick="onSidebarNewClick()">+ Nieuw onderhoud</button>
+      <div class="sb-new-split" id="sb-new-split">
+        <button type="button" id="sb-new-btn" class="sb-new-primary" onclick="onSidebarNewClick()">+ Nieuw contract</button>
+        <button type="button" class="sb-new-chevron" onclick="toggleSidebarCreateMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-label="Meer opties">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sb-new-menu" id="sb-new-menu" role="menu" hidden>
+          <button type="button" class="sb-menu-item" role="menuitem" onclick="createNewFromMenu('onderhoud')">
+            <div class="sb-menu-icon" style="background:rgba(26,26,46,0.08)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+            </div>
+            <div class="sb-menu-body">
+              <div class="sb-menu-title">Nieuw contract</div>
+              <div class="sb-menu-hint">Contractuele onderhoudsreeks via wizard</div>
+            </div>
+          </button>
+          <button type="button" class="sb-menu-item" role="menuitem" onclick="createNewFromMenu('interventie')">
+            <div class="sb-menu-icon" style="background:rgba(231,76,60,0.12);color:var(--red)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="sb-menu-body">
+              <div class="sb-menu-title">Nieuwe interventie</div>
+              <div class="sb-menu-hint">Dringend probleem — storing, defect, klacht</div>
+            </div>
+          </button>
+          <button type="button" class="sb-menu-item" role="menuitem" onclick="createNewFromMenu('losse')">
+            <div class="sb-menu-icon" style="background:rgba(26,26,46,0.08)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div class="sb-menu-body">
+              <div class="sb-menu-title">Losse opdracht</div>
+              <div class="sb-menu-hint">Eenmalige klus zonder contract</div>
+            </div>
+          </button>
+        </div>
+      </div>
       <div class="sidebar-filters">
         <select id="sb-filter-sector" onchange="renderSidebar()">
           <option value="">Sector</option>
@@ -1837,7 +1914,7 @@ var allBeurten = [];
 var allTechniekers = [];
 var allInterventies = [];
 var allRapporten = [];
-var sidebarType = 'onderhoud'; // 'onderhoud' | 'interventie'
+var sidebarType = 'onderhoud'; // 'onderhoud' | 'interventie' | 'losse'
 var allTechSectoren = [];
 var allAfwezigheden = [];
 var allContracten = [];
@@ -3259,10 +3336,27 @@ function monthDayClick(dateStr) {
 // SIDEBAR - IN TE PLANNEN
 // =============================================
 function renderSidebar() {
-  // Update interventie-count badge
+  // Counts per tab-categorie berekenen op totale "in te plannen" (geen sub-filters toepassen op badge)
+  var inTePlannen = getInTePlannen();
+  var onderhoudCount = inTePlannen.filter(function(b) { return b.opdracht_type !== 'losse_opdracht'; }).length;
+  var losseCount = inTePlannen.filter(function(b) { return b.opdracht_type === 'losse_opdracht'; }).length;
   var intCount = (allInterventies || []).filter(function(iv) { return iv.status === 'open'; }).length;
+
+  var elOnderhoudCount = document.getElementById('sb-onderhoud-count');
+  if (elOnderhoudCount) elOnderhoudCount.textContent = onderhoudCount;
   var elIntCount = document.getElementById('sb-int-count');
   if (elIntCount) elIntCount.textContent = intCount;
+  var elLosseCount = document.getElementById('sb-losse-count');
+  if (elLosseCount) elLosseCount.textContent = losseCount;
+
+  // Rode-badge-highlight op niet-actieve tabs met items (aandachttrekker)
+  document.querySelectorAll('.sb-type-btn').forEach(function(btn) {
+    var t = btn.dataset.sbtype;
+    var hasItems = (t === 'onderhoud' && onderhoudCount > 0) ||
+                   (t === 'interventie' && intCount > 0) ||
+                   (t === 'losse' && losseCount > 0);
+    btn.classList.toggle('has-items', hasItems);
+  });
 
   var items;
   if (sidebarType === 'interventie') {
@@ -3278,8 +3372,11 @@ function renderSidebar() {
         duur_minuten: iv.geschatte_duur || 60
       };
     });
+  } else if (sidebarType === 'losse') {
+    items = inTePlannen.filter(function(b) { return b.opdracht_type === 'losse_opdracht'; });
   } else {
-    items = getInTePlannen();
+    // 'onderhoud' tab: alleen contract-gebonden beurten
+    items = inTePlannen.filter(function(b) { return b.opdracht_type !== 'losse_opdracht'; });
   }
 
   var sectorFilter = document.getElementById('sb-filter-sector').value;
@@ -3305,10 +3402,17 @@ function renderSidebar() {
   document.getElementById('sidebar-count').textContent = items.length;
 
   if (items.length === 0) {
-    var emptyTitle = sidebarType === 'interventie' ? 'Geen open interventies' : 'Alles ingepland!';
-    var emptyMsg = sidebarType === 'interventie'
-      ? 'Er zijn geen openstaande interventies. Klik op "+ Nieuwe interventie" om er één toe te voegen.'
-      : 'Er zijn geen openstaande beurten om in te plannen.';
+    var emptyTitle, emptyMsg;
+    if (sidebarType === 'interventie') {
+      emptyTitle = 'Geen open interventies';
+      emptyMsg = 'Klik op "+ Nieuwe taak" om een interventie toe te voegen.';
+    } else if (sidebarType === 'losse') {
+      emptyTitle = 'Geen losse opdrachten';
+      emptyMsg = 'Losse opdrachten zijn eenmalige klussen zonder contract. Klik op "+ Nieuwe taak" om er één aan te maken.';
+    } else {
+      emptyTitle = 'Alles ingepland!';
+      emptyMsg = 'Geen contract-onderhoud meer in de wachtrij. Nieuwe beurten ontstaan automatisch bij contract-aanmaak.';
+    }
     document.getElementById('sidebar-list').innerHTML =
       '<div class="empty-state-card">' +
       '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>' +
@@ -3437,12 +3541,25 @@ function renderSidebarCard(b) {
 function switchSidebarType(type) {
   sidebarType = type;
   document.querySelectorAll('.sb-type-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.sbtype === type);
+    var active = b.dataset.sbtype === type;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
   });
+
+  // Primary button label + sidebar title per tab
+  var labels = {
+    onderhoud:    { btn: '+ Nieuw contract',    title: 'In te plannen' },
+    interventie:  { btn: '+ Nieuwe interventie', title: 'Open interventies' },
+    losse:        { btn: '+ Nieuwe losse opdracht', title: 'Losse opdrachten' }
+  };
+  var cfg = labels[type] || labels.onderhoud;
   var newBtn = document.getElementById('sb-new-btn');
-  if (newBtn) newBtn.textContent = (type === 'interventie') ? '+ Nieuwe interventie' : '+ Nieuw onderhoud';
+  if (newBtn) newBtn.textContent = cfg.btn;
   var title = document.getElementById('sidebar-title');
-  if (title) title.textContent = (type === 'interventie') ? 'Open interventies' : 'In te plannen';
+  if (title) title.textContent = cfg.title;
+
+  // Sluit eventueel open dropdown
+  closeSidebarCreateMenu();
   renderSidebar();
 }
 
@@ -3722,20 +3839,86 @@ async function deleteInterventieWithOwnershipCheck(ivId) {
   }
 }
 
-// Router: kiest juiste create-modal o.b.v. actieve sidebar-tab
+// Router: primary-click kiest juiste create-actie o.b.v. actieve sidebar-tab.
+// Chevron opent dropdown met alle 3 opties (onderhoud/interventie/losse).
 function onSidebarNewClick() {
-  if (sidebarType === 'interventie') {
+  createNewFromMenu(sidebarType);
+}
+
+// Gedeelde actie — aangeroepen vanuit primary-click én vanuit menu-items.
+function createNewFromMenu(action) {
+  closeSidebarCreateMenu();
+  if (action === 'interventie') {
     if (typeof openNieuweTaakModal === 'function') {
       openNieuweTaakModal({ type: 'interventie' });
-    } else {
+    } else if (typeof openNieuweInterventieModal === 'function') {
       openNieuweInterventieModal();
     }
-  } else {
+    return;
+  }
+  if (action === 'losse') {
     if (typeof openNieuweTaakModal === 'function') {
       openNieuweTaakModal({ type: 'eenmalig' });
     } else {
-      alert('Eenmalig onderhoud aanmaken wordt binnenkort geactiveerd.');
+      showToast('Losse opdracht aanmaken tijdelijk niet beschikbaar', 'error');
     }
+    return;
+  }
+  // action === 'onderhoud' → nieuw contract via wizard (contracten worden daar gegenereerd)
+  // Contract-onderhoudsbeurten ontstaan automatisch bij contract-aanmaak, niet los in de sidebar.
+  window.location.href = 'contracten-wizard.html';
+}
+
+// Dropdown menu controls — open/close + outside-click + Escape
+function toggleSidebarCreateMenu(ev) {
+  if (ev) ev.stopPropagation();
+  var split = document.getElementById('sb-new-split');
+  var menu = document.getElementById('sb-new-menu');
+  var chev = split ? split.querySelector('.sb-new-chevron') : null;
+  if (!menu || !split) return;
+  var isOpen = !menu.hidden;
+  if (isOpen) {
+    closeSidebarCreateMenu();
+  } else {
+    menu.hidden = false;
+    split.classList.add('menu-open');
+    if (chev) chev.setAttribute('aria-expanded', 'true');
+    // Focus eerste item voor toetsenbord-ux
+    var firstItem = menu.querySelector('.sb-menu-item');
+    if (firstItem) setTimeout(function() { firstItem.focus(); }, 0);
+    // Register outside-click sluiter
+    setTimeout(function() {
+      document.addEventListener('click', sidebarMenuOutsideClick, { once: true });
+      document.addEventListener('keydown', sidebarMenuEscape);
+    }, 0);
+  }
+}
+
+function closeSidebarCreateMenu() {
+  var split = document.getElementById('sb-new-split');
+  var menu = document.getElementById('sb-new-menu');
+  var chev = split ? split.querySelector('.sb-new-chevron') : null;
+  if (menu) menu.hidden = true;
+  if (split) split.classList.remove('menu-open');
+  if (chev) chev.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('keydown', sidebarMenuEscape);
+}
+
+function sidebarMenuOutsideClick(ev) {
+  var split = document.getElementById('sb-new-split');
+  if (split && !split.contains(ev.target)) {
+    closeSidebarCreateMenu();
+  } else {
+    // Klik binnen split — re-register listener
+    document.addEventListener('click', sidebarMenuOutsideClick, { once: true });
+  }
+}
+
+function sidebarMenuEscape(ev) {
+  if (ev.key === 'Escape') {
+    closeSidebarCreateMenu();
+    var chev = document.querySelector('#sb-new-split .sb-new-chevron');
+    if (chev) chev.focus();
   }
 }
 
