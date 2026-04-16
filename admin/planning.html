@@ -151,8 +151,8 @@
   .stat-value.warn { color: var(--orange); }
   .stat-value.danger { color: var(--red); }
 
-  /* LEGEND */
-  .legend { display: flex; flex-direction: column; gap: 8px; }
+  /* LEGEND (base — wordt verder gestyled in filters-topbar block hieronder) */
+  .legend { display: flex; flex-direction: row; align-items: center; gap: 4px; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--grey); font-weight: 500; }
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
@@ -196,16 +196,17 @@
   /* FILTERS TOPBAR (horizontaal, sticky) */
   .filters-topbar {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 20px;
+    padding: 8px 20px;
     background: var(--white);
     border-bottom: 1px solid var(--rule);
     flex-shrink: 0;
-    min-height: 52px;
+    min-height: 48px;
+    flex-wrap: nowrap;
   }
   .filters-topbar-group {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;
   }
-  .filters-topbar-spacer { flex: 1; }
+  .filters-topbar-spacer { flex: 1; min-width: 12px; }
 
   /* Filter-chip: compact pill met inline dropdown */
   .filter-chip {
@@ -266,25 +267,91 @@
   }
   .filter-chip-reset:hover { background: rgba(231,76,60,0.08); border-color: rgba(231,76,60,0.3); }
 
-  /* LEGEND — icon-only chips, rechts in topbar */
-  .legend {
-    display: flex; align-items: center; gap: 4px;
-    padding: 4px 10px;
+  /* LEGEND — icon-only chips, rechts in topbar, HORIZONTAAL */
+  .filters-topbar .legend {
+    display: inline-flex; flex-direction: row; align-items: center; gap: 2px;
+    padding: 3px 8px;
     background: var(--light);
     border-radius: 999px;
     border: 1px solid var(--rule);
+    flex-shrink: 0;
   }
-  .legend .legend-item {
+  .filters-topbar .legend .legend-item {
     display: inline-flex; align-items: center; justify-content: center;
     width: 24px; height: 24px;
     color: var(--grey);
     border-radius: 6px;
     transition: background 0.15s, color 0.15s;
-    font-size: 0; /* label verbergen, SVG blijft */
+    font-size: 0;
     cursor: default;
+    flex-shrink: 0;
   }
-  .legend .legend-item:hover { background: rgba(26,26,46,0.06); color: var(--navy); }
-  .legend .legend-item svg { width: 16px; height: 16px; }
+  .filters-topbar .legend .legend-item:hover { background: rgba(26,26,46,0.06); color: var(--navy); }
+  .filters-topbar .legend .legend-item svg { width: 16px; height: 16px; }
+
+  /* PARTNER-KLEUR DOT (voor label in chip) */
+  .filter-chip-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+    background: var(--navy);
+  }
+
+  /* SAVE / RESET BUTTONS (ghost, inline naast chips) */
+  .filter-chip-save {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--navy);
+    font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+  .filter-chip-save:hover { background: rgba(26,26,46,0.06); border-color: rgba(26,26,46,0.2); }
+  .filter-reset-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px;
+    padding: 0 5px;
+    background: var(--red); color: #fff;
+    border-radius: 9px;
+    font-size: 10px; font-weight: 700;
+  }
+
+  /* PRESETS ROW — inline in topbar, compacte chips */
+  .filter-presets {
+    display: flex; align-items: center; gap: 6px;
+    flex-shrink: 0;
+  }
+  .presets-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--grey);
+    margin-right: 4px;
+  }
+  .preset-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 6px 5px 12px;
+    border: 1.5px solid var(--rule);
+    border-radius: 999px;
+    background: var(--white);
+    font-size: 11px; font-weight: 600; color: var(--navy);
+    cursor: pointer; font-family: inherit;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    min-height: 28px;
+    white-space: nowrap;
+  }
+  .preset-chip:hover { border-color: var(--navy); background: #F9FAFB; }
+  .preset-chip.is-active { border-color: var(--navy); background: var(--navy); color: #fff; }
+  .preset-chip.is-active .preset-chip-delete { color: rgba(255,255,255,0.7); }
+  .preset-chip-delete {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    color: var(--grey);
+    transition: background 0.15s, color 0.15s;
+  }
+  .preset-chip-delete:hover { background: rgba(231,76,60,0.15); color: var(--red); }
 
   /* MAIN GRID */
   .grid-area { flex: 1; overflow: auto; padding: 20px; min-width: 0; }
@@ -1035,12 +1102,18 @@
           </select>
           <svg class="filter-chip-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <button type="button" class="filter-chip-reset" id="filter-reset-btn" onclick="resetAllFilters()" style="display:none" title="Filters wissen">
+        <button type="button" class="filter-chip-save" id="filter-save-preset-btn" onclick="saveCurrentAsPreset()" style="display:none" title="Bewaar huidige filter-combinatie als view (⌘/Ctrl + S)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Bewaar view</span>
+        </button>
+        <button type="button" class="filter-chip-reset" id="filter-reset-btn" onclick="resetAllFilters()" style="display:none" title="Alle filters wissen (Esc)">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          <span>Filters wissen</span>
+          <span>Wissen</span>
+          <span class="filter-reset-count">0</span>
         </button>
       </div>
       <div class="filters-topbar-spacer"></div>
+      <div class="filter-presets" id="filter-presets" style="display:none"></div>
       <div class="legend" id="sector-legend"></div>
     </div>
 
@@ -2258,11 +2331,17 @@ async function checkAuth() {
     var el = document.getElementById(id);
     if (el) updateFilterChipState(el);
   });
+
+  // Render opgeslagen filter-presets
+  renderPresets();
 }
 
 // =============================================
 // FILTER-CHIP STATE (topbar)
 // =============================================
+var FILTER_IDS = ['filter-partner','filter-sector','filter-regio','filter-tech'];
+var FILTER_DEFAULTS = { 'filter-partner': 'Partner', 'filter-sector': 'Sector', 'filter-regio': 'Regio', 'filter-tech': 'Technieker' };
+
 function updateFilterChipState(selectEl) {
   if (!selectEl) return;
   var chip = selectEl.closest('.filter-chip');
@@ -2275,26 +2354,50 @@ function updateFilterChipState(selectEl) {
   if (label) {
     if (hasValue) {
       var selectedText = selectEl.options[selectEl.selectedIndex] ? selectEl.options[selectEl.selectedIndex].text : '';
-      // Houd label compact — max 20 chars
       label.textContent = selectedText.length > 20 ? selectedText.slice(0, 19) + '…' : selectedText;
     } else {
-      // Reset naar originele label-tekst
-      var defaults = { 'filter-partner': 'Partner', 'filter-sector': 'Sector', 'filter-regio': 'Regio', 'filter-tech': 'Technieker' };
-      label.textContent = defaults[selectEl.id] || 'Filter';
+      label.textContent = FILTER_DEFAULTS[selectEl.id] || 'Filter';
     }
   }
 
-  // Toon/verberg reset-knop op basis van of er minstens één filter actief is
-  var anyActive = ['filter-partner','filter-sector','filter-regio','filter-tech'].some(function(id) {
+  // Partner-chip: kleurdot vóór de label
+  if (selectEl.id === 'filter-partner') {
+    var existingDot = chip.querySelector('.filter-chip-dot');
+    if (hasValue) {
+      var partner = (allPartners || []).find(function(p) { return p.id === selectEl.value; });
+      var color = (partner && partner.kleur_primair) || 'var(--navy)';
+      if (!existingDot) {
+        var dot = document.createElement('span');
+        dot.className = 'filter-chip-dot';
+        chip.insertBefore(dot, chip.firstChild);
+        existingDot = dot;
+      }
+      existingDot.style.background = color;
+    } else if (existingDot) {
+      existingDot.remove();
+    }
+  }
+
+  updateFilterResetState();
+}
+
+function updateFilterResetState() {
+  var activeCount = FILTER_IDS.reduce(function(n, id) {
     var s = document.getElementById(id);
-    return s && s.value;
-  });
+    return n + (s && s.value ? 1 : 0);
+  }, 0);
   var resetBtn = document.getElementById('filter-reset-btn');
-  if (resetBtn) resetBtn.style.display = anyActive ? 'inline-flex' : 'none';
+  if (resetBtn) {
+    resetBtn.style.display = activeCount > 0 ? 'inline-flex' : 'none';
+    var countEl = resetBtn.querySelector('.filter-reset-count');
+    if (countEl) countEl.textContent = activeCount;
+  }
+  var saveBtn = document.getElementById('filter-save-preset-btn');
+  if (saveBtn) saveBtn.style.display = activeCount > 0 ? 'inline-flex' : 'none';
 }
 
 function resetAllFilters() {
-  ['filter-partner','filter-sector','filter-regio','filter-tech'].forEach(function(id) {
+  FILTER_IDS.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) {
       el.value = '';
@@ -2302,7 +2405,129 @@ function resetAllFilters() {
     }
   });
   applyFilters();
+  // Active-preset deselecteren
+  document.querySelectorAll('.preset-chip.is-active').forEach(function(c) { c.classList.remove('is-active'); });
 }
+
+// =============================================
+// PRESETS (opgeslagen views) — localStorage
+// =============================================
+var PRESETS_KEY = 'flancco-planning-filter-presets';
+
+function getPresets() {
+  try {
+    var raw = localStorage.getItem(PRESETS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function savePresets(presets) {
+  try { localStorage.setItem(PRESETS_KEY, JSON.stringify(presets)); } catch (e) {}
+}
+
+async function saveCurrentAsPreset() {
+  var naam = prompt('Naam voor deze filter-combinatie:', '');
+  if (!naam || !naam.trim()) return;
+  naam = naam.trim().slice(0, 40);
+  var filters = {};
+  FILTER_IDS.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && el.value) filters[id] = el.value;
+  });
+  if (Object.keys(filters).length === 0) {
+    showToast('Stel eerst een filter in', 'error');
+    return;
+  }
+  var presets = getPresets();
+  // Update als naam al bestaat
+  var existing = presets.findIndex(function(p) { return p.naam.toLowerCase() === naam.toLowerCase(); });
+  if (existing >= 0) {
+    presets[existing].filters = filters;
+  } else {
+    presets.push({ id: 'p' + Date.now(), naam: naam, filters: filters });
+  }
+  savePresets(presets);
+  renderPresets();
+  showToast('View "' + naam + '" opgeslagen', 'success');
+}
+
+function applyPreset(presetId) {
+  var preset = getPresets().find(function(p) { return p.id === presetId; });
+  if (!preset) return;
+  // Reset eerst alle filters
+  FILTER_IDS.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = preset.filters[id] || '';
+  });
+  FILTER_IDS.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) updateFilterChipState(el);
+  });
+  applyFilters();
+  // Markeer actieve preset
+  document.querySelectorAll('.preset-chip').forEach(function(c) {
+    c.classList.toggle('is-active', c.dataset.pid === presetId);
+  });
+}
+
+async function deletePreset(presetId, ev) {
+  if (ev) ev.stopPropagation();
+  var preset = getPresets().find(function(p) { return p.id === presetId; });
+  if (!preset) return;
+  if (!(await confirmDialog({
+    title: 'View verwijderen?',
+    message: 'Wil je de opgeslagen view "' + preset.naam + '" verwijderen?',
+    confirmLabel: 'Verwijderen',
+    variant: 'danger'
+  }))) return;
+  savePresets(getPresets().filter(function(p) { return p.id !== presetId; }));
+  renderPresets();
+}
+
+function renderPresets() {
+  var wrap = document.getElementById('filter-presets');
+  if (!wrap) return;
+  var presets = getPresets();
+  if (presets.length === 0) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = '<span class="presets-label">Views:</span>' +
+    presets.map(function(p) {
+      return '<button type="button" class="preset-chip" data-pid="' + p.id + '" onclick="applyPreset(\'' + p.id + '\')">' +
+        '<span class="preset-chip-naam">' + esc(p.naam) + '</span>' +
+        '<span class="preset-chip-delete" onclick="deletePreset(\'' + p.id + '\', event)" title="Verwijderen">' +
+          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+        '</span>' +
+      '</button>';
+    }).join('');
+}
+
+// =============================================
+// KEYBOARD SHORTCUTS
+// =============================================
+document.addEventListener('keydown', function(e) {
+  // Skip als focus al in een input-veld zit
+  var tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  // Skip als modal open
+  var openModal = document.querySelector('.modal-overlay.open, .modal-overlay[style*="display:flex"], .modal-overlay[style*="display: flex"]');
+  if (openModal) return;
+  // "/" = focus eerste filter
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    var firstChip = document.querySelector('.filter-chip');
+    if (firstChip) {
+      var sel = firstChip.querySelector('select');
+      if (sel) sel.focus();
+    }
+  }
+  // "Escape" = filters wissen (enkel als er iets actief is en focus niet in select)
+  if (e.key === 'Escape' && tag !== 'SELECT') {
+    var resetBtn = document.getElementById('filter-reset-btn');
+    if (resetBtn && resetBtn.style.display !== 'none') {
+      resetAllFilters();
+    }
+  }
+});
 
 async function doLogout() {
   await sb.auth.signOut();
@@ -2321,7 +2546,7 @@ async function loadPlanningData() {
     sb.from('contracten').select('*'),
     sb.from('clients').select('*'),
     sb.from('duur_instellingen').select('*'),
-    sb.from('partners').select('id, naam, slug, bedrijfsnaam'),
+    sb.from('partners').select('id, naam, slug, bedrijfsnaam, kleur_primair'),
     sb.from('verlof_types').select('*'),
     sb.from('interventies').select('*, contracten(klant_naam, klant_postcode, klant_gemeente, sector)'),
     sb.from('klant_installaties').select('*'),
