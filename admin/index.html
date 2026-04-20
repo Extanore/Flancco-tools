@@ -26,6 +26,28 @@
       root.style.setProperty('--red-fouc-override', 'inherit');
     } catch(_) { /* silent: cache-corruption valt terug op default branding */ }
   })();
+
+  // Early-boot role + permission cache: zet html[data-role] + html[data-perm-*] attributen
+  // vóór eerste paint. CSS-regels in <style> gebruiken deze attributen om admin-only /
+  // flancco-only / perm-scoped UI synchronicus te verbergen voor partners bij refresh.
+  // Voorkomt de "admin-items-flash" FOUC die partners zagen terwijl Supabase auth session
+  // resumet en user_roles ge-query'd wordt (~100-400ms na page-load).
+  // Cache wordt gevuld nadat user_roles is opgehaald, gewist bij logout.
+  (function(){
+    try {
+      var raw = localStorage.getItem('flancco_role_cache');
+      if (!raw) return;
+      var r = JSON.parse(raw);
+      if (!r || !r.role) return;
+      var root = document.documentElement;
+      root.setAttribute('data-role', r.role);
+      var perms = r.permissions || {};
+      root.setAttribute('data-perm-manage-pricing', perms.manage_pricing ? 'true' : 'false');
+      root.setAttribute('data-perm-manage-partners', perms.manage_partners ? 'true' : 'false');
+      root.setAttribute('data-perm-manage-users', perms.manage_users ? 'true' : 'false');
+      root.setAttribute('data-perm-verlof-beheer', perms.verlof_beheer ? 'true' : 'false');
+    } catch(_) { /* silent: cache-corruption valt terug op JS-based role-hide na auth-restore */ }
+  })();
 </script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -115,6 +137,24 @@
   .notif-filter-btn { background:transparent; border:1px solid var(--rule); padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500; color:var(--grey); cursor:pointer; transition: all .15s; }
   .notif-filter-btn:hover { border-color:var(--navy); color:var(--navy); }
   .notif-filter-btn.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .notif-daterange-btn { background:transparent; border:1px solid var(--rule); padding:6px 10px; border-radius:6px; font-size:12px; font-weight:500; color:var(--grey); cursor:pointer; transition: all .15s; }
+  .notif-daterange-btn:hover { border-color:var(--navy); color:var(--navy); }
+  .notif-daterange-btn.active { background:var(--navy-light,#2A2A44); color:#fff; border-color:var(--navy-light,#2A2A44); }
+  /* O.4 Notificatie-voorkeuren tabel */
+  .notif-prefs-table { border:1px solid var(--rule); border-radius:8px; overflow:hidden; background:#fff; }
+  .notif-prefs-row { display:grid; grid-template-columns:1fr 110px 110px; align-items:center; padding:12px 14px; border-bottom:1px solid var(--rule); gap:12px; }
+  .notif-prefs-row:last-child { border-bottom:none; }
+  .notif-prefs-row.header { background:#FAFBFC; font-size:11px; font-weight:600; color:var(--grey); letter-spacing:0.4px; text-transform:uppercase; }
+  .notif-prefs-row .np-label strong { font-size:13px; color:var(--navy); display:block; }
+  .notif-prefs-row .np-label small { font-size:11px; color:var(--grey); display:block; margin-top:2px; line-height:1.4; }
+  .notif-prefs-row .np-toggle { display:flex; justify-content:center; align-items:center; }
+  .np-switch { position:relative; display:inline-block; width:36px; height:20px; }
+  .np-switch input { opacity:0; width:0; height:0; }
+  .np-switch .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#d1d5db; border-radius:20px; transition: all .18s; }
+  .np-switch .slider:before { position:absolute; content:""; height:14px; width:14px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition: all .18s; box-shadow:0 1px 2px rgba(0,0,0,0.1); }
+  .np-switch input:checked + .slider { background:var(--navy); }
+  .np-switch input:checked + .slider:before { transform: translateX(16px); }
+  .np-switch input:disabled + .slider { opacity:0.5; cursor:not-allowed; }
   .chat-msg { padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; font-size: 13px; line-height: 1.5; max-width: 85%; }
   .chat-msg.self { background: #EFF6FF; border: 1px solid #BFDBFE; margin-left: auto; }
   .chat-msg.other { background: var(--light); border: 1px solid var(--rule); }
@@ -503,6 +543,98 @@
   .role-hidden { display: none !important; }
   /* Technieker-rol verbergt .not-technieker elementen (edit/delete icons e.d.) */
   body.role-technieker .not-technieker { display: none !important; }
+
+  /* FOUC-preventie (O.3): html[data-role] + html[data-perm-*] worden pre-paint gezet
+     door early-boot <script> op basis van localStorage cache. Zorgt dat admin-only /
+     flancco-only / perm-scoped elementen niet oplichten voor partners tijdens de
+     ~100-400ms tussen page-load en Supabase auth-session-resume + user_roles-query.
+     Zonder cache (eerste login, andere device, na logout) fallen we terug op de
+     JS-gebaseerde role-hide die post-auth draait. */
+  html[data-role="partner"] .admin-only,
+  html[data-role="technieker"] .admin-only,
+  html[data-role="partner"] .flancco-only { display: none !important; }
+  html[data-role="admin"] .partner-only,
+  html[data-role="bediende"] .partner-only,
+  html[data-role="technieker"] .partner-only { display: none !important; }
+  html[data-perm-manage-pricing="false"] .perm-pricing { display: none !important; }
+  html[data-perm-manage-partners="false"] .perm-partners { display: none !important; }
+  html[data-perm-manage-users="false"] .perm-users { display: none !important; }
+  html[data-perm-verlof-beheer="false"] .perm-verlof-beheer { display: none !important; }
+
+  /* Uitzondering: partner met manage_users mag Personeel + Gebruikers pagina's zien
+     ondanks hun admin-only class (tenant-scoped team-mgmt, sectie N + commit f892478).
+     Hogere specificiteit dan de generieke admin-only-hide hierboven. */
+  html[data-role="partner"][data-perm-manage-users="true"] a.nav-item[data-page="techniekers"],
+  html[data-role="partner"][data-perm-manage-users="true"] a.nav-item[data-page="gebruikers"],
+  html[data-role="partner"][data-perm-manage-users="true"] #page-techniekers,
+  html[data-role="partner"][data-perm-manage-users="true"] #page-gebruikers { display: revert !important; }
+
+  /* =============================================
+     PARTNER PRODUCT-TOUR (O.2)
+     Full-viewport overlay met spotlight-trick: #tour-highlight krijgt een
+     9999px box-shadow zodat alles buiten het uitgelichte element donker wordt.
+     Daardoor is geen clip-path nodig en blijft het visueel crisp.
+     ============================================= */
+  #tour-overlay {
+    display: none; position: fixed; inset: 0; z-index: 10500;
+    pointer-events: none;
+  }
+  #tour-overlay.tour-active { display: block; }
+  #tour-highlight {
+    position: absolute; pointer-events: none;
+    border-radius: 10px;
+    box-shadow:
+      0 0 0 3px rgba(255,255,255,0.92),
+      0 0 0 9999px rgba(10, 15, 30, 0.62),
+      0 10px 30px rgba(0,0,0,0.25);
+    transition: top .32s cubic-bezier(0.25,0.8,0.5,1), left .32s cubic-bezier(0.25,0.8,0.5,1),
+                width .32s cubic-bezier(0.25,0.8,0.5,1), height .32s cubic-bezier(0.25,0.8,0.5,1);
+    top: 50%; left: 50%; width: 0; height: 0;
+  }
+  #tour-tooltip {
+    position: absolute; pointer-events: auto;
+    width: 360px; max-width: calc(100vw - 40px);
+    background: #fff; border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+    padding: 20px 22px 18px;
+    transition: top .32s cubic-bezier(0.25,0.8,0.5,1), left .32s cubic-bezier(0.25,0.8,0.5,1),
+                bottom .32s cubic-bezier(0.25,0.8,0.5,1);
+  }
+  .tour-dots { display: flex; gap: 5px; margin-bottom: 14px; }
+  .tour-step-dot { flex: 1; height: 4px; border-radius: 2px; background: #E5E7EB; transition: background .25s; }
+  .tour-step-dot[data-active="true"] { background: var(--navy, #1A1A2E); }
+  .tour-title { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: var(--navy, #1A1A2E); line-height: 1.35; }
+  .tour-body { margin: 0 0 16px; font-size: 13px; line-height: 1.55; color: #4B5563; }
+  .tour-body a { color: var(--navy, #1A1A2E); font-weight: 600; }
+  .tour-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tour-skip-btn {
+    background: transparent; border: none; color: #9CA3AF; font-size: 12px; cursor: pointer;
+    padding: 4px 0; font-family: inherit; text-decoration: underline;
+  }
+  .tour-skip-btn:hover { color: var(--navy, #1A1A2E); }
+  .tour-step-label { font-size: 11px; color: #9CA3AF; align-self: center; margin-right: 4px; font-weight: 500; }
+  .tour-btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; border: 1.5px solid transparent; transition: background .15s, border-color .15s;
+  }
+  .tour-btn-ghost { background: #fff; color: var(--navy, #1A1A2E); border-color: var(--rule, #E5E7EB); }
+  .tour-btn-ghost:hover { border-color: var(--navy, #1A1A2E); }
+  .tour-btn-primary { background: var(--navy, #1A1A2E); color: #fff; border-color: var(--navy, #1A1A2E); }
+  .tour-btn-primary:hover { background: #2A2A44; border-color: #2A2A44; }
+  /* Help-knop in topbar — enkel voor partners (admin needs no tour) */
+  #help-btn {
+    background: transparent; border: 1px solid var(--rule, #E5E7EB); border-radius: 8px;
+    padding: 6px 8px; cursor: pointer; color: var(--navy, #1A1A2E);
+    display: none; align-items: center; justify-content: center;
+    transition: background .15s, border-color .15s;
+  }
+  html[data-role="partner"] #help-btn { display: inline-flex; }
+  #help-btn:hover { background: var(--light, #F9FAFB); border-color: var(--navy, #1A1A2E); }
+  /* Responsive: op kleine schermen tooltip altijd onderaan vaststellen */
+  @media (max-width: 720px) {
+    #tour-tooltip { width: calc(100vw - 32px); left: 16px !important; right: 16px; top: auto !important; bottom: 16px !important; }
+    #tour-highlight { display: none !important; }
+  }
   /* Klant-/partner-rij icon-knop */
   .icon-btn { background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; cursor: pointer; color: var(--grey); display: inline-flex; align-items: center; justify-content: center; transition: background .15s, color .15s, border-color .15s; }
   .icon-btn:hover { background: rgba(0,0,0,0.04); color: var(--navy); border-color: var(--rule); }
@@ -992,6 +1124,10 @@
         <div id="search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--white);border:1px solid var(--rule);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:360px;overflow-y:auto;z-index:999;margin-top:4px"></div>
       </div>
       <div class="topbar-user" style="display:flex;align-items:center;gap:12px">
+        <button id="help-btn" type="button" onclick="startOnboardingTour({ fromHelp: true })"
+          aria-label="Rondleiding starten" title="Rondleiding opnieuw bekijken">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
         <div id="notif-bell-wrap" style="position:relative">
           <button id="notif-bell" type="button" onclick="toggleNotifDropdown(event)"
             style="position:relative;background:transparent;border:1px solid var(--rule);border-radius:8px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--navy)"
@@ -1062,11 +1198,17 @@
     <!-- MELDINGEN / NOTIFICATIES PAGE -->
     <div class="page" id="page-notificaties">
       <div class="card">
-        <div class="card-header" style="display:flex;align-items:center;gap:12px">
+        <div class="card-header" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span class="card-title" style="margin-right:auto">Meldingen</span>
           <div style="display:flex;gap:6px">
             <button type="button" class="notif-filter-btn active" data-notif-filter="all" onclick="setNotifFilter('all')">Alle</button>
             <button type="button" class="notif-filter-btn" data-notif-filter="unread" onclick="setNotifFilter('unread')">Ongelezen</button>
+          </div>
+          <div style="display:flex;gap:6px" role="group" aria-label="Periode">
+            <button type="button" class="notif-daterange-btn active" data-notif-daterange="all" onclick="setNotifDateRange('all')">Altijd</button>
+            <button type="button" class="notif-daterange-btn" data-notif-daterange="today" onclick="setNotifDateRange('today')">Vandaag</button>
+            <button type="button" class="notif-daterange-btn" data-notif-daterange="week" onclick="setNotifDateRange('week')">Deze week</button>
+            <button type="button" class="notif-daterange-btn" data-notif-daterange="month" onclick="setNotifDateRange('month')">Deze maand</button>
           </div>
           <button class="btn btn-ghost" onclick="markAllNotificationsRead()" id="btn-mark-all-read">Alles als gelezen markeren</button>
         </div>
@@ -1112,6 +1254,9 @@
           <select id="filter-partner" class="admin-only" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
             <option value="">Alle partners</option>
           </select>
+          <button type="button" class="btn btn-ghost" onclick="exportContractenCSV()" style="margin:0;font-size:12px" title="Download contracten als CSV (respecteert huidige filter)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exporteer CSV
+          </button>
           <button type="button" class="btn btn-primary" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
         </div>
         <div class="contracten-tabs" style="display:flex;gap:6px;padding:0 16px 12px;border-bottom:1px solid var(--rule)">
@@ -1146,9 +1291,9 @@
                 Meer
               </button>
               <div class="dropdown-menu">
-                <button type="button" class="dropdown-item" onclick="exportKlantenExcel();closeKlantenMeer()">
+                <button type="button" class="dropdown-item" onclick="exportKlantenCSV();closeKlantenMeer()">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Exporteren naar Excel
+                  Exporteer CSV
                 </button>
                 <button type="button" class="dropdown-item admin-only" onclick="openCsvImportModal();closeKlantenMeer()">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1298,6 +1443,31 @@
             <small style="color:var(--grey);font-size:11px">Aanpasbaar door jou</small>
           </div>
         </div>
+      </div>
+
+      <!-- Team — enkel zichtbaar voor partners met manage_users (tenant-scoped) -->
+      <div class="card perm-users partner-only" id="set-team-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:16px;flex-wrap:wrap">
+          <div style="min-width:0;flex:1">
+            <h3 style="margin:0;font-size:16px;color:var(--navy)">Team</h3>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--grey);line-height:1.45">Beheer login-profielen voor jouw platform. Nieuwe teamleden krijgen automatisch toegang tot klanten, contracten en de calculator-link.</p>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="openTeamLidModal()">+ Nieuw teamlid</button>
+        </div>
+        <div id="set-team-list"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end">
+          <a href="#" onclick="showPage('gebruikers');return false" style="font-size:12px;color:var(--navy);text-decoration:none;display:inline-flex;align-items:center;gap:4px">Permissies beheren <span aria-hidden="true">&rarr;</span></a>
+        </div>
+      </div>
+
+      <!-- Notificaties (O.4) — in-app + email voorkeuren per event-type -->
+      <div class="card" id="set-notif-card">
+        <div style="margin-bottom:14px">
+          <h3 style="margin:0;font-size:16px;color:var(--navy)">Notificaties</h3>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--grey);line-height:1.45">Kies welke gebeurtenissen je wilt zien in het platform (badge + lijst) of ook per email wilt ontvangen. Wijzigingen worden direct bewaard.</p>
+        </div>
+        <div id="set-notif-prefs-table" class="notif-prefs-table"></div>
+        <div id="set-notif-status" style="font-size:12px;color:var(--grey);margin-top:10px;min-height:14px" role="status" aria-live="polite"></div>
       </div>
 
       <!-- Warmtepomp-configuratie (read-only spiegel van partner_warmtepomp_config) -->
@@ -1509,6 +1679,30 @@
       </div>
     </div>
 
+    <!-- PARTNER PRODUCT-TOUR (O.2) — 5 stappen, getoond na onboarding of manueel via help-knop -->
+    <div id="tour-overlay" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body">
+      <div id="tour-highlight" aria-hidden="true"></div>
+      <div id="tour-tooltip">
+        <div class="tour-dots" aria-hidden="true">
+          <span class="tour-step-dot" data-active="true"></span>
+          <span class="tour-step-dot"></span>
+          <span class="tour-step-dot"></span>
+          <span class="tour-step-dot"></span>
+          <span class="tour-step-dot"></span>
+        </div>
+        <h3 id="tour-title" class="tour-title"></h3>
+        <p id="tour-body" class="tour-body"></p>
+        <div class="tour-footer">
+          <button type="button" class="tour-skip-btn" onclick="tourSkip()">Overslaan</button>
+          <div style="display:flex;gap:8px">
+            <span id="tour-step-label" class="tour-step-label">Stap 1 van 5</span>
+            <button type="button" id="tour-prev" class="tour-btn tour-btn-ghost" onclick="tourPrev()">Vorige</button>
+            <button type="button" id="tour-next" class="tour-btn tour-btn-primary" onclick="tourNext()">Volgende</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- FACTURATIE PAGE -->
     <div class="page" id="page-facturatie">
       <div class="card">
@@ -1572,7 +1766,7 @@
       <!-- Top tabs: Techniekers | Bedienden -->
       <div class="personeel-tabs" role="tablist">
         <button class="p-tab active" data-ptab="techniekers" onclick="switchPersoneelTab('techniekers')">Techniekers <span class="p-tab-count" id="p-tab-tech-count">0</span></button>
-        <button class="p-tab" data-ptab="bedienden" onclick="switchPersoneelTab('bedienden')">Bedienden <span class="p-tab-count" id="p-tab-bed-count">0</span></button>
+        <button class="p-tab flancco-only" data-ptab="bedienden" onclick="switchPersoneelTab('bedienden')">Bedienden <span class="p-tab-count" id="p-tab-bed-count">0</span></button>
       </div>
 
       <!-- Techniekers tab -->
@@ -2239,20 +2433,24 @@
 <div class="modal-overlay" id="modal-password">
   <div class="modal" style="max-width:420px">
     <h2>Wachtwoord wijzigen</h2>
-    <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Kies een nieuw wachtwoord (minimaal 8 tekens).</p>
+    <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Bevestig je huidig wachtwoord en kies een nieuw wachtwoord (minimaal 8 tekens).</p>
+    <div class="modal-field" style="margin-bottom:12px">
+      <label>Huidig wachtwoord</label>
+      <input type="password" id="pw-current" placeholder="Huidig wachtwoord" autocomplete="current-password">
+    </div>
     <div class="modal-field" style="margin-bottom:12px">
       <label>Nieuw wachtwoord</label>
       <input type="password" id="pw-new" placeholder="Nieuw wachtwoord" autocomplete="new-password">
     </div>
     <div class="modal-field" style="margin-bottom:16px">
-      <label>Bevestig wachtwoord</label>
+      <label>Bevestig nieuw wachtwoord</label>
       <input type="password" id="pw-confirm" placeholder="Bevestig nieuw wachtwoord" autocomplete="new-password">
     </div>
     <div id="pw-error" style="color:var(--red);font-size:13px;margin-bottom:12px;display:none"></div>
     <div id="pw-success" style="color:#10B981;font-size:13px;margin-bottom:12px;display:none">Wachtwoord succesvol gewijzigd.</div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-secondary" onclick="closePasswordModal()">Annuleren</button>
-      <button class="btn btn-primary" onclick="changePassword()">Opslaan</button>
+      <button type="button" class="btn btn-ghost" onclick="closePasswordModal()">Annuleren</button>
+      <button type="button" class="btn btn-primary" id="pw-save-btn" onclick="changePassword()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -2851,6 +3049,10 @@ async function initApp() {
   const { data: roleData, error: roleError } = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
   if (roleError) console.error('Role query error:', roleError);
   if (!roleData) {
+    // Gecachte role/branding wissen zodat een intrekking van toegang direct doorwerkt
+    // op eerstvolgende refresh (anders zou FOUC-CSS nog oude role blijven toepassen).
+    try { localStorage.removeItem('flancco_role_cache'); } catch(_) {}
+    try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
     document.getElementById('login-error').textContent = 'Geen toegang. Neem contact op met Flancco.' + (roleError ? ' (' + roleError.message + ')' : '');
     await sb.auth.signOut();
     return;
@@ -2858,6 +3060,25 @@ async function initApp() {
 
   userRole = roleData.role;
   userPermissions = roleData.permissions || {};
+
+  // Cache role + perms voor FOUC-preventie op volgende refresh (O.3). Early-boot <script>
+  // in <head> leest deze cache en zet html[data-role] + html[data-perm-*] pre-paint,
+  // waardoor admin-only / flancco-only / perm-scoped items niet flashen voor partners.
+  try {
+    localStorage.setItem('flancco_role_cache', JSON.stringify({
+      role: userRole,
+      permissions: userPermissions
+    }));
+  } catch(_) { /* storage-quota/private-mode: negeer, JS-hide neemt het over */ }
+
+  // Pre-paint attributen ook nu direct zetten zodat eerste-login (geen cache) meteen
+  // correct gate't, nog voordat de JS-based querySelectorAll-loop loopt.
+  var htmlEl = document.documentElement;
+  htmlEl.setAttribute('data-role', userRole);
+  htmlEl.setAttribute('data-perm-manage-pricing', userPermissions.manage_pricing ? 'true' : 'false');
+  htmlEl.setAttribute('data-perm-manage-partners', userPermissions.manage_partners ? 'true' : 'false');
+  htmlEl.setAttribute('data-perm-manage-users', userPermissions.manage_users ? 'true' : 'false');
+  htmlEl.setAttribute('data-perm-verlof-beheer', userPermissions.verlof_beheer ? 'true' : 'false');
 
   // Body role-class voor technieker/bediende (gebruikt door .not-technieker / .not-bediende CSS-gates)
   document.body.classList.remove('role-admin', 'role-partner', 'role-technieker', 'role-bediende');
@@ -2875,6 +3096,11 @@ async function initApp() {
   if (!can('manage_partners')) document.querySelectorAll('.perm-partners').forEach(el => el.classList.add('role-hidden'));
   if (!can('manage_users')) document.querySelectorAll('.perm-users').forEach(el => el.classList.add('role-hidden'));
   if (!can('verlof_beheer')) document.querySelectorAll('.perm-verlof-beheer').forEach(el => el.classList.add('role-hidden'));
+
+  // Flancco-interne UI verbergen voor partners (vb. Bedienden-tab op Personeel)
+  if (userRole === 'partner') {
+    document.querySelectorAll('.flancco-only').forEach(el => el.classList.add('role-hidden'));
+  }
 
   // Partner met manage_users: unlock eigen-team-beheer (Personeel + Gebruikers)
   // binnen hun tenant. admin-only is normaal rol-blokkerend voor partners, maar
@@ -2926,6 +3152,9 @@ async function initApp() {
     // Partner onboarding-wizard indien nog niet afgerond
     if (userPartner && !userPartner.onboarding_completed_at) {
       setTimeout(function() { openOnboardingWizard(); }, 120);
+    } else if (userPartner && userPartner.onboarding_completed_at && !userPartner.onboarding_tour_completed_at) {
+      // Partner heeft wizard al afgerond maar tour nog niet gezien → automatisch tonen
+      setTimeout(function() { startOnboardingTour(); }, 800);
     }
   }
 }
@@ -3014,6 +3243,15 @@ function loadSettings(p) {
 
   // Warmtepomp-configuratie spiegel (read-only)
   renderPartnerWarmtepompConfigCard(p.id);
+
+  // Team-card: enkel voor partners met manage_users (kaart is al perm-users + partner-only
+  // gegate, maar de lijst moet expliciet gevuld worden).
+  if (userRole === 'partner' && can('manage_users')) {
+    renderPartnerTeamList();
+  }
+
+  // O.4 — Notificatie-voorkeuren-kaart (alle rollen hebben een login + preferences)
+  renderNotifPrefsCard();
 
   // Color picker sync
   document.getElementById('set-kleur1').addEventListener('input', e => {
@@ -3486,37 +3724,83 @@ async function saveRapportConfig() {
 
 async function doLogout() {
   try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+  try { localStorage.removeItem('flancco_role_cache'); } catch(_) {}
+  // Ruim html[data-*] attributen op zodat post-logout landing-page geen
+  // gecachte role-scope meer toepast.
+  var htmlEl = document.documentElement;
+  ['data-role','data-perm-manage-pricing','data-perm-manage-partners',
+   'data-perm-manage-users','data-perm-verlof-beheer'].forEach(function(attr) {
+    htmlEl.removeAttribute(attr);
+  });
   await sb.auth.signOut();
   location.reload();
 }
 
 function openPasswordModal() {
+  document.getElementById('pw-current').value = '';
   document.getElementById('pw-new').value = '';
   document.getElementById('pw-confirm').value = '';
   document.getElementById('pw-error').style.display = 'none';
   document.getElementById('pw-success').style.display = 'none';
   document.getElementById('modal-password').classList.add('open');
+  // Autofocus op huidig-wachtwoord-veld voor directe invoer
+  setTimeout(function() { document.getElementById('pw-current').focus(); }, 50);
 }
 function closePasswordModal() {
   document.getElementById('modal-password').classList.remove('open');
 }
 async function changePassword() {
+  var pwCurrent = document.getElementById('pw-current').value;
   var pwNew = document.getElementById('pw-new').value;
   var pwConfirm = document.getElementById('pw-confirm').value;
   var errEl = document.getElementById('pw-error');
   var okEl = document.getElementById('pw-success');
+  var btn = document.getElementById('pw-save-btn');
   errEl.style.display = 'none';
   okEl.style.display = 'none';
 
-  if (pwNew.length < 8) { errEl.textContent = 'Wachtwoord moet minstens 8 tekens bevatten.'; errEl.style.display = 'block'; return; }
-  if (pwNew !== pwConfirm) { errEl.textContent = 'Wachtwoorden komen niet overeen.'; errEl.style.display = 'block'; return; }
+  // Client-side validatie eerst
+  if (!pwCurrent) { errEl.textContent = 'Vul je huidig wachtwoord in.'; errEl.style.display = 'block'; document.getElementById('pw-current').focus(); return; }
+  if (pwNew.length < 8) { errEl.textContent = 'Nieuw wachtwoord moet minstens 8 tekens bevatten.'; errEl.style.display = 'block'; document.getElementById('pw-new').focus(); return; }
+  if (pwNew !== pwConfirm) { errEl.textContent = 'Nieuwe wachtwoorden komen niet overeen.'; errEl.style.display = 'block'; document.getElementById('pw-confirm').focus(); return; }
+  if (pwNew === pwCurrent) { errEl.textContent = 'Nieuw wachtwoord moet verschillen van het huidige.'; errEl.style.display = 'block'; return; }
+  if (!currentUser || !currentUser.email) { errEl.textContent = 'Sessie verlopen. Log opnieuw in.'; errEl.style.display = 'block'; return; }
 
-  var { error } = await sb.auth.updateUser({ password: pwNew });
-  if (error) { errEl.textContent = 'Fout: ' + error.message; errEl.style.display = 'block'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Bezig...'; }
+  try {
+    // Gate: huidig wachtwoord verifiëren via re-auth. Voorkomt dat iemand met
+    // toegang tot een open sessie direct het wachtwoord kan rouleren.
+    var gate = await sb.auth.signInWithPassword({ email: currentUser.email, password: pwCurrent });
+    if (gate.error) {
+      errEl.textContent = 'Huidig wachtwoord is onjuist.';
+      errEl.style.display = 'block';
+      document.getElementById('pw-current').focus();
+      return;
+    }
 
-  okEl.style.display = 'block';
-  setTimeout(closePasswordModal, 1500);
+    var upd = await sb.auth.updateUser({ password: pwNew });
+    if (upd.error) {
+      errEl.textContent = 'Fout bij wijzigen: ' + upd.error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+
+    okEl.style.display = 'block';
+    if (typeof showToast === 'function') showToast('Wachtwoord gewijzigd', 'success');
+    setTimeout(closePasswordModal, 1200);
+  } catch (e) {
+    errEl.textContent = 'Onverwachte fout: ' + (e && e.message ? e.message : e);
+    errEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Opslaan'; }
+  }
 }
+
+// Enter-key support in password-modal: Enter op elk veld submit het formulier
+['pw-current','pw-new','pw-confirm'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', function(e) { if (e.key === 'Enter') changePassword(); });
+});
 
 // Enter key support
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
@@ -3593,6 +3877,7 @@ async function loadAllData() {
   try { await checkVoertuigVervalNotificaties(); } catch (_) { /* non-blocking */ }
   // Notificaties laden + realtime subscribe (alle rollen)
   await loadNotifications();
+  await loadNotificationPreferences();
   startNotifRealtime();
 
   if (userRole === 'admin') {
@@ -3678,9 +3963,20 @@ function showPage(name) {
 // =============================================
 var allNotifications = [];
 var notifFilterMode = 'all';
+var notifDateRange = 'all'; // O.4 — 'all' | 'today' | 'week' | 'month'
 var notifRealtimeChannel = null;
 var notifPollTimer = null;
 var NOTIF_POLL_INTERVAL_MS = 60000;
+
+// O.4 — voorkeuren: cache van notification_preferences voor ingelogde user
+var notifPreferences = [];
+var NOTIF_EVENT_CATALOG = [
+  { key:'contract_getekend',           label:'Nieuw getekend contract',            hint:'Klant tekent via calculator-link of admin markeert getekend.' },
+  { key:'interventie_aangemaakt',      label:'Nieuwe interventie',                  hint:'Interventie aangemaakt op een contract dat je opvolgt.' },
+  { key:'interventie_status_gewijzigd',label:'Interventie-status gewijzigd',        hint:'Status van een bestaande interventie wijzigt.' },
+  { key:'beurt_afgewerkt',             label:'Beurt afgewerkt',                     hint:'Technieker markeert een onderhoudsbeurt als uitgevoerd.' },
+  { key:'rapport_klaar',               label:'Rapport klaar',                       hint:'Rapport is geüpload en klaar om naar klant te sturen.' }
+];
 
 function notifIconSvg(type) {
   var icons = {
@@ -3779,6 +4075,13 @@ function renderNotificatiesPage() {
   if (!list || !empty) return;
   var items = (allNotifications || []);
   if (notifFilterMode === 'unread') items = items.filter(function(n) { return !n.is_read; });
+  if (notifDateRange && notifDateRange !== 'all') {
+    var cutoff = notifDateRangeCutoff(notifDateRange);
+    items = items.filter(function(n) {
+      var t = n.created_at ? new Date(n.created_at).getTime() : 0;
+      return t >= cutoff;
+    });
+  }
   if (items.length === 0) {
     list.innerHTML = '';
     empty.style.display = 'block';
@@ -3790,10 +4093,38 @@ function renderNotificatiesPage() {
   list.innerHTML = html;
 }
 
+function notifDateRangeCutoff(range) {
+  var now = new Date();
+  if (range === 'today') {
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    return d.getTime();
+  }
+  if (range === 'week') {
+    // Maandag als begin van de week (BE-conventie)
+    var day = now.getDay(); // 0 = zondag, 1 = maandag
+    var diffToMonday = day === 0 ? 6 : day - 1;
+    var d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+    return d2.getTime();
+  }
+  if (range === 'month') {
+    var d3 = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    return d3.getTime();
+  }
+  return 0;
+}
+
 function setNotifFilter(mode) {
   notifFilterMode = mode;
   document.querySelectorAll('.notif-filter-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.notifFilter === mode);
+  });
+  renderNotificatiesPage();
+}
+
+function setNotifDateRange(range) {
+  notifDateRange = range;
+  document.querySelectorAll('.notif-daterange-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.notifDaterange === range);
   });
   renderNotificatiesPage();
 }
@@ -3899,6 +4230,66 @@ function startNotifRealtime() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, function() { loadNotifications(); })
       .subscribe();
   } catch(_) { /* realtime optional; poll is fallback */ }
+}
+
+// =============================================
+// O.4 — NOTIFICATIE-VOORKEUREN (Instellingen-kaart)
+// =============================================
+async function loadNotificationPreferences() {
+  if (!currentUser) return;
+  try {
+    // Zorg dat default-rijen bestaan voor deze user (idempotent)
+    try { await sb.rpc('ensure_notification_preferences', { p_user_id: currentUser.id }); } catch (_) { /* rpc is nice-to-have, fallback via upsert bij toggle */ }
+    var { data, error } = await sb.from('notification_preferences').select('*').eq('user_id', currentUser.id);
+    if (error) { console.error('loadNotificationPreferences:', error); return; }
+    notifPreferences = data || [];
+  } catch (e) { console.error('loadNotificationPreferences exception:', e); }
+}
+
+function getNotifPref(eventType) {
+  var row = notifPreferences.find(function(p) { return p.event_type === eventType; });
+  if (row) return row;
+  // Fallback-defaults als rij nog niet ge-seed is
+  return { user_id: currentUser ? currentUser.id : null, event_type: eventType, in_app: true, email: eventType === 'contract_getekend' };
+}
+
+function renderNotifPrefsCard() {
+  var wrap = document.getElementById('set-notif-prefs-table');
+  if (!wrap || !currentUser) return;
+  var rows = '<div class="notif-prefs-row header"><div>Gebeurtenis</div><div style="text-align:center">In platform</div><div style="text-align:center">Via email</div></div>';
+  NOTIF_EVENT_CATALOG.forEach(function(ev) {
+    var p = getNotifPref(ev.key);
+    rows += '<div class="notif-prefs-row" data-event="' + esc(ev.key) + '">' +
+      '<div class="np-label"><strong>' + esc(ev.label) + '</strong><small>' + esc(ev.hint) + '</small></div>' +
+      '<div class="np-toggle"><label class="np-switch"><input type="checkbox" ' + (p.in_app ? 'checked' : '') + ' onchange="onNotifPrefToggle(\'' + esc(ev.key) + '\',\'in_app\',this.checked)" aria-label="In-app voor ' + esc(ev.label) + '"><span class="slider"></span></label></div>' +
+      '<div class="np-toggle"><label class="np-switch"><input type="checkbox" ' + (p.email ? 'checked' : '') + ' onchange="onNotifPrefToggle(\'' + esc(ev.key) + '\',\'email\',this.checked)" aria-label="Email voor ' + esc(ev.label) + '"><span class="slider"></span></label></div>' +
+    '</div>';
+  });
+  wrap.innerHTML = rows;
+}
+
+async function onNotifPrefToggle(eventType, field, value) {
+  if (!currentUser) return;
+  var status = document.getElementById('set-notif-status');
+  if (status) { status.textContent = 'Opslaan…'; status.style.color = 'var(--grey)'; }
+  // Optimistisch lokaal bijwerken zodat UI snappy blijft
+  var row = notifPreferences.find(function(p) { return p.event_type === eventType; });
+  if (!row) {
+    row = { user_id: currentUser.id, event_type: eventType, in_app: true, email: eventType === 'contract_getekend' };
+    notifPreferences.push(row);
+  }
+  row[field] = value;
+  try {
+    var payload = { user_id: currentUser.id, event_type: eventType, in_app: row.in_app, email: row.email };
+    var { error } = await sb.from('notification_preferences').upsert(payload, { onConflict: 'user_id,event_type' });
+    if (error) throw error;
+    if (status) { status.textContent = 'Voorkeuren bewaard.'; status.style.color = 'var(--green,#10B981)'; setTimeout(function(){ if(status.textContent === 'Voorkeuren bewaard.') status.textContent=''; }, 2500); }
+  } catch (e) {
+    console.error('onNotifPrefToggle:', e);
+    row[field] = !value; // revert lokaal
+    renderNotifPrefsCard();
+    if (status) { status.textContent = 'Opslaan mislukt: ' + (e.message || 'onbekend'); status.style.color = 'var(--red,#E74C3C)'; }
+  }
 }
 
 // =============================================
@@ -5101,6 +5492,8 @@ async function onbFinish() {
     showToast('Welkom op het platform — je account is klaar voor gebruik.');
     // Refresh relevante views
     if (typeof renderDashboard === 'function') renderDashboard();
+    // Direct na wizard-afronding: product-tour starten zodat partner platform leert kennen
+    setTimeout(function() { startOnboardingTour(); }, 500);
   } catch (e) {
     showToast('Fout bij opslaan: ' + (e.message || 'onbekend'), 'error');
     btn.disabled = false;
@@ -5111,6 +5504,225 @@ async function onbFinish() {
 async function skipOnboarding() {
   if (!(await confirmDialog({ title: 'Wizard overslaan?', message: 'Je kan je gegevens later aanvullen via Instellingen. Dit venster verschijnt opnieuw bij je volgende login.', confirmLabel: 'Overslaan', cancelLabel: 'Terug' }))) return;
   closeOnboardingWizard();
+}
+
+// =============================================
+// PARTNER PRODUCT-TOUR (O.2)
+// Lichtgewicht 5-stappen rondleiding die partners door de kritieke
+// flows loodst: dashboard → klanten → calculator-link → team → hulp.
+// Getriggerd na onboarding-wizard of handmatig via help-knop in topbar.
+// =============================================
+var tourSteps = [
+  {
+    target: 'a.nav-item[data-page="dashboard"]',
+    page: null,
+    title: 'Dit is jouw dashboard',
+    body: 'Hier zie je in één oogopslag open contracten, getekende deals en recente activiteit. Alles wat je commercieel opvolgt start vanaf deze pagina.'
+  },
+  {
+    target: 'a.nav-item[data-page="klanten"]',
+    page: null,
+    title: 'Klanten toevoegen en beheren',
+    body: 'Elk contract begint bij een klant. Voeg nieuwe klanten toe, beheer werklocaties en gebruik het klantdossier om contracten en interventies samen te houden.'
+  },
+  {
+    target: '#set-calc-link-input',
+    page: 'instellingen',
+    title: 'Jouw calculator-link',
+    body: 'Deel deze link met je klanten. Ze configureren zelf hun contract, tekenen online, en het getekende contract verschijnt direct in jouw overzicht — inclusief melding.'
+  },
+  {
+    target: '#set-team-card',
+    page: 'instellingen',
+    title: 'Nodig teamleden uit',
+    body: 'Breid je account uit met collega\u2019s. Elk teamlid krijgt eigen login met dezelfde toegang tot klanten, contracten en de calculator-link.'
+  },
+  {
+    target: '#help-btn',
+    page: null,
+    title: 'Hulp altijd bij de hand',
+    body: 'Vragen of vastgelopen? Mail <a href="mailto:support@flancco.be">support@flancco.be</a>. Deze rondleiding kan je altijd opnieuw starten via het vraagteken-icoon rechtsboven.'
+  }
+];
+var tourCurrent = 0;
+var tourResizeHandler = null;
+var tourScrollHandler = null;
+
+async function startOnboardingTour(opts) {
+  opts = opts || {};
+  // Admins / bedienden hebben deze partner-tour niet nodig — veiligheidsgate
+  if (userRole !== 'partner' && !opts.force) {
+    if (!opts.fromHelp) return;
+  }
+  tourCurrent = 0;
+  var overlay = document.getElementById('tour-overlay');
+  if (!overlay) return;
+  overlay.classList.add('tour-active');
+  // Expose helper als ESC → skip
+  document.addEventListener('keydown', tourKeyHandler);
+  await renderTourStep();
+  if (!tourResizeHandler) {
+    tourResizeHandler = function() { positionTourStep(); };
+    tourScrollHandler = function() { positionTourStep(); };
+    window.addEventListener('resize', tourResizeHandler);
+    window.addEventListener('scroll', tourScrollHandler, true);
+  }
+}
+
+function tourKeyHandler(e) {
+  if (e.key === 'Escape') { e.preventDefault(); tourSkip(); }
+  else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); tourNext(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); tourPrev(); }
+}
+
+async function renderTourStep() {
+  var step = tourSteps[tourCurrent];
+  if (!step) return finishTour();
+
+  // Eerst page-switch als nodig; wacht op render vooraleer element te meten
+  if (step.page) {
+    var activeId = (document.querySelector('.page.active') || {}).id || '';
+    if (activeId !== 'page-' + step.page) {
+      try { showPage(step.page); } catch (_) {}
+      // geef DOM + async renders (renderPartnerTeamList etc.) tijd
+      await new Promise(function(r) { setTimeout(r, 260); });
+    }
+  }
+
+  // Tooltip-content
+  document.getElementById('tour-title').textContent = step.title;
+  document.getElementById('tour-body').innerHTML = step.body;
+  document.getElementById('tour-step-label').textContent = 'Stap ' + (tourCurrent + 1) + ' van ' + tourSteps.length;
+
+  // Step dots
+  var dots = document.querySelectorAll('.tour-step-dot');
+  dots.forEach(function(d, i) { d.setAttribute('data-active', i <= tourCurrent ? 'true' : 'false'); });
+
+  // Navigatie-buttons
+  var prevBtn = document.getElementById('tour-prev');
+  var nextBtn = document.getElementById('tour-next');
+  prevBtn.style.visibility = tourCurrent === 0 ? 'hidden' : 'visible';
+  nextBtn.textContent = tourCurrent === tourSteps.length - 1 ? 'Afronden' : 'Volgende';
+
+  positionTourStep();
+  // Target in zicht scrollen voor lange pagina's
+  var target = step.target ? document.querySelector(step.target) : null;
+  if (target && typeof target.scrollIntoView === 'function') {
+    try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+    // Na scroll opnieuw positioneren
+    setTimeout(positionTourStep, 320);
+  }
+}
+
+function positionTourStep() {
+  var step = tourSteps[tourCurrent];
+  if (!step) return;
+  var target = step.target ? document.querySelector(step.target) : null;
+  var highlight = document.getElementById('tour-highlight');
+  var tooltip = document.getElementById('tour-tooltip');
+  if (!highlight || !tooltip) return;
+
+  // Clear eerdere positioneringen
+  tooltip.style.top = '';
+  tooltip.style.left = '';
+  tooltip.style.bottom = '';
+  tooltip.style.right = '';
+  tooltip.style.transform = '';
+
+  if (!target) {
+    // Geen target → tooltip centraal, highlight onzichtbaar (0×0 maar met box-shadow actief)
+    highlight.style.top = '50%';
+    highlight.style.left = '50%';
+    highlight.style.width = '0px';
+    highlight.style.height = '0px';
+    tooltip.style.left = '50%';
+    tooltip.style.top = '50%';
+    tooltip.style.transform = 'translate(-50%, -50%)';
+    return;
+  }
+
+  var r = target.getBoundingClientRect();
+  var pad = 6;
+  highlight.style.top = Math.max(0, r.top - pad) + 'px';
+  highlight.style.left = Math.max(0, r.left - pad) + 'px';
+  highlight.style.width = (r.width + pad * 2) + 'px';
+  highlight.style.height = (r.height + pad * 2) + 'px';
+
+  // Tooltip positioneren met prioriteit: rechts → onder → boven → centraal
+  var tooltipW = tooltip.offsetWidth || 360;
+  var tooltipH = tooltip.offsetHeight || 200;
+  var margin = 16;
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+
+  if (r.right + margin + tooltipW + 20 <= vw) {
+    // Rechts
+    tooltip.style.left = (r.right + margin) + 'px';
+    tooltip.style.top = Math.max(20, Math.min(vh - tooltipH - 20, r.top - 4)) + 'px';
+  } else if (r.left - margin - tooltipW - 20 >= 0) {
+    // Links
+    tooltip.style.left = (r.left - margin - tooltipW) + 'px';
+    tooltip.style.top = Math.max(20, Math.min(vh - tooltipH - 20, r.top - 4)) + 'px';
+  } else if (r.bottom + margin + tooltipH + 20 <= vh) {
+    // Onder
+    tooltip.style.left = Math.max(20, Math.min(vw - tooltipW - 20, r.left)) + 'px';
+    tooltip.style.top = (r.bottom + margin) + 'px';
+  } else if (r.top - margin - tooltipH - 20 >= 0) {
+    // Boven
+    tooltip.style.left = Math.max(20, Math.min(vw - tooltipW - 20, r.left)) + 'px';
+    tooltip.style.top = (r.top - margin - tooltipH) + 'px';
+  } else {
+    // Fallback: centraal
+    tooltip.style.left = '50%';
+    tooltip.style.top = '50%';
+    tooltip.style.transform = 'translate(-50%, -50%)';
+  }
+}
+
+function tourNext() {
+  if (tourCurrent < tourSteps.length - 1) {
+    tourCurrent++;
+    renderTourStep();
+  } else {
+    finishTour();
+  }
+}
+
+function tourPrev() {
+  if (tourCurrent > 0) {
+    tourCurrent--;
+    renderTourStep();
+  }
+}
+
+async function tourSkip() {
+  // Bij overslaan: net als afronden markeren zodat tour niet nogmaals opent bij login.
+  await finishTour();
+}
+
+async function finishTour() {
+  var overlay = document.getElementById('tour-overlay');
+  if (overlay) overlay.classList.remove('tour-active');
+  document.removeEventListener('keydown', tourKeyHandler);
+  if (tourResizeHandler) {
+    window.removeEventListener('resize', tourResizeHandler);
+    window.removeEventListener('scroll', tourScrollHandler, true);
+    tourResizeHandler = null;
+    tourScrollHandler = null;
+  }
+  // Markeer completion in DB (enkel als nog niet gezet, voorkomt onnodige writes)
+  if (userPartner && !userPartner.onboarding_tour_completed_at) {
+    try {
+      var ts = new Date().toISOString();
+      var upd = await sb.from('partners')
+        .update({ onboarding_tour_completed_at: ts })
+        .eq('id', userPartner.id);
+      if (!upd.error) userPartner.onboarding_tour_completed_at = ts;
+    } catch (e) {
+      // Silent — tour UX is al afgesloten; enkel completion-flag faalde.
+      console.warn('Kon tour-completion niet bewaren:', e);
+    }
+  }
 }
 
 async function toggleAdminSector(partnerId, sector, label) {
@@ -8636,27 +9248,189 @@ function getFilteredKlanten() {
   return list;
 }
 
-function exportKlantenExcel() {
-  var list = getFilteredKlanten();
-  if (list.length === 0) { alert('Geen klanten om te exporteren.'); return; }
-
-  var header = ['Voornaam','Achternaam','Bedrijf','Email','Telefoon','Straat','Nr','Postcode','Gemeente','Land','Partner','Notities'];
-  var rows = list.map(function(c) {
-    var partner = partners.find(function(p) { return p.id === c.partner_id; });
-    var np = (c.contact_person || '').split(' ');
-    return [np[0] || '', np.slice(1).join(' ') || '', c.company_name, c.email, c.phone, c.street, c.house_number, c.postal_code, c.city, c.country, partner ? partner.naam : '', c.notes]
-      .map(function(v) { return '"' + (v || '').replace(/"/g, '""') + '"'; });
-  });
-  var csv = '\uFEFF' + [header.join(';')].concat(rows.map(function(r) { return r.join(';'); })).join('\n');
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+// =============================================
+// CSV EXPORT — gedeelde helpers (O.5)
+// =============================================
+// Bouwt BE-Excel-compatibele CSV: UTF-8 BOM + semicolon-separator + CRLF +
+// double-quoted cells met "-escape. Numerieke waarden gaan via csvNum() zodat
+// decimalen als komma worden weggeschreven (BE-locale). Excel/Numbers/Sheets
+// parsen dit direct zonder import-wizard.
+function csvEscape(v) {
+  if (v === null || v === undefined) return '""';
+  var s = String(v);
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+function csvNum(n) {
+  if (n === null || n === undefined || n === '') return '';
+  var f = parseFloat(n);
+  if (isNaN(f)) return '';
+  return f.toFixed(2).replace('.', ',');
+}
+function csvDate(d) {
+  if (!d) return '';
+  try {
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt.getTime())) return String(d).slice(0, 10);
+    var y = dt.getFullYear();
+    var m = String(dt.getMonth() + 1).padStart(2, '0');
+    var dd = String(dt.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
+  } catch(_) { return String(d).slice(0, 10); }
+}
+function buildCSV(headers, rows) {
+  var lines = [headers.map(csvEscape).join(';')];
+  rows.forEach(function(r) { lines.push(r.map(csvEscape).join(';')); });
+  return '\uFEFF' + lines.join('\r\n');
+}
+function downloadCSVFile(content, filename) {
+  var blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'klanten-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Sommige browsers voltooien de download-tick niet synchroon → revoke defer.
+  setTimeout(function() { URL.revokeObjectURL(url); }, 200);
+}
+function csvTodayIso() {
+  var d = new Date();
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+// Sanitize partner/klant-naam tot veilige filename-component (geen spaties/slashes)
+function csvSafeNamePart(s) {
+  return (s || '').trim().replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+}
+// Resolve welke partner-naam in filename komt: bij partner-role zijn eigen bedrijf,
+// bij admin-role de gekozen filter-waarde (of leeg = 'alle').
+function csvCurrentPartnerLabel(filterSelectId) {
+  if (userRole === 'partner' && userPartner) {
+    return userPartner.bedrijfsnaam || userPartner.naam || '';
+  }
+  if (userRole === 'admin' && filterSelectId) {
+    var sel = document.getElementById(filterSelectId);
+    if (sel && sel.value) {
+      var pp = partners.find(function(p) { return p.id === sel.value; });
+      if (pp) return pp.bedrijfsnaam || pp.naam || '';
+    }
+  }
+  return '';
+}
+
+function exportKlantenCSV() {
+  var list = getFilteredKlanten();
+  if (list.length === 0) {
+    if (typeof showToast === 'function') showToast('Geen klanten om te exporteren.', 'info');
+    else alert('Geen klanten om te exporteren.');
+    return;
+  }
+
+  var headers = [
+    'ID','Voornaam','Achternaam','Bedrijf','Email','Telefoon',
+    'Straat','Nr','Postcode','Gemeente','Land','BTW','Standaard PO',
+    'Partner','Notities','Aangemaakt op'
+  ];
+  var rows = list.map(function(c) {
+    var partner = partners.find(function(p) { return p.id === c.partner_id; });
+    var np = (c.contact_person || '').split(' ');
+    return [
+      c.id || '',
+      np[0] || '',
+      np.slice(1).join(' ') || '',
+      c.company_name || '',
+      c.email || '',
+      c.phone || '',
+      c.street || '',
+      c.house_number || '',
+      c.postal_code || '',
+      c.city || '',
+      c.country || '',
+      c.vat_number || '',
+      c.po_number || '',
+      partner ? (partner.bedrijfsnaam || partner.naam) : '',
+      c.notes || '',
+      csvDate(c.created_at)
+    ];
+  });
+
+  var pLabel = csvSafeNamePart(csvCurrentPartnerLabel('filter-klant-partner'));
+  var filename = 'Klanten' + (pLabel ? '_' + pLabel : '') + '_' + csvTodayIso() + '.csv';
+  downloadCSVFile(buildCSV(headers, rows), filename);
+  if (typeof showToast === 'function') {
+    showToast('Export: ' + list.length + ' klant' + (list.length === 1 ? '' : 'en'), 'success');
+  }
+}
+// Backward-compat alias: oude menu-item of externe links blijven werken.
+function exportKlantenExcel() { return exportKlantenCSV(); }
+
+function exportContractenCSV() {
+  // Hergebruikt filter-logica van renderContracten (myContracten + partner-filter + tab)
+  var list = myContracten();
+  if (userRole === 'admin') {
+    var pf = document.getElementById('filter-partner');
+    if (pf && pf.value) list = list.filter(function(c) { return c.partner_id === pf.value; });
+  }
+  var tabScope = (typeof contractTab !== 'undefined' && contractTab === 'eenmalig') ? 'eenmalig' : 'lopend';
+  list = list.filter(function(c) {
+    return tabScope === 'eenmalig' ? c.is_eenmalig === true : !c.is_eenmalig;
+  });
+
+  if (list.length === 0) {
+    if (typeof showToast === 'function') showToast('Geen contracten om te exporteren.', 'info');
+    else alert('Geen contracten om te exporteren.');
+    return;
+  }
+
+  var headers = [
+    'ID','Klant','Bedrijf','Email','Telefoon','Adres','Postcode','Gemeente',
+    'Partner','Sectoren','Frequentie','Contractduur',
+    'Aantal panelen','Forfait per beurt','Totaal excl BTW','Totaal incl BTW',
+    'PO-nummer','Status','Type','Ondertekend op','Aangemaakt op'
+  ];
+  var rows = list.map(function(c) {
+    var partner = partners.find(function(p) { return p.id === c.partner_id; });
+    var sectorenTxt = '';
+    if (c.sectoren && Array.isArray(c.sectoren) && c.sectoren.length > 0) {
+      sectorenTxt = c.sectoren.map(function(s) { return s.sector || s; }).join('+');
+    } else if (c.sector) {
+      sectorenTxt = c.sector;
+    }
+    var dispStatus = (typeof computeStatus === 'function') ? computeStatus(c) : (c.status || '');
+    return [
+      c.id || '',
+      c.klant_naam || '',
+      c.klant_bedrijfsnaam || '',
+      c.klant_email || '',
+      c.klant_telefoon || '',
+      c.klant_adres || '',
+      c.klant_postcode || '',
+      c.klant_gemeente || '',
+      partner ? (partner.bedrijfsnaam || partner.naam) : '',
+      sectorenTxt,
+      c.frequentie || '',
+      c.contractduur || '',
+      c.aantal_panelen || '',
+      csvNum(c.forfait_per_beurt),
+      csvNum(c.totaal_excl_btw),
+      csvNum(c.totaal_incl_btw),
+      c.po_number || '',
+      dispStatus,
+      c.is_eenmalig ? 'eenmalig' : 'lopend',
+      csvDate(c.datum_ondertekening),
+      csvDate(c.created_at)
+    ];
+  });
+
+  var pLabel = csvSafeNamePart(csvCurrentPartnerLabel('filter-partner'));
+  var filename = 'Contracten_' + tabScope +
+                 (pLabel ? '_' + pLabel : '') + '_' + csvTodayIso() + '.csv';
+  downloadCSVFile(buildCSV(headers, rows), filename);
+  if (typeof showToast === 'function') {
+    showToast('Export: ' + list.length + ' contract' + (list.length === 1 ? '' : 'en'), 'success');
+  }
 }
 
 // =============================================
@@ -9873,6 +10647,9 @@ async function deleteLocatieFromModal() {
 var personeelTab = 'techniekers';
 
 function switchPersoneelTab(tab) {
+  // Partners zien geen Bedienden-tab (Flancco-intern). Als de oude state of een
+  // URL-state bedienden zou forceren, redirect naar Techniekers.
+  if (tab === 'bedienden' && userRole === 'partner') tab = 'techniekers';
   personeelTab = tab;
   document.querySelectorAll('.p-tab').forEach(function(b) {
     b.classList.toggle('active', b.dataset.ptab === tab);
@@ -9894,6 +10671,66 @@ function renderPersoneelCounts() {
   var elB = document.getElementById('p-tab-bed-count');
   if (elT) elT.textContent = techCount;
   if (elB) elB.textContent = bedCount;
+}
+
+// =============================================
+// PARTNER TEAM — login-profielen beheer in Instellingen
+// (Tenant-scoped weergave van eigen team. Deelt modal+save+delete met Bedienden-flow,
+//  maar voor partners blijft de Bedienden-tab verborgen (.flancco-only).)
+// =============================================
+function renderPartnerTeamList() {
+  var container = document.getElementById('set-team-list');
+  if (!container) return;
+  if (!(userRole === 'partner' && userPartner)) { container.innerHTML = ''; return; }
+
+  var team = (allTechniekers || []).filter(function(t) {
+    return t.partner_id === userPartner.id && t.type_personeel === 'bediende';
+  }).sort(function(a, b) {
+    var na = ((a.voornaam || '') + ' ' + (a.naam || '')).toLowerCase();
+    var nb = ((b.voornaam || '') + ' ' + (b.naam || '')).toLowerCase();
+    return na.localeCompare(nb);
+  });
+
+  if (team.length === 0) {
+    container.innerHTML = '<div style="padding:20px 16px;background:var(--light);border:1px dashed var(--rule);border-radius:8px;text-align:center">' +
+      '<p style="margin:0;font-size:13px;color:var(--grey)">Nog geen teamleden. Klik op <strong>+ Nieuw teamlid</strong> om te starten.</p>' +
+      '</div>';
+    return;
+  }
+
+  container.innerHTML = team.map(function(t) {
+    var fullName = ((t.voornaam || '') + ' ' + (t.naam || '')).trim() || '—';
+    var meta = [];
+    if (t.email) meta.push(esc(t.email));
+    if (t.telefoon) meta.push(esc(t.telefoon));
+    return '<div class="team-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;margin-bottom:6px;background:#fff">' +
+      '<div style="min-width:0;flex:1">' +
+        '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">' +
+          '<strong style="font-size:13px;color:var(--navy)">' + esc(fullName) + '</strong>' +
+          (t.functie ? '<span style="color:var(--grey);font-size:12px">' + esc(t.functie) + '</span>' : '') +
+        '</div>' +
+        (meta.length ? '<div style="font-size:11px;color:var(--grey);margin-top:2px">' + meta.join(' · ') + '</div>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:4px;flex-shrink:0">' +
+        '<button type="button" class="btn-action" onclick="openTeamLidModal(\'' + t.id + '\')" title="Bewerken" aria-label="Bewerken"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+        '<button type="button" class="btn-action btn-action-danger" onclick="deleteTeamLid(\'' + t.id + '\', \'' + esc(fullName).replace(/'/g, "\\'") + '\')" title="Verwijderen" aria-label="Verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function openTeamLidModal(teamLidId) {
+  // Hergebruik bestaande Bediende-modal + save-flow. Server-side edge function
+  // `create-bediende` v3 detecteert dat caller=partner en zet role='partner' + partner_id
+  // op de nieuwe auth-user. Voor partners blijft de modal zelf identiek — velden
+  // (naam/email/telefoon/functie/wachtwoord) zijn één-op-één bruikbaar.
+  openBediendeModal(teamLidId || undefined);
+}
+
+async function deleteTeamLid(teamLidId, naam) {
+  await deleteBediende(teamLidId, naam);
+  // Refresh zowel de Personeel-tabel als het Team-lijstje in Instellingen
+  if (userRole === 'partner') renderPartnerTeamList();
 }
 
 // =============================================
@@ -10272,6 +11109,8 @@ async function saveBediende() {
     allTechniekers = r.data || [];
     renderBedienden();
     renderPersoneelCounts();
+    // Partner team-lijstje in Instellingen meteen mee verversen
+    if (userRole === 'partner') renderPartnerTeamList();
   } catch (e) {
     alert('Onverwachte fout: ' + (e.message || e));
   } finally {
