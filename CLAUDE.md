@@ -1,12 +1,16 @@
 # Flancco Partner Platform
 
 ## Project Overview
-Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onderhoud + reiniging zonnepanelen) om partnercontracten voor zonnepaneelreiniging te beheren. Gehost op **GitHub Pages** (repo: `Extanore/Flancco-tools`), backend via **Supabase**.
+Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onderhoud + reiniging zonnepanelen) om partnercontracten voor zonnepaneelreiniging te beheren. Gehost op **Cloudflare Pages** (repo: `Extanore/Flancco-tools`), backend via **Supabase**.
 
 ## Tech Stack
 - **Frontend**: Vanilla HTML/CSS/JS (single-file per page, geen build tooling)
 - **Backend**: Supabase (PostgreSQL + Auth + RLS)
-- **Hosting**: GitHub Pages — `https://extanore.github.io/Flancco-tools/`
+- **Hosting**: Cloudflare Pages
+  - App + portal: `https://app.flancco-platform.be`
+  - Calculator:   `https://calculator.flancco-platform.be` (partner-slug in path of query)
+  - Apex `https://flancco-platform.be` → 301 naar app
+  - Legacy fallback (90 dagen post-cutover): `https://extanore.github.io/Flancco-tools/`
 - **Supabase JS**: CDN via `@supabase/supabase-js@2` (UMD bundle)
 
 ## Bestandsstructuur

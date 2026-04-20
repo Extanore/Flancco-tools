@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flancco — Klantenportaal</title>
+<script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
+<script>
+  (function(){
+    var h = location.hostname;
+    var isProd = /flancco-platform\.be$/.test(h) || /\.pages\.dev$/.test(h) || h === 'extanore.github.io';
+    if (!isProd || !window.Sentry) return;
+    Sentry.init({
+      dsn: 'https://9d294eb246d48b01262e4c752c77b231@o4511253859729408.ingest.de.sentry.io/4511253876310096',
+      environment: /\.pages\.dev$/.test(h) ? 'staging' : 'prod',
+      release: 'flancco-portal@2026-04-20',
+      tracesSampleRate: 0.05,
+      beforeSend: function(event) {
+        try {
+          if (event.request && event.request.data) {
+            var d = event.request.data;
+            ['password','wachtwoord','token'].forEach(function(k){ if (d[k]) d[k] = '[REDACTED]'; });
+          }
+        } catch(_){}
+        return event;
+      }
+    });
+  })();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -184,6 +207,14 @@
 var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
 var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// Platform URLs — hostname-autodetect
+var APP_BASE_URL = (function() {
+  var h = location.hostname;
+  if (h === 'app.flancco-platform.be' || h === 'flancco-platform.be' || h === 'www.flancco-platform.be') return 'https://app.flancco-platform.be';
+  if (h === 'extanore.github.io') return 'https://extanore.github.io/Flancco-tools';
+  return location.origin;
+})();
 
 var client = null;
 var contracten = [];
@@ -407,5 +438,35 @@ function renderInterventies() {
 
 init();
 </script>
+
+<!-- Cookie-consent banner (strikt-noodzakelijk; GDPR/AVG info) -->
+<div id="cc-banner" aria-live="polite" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1A1A2E;color:#fff;padding:14px 20px;box-shadow:0 -4px 20px rgba(0,0,0,0.25);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5">
+  <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;min-width:260px">Dit platform gebruikt uitsluitend strikt-noodzakelijke cookies en localStorage (authenticatie). Geen tracking, geen analytics. Meer info in onze <a href="/privacy/" style="color:#E74C3C;text-decoration:underline;font-weight:500">Privacyverklaring</a> en <a href="/voorwaarden/" style="color:#E74C3C;text-decoration:underline;font-weight:500">Voorwaarden</a>.</div>
+    <button type="button" id="cc-accept" style="background:#E74C3C;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;letter-spacing:0.2px">OK, ik begrijp het</button>
+  </div>
+</div>
+<script>
+(function(){
+  try {
+    if (!localStorage.getItem('cc_v1')) {
+      var el = document.getElementById('cc-banner');
+      if (el) el.style.display = 'block';
+    }
+    var btn = document.getElementById('cc-accept');
+    if (btn) btn.addEventListener('click', function(){
+      try { localStorage.setItem('cc_v1', '1'); } catch(_){}
+      var el = document.getElementById('cc-banner');
+      if (el) el.style.display = 'none';
+    });
+  } catch(_){}
+})();
+</script>
+
+<!-- Impressum-footer voor publiek portal -->
+<footer style="padding:16px 20px 80px;text-align:center;font-size:11px;color:rgba(107,114,128,0.85);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  &copy; FLANCCO BV &middot; BE 0466.111.526 &middot; <a href="/privacy/" style="color:inherit;text-decoration:underline">Privacyverklaring</a> &middot; <a href="/voorwaarden/" style="color:inherit;text-decoration:underline">Voorwaarden</a>
+</footer>
+
 </body>
 </html>

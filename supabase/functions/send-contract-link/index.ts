@@ -92,7 +92,10 @@ serve(async (req) => {
     }
 
     const partner = contract.partners;
-    const tekenUrl = `https://extanore.github.io/Flancco-tools/calculator/?contract=${contract.teken_token}`;
+    // Env-var zodat we staging/prod/legacy kunnen swappen zonder redeploy-per-URL-wijziging.
+    // Default: productiedomein op Cloudflare Pages.
+    const calculatorBase = (Deno.env.get("CALCULATOR_BASE_URL") ?? "https://calculator.flancco-platform.be").replace(/\/$/, "");
+    const tekenUrl = `${calculatorBase}/?contract=${contract.teken_token}`;
 
     // Parse sectoren for summary
     let sectorenHtml = "";

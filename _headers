@@ -1,0 +1,47 @@
+# =============================================================
+# Cloudflare Pages — Security headers + cache rules
+# Doel: A+ rating op securityheaders.com
+# =============================================================
+
+/*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), autoplay=(), encrypted-media=(), fullscreen=(self), picture-in-picture=()
+  Cross-Origin-Opener-Policy: same-origin
+  X-DNS-Prefetch-Control: off
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://browser.sentry-cdn.com https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.flancco-platform.be; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in wss://*.supabase.in https://api.resend.com https://*.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; worker-src 'self' blob:; manifest-src 'self'
+
+# Admin / partner app: geen caching (gevoelige data)
+/admin/*
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  Pragma: no-cache
+
+# Portal: geen caching (magic-link tokens)
+/portal/*
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+# Legal pages: korte cache
+/privacy/*
+  Cache-Control: public, max-age=3600, must-revalidate
+/voorwaarden/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# Calculator pagina's: klant-facing, korte cache voor snelheid
+/calculator/*
+  Cache-Control: public, max-age=300, must-revalidate
+/novectra/*
+  Cache-Control: public, max-age=300, must-revalidate
+/cwsolar/*
+  Cache-Control: public, max-age=300, must-revalidate
+/flancco/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+# HTML: revalideer altijd
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Statische assets (JS/CSS/images met fingerprint): lang cachen
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
