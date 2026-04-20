@@ -250,16 +250,38 @@ Na 90 dagen stabiel productie op Cloudflare:
 - **Supabase service role key**: Dashboard → Settings → API (roteer post-cutover, zie Deel 6)
 - **Sentry DSN**: public, reeds embedded in HTMLs — geen actie
 
-## Bijlage B — Preview URL (generated in nacht 20→21 april)
+## Bijlage B — Preview URL (gegenereerd in nacht 20→21 april)
 
-**Preview-URL (`.pages.dev`)**: _wordt ingevuld door wrangler-upload tijdens nacht; controleer `PREVIEW_URL.txt` in repo-root morgen voor exacte waarde_
+**Cloudflare Pages project**: `flancco-tools` (account `89139283d98d1286c006c912b23e6cd9`)
+**Production-URL** (nog leeg tot merge naar `main`): `https://flancco-tools.pages.dev`
 
-Deze URL werkt onmiddellijk — geen DNS-propagatie nodig — en is ideaal voor smoke-test **vóór** je Deel 3 (DNS-switch) uitvoert. Test hier al:
+**Preview-URLs van eerste upload** (branch `deploy/flancco-platform-be`, commit `39d92a6`):
+
+| Type | URL | Doel |
+|------|-----|------|
+| Branch alias | `https://deploy-flancco-platform-be.flancco-tools.pages.dev` | Stabiel — verandert mee met elke nieuwe preview-deploy op deze branch |
+| Unique deploy | `https://a025bd13.flancco-tools.pages.dev` | Pinned snapshot van deze specifieke deploy |
+
+Gebruik bij voorkeur de **branch-alias URL** voor smoke-test want die update automatisch zodra je een fix pusht.
+
+**Let op**: voor net-aangemaakte Pages-projecten provisioneert Cloudflare edge-SSL-certificaten in 5–15 minuten. Eerste smoke-test tijdens de nacht gaf TLS-handshake-fail om 21:46; verwacht dat curl/browser rond **22:00** (of zeker ochtend) 200 teruggeeft. Als het nog steeds faalt: log in op Cloudflare Dashboard → Workers & Pages → `flancco-tools` → controleer deployment-status.
+
+**Smoke-test-paden** (plak in browser of via `curl -sSI`):
+- `https://deploy-flancco-platform-be.flancco-tools.pages.dev/admin/` — admin-login-scherm
+- `https://deploy-flancco-platform-be.flancco-tools.pages.dev/calculator/` — generic calculator
+- `https://deploy-flancco-platform-be.flancco-tools.pages.dev/novectra/` — Novectra (via partner-slug in path)
+- `https://deploy-flancco-platform-be.flancco-tools.pages.dev/cwsolar/` — CW Solar
+- `https://deploy-flancco-platform-be.flancco-tools.pages.dev/privacy/` — GDPR privacyverklaring
+- `https://deploy-flancco-platform-be.flancco-tools.pages.dev/voorwaarden/` — algemene voorwaarden
+- `https://deploy-flancco-platform-be.flancco-tools.pages.dev/PLAN.md` — **moet 404** (defense-in-depth)
+
+Volledige smoke-test:
 1. Login-flow
 2. Calculator-flow met `?partner=cwsolar` en `?partner=novectra` query params
-3. PDF-generatie
+3. PDF-generatie na ondertekening
+4. Security-headers via `https://securityheaders.com/?q=deploy-flancco-platform-be.flancco-tools.pages.dev` → verwacht **A** (A+ vereist HSTS-preload na cutover naar flancco-platform.be)
 
-Als iets faalt op de preview: fix op feature-branch `deploy/flancco-platform-be` → push → Cloudflare Pages herbuilt automatisch → her-test. Pas daarna Deel 3 starten.
+Als iets faalt op de preview: fix op feature-branch `deploy/flancco-platform-be` → push → Cloudflare Pages herbuilt automatisch → her-test op dezelfde branch-alias URL. Pas daarna Deel 3 (DNS-switch) starten.
 
 ---
 
