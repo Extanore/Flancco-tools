@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Onderhoudscalculator</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -389,7 +391,8 @@
             <li>U wordt telefonisch gecontacteerd voor een exacte datum</li>
           </ol>
         </div>
-        <button class="btn" onclick="downloadSigningContract()" style="margin-bottom:16px">&#8681; Download uw contract als PDF</button>
+        <div id="signing-post-pdf-status" style="margin:8px 0 16px;text-align:center;font-size:13px;color:#059669;display:none"></div>
+        <button class="btn" id="signing-post-dl-btn" onclick="downloadSigningContract()" style="margin-bottom:16px">&#8681; Download uw contract als PDF</button>
         <div class="post-contact">Vragen? Neem contact op met <strong id="signing-post-contact"></strong></div>
       </div>
     </div>
@@ -682,6 +685,308 @@ function getPartnerBranding(partner, sector) {
     }
   }
   return fallback;
+}
+
+// ═══════════════════════════════════════════
+// CONTRACT PDF — gedeelde branded generator
+// KEEP IN SYNC WITH admin/index.html previewContract()/generateContractPDFFromTemplate()
+// Rendert dezelfde HTML-layout als admin/preview zodat klant-download en admin-download
+// pixel-identiek zijn. Sectie M van implementatieplan.
+// ═══════════════════════════════════════════
+function buildContractHTMLShared(c, p) {
+  var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
+  var branding = getPartnerBranding(p, contractSector);
+  var pName = branding.naam;
+  var primary = branding.kleur_primair;
+
+  var sectoren = c.sectoren || [];
+  var pricing = c.pricing_breakdown || {};
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen', airco: 'Airco' };
+  var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
+  var duurTxt = c.contractduur === 'eenmalig' ? 'Eenmalige interventie' : (c.contractduur || 'n.v.t.');
+  var today = c.datum_ondertekening ? new Date(c.datum_ondertekening).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+  var pAdres = p ? [p.adres, p.postcode, p.gemeente].filter(Boolean).join(', ') : '';
+  var pBtw = p ? (p.btw_nummer || '') : '';
+
+  var html = '<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>' + esc(pName) + ' \u2014 Contract</title>';
+  html += '<style>';
+  html += ':root{--primary:' + primary + ';--primary-bg:' + primary + '12;--primary-light:' + primary + '30}';
+  html += 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:800px;margin:0 auto;padding:40px 24px;color:#1f2937;background:#fff}';
+  html += '.contract-header{text-align:center;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid var(--primary)}';
+  html += '.contract-header h1{font-size:22px;font-weight:700;color:var(--primary);letter-spacing:1px;margin:0}';
+  html += '.contract-header p{font-size:13px;color:#6b7280;margin:6px 0 0}';
+  html += 'h2{font-size:15px;font-weight:700;color:#1f2937;margin:28px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--primary);letter-spacing:0.8px;text-transform:uppercase}';
+  html += 'p{font-size:13px;color:#374151;margin-bottom:8px;line-height:1.7}';
+  html += 'ul{margin:8px 0 12px 20px}ul li{font-size:13px;color:#374151;margin-bottom:4px;line-height:1.6}';
+  html += '.data-row{display:flex;justify-content:space-between;padding:8px 12px;font-size:13px;border-bottom:1px solid #f3f4f6}';
+  html += '.data-row:nth-child(even){background:#f9fafb}';
+  html += '.data-label{color:#6b7280;font-weight:500}.data-value{font-weight:600;color:#1f2937}';
+  html += '.pricing-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}';
+  html += '.pricing-table th{background:var(--primary);color:white;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}';
+  html += '.pricing-table td{padding:8px 12px;border-bottom:1px solid #f3f4f6}';
+  html += '.pricing-table tr:nth-child(even) td{background:#f9fafb}';
+  html += '.pricing-table td:last-child{text-align:right;font-weight:600}';
+  html += '.total-box{background:var(--primary-bg);border:2px solid var(--primary-light);border-radius:10px;padding:20px 24px;margin:20px 0}';
+  html += '.total-box .line{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:#374151}';
+  html += '.total-box .line.grand{font-size:18px;font-weight:700;color:var(--primary);padding:12px 0 0;margin-top:8px;border-top:2px solid var(--primary-light)}';
+  html += '.total-box .line.sub{font-weight:600;padding-top:8px;margin-top:4px;border-top:1px solid #e5e7eb}';
+  html += '.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:32px}';
+  html += '.sig-box{border-top:2px solid var(--primary);padding-top:16px}';
+  html += '.sig-box h3{font-size:13px;font-weight:700;color:var(--primary);margin:0 0 16px;text-transform:uppercase;letter-spacing:0.5px}';
+  html += '.sig-line{font-size:13px;color:#374151;margin-bottom:8px}';
+  html += '.sig-area{height:60px;border-bottom:1px solid #d1d5db;margin:16px 0 8px}';
+  html += '@media print{body{padding:20px}@page{margin:15mm 10mm}}';
+  html += '</style></head><body>';
+
+  html += '<div class="contract-header"><h1>' + esc(pName) + '</h1>';
+  html += '<p style="font-size:14px;color:#374151;margin:8px 0 4px">Dienstverleningsovereenkomst</p>';
+  var dienstTxt = [];
+  sectoren.forEach(function(s) {
+    var sec = s.sector || s;
+    var label = sectorLabels[sec] || sec;
+    if (s.configs) {
+      s.configs.forEach(function(cfg) {
+        if (sec === 'zonnepanelen') dienstTxt.push(label + ': ' + (cfg.pan || '') + ' panelen, ' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling'));
+        else if (sec === 'warmtepomp') dienstTxt.push(label + ': ' + (cfg.binnenunits || 1) + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic'));
+        else if (sec === 'ventilatie') dienstTxt.push(label + ': systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen');
+        else if (sec === 'verwarming') dienstTxt.push(label + ': ' + cfg.keteltype + 'ketel');
+        else dienstTxt.push(label);
+      });
+    } else dienstTxt.push(label);
+  });
+  html += '<p>' + esc(dienstTxt.length ? dienstTxt.join('; ') + ' \u2014 ' : '') + esc(today) + '</p></div>';
+
+  // Partijen
+  html += '<p style="font-size:13px;color:#6b7280">Tussen <strong>' + esc(pName) + '</strong>';
+  if (pAdres) html += ', gevestigd te ' + esc(pAdres);
+  if (pBtw) html += ', ' + esc(pBtw);
+  html += ', hierna "de Dienstverlener",</p>';
+  html += '<p style="font-size:13px;color:#6b7280">En</p>';
+  html += '<div style="margin:12px 0 24px">';
+  html += '<div class="data-row"><span class="data-label">Naam / Bedrijfsnaam</span><span class="data-value">' + esc(c.klant_naam || '\u2014') + '</span></div>';
+  var adres = [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', ');
+  if (adres) html += '<div class="data-row"><span class="data-label">Adres</span><span class="data-value">' + esc(adres) + '</span></div>';
+  if (c.klant_contact) html += '<div class="data-row"><span class="data-label">Contactpersoon</span><span class="data-value">' + esc(c.klant_contact) + '</span></div>';
+  if (c.klant_telefoon) html += '<div class="data-row"><span class="data-label">Telefoon</span><span class="data-value">' + esc(c.klant_telefoon) + '</span></div>';
+  if (c.klant_email) html += '<div class="data-row"><span class="data-label">E-mail</span><span class="data-value">' + esc(c.klant_email) + '</span></div>';
+  html += '</div>';
+  html += '<p style="font-size:13px;color:#6b7280">hierna "de Klant", gezamenlijk "de Partijen".</p>';
+
+  // Art 1 — Voorwerp
+  var artNum = 1;
+  html += '<h2>Artikel ' + artNum + ' \u2014 Voorwerp</h2>';
+  html += '<p>De Dienstverlener verbindt zich ertoe de volgende diensten uit te voeren op het hierboven vermelde adres:</p><ul>';
+  sectoren.forEach(function(s) {
+    var sec = s.sector || s;
+    var label = sectorLabels[sec] || sec;
+    html += '<li><strong>' + esc(label) + '</strong>';
+    if (s.configs) {
+      s.configs.forEach(function(cfg) {
+        if (sec === 'zonnepanelen') html += ': reiniging van ' + (cfg.pan || '') + ' zonnepanelen (' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling') + ')';
+        else if (sec === 'warmtepomp') html += ': onderhoud van ' + (cfg.binnenunits || 1) + ' binnenunit(s) (' + (cfg.formule === 'allin' ? 'all-in formule' : 'basic formule') + ')';
+        else if (sec === 'ventilatie') html += ': onderhoud ventilatiesysteem ' + cfg.systeem + ' met ' + cfg.ventielen + ' ventielen';
+        else if (sec === 'verwarming') html += ': onderhoud ' + cfg.keteltype + 'ketel';
+      });
+    }
+    html += '</li>';
+  });
+  html += '</ul>';
+  artNum++;
+
+  // Art — Tarieven
+  html += '<h2>Artikel ' + artNum + ' \u2014 Tarieven</h2>';
+  var btwPct = pricing.btwPct || 21;
+  html += '<p>Alle bedragen zijn in euro en inclusief ' + btwPct + '% btw.</p>';
+  if (pricing.lines) {
+    html += '<table class="pricing-table"><tr><th>Omschrijving</th><th style="text-align:right">Bedrag</th></tr>';
+    pricing.lines.forEach(function(l) {
+      if (l.type === 'header') {
+        html += '<tr><td colspan="2" style="font-weight:600;background:#f9fafb;color:#374151">' + esc(l.label) + '</td></tr>';
+      } else {
+        var amt = l.amount < 0 ? '- \u20AC ' + Math.abs(l.amount).toFixed(2).replace('.',',') : '\u20AC ' + l.amount.toFixed(2).replace('.',',');
+        html += '<tr><td>' + esc(l.label) + '</td><td>' + amt + '</td></tr>';
+      }
+    });
+    html += '</table>';
+  }
+  html += '<div class="total-box"><p style="font-weight:600;margin:0 0 8px;color:var(--primary)">Uw prijsoverzicht</p>';
+  if (pricing.lines) {
+    pricing.lines.forEach(function(l) {
+      if (l.type !== 'header') {
+        var amt = l.amount < 0 ? '- \u20AC ' + Math.abs(l.amount).toFixed(2).replace('.',',') : '\u20AC ' + l.amount.toFixed(2).replace('.',',');
+        html += '<div class="line"><span>' + esc(l.label) + '</span><span>' + amt + '</span></div>';
+      }
+    });
+    if (typeof pricing.subtotalExcl === 'number') html += '<div class="line sub"><span>Subtotaal excl. BTW</span><span>\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',',') + '</span></div>';
+    if (typeof pricing.btwBedrag === 'number') html += '<div class="line"><span>BTW ' + btwPct + '%</span><span>\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',',') + '</span></div>';
+    if (typeof pricing.totaalIncl === 'number') html += '<div class="line grand"><span>Totaal per beurt incl. BTW</span><span>\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',',') + '</span></div>';
+  } else if (c.totaal_incl_btw) {
+    html += '<div class="line grand"><span>Totaal incl. BTW</span><span>\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') + '</span></div>';
+  }
+  html += '</div>';
+  artNum++;
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Frequentie</h2>';
+  html += '<p>Gekozen frequentie: <strong>' + esc(freqTxt) + '</strong></p>';
+  html += '<p>De onderhoudsbeurten worden in onderling overleg ingepland. De Dienstverlener contacteert de Klant minstens twee (2) weken op voorhand.</p>';
+  artNum++;
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Contractduur</h2>';
+  html += '<p>Gekozen contractduur: <strong>' + esc(duurTxt) + '</strong></p>';
+  html += '<p>Bij een contract van 3 of 5 jaar wordt een korting van 5% toegepast. Het contract vangt aan op de datum van ondertekening. Behoudens schriftelijke opzegging (2 maanden opzegtermijn) wordt het stilzwijgend verlengd per jaar.</p>';
+  artNum++;
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Prijsindexatie</h2>';
+  html += '<p>Tarieven worden jaarlijks ge\u00EFndexeerd op basis van de consumptieprijsindex (CPI).</p>';
+  artNum++;
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Facturatie en betaling</h2>';
+  html += '<p>Facturen zijn betaalbaar binnen 30 kalenderdagen na factuurdatum.</p>';
+  artNum++;
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Uitvoering</h2>';
+  html += '<p>De Dienstverlener voert het onderhoud uit met eigen gekwalificeerd personeel. De Klant zorgt voor vrije toegang tot de installatie(s).</p>';
+  artNum++;
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Annulatie</h2>';
+  html += '<p>Bij annulatie minder dan 48 uur v\u00F3\u00F3r de geplande interventie wordt een annulatiekost aangerekend.</p>';
+  artNum++;
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Aansprakelijkheid</h2>';
+  html += '<p>De Dienstverlener is verzekerd voor beroeps- en uitbatingsaansprakelijkheid. Niet aansprakelijk voor reeds bestaande schade of indirecte gevolgschade.</p>';
+  artNum++;
+
+  if (btwPct === 6) {
+    html += '<h2>Artikel ' + artNum + ' \u2014 Attest verlaagd btw-tarief (6%)</h2>';
+    html += '<div style="border:1px solid #d1d5db;border-radius:8px;padding:16px 20px;margin-bottom:8px;background:#FAFAF5">';
+    html += '<p style="margin:0 0 8px"><strong>Verklaring op eer door de opdrachtgever</strong></p>';
+    html += '<p style="margin:0">Ondergetekende, <strong>' + esc(c.klant_naam || '') + '</strong>, verklaart op eer dat het gebouw' + (adres ? ' gelegen te <strong>' + esc(adres) + '</strong>' : '') + ' langer dan 10 jaar in gebruik is als priv\u00E9woning, de werken rechtstreeks aan de eindverbruiker worden gefactureerd, en de woning hoofdzakelijk voor priv\u00E9doeleinden wordt aangewend.</p>';
+    html += '</div>';
+    artNum++;
+  }
+
+  html += '<h2>Artikel ' + artNum + ' \u2014 Herroepingsrecht</h2>';
+  html += '<p>De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU.</p>';
+  artNum++;
+
+  // Ondertekening
+  html += '<h2>Ondertekening</h2>';
+  html += '<p>Door ondertekening verklaart de Klant akkoord te gaan met alle bepalingen van deze Overeenkomst.</p>';
+  html += '<div class="sig-grid">';
+  html += '<div class="sig-box"><h3>' + esc(pName) + '</h3><div class="sig-line">Vertegenwoordigd door de Dienstverlener</div><div class="sig-line">Datum: ' + esc(today) + '</div></div>';
+  html += '<div class="sig-box"><h3>De Klant</h3><div class="sig-line">Naam: <strong>' + esc(c.klant_naam || '') + '</strong></div>';
+  var sigSrc = c.handtekening_url || c.handtekening_data || c.handtekening || '';
+  var sigDatum = c.datum_ondertekening || today;
+  if (sigSrc) {
+    html += '<div style="margin:12px 0"><img src="' + esc(sigSrc) + '" style="max-width:200px;max-height:80px" alt="Handtekening"></div>';
+    html += '<div class="sig-line">Datum: ' + esc(sigDatum) + '</div>';
+  } else {
+    html += '<div class="sig-area"></div><div class="sig-line">Datum:</div>';
+  }
+  html += '</div></div>';
+
+  // Footer
+  html += '<p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb">' +
+    esc(pName) + (pAdres ? ' \u00B7 ' + esc(pAdres) : '') + (pBtw ? ' \u00B7 ' + esc(pBtw) : '') + '</p>';
+
+  html += '</body></html>';
+  return html;
+}
+
+async function ensureHtml2CanvasShared() {
+  if (window.html2canvas) return;
+  await new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('html2canvas kon niet geladen worden')); };
+    document.head.appendChild(s);
+  });
+}
+async function ensureJsPDFShared() {
+  if (window.jspdf) return;
+  await new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('jsPDF kon niet geladen worden')); };
+    document.head.appendChild(s);
+  });
+}
+
+/**
+ * Genereer branded contract-PDF voor de calculator-context.
+ * @param {Object} c       — contract-object (signingContract of gelijkaardig)
+ * @param {Object} p       — partner-object (signingPartner)
+ * @param {Object} [opts]  { autoDownload?: bool=true, filename?: string, returnBlob?: bool }
+ */
+async function generateContractPDFShared(c, p, opts) {
+  opts = opts || {};
+  await ensureJsPDFShared();
+  await ensureHtml2CanvasShared();
+  if (!window.jspdf) throw new Error('jsPDF niet geladen');
+
+  var html = buildContractHTMLShared(c, p);
+
+  var iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;height:100vh;border:0;visibility:hidden';
+  document.body.appendChild(iframe);
+
+  try {
+    var idoc = iframe.contentDocument || iframe.contentWindow.document;
+    idoc.open(); idoc.write(html); idoc.close();
+    await new Promise(function(resolve) {
+      if (idoc.readyState === 'complete') return resolve();
+      iframe.addEventListener('load', resolve, { once: true });
+    });
+    var imgs = idoc.querySelectorAll('img');
+    await Promise.all(Array.prototype.map.call(imgs, function(img) {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise(function(res) {
+        img.addEventListener('load', res, { once: true });
+        img.addEventListener('error', res, { once: true });
+      });
+    }));
+
+    var body = idoc.body;
+    body.style.width = '800px';
+    body.style.margin = '0';
+    body.style.padding = '0';
+
+    var canvas = await window.html2canvas(body, {
+      scale: 2, useCORS: true, allowTaint: false,
+      backgroundColor: '#ffffff', logging: false, windowWidth: 800
+    });
+
+    var jsPDF = window.jspdf.jsPDF;
+    var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    var pageW = pdf.internal.pageSize.getWidth();
+    var pageH = pdf.internal.pageSize.getHeight();
+    var imgW = pageW;
+    var imgH = canvas.height * imgW / canvas.width;
+    var imgData = canvas.toDataURL('image/png');
+    var y = 0;
+    pdf.addImage(imgData, 'PNG', 0, y, imgW, imgH);
+    var remaining = imgH - pageH;
+    while (remaining > 0) {
+      y -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, y, imgW, imgH);
+      remaining -= pageH;
+    }
+
+    var partnerName = (p && (p.bedrijfsnaam || p.naam)) || 'Flancco';
+    var klantSlug = (c.klant_naam || 'klant').replace(/[^a-zA-Z0-9]+/g, '_');
+    var nrSlug = c.contract_nummer || (c.id || '').substring(0, 8);
+    var filename = opts.filename ||
+      ('Contract_' + partnerName.replace(/[^a-zA-Z0-9]+/g, '_') + '_' + klantSlug + '_' + nrSlug + '.pdf');
+
+    if (opts.returnBlob) return pdf.output('blob');
+    if (opts.autoDownload !== false) pdf.save(filename);
+    return null;
+  } finally {
+    iframe.remove();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -2181,6 +2486,32 @@ async function submitSigning() {
     var postSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
     document.getElementById('signing-post-contact').textContent = getPartnerDisplayName(p, postSector) + (p.telefoon ? ' \u2014 ' + p.telefoon : '') + (p.email ? ' \u2014 ' + p.email : '');
 
+    // Sync lokale contract-state met getekende waarden zodat PDF direct handtekening toont
+    signingContract = Object.assign({}, c, updatePayload);
+
+    // Auto-download branded PDF (sectie M)
+    var statusEl = document.getElementById('signing-post-pdf-status');
+    var dlBtn = document.getElementById('signing-post-dl-btn');
+    if (statusEl) {
+      statusEl.textContent = 'Contract PDF wordt gegenereerd...';
+      statusEl.style.color = '#6B7280';
+      statusEl.style.display = 'block';
+    }
+    try {
+      await generateContractPDFShared(signingContract, signingPartner, { autoDownload: true });
+      if (statusEl) {
+        statusEl.textContent = '\u2713 Uw contract is automatisch gedownload';
+        statusEl.style.color = '#059669';
+      }
+      if (dlBtn) dlBtn.textContent = '\u21E9 Download opnieuw';
+    } catch (pdfErr) {
+      console.error('Auto-download PDF mislukt:', pdfErr);
+      if (statusEl) {
+        statusEl.textContent = 'Automatische download niet gelukt. Klik hieronder om te downloaden.';
+        statusEl.style.color = '#D97706';
+      }
+    }
+
   } catch (err) {
     console.error('Signing error:', err);
     alert('Er is een fout opgetreden bij het ondertekenen.\n\n' + (err.message || err));
@@ -2190,78 +2521,32 @@ async function submitSigning() {
 }
 
 function downloadSigningContract() {
+  // Delegate naar gedeelde branded PDF-generator (sectie M) — zelfde layout als admin.
   var c = signingContract;
   var p = signingPartner;
   if (!c || !p) return;
-  var sigSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
-  var displayName = getPartnerDisplayName(p, sigSector);
-  var sectoren = c.sectoren || [];
-  var pricing = c.pricing_breakdown || {};
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco' };
-  var datumF = c.datum_ondertekening ? new Date(c.datum_ondertekening).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  // Build a printable contract page
-  var html = '<div style="max-width:700px;margin:0 auto;padding:32px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;color:#1f2937;line-height:1.6">';
-  html += '<div style="text-align:center;margin-bottom:24px">';
-  if (p.logo_url) html += '<img src="' + esc(p.logo_url) + '" style="max-height:48px;margin-bottom:12px">';
-  html += '<h1 style="font-size:20px;margin:0;color:#1A1A2E">' + esc(displayName) + '</h1>';
-  html += '<p style="font-size:13px;color:#6B7280;margin:4px 0 0">Onderhoudsovereenkomst</p></div>';
-
-  // Client info
-  html += '<div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:16px">';
-  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6B7280;margin-bottom:8px">Klantgegevens</div>';
-  html += '<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span style="color:#6B7280">Naam</span><span style="font-weight:600">' + esc(c.klant_naam || '') + '</span></div>';
-  if (c.klant_adres) html += '<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span style="color:#6B7280">Adres</span><span>' + esc([c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', ')) + '</span></div>';
-  html += '</div>';
-
-  // Services
-  html += '<div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:16px">';
-  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6B7280;margin-bottom:8px">Diensten</div>';
-  sectoren.forEach(function(s) {
-    var sec = s.sector || s;
-    html += '<div style="font-weight:600;margin-bottom:4px">' + (sectorLabels[sec] || sec) + '</div>';
-    if (s.configs && s.configs[0]) {
-      var cfg = s.configs[0];
-      if (sec === 'zonnepanelen') html += '<div style="font-size:12px;color:#6B7280">' + (cfg.pan || '') + ' panelen</div>';
-      if (sec === 'warmtepomp') html += '<div style="font-size:12px;color:#6B7280">' + (cfg.binnenunits || 1) + ' binnenunit(s), ' + (cfg.formule === 'basic' ? 'basic' : 'all-in') + '</div>';
-    }
-  });
-  html += '</div>';
-
-  // Pricing
-  if (pricing.lines && pricing.lines.length) {
-    html += '<div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:16px">';
-    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6B7280;margin-bottom:8px">Prijsoverzicht</div>';
-    pricing.lines.forEach(function(l) {
-      if (l.type === 'header') {
-        html += '<div style="font-weight:600;padding:6px 0 2px;border-top:1px solid #E5E7EB;margin-top:4px">' + l.label + '</div>';
+  var statusEl = document.getElementById('signing-post-pdf-status');
+  if (statusEl) {
+    statusEl.textContent = 'PDF wordt gegenereerd...';
+    statusEl.style.color = '#6B7280';
+    statusEl.style.display = 'block';
+  }
+  generateContractPDFShared(c, p, { autoDownload: true })
+    .then(function() {
+      if (statusEl) {
+        statusEl.textContent = '\u2713 PDF gedownload';
+        statusEl.style.color = '#059669';
+      }
+    })
+    .catch(function(err) {
+      console.error('PDF-download faalde:', err);
+      if (statusEl) {
+        statusEl.textContent = 'Download mislukt: ' + (err && err.message ? err.message : 'onbekende fout');
+        statusEl.style.color = '#D97706';
       } else {
-        html += '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#6B7280"><span>' + l.label + '</span><span>' + fmt(l.amount) + '</span></div>';
+        alert('Download mislukt: ' + (err && err.message ? err.message : 'onbekende fout'));
       }
     });
-    html += '<div style="border-top:2px solid #1A1A2E;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:16px;font-weight:700"><span>Totaal incl. BTW</span><span>' + fmt(pricing.totaalIncl) + '</span></div>';
-    html += '</div>';
-  }
-
-  // Contract details
-  html += '<div style="font-size:12px;color:#6B7280;text-align:center;padding:12px 0;border-top:1px solid #E5E7EB">';
-  html += (c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks' : 'Jaarlijks') + ' | Looptijd: ' + (c.contractduur || 'n.v.t.') + ' | Ondertekend op ' + datumF;
-  html += '</div>';
-
-  // Signature
-  if (c.handtekening_url) {
-    html += '<div style="margin-top:12px;text-align:center"><p style="font-size:11px;color:#6B7280">Handtekening klant:</p>';
-    html += '<img src="' + esc(c.handtekening_url) + '" style="max-height:80px;border-bottom:1px solid #E5E7EB">';
-    html += '</div>';
-  }
-
-  html += '</div>';
-
-  var printWin = window.open('', '_blank', 'width=800,height=600');
-  printWin.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>' + esc(displayName) + ' — Overeenkomst</title><style>@page{margin:15mm 10mm} body{margin:0;padding:0;background:white}</style></head><body>' + html + '</body></html>');
-  printWin.document.close();
-  printWin.focus();
-  printWin.onload = function() { setTimeout(function() { printWin.print(); }, 300); };
 }
 
 function showError(msg) {
@@ -3254,7 +3539,11 @@ async function submitContract() {
     document.getElementById('post-contact').textContent = getPartnerDisplayName(partner, selectedSectors[0] || null) +
       (partner.telefoon ? ' \u2014 ' + partner.telefoon : '') + (partner.email ? ' \u2014 ' + partner.email : '');
 
-    // Auto-download PDF
+    // Cache de getekende contract-row + state voor downloadContract() (sectie M)
+    window._lastSignedContract = Object.assign({}, insertRes.data[0] || {}, payload);
+    window._lastSignedSectorState = { selectedSectors: selectedSectors.slice(), sectorResults: JSON.parse(JSON.stringify(sectorResults)), s: s };
+
+    // Auto-download PDF (branded, via shared generator)
     try { downloadContract(); } catch(e) { console.warn('Auto-download mislukt:', e); }
 
     // Disable interactions
@@ -3330,39 +3619,55 @@ function formatDate(d) {
 }
 
 // ═══════════════════════════════════════════
-// PDF DOWNLOAD
+// PDF DOWNLOAD — delegate naar gedeelde branded generator (sectie M)
 // ═══════════════════════════════════════════
 function downloadContract() {
-  var canvas = document.getElementById('sig-canvas');
-  var sigData = canvas.toDataURL('image/png');
-  var datum = document.getElementById('sig-datum').value;
-  var datumFormatted = new Date(datum).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+  var stored = window._lastSignedContract;
+  var state  = window._lastSignedSectorState;
+  if (!stored) {
+    console.warn('Geen contract in state voor download');
+    return;
+  }
 
-  var contractEl = document.getElementById('contract-body');
-  var clone = contractEl.cloneNode(true);
-  clone.querySelectorAll('.sig-canvas-wrap, .sig-clear, .accept-box, .btn-row, .sig-input, .sig-placeholder').forEach(function(el) { el.remove(); });
+  // Reconstrueer sectoren[].configs[] + pricing_breakdown voor shared template
+  var sectoren = [];
+  var pricingLines = [];
+  if (state && state.selectedSectors) {
+    state.selectedSectors.forEach(function(sec) {
+      var res = state.sectorResults[sec] || {};
+      var inputs = res.inputs || {};
+      var cfg = {};
+      if (sec === 'zonnepanelen') {
+        cfg.pan = inputs.pan; cfg.daktype = inputs.daktype; cfg.hoog = inputs.hoog;
+      } else if (sec === 'warmtepomp' || sec === 'airco') {
+        cfg.binnenunits = inputs.binnenunits; cfg.formule = inputs.formule;
+      } else if (sec === 'ventilatie') {
+        cfg.systeem = inputs.systeem; cfg.ventielen = inputs.ventielen;
+      } else if (sec === 'verwarming') {
+        cfg.keteltype = inputs.ketelType;
+      }
+      sectoren.push({ sector: sec, configs: [cfg] });
+      if (res.lines) pricingLines = pricingLines.concat(res.lines);
+    });
+  }
 
-  var sigLines = clone.querySelectorAll('.sig-line');
-  sigLines.forEach(function(line) {
-    var label = line.querySelector('label');
-    if (label && label.textContent.indexOf('Handtekening') !== -1) {
-      label.innerHTML = '<span style="font-size:13px;font-weight:500">Handtekening:</span>';
-      var img = document.createElement('img');
-      img.src = sigData;
-      img.style.cssText = 'display:block;max-height:80px;margin-top:8px;border-bottom:1.5px solid #E5E7EB';
-      line.appendChild(img);
-    }
-    if (label && label.textContent.indexOf('Datum') !== -1) {
-      var input = line.querySelector('input');
-      if (input) { var span = document.createElement('strong'); span.textContent = datumFormatted; input.replaceWith(span); }
-    }
+  var s = (state && state.s) || {};
+  var pricing = {
+    lines: pricingLines,
+    btwPct: s.btwPct || 21,
+    subtotalExcl: s.subtotalExcl || 0,
+    btwBedrag: s.btwBedrag || 0,
+    totaalIncl: s.total || parseFloat(stored.totaal_incl_btw) || 0
+  };
+
+  var c = Object.assign({}, stored, {
+    sectoren: sectoren.length ? sectoren : (stored.sectoren || []),
+    pricing_breakdown: pricing
   });
 
-  var printWin = window.open('', '_blank', 'width=800,height=600');
-  var styles = document.querySelector('style').textContent;
-  printWin.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>' + esc(getPartnerDisplayName(partner, selectedSectors[0] || null)) + ' \u2014 Overeenkomst</title><style>' + styles + ' body{background:white;margin:0;padding:20px} .contract{box-shadow:none;border-radius:0;max-width:100%} @page{margin:15mm 10mm}</style></head><body>' + clone.innerHTML + '</body></html>');
-  printWin.document.close();
-  printWin.onload = function() { setTimeout(function() { printWin.print(); printWin.onafterprint = function() { printWin.close(); }; }, 300); };
+  generateContractPDFShared(c, partner, { autoDownload: true }).catch(function(err) {
+    console.error('PDF-download faalde:', err);
+  });
 }
 
 // ═══════════════════════════════════════════

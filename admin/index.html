@@ -6,6 +6,27 @@
 <title>Flancco — Partner Platform</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+  // Early-boot partner-branding: leest cache voor eerste paint. Vult window.__flanccoBoot
+  // zodat latere inline-scripts (na <html>-parse en bij #sidebar-logo) dezelfde data gebruiken.
+  // Cache wordt door applyBranding() gevuld en door doLogout() gewist.
+  // Inline <html>-style wint over :root-regels in <style>.
+  (function(){
+    try {
+      var raw = localStorage.getItem('flancco_partner_branding');
+      if (!raw) return;
+      var b = JSON.parse(raw);
+      if (!b || !b.kleur_donker) return;
+      window.__flanccoBoot = b;
+      var root = document.documentElement;
+      root.style.setProperty('--navy', b.kleur_donker);
+      root.style.setProperty('--navy-light', b.kleur_primair || b.kleur_donker);
+      // Voorkomt Flancco-rode "O" via generieke :root-regel — partner-span krijgt geen rood.
+      root.style.setProperty('--red-fouc-override', 'inherit');
+    } catch(_) { /* silent: cache-corruption valt terug op default branding */ }
+  })();
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -847,8 +868,30 @@
       <h2>FLANCC<span>O</span></h2>
       <small>Partner Platform</small>
     </div>
-    <!-- ADMIN NAV -->
-    <div class="nav-section admin-only">Overzicht</div>
+    <script>
+      // Synchronous pre-paint logo-rewrite: voorkomt FOUC van Flancco-logo bij partner-refresh.
+      // Leest cache uit window.__flanccoBoot (gevuld door early-boot bovenaan <head>).
+      // Mirror van applyBranding() logo-render zodat pre-paint en post-hydration identiek zijn.
+      (function(){
+        var b = window.__flanccoBoot;
+        if (!b) return;
+        var el = document.getElementById('sidebar-logo');
+        if (!el) return;
+        var name = String(b.bedrijfsnaam || b.naam || '').replace(/[<>&"]/g, function(c){
+          return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];
+        });
+        if (name) {
+          el.innerHTML = '<h2 style="color:white;font-size:18px">' + name + '</h2>' +
+                         '<small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>';
+        }
+        // Sidebar background inline — belt-and-suspenders naast CSS-var --navy
+        var sb = document.getElementById('sidebar');
+        if (sb && b.kleur_donker) sb.style.background = b.kleur_donker;
+      })();
+    </script>
+    <!-- UNIFIED NAV — admin + partner, role-classes gate what elk ziet -->
+    <!-- OVERZICHT -->
+    <div class="nav-section">Overzicht</div>
     <a class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span>Dashboard</span>
@@ -866,28 +909,23 @@
       <span>Partners</span>
     </a>
 
-    <div class="nav-section admin-only">Operationeel</div>
-    <a class="nav-item nav-parent admin-only" onclick="toggleNavDropdown('planning', event)" id="nav-planning-parent">
+    <!-- OPERATIONEEL -->
+    <div class="nav-section">Operationeel</div>
+    <a class="nav-item admin-only" href="planning.html" data-page="planning">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span style="flex:1">Planning</span>
-      <svg class="nav-chevron" id="nav-planning-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      <span>Planning</span>
     </a>
-    <div class="nav-dropdown" id="nav-planning-dropdown" style="display:none">
-      <a class="nav-item nav-sub admin-only" href="planning.html" data-page="planning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span>Kalender</span>
-      </a>
-      <a class="nav-item nav-sub admin-only" onclick="showPage('interventies')" data-page="interventies" style="position:relative">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span>Interventies</span>
-        <span class="nav-badge" id="admin-int-badge" style="display:none"></span>
-      </a>
-      <a class="nav-item nav-sub admin-only" onclick="showPage('rapporten')" data-page="rapporten">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span>Rapporten</span>
-      </a>
-    </div>
+    <a class="nav-item" onclick="showPage('interventies')" data-page="interventies" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Interventies</span>
+      <span class="nav-badge" id="int-badge" style="display:none"></span>
+    </a>
+    <a class="nav-item" onclick="showPage('rapporten')" data-page="rapporten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Rapporten</span>
+    </a>
 
+    <!-- TEAM (admin/bediende) -->
     <div class="nav-section admin-only">Team</div>
     <a class="nav-item admin-only" onclick="showPage('techniekers')" data-page="techniekers">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -906,6 +944,7 @@
       <span>Wagenpark</span>
     </a>
 
+    <!-- FINANCIEEL (admin) -->
     <div class="nav-section admin-only">Financieel</div>
     <a class="nav-item admin-only perm-pricing" onclick="showPage('pricing')" data-page="pricing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -920,9 +959,13 @@
       <span>Forecast</span>
     </a>
 
-    <!-- Instellingen onderaan, gescheiden -->
+    <!-- SPACER + BOTTOM GROUP -->
     <div style="flex:1"></div>
     <div style="border-top:1px solid rgba(255,255,255,0.08);margin:8px 0"></div>
+    <a class="nav-item partner-only" id="nav-partner-facturatie" style="display:none" onclick="showPage('facturatie')" data-page="facturatie">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <span>Facturatie</span>
+    </a>
     <a class="nav-item admin-only perm-users" onclick="showPage('gebruikers')" data-page="gebruikers">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
       <span>Gebruikers</span>
@@ -931,41 +974,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Instellingen</span>
     </a>
-
-    <!-- PARTNER NAV -->
-    <div class="nav-section partner-only">Overzicht</div>
-    <a class="nav-item partner-only" onclick="showPage('dashboard')" data-page="dashboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span>Dashboard</span>
-    </a>
-    <a class="nav-item partner-only" onclick="showPage('contracten')" data-page="contracten">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      <span>Contracten</span>
-    </a>
-    <a class="nav-item partner-only" onclick="showPage('klanten')" data-page="klanten">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span>Klanten</span>
-    </a>
-    <a class="nav-item partner-only" onclick="showPage('interventies')" data-page="interventies" style="position:relative">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span>Interventies</span>
-      <span class="nav-badge" id="partner-int-badge" style="display:none"></span>
-    </a>
-    <a class="nav-item partner-only" onclick="showPage('rapporten')" data-page="rapporten">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      <span>Rapporten</span>
-    </a>
-    <a class="nav-item partner-only" onclick="showPage('notificaties')" data-page="notificaties" style="position:relative">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <span>Meldingen</span>
-      <span class="nav-badge" id="partner-notif-badge" style="display:none"></span>
-    </a>
-    <a class="nav-item partner-only" id="nav-partner-facturatie" style="display:none" onclick="showPage('facturatie')" data-page="facturatie">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-      <span>Facturatie</span>
-    </a>
-    <div style="flex:1 partner-only"></div>
-    <div class="partner-only" style="border-top:1px solid rgba(255,255,255,0.08);margin:8px 0"></div>
     <a class="nav-item partner-only" onclick="showPage('instellingen')" data-page="instellingen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Instellingen</span>
@@ -2882,6 +2890,12 @@ async function initApp() {
       applyBranding(userPartner);
       loadSettings(userPartner);
     }
+  } else {
+    // Admin/bediende/technieker: geen partner-branding → cache wissen zodat
+    // een vorige partner-login niet doorwerkt bij rol-switch op hetzelfde device.
+    try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+  }
+  if (userRole === 'partner' && roleData.partner_id) {
     document.getElementById('contracten-title').textContent = 'Mijn contracten';
 
     // Show/hide partner facturatie nav based on permission
@@ -2919,6 +2933,17 @@ function applyBranding(p) {
 
   // Page title
   document.getElementById('page-title').textContent = 'Dashboard — ' + p.naam;
+
+  // Cache voor early-boot op volgende refresh (voorkomt Flancco-flash)
+  try {
+    localStorage.setItem('flancco_partner_branding', JSON.stringify({
+      kleur_primair: primary,
+      kleur_donker: dark,
+      bedrijfsnaam: p.bedrijfsnaam || '',
+      naam: p.naam || '',
+      logo_url: p.logo_url || ''
+    }));
+  } catch(_) { /* storage-quota/private-mode: negeer, geen functionele impact */ }
 }
 
 function loadSettings(p) {
@@ -2988,6 +3013,18 @@ function renderPartnerWarmtepompConfigCard(partnerId) {
   var card = document.getElementById('set-wp-card');
   var body = document.getElementById('set-wp-types');
   if (!card || !body) return;
+
+  // HARD-GATE: partner_sectors.warmtepomp moet actief zijn. Anders nooit tonen
+  // ongeacht of er nog oude wp-config-rijen bestaan. Single source of truth is partner_sectors.
+  var sectors = (allPartnerSectors && allPartnerSectors[partnerId]) || [];
+  var wpSectorActive = sectors.some(function(s) {
+    return s.sector === 'warmtepomp' && s.actief === true;
+  });
+  if (!wpSectorActive) {
+    card.style.display = 'none';
+    return;
+  }
+
   var rows = (allPartnerWpConfig || []).filter(function(c) { return c.partner_id === partnerId; });
   var actieveRows = rows.filter(function(c) { return c.actief; });
   if (actieveRows.length === 0) {
@@ -3433,6 +3470,7 @@ async function saveRapportConfig() {
 }
 
 async function doLogout() {
+  try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
   await sb.auth.signOut();
   location.reload();
 }
@@ -3594,6 +3632,14 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch(e) {}
 });
 
+// Helper: haalt de naam van de huidig-actieve pagina op (zonder `page-` prefix).
+// Gebruikt door save/delete-flows om de actieve pagina te behouden na loadAllData() (J.1).
+function getCurrentPageName() {
+  var el = document.querySelector('.page.active');
+  if (!el || !el.id) return null;
+  return el.id.replace(/^page-/, '') || null;
+}
+
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -3603,7 +3649,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', interventies: 'Interventies', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -3665,24 +3711,15 @@ async function loadNotifications() {
 }
 
 function updateNotifBadge() {
+  // Meldingen-count zit enkel in de topbar-bell sinds de unified nav; geen sidebar-item meer.
   var unread = (allNotifications || []).filter(function(n) { return !n.is_read; }).length;
   var bellBadge = document.getElementById('notif-bell-badge');
-  if (bellBadge) {
-    if (unread > 0) {
-      bellBadge.textContent = unread > 99 ? '99+' : unread;
-      bellBadge.style.display = 'inline-block';
-    } else {
-      bellBadge.style.display = 'none';
-    }
-  }
-  var navBadge = document.getElementById('partner-notif-badge');
-  if (navBadge) {
-    if (unread > 0) {
-      navBadge.textContent = unread > 99 ? '99+' : unread;
-      navBadge.style.display = 'flex';
-    } else {
-      navBadge.style.display = 'none';
-    }
+  if (!bellBadge) return;
+  if (unread > 0) {
+    bellBadge.textContent = unread > 99 ? '99+' : unread;
+    bellBadge.style.display = 'inline-block';
+  } else {
+    bellBadge.style.display = 'none';
   }
 }
 
@@ -3793,6 +3830,13 @@ async function openNotification(id) {
     showPage('planning');
   } else if (n.related_type === 'contract' && n.related_id) {
     showPage('contracten');
+    // Open het contract-preview-panel zodra contracten-pagina gerenderd is
+    setTimeout(function() {
+      if (typeof previewContract === 'function') {
+        try { previewContract(n.related_id); }
+        catch (e) { console.warn('previewContract faalde:', e); }
+      }
+    }, 150);
   } else if (n.related_type === 'voertuig' && n.related_id) {
     showPage('wagenpark');
     // Auto-expand het desbetreffende voertuig zodra wagenpark gerenderd is
@@ -6458,9 +6502,11 @@ async function deleteContract(id) {
 // =============================================
 // CONTRACT PREVIEW (HTML in nieuw venster)
 // =============================================
-function previewContract(contractId) {
+// `mode` can be 'window' (default, open preview-tab) or 'html' (return HTML string zonder UI).
+// Beide paden bouwen EXACT dezelfde branded HTML, zodat preview en PDF visueel identiek zijn (M).
+function previewContract(contractId, mode) {
   var c = allContracten.find(x => x.id === contractId);
-  if (!c) { showToast('Contract niet gevonden', 'error'); return; }
+  if (!c) { if (mode === 'html') return null; showToast('Contract niet gevonden', 'error'); return; }
   var p = partners.find(x => x.id === c.partner_id);
   var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
   var branding = getPartnerBranding(p, contractSector);
@@ -6679,9 +6725,13 @@ function previewContract(contractId) {
   html += '<div class="sig-grid">';
   html += '<div class="sig-box"><h3>' + pName + '</h3><div class="sig-line">Vertegenwoordigd door de Dienstverlener</div><div class="sig-line">Datum: ' + today + '</div></div>';
   html += '<div class="sig-box"><h3>De Klant</h3><div class="sig-line">Naam: <strong>' + (c.klant_naam || '') + '</strong></div>';
-  if (c.handtekening) {
-    html += '<div style="margin:12px 0"><img src="' + c.handtekening + '" style="max-width:200px;max-height:80px" alt="Handtekening"></div>';
-    html += '<div class="sig-line">Datum: ' + today + '</div>';
+  // Handtekening-bron: calculator schrijft naar handtekening_url (Storage) + handtekening_data (fallback base64).
+  // Legacy contracten hebben enkel de oude handtekening-kolom. Volgorde: URL → data → legacy.
+  var sigSrc = c.handtekening_url || c.handtekening_data || c.handtekening || '';
+  var sigDatum = c.datum_ondertekening || today;
+  if (sigSrc) {
+    html += '<div style="margin:12px 0"><img src="' + sigSrc + '" style="max-width:200px;max-height:80px" alt="Handtekening"></div>';
+    html += '<div class="sig-line">Datum: ' + sigDatum + '</div>';
   } else {
     html += '<div class="sig-area"></div><div class="sig-line">Datum:</div>';
   }
@@ -6693,6 +6743,8 @@ function previewContract(contractId) {
 
   html += '</body></html>';
 
+  if (mode === 'html') return html;
+
   var win = window.open('', '_blank');
   win.document.write(html);
   win.document.close();
@@ -6700,189 +6752,122 @@ function previewContract(contractId) {
 }
 
 // =============================================
-// CONTRACT PDF (jsPDF)
+// CONTRACT PDF — gedeelde generator (html2canvas + jsPDF)
+// Rendert EXACT dezelfde HTML als previewContract() naar PDF, zodat preview en download
+// visueel identiek zijn — en gebrand in partner-huisstijl (M).
 // =============================================
+async function ensureHtml2Canvas() {
+  if (window.html2canvas) return;
+  // Fallback: dynamisch bijladen als CDN-tag ontbreekt
+  await new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('html2canvas kon niet geladen worden')); };
+    document.head.appendChild(s);
+  });
+}
+
+/**
+ * Genereer een high-fidelity branded PDF op basis van het HTML-preview-template.
+ * @param {string} contractId
+ * @param {Object} [opts]  { autoDownload?: bool=true, returnBlob?: bool=false, filename?: string }
+ * @returns {Promise<Blob|null>}
+ */
+async function generateContractPDFFromTemplate(contractId, opts) {
+  opts = opts || {};
+  var c = allContracten.find(function(x) { return x.id === contractId; });
+  if (!c) throw new Error('Contract niet gevonden');
+  var p = partners.find(function(x) { return x.id === c.partner_id; });
+
+  await ensureHtml2Canvas();
+  if (!window.jspdf) throw new Error('jsPDF niet geladen');
+
+  var html = previewContract(contractId, 'html');
+  if (!html) throw new Error('Kon contract-HTML niet opbouwen');
+
+  // Off-screen iframe (isoleert CSS van main-app, voorkomt styling-bleed)
+  var iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;height:100vh;border:0;visibility:hidden';
+  document.body.appendChild(iframe);
+
+  try {
+    var idoc = iframe.contentDocument || iframe.contentWindow.document;
+    idoc.open();
+    idoc.write(html);
+    idoc.close();
+
+    // Wacht tot alle images (logo, handtekening) geladen zijn vóór canvas-render
+    await new Promise(function(resolve) {
+      if (idoc.readyState === 'complete') return resolve();
+      iframe.addEventListener('load', resolve, { once: true });
+    });
+    var imgs = idoc.querySelectorAll('img');
+    await Promise.all(Array.prototype.map.call(imgs, function(img) {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise(function(res) {
+        img.addEventListener('load', res, { once: true });
+        img.addEventListener('error', res, { once: true });
+      });
+    }));
+
+    var body = idoc.body;
+    // Forceer renderbare breedte (A4 portrait @ 96dpi ≈ 794px; gebruiken 800px voor marge)
+    body.style.width = '800px';
+    body.style.margin = '0';
+    body.style.padding = '0';
+
+    var canvas = await window.html2canvas(body, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      windowWidth: 800
+    });
+
+    var jsPDF = window.jspdf.jsPDF;
+    var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    var pageW = pdf.internal.pageSize.getWidth();
+    var pageH = pdf.internal.pageSize.getHeight();
+    var imgW = pageW;
+    var imgH = canvas.height * imgW / canvas.width;
+
+    var imgData = canvas.toDataURL('image/png');
+    var y = 0;
+    pdf.addImage(imgData, 'PNG', 0, y, imgW, imgH);
+    var remaining = imgH - pageH;
+    while (remaining > 0) {
+      y -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, y, imgW, imgH);
+      remaining -= pageH;
+    }
+
+    var partnerName = (p && (p.bedrijfsnaam || p.naam)) || 'Flancco';
+    var klantSlug = (c.klant_naam || 'klant').replace(/[^a-zA-Z0-9]+/g, '_');
+    var nrSlug = c.contract_nummer || (c.id || '').substring(0, 8);
+    var filename = opts.filename ||
+      ('Contract_' + partnerName.replace(/[^a-zA-Z0-9]+/g, '_') + '_' + klantSlug + '_' + nrSlug + '.pdf');
+
+    if (opts.returnBlob) return pdf.output('blob');
+    if (opts.autoDownload !== false) pdf.save(filename);
+    return null;
+  } finally {
+    iframe.remove();
+  }
+}
+
 function downloadContractPDF(contractId) {
-  var c = allContracten.find(x => x.id === contractId);
-  if (!c) { showToast('Contract niet gevonden', 'error'); return; }
-  var p = partners.find(x => x.id === c.partner_id);
-  var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
-  var branding = getPartnerBranding(p, contractSector);
-  var pName = branding.naam;
-  var brandColor = branding.kleur_primair;
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
-
-  var { jsPDF } = window.jspdf;
-  var doc = new jsPDF('p', 'mm', 'a4');
-  var y = 20;
-  var lm = 20; // left margin
-  var pw = 170; // printable width
-
-  // Header
-  doc.setFillColor(brandColor);
-  doc.rect(0, 0, 210, 40, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont(undefined, 'bold');
-  doc.text(pName, 105, 18, { align: 'center' });
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'normal');
-  doc.text('Onderhoudscontract', 105, 28, { align: 'center' });
-
-  y = 50;
-  doc.setTextColor(30, 30, 30);
-
-  // Status
-  var st = computeStatus(c);
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'bold');
-  doc.text('Status: ' + st.charAt(0).toUpperCase() + st.slice(1), 190, y, { align: 'right' });
-
-  // Klantgegevens
-  doc.setFontSize(11);
-  doc.setFont(undefined, 'bold');
-  doc.setTextColor(brandColor);
-  doc.text('KLANTGEGEVENS', lm, y);
-  y += 2;
-  doc.setDrawColor(230, 230, 230);
-  doc.line(lm, y, lm + pw, y);
-  y += 7;
-  doc.setTextColor(80, 80, 80);
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-
-  function addRow(label, value) {
-    if (!value) return;
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(120, 120, 120);
-    doc.text(label, lm, y);
-    doc.setTextColor(30, 30, 30);
-    doc.setFont(undefined, 'bold');
-    doc.text(String(value), 190, y, { align: 'right' });
-    y += 6;
-  }
-
-  addRow('Naam', c.klant_naam);
-  addRow('Contact', c.klant_contact);
-  addRow('Email', c.klant_email);
-  addRow('Telefoon', c.klant_telefoon);
-  addRow('Adres', [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', '));
-  y += 4;
-
-  // Diensten
-  doc.setFontSize(11);
-  doc.setFont(undefined, 'bold');
-  doc.setTextColor(brandColor);
-  doc.text('DIENSTEN', lm, y);
-  y += 2;
-  doc.line(lm, y, lm + pw, y);
-  y += 7;
-  doc.setTextColor(30, 30, 30);
-  doc.setFontSize(10);
-
-  var sectoren = c.sectoren || [];
-  if (sectoren.length > 0) {
-    sectoren.forEach(function(s) {
-      var sec = s.sector || s;
-      doc.setFont(undefined, 'bold');
-      doc.text(sectorLabels[sec] || sec, lm, y);
-      y += 5;
-      if (s.configs) {
-        s.configs.forEach(function(cfg) {
-          doc.setFont(undefined, 'normal');
-          doc.setTextColor(120, 120, 120);
-          var desc = '';
-          if (sec === 'zonnepanelen') desc = cfg.pan + ' panelen, ' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grond');
-          else if (sec === 'warmtepomp') desc = cfg.binnenunits + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic');
-          else if (sec === 'ventilatie') desc = 'Systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen';
-          else if (sec === 'verwarming') desc = cfg.keteltype + 'ketel';
-          doc.text(desc, lm + 4, y);
-          y += 5;
-        });
-      }
-      doc.setTextColor(30, 30, 30);
+  // Rendert de EXACTE preview-HTML naar PDF via html2canvas + jsPDF.
+  // Zo zijn preview en download visueel identiek en volledig in partner-huisstijl (M).
+  showToast('Contract PDF wordt gegenereerd...');
+  generateContractPDFFromTemplate(contractId, { autoDownload: true })
+    .then(function() { showToast('PDF gedownload'); })
+    .catch(function(err) {
+      console.error('PDF-generatie faalde:', err);
+      showToast('PDF-generatie faalde: ' + (err && err.message ? err.message : 'onbekend'), 'error');
     });
-  } else if (c.sector) {
-    doc.setFont(undefined, 'bold');
-    doc.text(sectorLabels[c.sector] || c.sector, lm, y);
-    y += 5;
-    if (c.aantal_panelen) { doc.setFont(undefined, 'normal'); doc.text(c.aantal_panelen + ' panelen', lm + 4, y); y += 5; }
-  }
-  y += 4;
-
-  // Prijsoverzicht
-  doc.setFontSize(11);
-  doc.setFont(undefined, 'bold');
-  doc.setTextColor(brandColor);
-  doc.text('PRIJSOVERZICHT', lm, y);
-  y += 2;
-  doc.line(lm, y, lm + pw, y);
-  y += 7;
-
-  var pricing = c.pricing_breakdown || {};
-  doc.setFontSize(10);
-  if (pricing.lines) {
-    pricing.lines.forEach(function(l) {
-      if (l.type === 'header') {
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(30, 30, 30);
-        doc.text(l.label, lm, y);
-        y += 6;
-      } else {
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(120, 120, 120);
-        doc.text(l.label, lm, y);
-        var amt = l.amount < 0 ? '- \u20AC ' + Math.abs(l.amount).toFixed(2).replace('.',',') : '\u20AC ' + l.amount.toFixed(2).replace('.',',');
-        doc.text(amt, 190, y, { align: 'right' });
-        y += 5;
-      }
-    });
-    y += 2;
-    doc.setDrawColor(180, 180, 180);
-    doc.line(lm, y, lm + pw, y);
-    y += 6;
-    doc.setTextColor(30, 30, 30);
-    doc.setFont(undefined, 'bold');
-    doc.text('Subtotaal excl. BTW', lm, y);
-    doc.text('\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',','), 190, y, { align: 'right' });
-    y += 5;
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(120, 120, 120);
-    doc.text('BTW ' + (pricing.btwPct || 21) + '%', lm, y);
-    doc.text('\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',','), 190, y, { align: 'right' });
-    y += 7;
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(brandColor);
-    doc.text('Totaal incl. BTW', lm, y);
-    doc.text('\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',','), 190, y, { align: 'right' });
-    y += 4;
-    doc.setDrawColor(brandColor);
-    doc.setLineWidth(0.8);
-    doc.line(lm, y, lm + pw, y);
-  } else if (c.totaal_incl_btw) {
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(brandColor);
-    doc.text('Totaal incl. BTW', lm, y);
-    doc.text('\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',','), 190, y, { align: 'right' });
-  }
-
-  y += 12;
-  doc.setFontSize(10);
-  doc.setTextColor(120, 120, 120);
-  doc.setFont(undefined, 'normal');
-  var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
-  doc.text(freqTxt + '  |  Looptijd: ' + (c.contractduur || 'n.v.t.'), 105, y, { align: 'center' });
-
-  // Footer
-  doc.setFontSize(8);
-  doc.setTextColor(180, 180, 180);
-  doc.text('Gegenereerd via Flancco Platform  |  ' + new Date().toLocaleDateString('nl-BE'), 105, 285, { align: 'center' });
-
-  var filename = 'Contract_' + (c.klant_naam || '').replace(/\s+/g, '_') + '_' + (c.contract_nummer || c.id.substring(0, 8)) + '.pdf';
-  doc.save(filename);
-  showToast('PDF gedownload');
 }
 
 // =============================================
@@ -8531,7 +8516,12 @@ async function saveKlant() {
   }
 
   closeKlantModal();
+  // Capture active page vóór loadAllData zodat we niet naar dashboard terugvallen (J.1)
+  var pageBeforeReload = getCurrentPageName() || 'klanten';
   await loadAllData();
+  if (pageBeforeReload && document.getElementById('page-' + pageBeforeReload)) {
+    showPage(pageBeforeReload);
+  }
 
   // Re-open dossier if it was open, so user sees updated data
   if (currentDossierClientId) {
@@ -8551,7 +8541,12 @@ async function deleteKlant() {
   }
 
   closeKlantModal();
+  // Zelfde page-restore pattern als saveKlant (J.1)
+  var pageBeforeReload = getCurrentPageName() || 'klanten';
   await loadAllData();
+  if (pageBeforeReload && document.getElementById('page-' + pageBeforeReload)) {
+    showPage(pageBeforeReload);
+  }
 }
 
 // Verwijder-knop per rij — met blokker-check op gekoppelde records
@@ -8585,7 +8580,12 @@ async function deleteKlantRow(klantId) {
     await sb.from('client_locations').delete().eq('client_id', klantId);
     var res = await sb.from('clients').delete().eq('id', klantId);
     if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+    // Page-restore zodat we op Klanten blijven, niet terugvallen op dashboard (J.1)
+    var pageBeforeReload = getCurrentPageName() || 'klanten';
     await loadAllData();
+    if (pageBeforeReload && document.getElementById('page-' + pageBeforeReload)) {
+      showPage(pageBeforeReload);
+    }
   } catch (e) {
     alert('Fout: ' + (e && e.message ? e.message : e));
   }
@@ -11202,22 +11202,23 @@ function renderInterventies() {
 }
 
 function updateInterventieBadges() {
-  // Admin badge: open interventies count
-  var adminBadge = document.getElementById('admin-int-badge');
-  if (adminBadge) {
-    var openCount = allInterventies.filter(function(iv) { return iv.status === 'open'; }).length;
-    if (openCount > 0) { adminBadge.textContent = openCount; adminBadge.style.display = 'flex'; }
-    else { adminBadge.style.display = 'none'; }
-  }
-  // Partner badge: open interventies for this partner + unread
-  var partnerBadge = document.getElementById('partner-int-badge');
-  if (partnerBadge && userPartner) {
-    var partnerOpen = allInterventies.filter(function(iv) {
-      return iv.doorgespeeld_naar_partner_id === userPartner.id && iv.status === 'open' && !iv.partner_notificatie_gelezen;
+  // Unified badge id="int-badge" — count varieert per rol:
+  //   admin/bediende: alle open interventies
+  //   partner: open interventies doorgespeeld naar eigen partner + nog niet gelezen
+  var badge = document.getElementById('int-badge');
+  if (!badge) return;
+  var count = 0;
+  if (userRole === 'partner' && userPartner) {
+    count = allInterventies.filter(function(iv) {
+      return iv.doorgespeeld_naar_partner_id === userPartner.id
+        && iv.status === 'open'
+        && !iv.partner_notificatie_gelezen;
     }).length;
-    if (partnerOpen > 0) { partnerBadge.textContent = partnerOpen; partnerBadge.style.display = 'flex'; }
-    else { partnerBadge.style.display = 'none'; }
+  } else {
+    count = allInterventies.filter(function(iv) { return iv.status === 'open'; }).length;
   }
+  if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+  else { badge.style.display = 'none'; }
 }
 
 async function openInterventieModal(id) {

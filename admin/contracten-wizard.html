@@ -582,6 +582,56 @@ function showToast(msg) {
 }
 
 // =============================================
+// WIZARD BRANDING — partner-kleuren + logo (J.2)
+// Port van admin/index.html applyBranding() patroon.
+// =============================================
+var DEFAULT_NAVY = '#1A1A2E';
+var DEFAULT_NAVY_LIGHT = '#2a2a4a';
+
+function applyWizardBranding(p) {
+  if (!p) { resetWizardBranding(); return; }
+  var primary = p.kleur_primair || '#098979';
+  var dark    = p.kleur_donker  || '#066b5e';
+  document.documentElement.style.setProperty('--navy', dark);
+  document.documentElement.style.setProperty('--navy-light', primary);
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.style.background = dark;
+  var logo = document.getElementById('sidebar-logo');
+  if (logo) {
+    if (p.logo_url) {
+      logo.innerHTML = '<img src="' + esc(p.logo_url) + '" alt="" style="max-width:100%;max-height:48px;object-fit:contain;display:block;margin:0 auto 4px"><small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;text-align:center">Partner Platform</small>';
+    } else {
+      logo.innerHTML = '<h2 style="color:white;font-size:18px;margin:0">' + esc(p.bedrijfsnaam || p.naam || 'Flancco') + '</h2><small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>';
+    }
+  }
+}
+
+function resetWizardBranding() {
+  document.documentElement.style.setProperty('--navy', DEFAULT_NAVY);
+  document.documentElement.style.setProperty('--navy-light', DEFAULT_NAVY_LIGHT);
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.style.background = '';
+  var logo = document.getElementById('sidebar-logo');
+  if (logo) logo.innerHTML = '<h2>FLANCC<span>O</span></h2><small>Partner Platform</small>';
+}
+
+// =============================================
+// CLIENT DEEP-LINK — ?client=<id> uit URL honoreren (J.3)
+// Aangeroepen na initApp (partner-rol) én na onPartnerChange (admin-flow).
+// =============================================
+function applyClientFromUrl() {
+  var params = new URLSearchParams(window.location.search);
+  var clientId = params.get('client');
+  if (!clientId) return;
+  var sel = document.getElementById('wiz-client');
+  if (!sel) return;
+  var exists = (clients || []).some(function(c) { return c.id === clientId; });
+  if (!exists) return;
+  sel.value = clientId;
+  if (typeof onClientSelect === 'function') onClientSelect();
+}
+
+// =============================================
 // SECTOR CONFIG (pricing logic from calculator)
 // =============================================
 var SECTORS = {
@@ -960,6 +1010,8 @@ async function initApp() {
     sel.disabled = true;
     wizState.partnerId = roleData.partner_id;
     await loadPartnerData(roleData.partner_id);
+    // Partner-branding toepassen zodat wizard in eigen kleuren/logo verschijnt (J.2)
+    if (userPartner) applyWizardBranding(userPartner);
     // Partners maken altijd contracten voor eindklanten — verberg de "Partner" optie
     var partnerTypeCard = document.querySelector('.type-card[data-type="partner"]');
     if (partnerTypeCard) partnerTypeCard.style.display = 'none';
@@ -973,6 +1025,9 @@ async function initApp() {
   document.getElementById('wiz-startdatum').value = today;
   wizState.startDatum = today;
   calcEinddatum();
+
+  // Honor ?client=<id> deep-link (vanuit admin klant-dossier) (J.3)
+  applyClientFromUrl();
 }
 
 // =============================================
@@ -1071,10 +1126,16 @@ async function onPartnerChange() {
     wizState.partnerId = null;
     clients = [];
     renderClientDropdown();
+    resetWizardBranding();
     return;
   }
   wizState.partnerId = partnerId;
   await loadPartnerData(partnerId);
+  // Branding van gekozen partner toepassen (J.2)
+  var p = partners.find(function(x) { return x.id === partnerId; });
+  if (p) applyWizardBranding(p);
+  // Deep-link toepassen na late client-load (J.3)
+  applyClientFromUrl();
 }
 
 async function loadPartnerData(partnerId) {
