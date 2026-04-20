@@ -7276,7 +7276,7 @@ function showToast(msg, type) {
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
   el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   var bg = type === 'error' ? '#EF4444' : (type === 'info' ? '#1A1A2E' : '#27AE60');
-  el.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;background:' + bg + ';color:#fff;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;max-width:420px;';
+  el.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;background:' + bg + ';color:#fff;font-size:13px;font-weight:600;z-index:2147483000;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;max-width:420px;';
   el.textContent = msg;
   document.body.appendChild(el);
   var duration = type === 'error' ? 5000 : 3000;
@@ -7301,7 +7301,9 @@ function confirmDialog(opts) {
 
     var overlay = document.createElement('div');
     overlay.className = 'modal-overlay open';
-    overlay.style.zIndex = '9999';
+    // Confirm/info dialogs moeten altijd boven modals, wizards en bestaande overlays komen
+    // (onboarding-wizard gebruikt z-index 10000). Toasts liggen er nog boven (~2.1 mrd).
+    overlay.style.zIndex = '2147482000';
     overlay.innerHTML =
       '<div class="modal" style="max-width:440px;padding:28px" role="alertdialog" aria-modal="true">' +
         '<h2 style="margin:0 0 10px;font-size:18px;color:var(--navy)">' + esc(title) + '</h2>' +
