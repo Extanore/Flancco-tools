@@ -608,6 +608,19 @@
   .pd-c-meta { display:block; font-size:12px; color:var(--grey); margin-top:2px; }
   .pd-empty { font-size:13px; color:var(--grey); font-style:italic; padding:8px 0; }
   .pd-link-btn { background:transparent; border:none; color:var(--navy); text-decoration:underline; cursor:pointer; font-size:13px; padding:6px 0; font-family:inherit; }
+  /* Partner calculator-link banner (in partner-detail expand) */
+  .pd-calc-link-box { grid-column:1/-1; background:linear-gradient(135deg,#F0FDF4 0%,#ECFDF5 100%); border:1px solid #BBF7D0; border-radius:10px; padding:14px 16px; margin-bottom:18px; }
+  .pd-calc-link-head { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--navy); margin-bottom:4px; }
+  .pd-calc-link-head svg { width:15px; height:15px; color:#059669; }
+  .pd-calc-link-desc { margin:0 0 10px; font-size:12px; color:var(--grey); line-height:1.45; }
+  .pd-calc-link-row { display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; }
+  .pd-calc-link-input { flex:1; min-width:240px; padding:8px 12px; border:1.5px solid var(--rule); border-radius:8px; background:#fff; font-size:12px; color:var(--navy); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .pd-calc-link-input:focus { outline:none; border-color:#059669; }
+  .pd-calc-link-row .btn { padding:8px 14px; font-size:12px; }
+  /* Settings > Branding: calculator-link copy-rij */
+  .set-calc-link-row { display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; margin:8px 0 16px; }
+  .set-calc-link-row input { flex:1; min-width:240px; padding:8px 12px; border:1.5px solid var(--rule); border-radius:8px; background:#fff; font-size:12px; color:var(--navy); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .set-calc-link-row input:focus { outline:none; border-color:var(--navy); }
   /* Dashboard Vandaag + Deadlines widgets */
   .today-group { padding: 10px 0; border-bottom: 1px solid var(--light); }
   .today-group:last-child { border-bottom: none; }
@@ -1263,7 +1276,13 @@
 
       <div class="card">
         <div class="card-header"><span class="card-title">Calculator instellingen</span></div>
-        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Je calculator-link: <a id="set-calc-link" href="#" target="_blank" style="color:var(--blue)"></a></p>
+        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">Jouw calculator-link</label>
+        <p style="font-size:12px;color:var(--grey);margin:0 0 8px">Stuur deze URL naar je klanten — ze krijgen de calculator in jouw huisstijl en prijzen.</p>
+        <div class="set-calc-link-row">
+          <input type="text" id="set-calc-link-input" readonly onclick="this.select()" aria-label="Calculator-link">
+          <button type="button" id="set-calc-link-copy" class="btn btn-primary" onclick="copyOwnCalcLink()">Kopieer link</button>
+          <a id="set-calc-link-open" href="#" target="_blank" rel="noopener" class="btn btn-ghost">Open</a>
+        </div>
         <div class="modal-row">
           <div class="modal-field">
             <label>Gratis transport (km)</label>
@@ -2947,10 +2966,11 @@ function loadSettings(p) {
     '</div>';
   }).join('');
 
-  const calcLink = document.getElementById('set-calc-link');
-  const url = window.location.origin + window.location.pathname.replace('/admin/', '/calculator/') + '?partner=' + encodeURIComponent(p.slug);
-  calcLink.href = url;
-  calcLink.textContent = url;
+  var calcInput = document.getElementById('set-calc-link-input');
+  var calcOpen  = document.getElementById('set-calc-link-open');
+  var calcUrlSettings = partnerCalculatorUrl(p.slug);
+  if (calcInput) calcInput.value = calcUrlSettings;
+  if (calcOpen)  calcOpen.href  = calcUrlSettings || '#';
 
   // Warmtepomp-configuratie spiegel (read-only)
   renderPartnerWarmtepompConfigCard(p.id);
@@ -4276,7 +4296,10 @@ function renderPartners() {
     html += '<td>' + actieve.length + ' actief<div style="font-size:11px;color:var(--grey)">' + contracts.length + ' totaal</div></td>';
     html += '<td class="admin-only" style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">';
     if (p.slug) {
-      html += '<button class="icon-btn" title="Bekijk calculator" onclick="window.open(\'../calculator/?partner=' + esc(p.slug) + '\',\'_blank\')">' +
+      html += '<button class="icon-btn" title="Kopieer calculator-link" onclick="copyPartnerCalcLink(\'' + esc(p.slug) + '\')">' +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+        '</button>';
+      html += '<button class="icon-btn" title="Open calculator in nieuw tabblad" onclick="window.open(partnerCalculatorUrl(\'' + esc(p.slug) + '\'),\'_blank\',\'noopener\')">' +
         '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
         '</button>';
     }
@@ -4300,12 +4323,56 @@ function renderPartners() {
   tbody.innerHTML = html;
 }
 
+function partnerCalculatorUrl(slug) {
+  if (!slug) return '';
+  // Werkt in /admin/ én in lokale dev ('/admin/index.html') én GitHub Pages
+  var base = window.location.origin + window.location.pathname.replace(/\/admin\/.*$/, '/calculator/');
+  return base + '?partner=' + encodeURIComponent(slug);
+}
+
+function copyPartnerCalcLink(slug, btnId) {
+  var url = partnerCalculatorUrl(slug);
+  if (!url) { showToast('Deze partner heeft geen slug — link niet beschikbaar.', 'error'); return; }
+  navigator.clipboard.writeText(url).then(function() {
+    showToast('Calculator-link gekopieerd');
+    if (btnId) {
+      var b = document.getElementById(btnId);
+      if (b) { var orig = b.innerHTML; b.innerHTML = 'Gekopieerd'; setTimeout(function() { b.innerHTML = orig; }, 1500); }
+    }
+  }).catch(function() {
+    showToast('Kopiëren mislukt — selecteer en kopieer handmatig.', 'error');
+  });
+}
+
+function copyOwnCalcLink() {
+  var slug = (userPartner && userPartner.slug) || '';
+  copyPartnerCalcLink(slug, 'set-calc-link-copy');
+}
+
 function renderPartnerDetail(p, actieve, alleContracten) {
   var topContracten = actieve.slice().sort(function(a, b) {
     return (b.created_at || '').localeCompare(a.created_at || '');
   }).slice(0, 5);
 
   var h = '<div class="partner-detail-grid">';
+
+  // Calculator-link (shareable URL) — bovenaan, volledig-breed
+  if (p.slug) {
+    var calcUrl = partnerCalculatorUrl(p.slug);
+    var copyBtnId = 'copy-calc-' + p.id;
+    h += '<div class="pd-calc-link-box">' +
+      '<div class="pd-calc-link-head">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
+        '<strong>Calculator-link voor klanten</strong>' +
+      '</div>' +
+      '<p class="pd-calc-link-desc">Deze URL stuurt de partner door naar z\'n klanten zodat zij rechtstreeks een offerte kunnen aanvragen met de juiste huisstijl en prijzen.</p>' +
+      '<div class="pd-calc-link-row">' +
+        '<input type="text" readonly value="' + esc(calcUrl) + '" onclick="this.select()" class="pd-calc-link-input" aria-label="Calculator-link">' +
+        '<button type="button" id="' + copyBtnId + '" class="btn btn-primary" onclick="copyPartnerCalcLink(\'' + esc(p.slug) + '\',\'' + copyBtnId + '\')">Kopieer link</button>' +
+        '<button type="button" class="btn btn-ghost" onclick="window.open(\'' + esc(calcUrl) + '\',\'_blank\',\'noopener\')">Open</button>' +
+      '</div>' +
+    '</div>';
+  }
 
   // LINKS: gegevens + commercieel + branding
   h += '<div>';
