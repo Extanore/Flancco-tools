@@ -7890,7 +7890,7 @@ function renderKlantContacts() {
         '<div class="modal-field"><label>Achternaam *</label><input data-contact-field="last_name" value="' + esc(ct.last_name || '') + '" placeholder="Achternaam"></div>' +
       '</div>' +
       '<div class="modal-row">' +
-        '<div class="modal-field"><label>Email</label><input type="email" data-contact-field="email" value="' + esc(ct.email || '') + '" placeholder="naam@voorbeeld.be"></div>' +
+        '<div class="modal-field"><label>Email' + (isPrimary ? ' *' : '') + '</label><input type="email" data-contact-field="email" value="' + esc(ct.email || '') + '" placeholder="naam@voorbeeld.be"></div>' +
         '<div class="modal-field"><label>Telefoon</label><input data-contact-field="phone" value="' + esc(ct.phone || '') + '" placeholder="+32 ..."></div>' +
       '</div>' +
       (showRole
@@ -8259,11 +8259,32 @@ async function saveKlant() {
   }
   primary.first_name = (primary.first_name || '').trim();
   primary.last_name  = (primary.last_name  || '').trim();
+  primary.email      = (primary.email      || '').trim();
   if (!primary.first_name || !primary.last_name) {
     switchKlantTab('basis');
     showToast(klType === 'particulier'
       ? 'Vul voor- en achternaam van de klant in.'
       : 'Vul voor- en achternaam van de primaire contactpersoon in.', 'error');
+    return;
+  }
+  // Email verplicht voor zowel bedrijf als particulier (primaire contact)
+  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!primary.email) {
+    switchKlantTab('basis');
+    showToast(klType === 'particulier'
+      ? 'Email is verplicht voor de klant.'
+      : 'Email is verplicht voor de primaire contactpersoon.', 'error');
+    var emInput = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
+               || document.querySelector('input[data-contact-field="email"]');
+    if (emInput) emInput.focus();
+    return;
+  }
+  if (!emailRegex.test(primary.email)) {
+    switchKlantTab('basis');
+    showToast('Vul een geldig emailadres in (bv. naam@bedrijf.be).', 'error');
+    var emInput2 = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
+                || document.querySelector('input[data-contact-field="email"]');
+    if (emInput2) emInput2.focus();
     return;
   }
 
