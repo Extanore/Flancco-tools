@@ -4186,19 +4186,16 @@ function renderDashboard() {
        <div class="stat-card red"><div class="stat-label">Interventies</div><div class="stat-value" id="stat-int-open">0</div><div class="stat-sub">open</div></div>
        <div class="stat-card green"><div class="stat-label">Deadlines 14d</div><div class="stat-value" id="stat-deadlines">0</div><div class="stat-sub">actie vereist</div></div>`
     : (function() {
-        // Partner verdienste-overzicht
-        var partnerMarge = userPartner ? parseFloat(userPartner.marge_pct || 0) : 0;
-        var partnerFee = userPartner ? parseFloat(userPartner.planning_fee || 0) : 0;
-        var brutoOmzet = totalRevenue;
-        // Marge = wat de partner verdient: totaal - (flancco deel)
-        // flancco deel per beurt = forfait_per_beurt / (1 + marge/100) - planning_fee doorrekening
-        // Vereenvoudigd: marge = totaal * (marge_pct / (100 + marge_pct))
-        var eigenMarge = partnerMarge > 0 ? Math.round(brutoOmzet * (partnerMarge / (100 + partnerMarge))) : 0;
-        var openInts = allInterventies.filter(function(i) { return i.status === 'open'; }).length;
-        return '<div class="stat-card blue"><div class="stat-label">Actieve contracten</div><div class="stat-value">' + totalContracts + '</div><div class="stat-sub">getekende contracten</div></div>' +
-          '<div class="stat-card green"><div class="stat-label">Bruto omzet</div><div class="stat-value">€ ' + Math.round(brutoOmzet).toLocaleString('nl-BE') + '</div><div class="stat-sub">totaal incl. btw</div></div>' +
-          '<div class="stat-card"><div class="stat-label">Mijn marge</div><div class="stat-value">€ ' + eigenMarge.toLocaleString('nl-BE') + '</div><div class="stat-sub">' + partnerMarge + '% van omzet</div></div>' +
-          '<div class="stat-card' + (openInts > 0 ? ' orange' : '') + '"><div class="stat-label">Open interventies</div><div class="stat-value">' + openInts + '</div><div class="stat-sub">' + (openInts === 0 ? 'alles up-to-date' : 'wacht op afhandeling') + '</div></div>';
+        // Partner-dashboard: operationele KPI's (géén omzet/marge — dat hoort thuis in facturatie-view).
+        // IDs matchen loadPlanningDashWidgets() zodat die de live tellers vult; scope op partner gebeurt daar.
+        var myContractIds = contracts.map(function(c) { return c.id; });
+        var openIntsScoped = (allInterventies || []).filter(function(i) {
+          return i.status === 'open' && i.contract_id && myContractIds.indexOf(i.contract_id) >= 0;
+        }).length;
+        return '<div class="stat-card blue"><div class="stat-label">Actieve contracten</div><div class="stat-value">' + totalContracts + '</div><div class="stat-sub">lopend klantenbestand</div></div>' +
+          '<div class="stat-card"><div class="stat-label">Deze week</div><div class="stat-value" id="stat-week">0</div><div class="stat-sub">onderhouden gepland</div></div>' +
+          '<div class="stat-card orange"><div class="stat-label">Nog te plannen</div><div class="stat-value" id="stat-openstaand">0</div><div class="stat-sub">wacht op inplanning</div></div>' +
+          '<div class="stat-card' + (openIntsScoped > 0 ? ' red' : '') + '"><div class="stat-label">Open interventies</div><div class="stat-value" id="stat-int-open">' + openIntsScoped + '</div><div class="stat-sub">' + (openIntsScoped === 0 ? 'alles up-to-date' : 'wacht op afhandeling') + '</div></div>';
       })();
   document.getElementById('stats-row').innerHTML = statsHtml;
 
