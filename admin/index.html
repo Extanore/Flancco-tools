@@ -2876,6 +2876,21 @@ async function initApp() {
   if (!can('manage_users')) document.querySelectorAll('.perm-users').forEach(el => el.classList.add('role-hidden'));
   if (!can('verlof_beheer')) document.querySelectorAll('.perm-verlof-beheer').forEach(el => el.classList.add('role-hidden'));
 
+  // Partner met manage_users: unlock eigen-team-beheer (Personeel + Gebruikers)
+  // binnen hun tenant. admin-only is normaal rol-blokkerend voor partners, maar
+  // deze twee views zijn de enige admin-pagina's die we met tenant-scope openstellen.
+  if (userRole === 'partner' && can('manage_users')) {
+    var partnerTeamSelectors = [
+      'a[data-page="techniekers"]',
+      'a[data-page="gebruikers"]',
+      '#page-techniekers',
+      '#page-gebruikers'
+    ];
+    document.querySelectorAll(partnerTeamSelectors.join(',')).forEach(function(el) {
+      el.classList.remove('role-hidden');
+    });
+  }
+
   document.getElementById('login').classList.remove('visible');
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -3895,12 +3910,18 @@ async function renderGebruikers() {
   container.innerHTML = '<p style="font-size:13px;color:var(--grey)">Laden...</p>';
 
   // Fetch all user_roles + emails via auth.users (via RPC or join)
+  // RLS filtert voor partners automatisch op eigen tenant (user_roles_partner_select),
+  // maar we dubbel-checken client-side als extra veiligheid.
   var rolesRes = await sb.from('user_roles').select('*');
   if (rolesRes.error) {
     container.innerHTML = '<p style="color:var(--red)">Fout bij laden: ' + esc(rolesRes.error.message) + '</p>';
     return;
   }
   var roles = rolesRes.data || [];
+  var isPartnerViewer = userRole === 'partner';
+  if (isPartnerViewer && userPartner) {
+    roles = roles.filter(function(r) { return r.partner_id === userPartner.id && r.role !== 'admin'; });
+  }
 
   // Fetch user emails via edge function or RPC; fallback: show user_id
   var emailMap = {};
@@ -3909,7 +3930,11 @@ async function renderGebruikers() {
     if (emailsRes.data) emailsRes.data.forEach(function(u) { emailMap[u.id] = u.email; });
   } catch(e) { /* RPC may not exist yet */ }
 
-  var permLabels = { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer (super-admin)' };
+  // Partner-viewer ziet geen 'manage_partners' (super-admin-recht) — ze kunnen het
+  // toch niet zetten (RLS WITH CHECK blokkeert) en het zou verwarring scheppen.
+  var permLabels = isPartnerViewer
+    ? { manage_pricing: 'Prijsbeheer', manage_users: 'Teambeheer' }
+    : { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer (super-admin)' };
   var permKeys = Object.keys(permLabels);
 
   var canManageUsers = !!(userPermissions && userPermissions.manage_users);
@@ -9859,8 +9884,12 @@ function switchPersoneelTab(tab) {
 }
 
 function renderPersoneelCounts() {
-  var techCount = (allTechniekers || []).filter(function(t) { return (t.type_personeel || 'technieker') !== 'bediende' && t.actief !== false; }).length;
-  var bedCount = (allTechniekers || []).filter(function(t) { return t.type_personeel === 'bediende' && t.actief !== false; }).length;
+  var isPartnerViewer = userRole === 'partner' && userPartner;
+  var list = (allTechniekers || []).filter(function(t) {
+    return !isPartnerViewer || t.partner_id === userPartner.id;
+  });
+  var techCount = list.filter(function(t) { return (t.type_personeel || 'technieker') !== 'bediende' && t.actief !== false; }).length;
+  var bedCount  = list.filter(function(t) { return t.type_personeel === 'bediende' && t.actief !== false; }).length;
   var elT = document.getElementById('p-tab-tech-count');
   var elB = document.getElementById('p-tab-bed-count');
   if (elT) elT.textContent = techCount;
@@ -9876,8 +9905,10 @@ function renderTechniekers() {
   renderPersoneelCounts();
   var search = (document.getElementById('tech-search').value || '').toLowerCase();
   var tbody = document.getElementById('tech-tbody');
+  var isPartnerViewer = userRole === 'partner' && userPartner;
   var filtered = allTechniekers.filter(function(t) {
     if (t.type_personeel === 'bediende') return false; // enkel techs op deze tab
+    if (isPartnerViewer && t.partner_id !== userPartner.id) return false; // tenant-scope
     var name = ((t.voornaam || '') + ' ' + t.naam).toLowerCase();
     return !search || name.includes(search) || (t.email || '').toLowerCase().includes(search);
   });
@@ -10097,8 +10128,10 @@ function renderBedienden() {
   var tbody = document.getElementById('bed-tbody');
   var empty = document.getElementById('bed-empty');
   if (!tbody) return;
+  var isPartnerViewer = userRole === 'partner' && userPartner;
   var filtered = (allTechniekers || []).filter(function(t) {
     if (t.type_personeel !== 'bediende') return false;
+    if (isPartnerViewer && t.partner_id !== userPartner.id) return false; // tenant-scope
     var name = ((t.voornaam || '') + ' ' + t.naam).toLowerCase();
     return !search || name.includes(search) || (t.email || '').toLowerCase().includes(search) || (t.functie || '').toLowerCase().includes(search);
   });
@@ -10487,7 +10520,12 @@ async function saveTechnieker() {
     kwalificaties: kwalificaties
   };
 
+  // Partner-caller: server-locked tenant-scope. Admin/bediende: partner_id null (Flancco-intern).
   var editId = document.getElementById('tech-edit-id').value;
+  if (!editId) {
+    payload.partner_id = (userRole === 'partner' && userPartner) ? userPartner.id : null;
+  }
+
   var res;
   if (editId) {
     res = await sb.from('techniekers').update(payload).eq('id', editId).select();
