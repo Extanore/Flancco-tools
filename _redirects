@@ -5,12 +5,16 @@
 # 301 = redirect (URL wijzigt). 301! = force (overschrijf bestaande).
 
 # --- Defense-in-depth: blokkeer publieke toegang tot interne docs
-/PLAN.md                                     /404.html                           404
-/CLAUDE.md                                   /404.html                           404
-/RUNBOOK_CUTOVER.md                          /404.html                           404
-/DEPLOY.sh                                   /404.html                           404
-/PREVIEW_URL.txt                             /404.html                           404
-/.gitignore                                  /404.html                           404
+# Force-token (!) nodig — anders serveren CF Pages statische files vóór redirect-rules
+/PLAN.md                                     /404.html                           404!
+/CLAUDE.md                                   /404.html                           404!
+/RUNBOOK_CUTOVER.md                          /404.html                           404!
+/DEPLOY.sh                                   /404.html                           404!
+/PREVIEW_URL.txt                             /404.html                           404!
+/.gitignore                                  /404.html                           404!
+/README.md                                   /404.html                           404!
+/package.json                                /404.html                           404!
+/package-lock.json                           /404.html                           404!
 
 # --- Legacy GitHub Pages compat: /Flancco-tools/* paden wegpoetsen
 /Flancco-tools/*                             /:splat                             301!
