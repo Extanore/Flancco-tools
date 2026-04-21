@@ -1,47 +1,19 @@
 # =============================================================
-# Cloudflare Pages — URL routing
+# Cloudflare Workers Assets — URL routing
 # =============================================================
-# Volgorde telt: meest-specifiek eerst. 200 = rewrite (URL blijft),
-# 301 = redirect (URL wijzigt). 301! = force (overschrijf bestaande).
+# Workers Assets (≠ Pages) restricties:
+#   - Enkel statuscodes 200, 301, 302, 303, 307, 308 (geen 404)
+#   - Enkel relatieve URLs in source en destination (geen https://host/...)
+#   - Geen force-token (!) — uploaded assets winnen altijd vóór redirect-rules
+#
+# Defense-in-depth voor interne docs (PLAN.md, *.sh, etc.):
+#   → zie .assetsignore (deze bestanden worden NIET naar de edge ge-upload)
+#
+# Host-based routing (app.flancco-platform.be vs calculator.flancco-platform.be):
+#   → opgelost via _worker.js entry-script (vervolg-commit) zodat één Worker
+#     beide subdomains vanuit de juiste sub-folder serveert.
+#   → tot die tijd zijn alle apps bereikbaar via expliciete paden op de
+#     Workers dev-URL: /admin/, /portal/, /calculator/, /novectra/, /cwsolar/.
 
-# --- Defense-in-depth: blokkeer publieke toegang tot interne docs
-# Force-token (!) nodig — anders serveren CF Pages statische files vóór redirect-rules
-/PLAN.md                                     /404.html                           404!
-/CLAUDE.md                                   /404.html                           404!
-/RUNBOOK_CUTOVER.md                          /404.html                           404!
-/DEPLOY.sh                                   /404.html                           404!
-/deploy-cloudflare.sh                        /404.html                           404!
-/PREVIEW_URL.txt                             /404.html                           404!
-/.gitignore                                  /404.html                           404!
-/README.md                                   /404.html                           404!
-/package.json                                /404.html                           404!
-/package-lock.json                           /404.html                           404!
-
-# --- Legacy GitHub Pages compat: /Flancco-tools/* paden wegpoetsen
-/Flancco-tools/*                             /:splat                             301!
-
-# --- Subdomain: calculator.flancco-platform.be
-# Partner-specifieke paden (/novectra, /cwsolar, /flancco) blijven direct onder root
-# Root van calculator-subdomain toont generic calculator
-https://calculator.flancco-platform.be/      /calculator/                        200
-https://calculator.flancco-platform.be/novectra/*    /novectra/:splat           200
-https://calculator.flancco-platform.be/cwsolar/*     /cwsolar/:splat            200
-https://calculator.flancco-platform.be/flancco/*     /flancco/:splat            200
-https://calculator.flancco-platform.be/calculator/*  /calculator/:splat         200
-https://calculator.flancco-platform.be/*     /calculator/:splat                  200
-
-# --- Subdomain: app.flancco-platform.be
-# Serveert admin + partner dashboard + portal vanuit /admin/ en /portal/
-https://app.flancco-platform.be/admin/*      /admin/:splat                       200
-https://app.flancco-platform.be/portal/*     /portal/:splat                      200
-https://app.flancco-platform.be/privacy/*    /privacy/:splat                     200
-https://app.flancco-platform.be/voorwaarden/*  /voorwaarden/:splat               200
-https://app.flancco-platform.be/             /admin/                             302
-https://app.flancco-platform.be/*            /admin/:splat                       200
-
-# --- Apex + www → canonical app subdomain
-https://flancco-platform.be/*                https://app.flancco-platform.be/:splat    301!
-https://www.flancco-platform.be/*            https://app.flancco-platform.be/:splat    301!
-
-# --- SPA fallback voor admin (hash-based routing)
-/admin/*                                     /admin/index.html                   200
+# --- Legacy GitHub Pages compat: oude /Flancco-tools/* paden wegpoetsen
+/Flancco-tools/*                             /:splat                             301
