@@ -2389,40 +2389,51 @@ async function submitSigning() {
     var sigRes = await sb.storage.from('handtekeningen').upload(sigPath, sigBlob, { contentType: 'image/png' });
     var sigUrl = sigRes.error ? null : SUPA_URL + '/storage/v1/object/public/handtekeningen/' + sigPath;
 
-    // Update contract status
+    // Atomic signing-RPC (security-definer, token-gated): update contract + maak client + koppel client_id in één transactie.
+    // Whitelisted velden only → anon kan geen andere kolommen manipuleren.
+    var handtekeningData = sigUrl ? null : canvas.toDataURL('image/png');
+    var clientPayload = null;
+    if (c.klant_naam && c.partner_id) {
+      clientPayload = {
+        contact_person: c.klant_naam,
+        email: c.klant_email || 'geen@email.be',
+        phone: c.klant_telefoon || null,
+        street: c.klant_adres || null,
+        postal_code: c.klant_postcode || null,
+        city: c.klant_gemeente || null
+      };
+    }
+
+    var signingToken = new URLSearchParams(window.location.search).get('contract');
+    if (!signingToken) {
+      throw new Error('Signing-token ontbreekt in URL. Vernieuw de pagina of neem contact op met uw partner.');
+    }
+
+    var signRes = await sb.rpc('anon_sign_contract_complete', {
+      p_token: signingToken,
+      p_handtekening_url: sigUrl,
+      p_handtekening_data: handtekeningData,
+      p_signing_user_agent: navigator.userAgent,
+      p_client_payload: clientPayload
+    });
+    if (signRes.error) {
+      console.error('Signing-RPC error:', signRes.error);
+      throw new Error('Ondertekenen mislukt. Probeer de pagina te vernieuwen of neem contact op met uw partner.');
+    }
+
+    // Als vorige stap slaagde, updatePayload meenemen voor PDF-rendering post-submit.
     var updatePayload = {
       status: 'actief',
       handtekening_url: sigUrl,
-      handtekening_data: sigUrl ? null : canvas.toDataURL('image/png'),
+      handtekening_data: handtekeningData,
       datum_ondertekening: new Date().toISOString().split('T')[0],
       signing_user_agent: navigator.userAgent,
       signing_timestamp: new Date().toISOString(),
       signing_methode: 'op_afstand',
       akkoord_voorwaarden: true,
-      privacy_akkoord: true
+      privacy_akkoord: true,
+      client_id: signRes.data && signRes.data.client_id ? signRes.data.client_id : null
     };
-
-    var updateRes = await sb.from('contracten').update(updatePayload).eq('id', c.id).eq('status', 'concept').select();
-    if (updateRes.error) throw updateRes.error;
-
-    // Create client in clients table and link to contract
-    try {
-      if (c.klant_naam && c.partner_id) {
-        var ins = await sb.from('clients').insert({
-          partner_id: c.partner_id,
-          contact_person: c.klant_naam,
-          email: c.klant_email || 'geen@email.be',
-          phone: c.klant_telefoon || null,
-          street: c.klant_adres || null,
-          postal_code: c.klant_postcode || null,
-          city: c.klant_gemeente || null,
-          notes: 'Aangemaakt bij contractondertekening'
-        }).select('id').single();
-        if (ins.data && ins.data.id) {
-          await sb.from('contracten').update({ client_id: ins.data.id }).eq('id', c.id);
-        }
-      }
-    } catch (clientErr) { console.warn('Klant aanmaken mislukt:', clientErr); }
 
     // Generate onderhoudsbeurten per sector
     try {
@@ -2488,7 +2499,18 @@ async function submitSigning() {
       });
 
       if (allBeurten.length > 0) {
-        await sb.from('onderhoudsbeurten').insert(allBeurten);
+        // Security-definer RPC: verifieert token-match + signing <24h + voorkomt dubbele inserts.
+        // Strip contract_id uit payload — RPC leidt af via token, kan niet door anon gezet worden.
+        var beurtenPayload = allBeurten.map(function(b) {
+          return { sector: b.sector, volgnummer: b.volgnummer, due_date: b.due_date, status: b.status };
+        });
+        var beurtRes = await sb.rpc('anon_insert_onderhoudsbeurten', {
+          p_token: signingToken,
+          p_beurten: beurtenPayload
+        });
+        if (beurtRes.error) {
+          console.warn('Onderhoudsbeurten RPC-error:', beurtRes.error);
+        }
       }
     } catch (beurtErr) { console.warn('Onderhoudsbeurten generatie mislukt:', beurtErr); }
 
