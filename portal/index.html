@@ -228,40 +228,44 @@ var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ven
 var statusLabels = { toekomstig: 'Toekomstig', in_te_plannen: 'In te plannen', ingepland: 'Ingepland', uitgevoerd: 'Uitgevoerd', geannuleerd: 'Geannuleerd' };
 
 // ═══════════════════════════════
-// INIT
+// INIT — alle reads via security-definer RPCs (portal_token als enige gate).
+// Directe SELECT's op clients/contracten/onderhoudsbeurten/rapporten/interventies
+// zijn sinds migratie 20260421_close_anon_read_leaks gesloten voor anon.
 // ═══════════════════════════════
 async function init() {
   var params = new URLSearchParams(window.location.search);
   var token = params.get('token');
   if (!token) { showError(); return; }
 
-  // Lookup client by portal_token
-  var clientRes = await sb.from('clients').select('*').eq('portal_token', token).single();
-  if (!clientRes.data) { showError(); return; }
-  client = clientRes.data;
+  // Lookup client via RPC (anon-safe, server-side token-match)
+  var clientRes = await sb.rpc('portal_get_client_by_token', { p_token: token });
+  if (clientRes.error || !clientRes.data || clientRes.data.length === 0) {
+    console.error('Portal lookup faalde', clientRes.error);
+    showError();
+    return;
+  }
+  client = clientRes.data[0];
 
-  // Load all related data
+  // Parallel-fetch alle gerelateerde data via token-gated RPCs
   var [cRes, bRes, rRes, iRes] = await Promise.all([
-    sb.from('contracten').select('*').eq('client_id', client.id).order('datum_ondertekening', { ascending: false }),
-    sb.from('onderhoudsbeurten').select('*, contracten(klant_naam, sector)').eq('contracten.client_id', client.id).order('due_date'),
-    sb.from('rapporten').select('*').eq('contract_id', client.id),  // will re-fetch properly
-    sb.from('interventies').select('*, contracten(klant_naam, sector)').order('created_at', { ascending: false })
+    sb.rpc('portal_get_contracten_by_token',   { p_token: token }),
+    sb.rpc('portal_get_beurten_by_token',      { p_token: token }),
+    sb.rpc('portal_get_rapporten_by_token',    { p_token: token }),
+    sb.rpc('portal_get_interventies_by_token', { p_token: token })
   ]);
 
-  contracten = cRes.data || [];
-
-  // Fetch beurten via contract IDs
-  var contractIds = contracten.map(function(c) { return c.id; });
-  if (contractIds.length > 0) {
-    var bRes2 = await sb.from('onderhoudsbeurten').select('*').in('contract_id', contractIds).order('due_date');
-    beurten = bRes2.data || [];
-
-    var rRes2 = await sb.from('rapporten').select('*').in('contract_id', contractIds).order('datum_onderhoud', { ascending: false });
-    rapporten = rRes2.data || [];
-
-    var iRes2 = await sb.from('interventies').select('*').in('contract_id', contractIds).order('created_at', { ascending: false });
-    interventies = iRes2.data || [];
-  }
+  contracten = (cRes.data || []).slice().sort(function(a, b) {
+    return (b.datum_ondertekening || '').localeCompare(a.datum_ondertekening || '');
+  });
+  beurten = (bRes.data || []).slice().sort(function(a, b) {
+    return (a.due_date || '').localeCompare(b.due_date || '');
+  });
+  rapporten = (rRes.data || []).slice().sort(function(a, b) {
+    return (b.datum_onderhoud || '').localeCompare(a.datum_onderhoud || '');
+  });
+  interventies = (iRes.data || []).slice().sort(function(a, b) {
+    return (b.created_at || '').localeCompare(a.created_at || '');
+  });
 
   // Render
   renderHeader();

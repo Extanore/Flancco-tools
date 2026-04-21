@@ -2054,28 +2054,22 @@ var signingPartner = null;
 
 async function loadContractForSigning(token) {
   try {
-    // Fetch contract by teken_token
-    var cRes = await sb.from('contracten').select('*').eq('teken_token', token).single();
-    if (cRes.error || !cRes.data) { showError('Contract niet gevonden of niet beschikbaar. Controleer de link.'); return; }
-    signingContract = cRes.data;
-
-    // Check status
-    if (signingContract.status !== 'concept') {
-      if (signingContract.status === 'actief' || signingContract.status === 'getekend') {
-        showError('Dit contract is al ondertekend.');
-      } else if (signingContract.status === 'geannuleerd') {
-        showError('Dit contract is geannuleerd. Neem contact op met uw partner.');
-      } else {
-        showError('Dit contract is niet beschikbaar voor ondertekening.');
-      }
+    // Fetch contract via security-definer RPC. Server-side gates: teken_token match,
+    // status='concept', nog-niet-verlopen. RPC bestaat sinds migratie
+    // 20260421_close_anon_read_leaks (directe anon-SELECT op contracten is dicht).
+    var cRes = await sb.rpc('anon_get_contract_by_teken_token', { p_token: token });
+    if (cRes.error) {
+      console.error('Signing contract lookup error:', cRes.error);
+      showError('Er is een fout opgetreden bij het laden van het contract. Probeer de pagina te vernieuwen.');
       return;
     }
-
-    // Check verlopen
-    if (signingContract.verlopen_op && new Date() > new Date(signingContract.verlopen_op)) {
-      showError('Dit contract is verlopen. Neem contact op met uw partner voor een nieuw contract.');
+    if (!cRes.data || cRes.data.length === 0) {
+      // Token onbekend, contract al ondertekend, geannuleerd, of verlopen — alle vier
+      // dezelfde generieke melding (geen enumeration-leak naar anon-gebruikers).
+      showError('Dit contract is niet (meer) beschikbaar voor ondertekening. Neem contact op met uw partner.');
       return;
     }
+    signingContract = cRes.data[0];
 
     // Fetch partner
     var pRes = await sb.from('partners').select('*').eq('id', signingContract.partner_id).single();
