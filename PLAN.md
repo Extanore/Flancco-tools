@@ -18,7 +18,7 @@ The calculator page loads at `/calculator/index.html?partner={slug}`. It fetches
 - Eliminates code duplication (currently ~1050 lines duplicated per partner)
 - Adding a new partner or sector requires zero new files — only database rows
 - Query-param approach works on GitHub Pages (no server-side routing needed)
-- Partner slug in URL is clean enough for sharing: `https://extanore.github.io/Flancco-tools/calculator/?partner=novectra`
+- Partner slug in URL is clean enough for sharing: `https://calculator.flancco-platform.be/?partner=novectra` (legacy fallback: `https://extanore.github.io/Flancco-tools/calculator/?partner=novectra`)
 - Legacy URLs (`/novectra/`, `/cwsolar/`) get a small redirect `index.html` during transition
 
 **Short partner alias URLs** (optional, phase 6): `/novectra/index.html` becomes a 3-line redirect:
@@ -545,7 +545,7 @@ De Flancco admin beheert dit via de Partners-pagina (sector-toggles per partner,
 **Blok 5: Calculator-links**
 Per actieve sector een kopieerbare link:
 ```
-Alle sectoren:  https://extanore.github.io/.../calculator/?partner=novectra  [📋 Kopieer]
+Alle sectoren:  https://calculator.flancco-platform.be/?partner=novectra  [📋 Kopieer]
 Zonnepanelen:   https://...?partner=novectra&sector=zonnepanelen              [📋 Kopieer]
 Warmtepomp:     https://...?partner=novectra&sector=warmtepomp                [📋 Kopieer]
 ```

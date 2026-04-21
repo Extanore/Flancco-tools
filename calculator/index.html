@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Onderhoudscalculator</title>
+<script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
+<script>
+  (function(){
+    var h = location.hostname;
+    var isProd = /flancco-platform\.be$/.test(h) || /\.pages\.dev$/.test(h) || h === 'extanore.github.io';
+    if (!isProd || !window.Sentry) return;
+    Sentry.init({
+      dsn: 'https://9d294eb246d48b01262e4c752c77b231@o4511253859729408.ingest.de.sentry.io/4511253876310096',
+      environment: /\.pages\.dev$/.test(h) ? 'staging' : 'prod',
+      release: 'flancco-calculator@2026-04-20',
+      tracesSampleRate: 0.1,
+      beforeSend: function(event) {
+        try {
+          if (event.request && event.request.data) {
+            var d = event.request.data;
+            ['handtekening','handtekening_data','password','wachtwoord'].forEach(function(k){ if (d[k]) d[k] = '[REDACTED]'; });
+          }
+        } catch(_){}
+        return event;
+      }
+    });
+  })();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -639,6 +662,14 @@
 var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
 var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// Platform URLs — hostname-autodetect
+var APP_BASE_URL = (function() {
+  var h = location.hostname;
+  if (h === 'app.flancco-platform.be' || h === 'flancco-platform.be' || h === 'www.flancco-platform.be') return 'https://app.flancco-platform.be';
+  if (h === 'extanore.github.io') return 'https://extanore.github.io/Flancco-tools';
+  return location.origin;
+})();
 
 // ═══════════════════════════════════════════
 // STATE
@@ -2023,28 +2054,22 @@ var signingPartner = null;
 
 async function loadContractForSigning(token) {
   try {
-    // Fetch contract by teken_token
-    var cRes = await sb.from('contracten').select('*').eq('teken_token', token).single();
-    if (cRes.error || !cRes.data) { showError('Contract niet gevonden of niet beschikbaar. Controleer de link.'); return; }
-    signingContract = cRes.data;
-
-    // Check status
-    if (signingContract.status !== 'concept') {
-      if (signingContract.status === 'actief' || signingContract.status === 'getekend') {
-        showError('Dit contract is al ondertekend.');
-      } else if (signingContract.status === 'geannuleerd') {
-        showError('Dit contract is geannuleerd. Neem contact op met uw partner.');
-      } else {
-        showError('Dit contract is niet beschikbaar voor ondertekening.');
-      }
+    // Fetch contract via security-definer RPC. Server-side gates: teken_token match,
+    // status='concept', nog-niet-verlopen. RPC bestaat sinds migratie
+    // 20260421_close_anon_read_leaks (directe anon-SELECT op contracten is dicht).
+    var cRes = await sb.rpc('anon_get_contract_by_teken_token', { p_token: token });
+    if (cRes.error) {
+      console.error('Signing contract lookup error:', cRes.error);
+      showError('Er is een fout opgetreden bij het laden van het contract. Probeer de pagina te vernieuwen.');
       return;
     }
-
-    // Check verlopen
-    if (signingContract.verlopen_op && new Date() > new Date(signingContract.verlopen_op)) {
-      showError('Dit contract is verlopen. Neem contact op met uw partner voor een nieuw contract.');
+    if (!cRes.data || cRes.data.length === 0) {
+      // Token onbekend, contract al ondertekend, geannuleerd, of verlopen — alle vier
+      // dezelfde generieke melding (geen enumeration-leak naar anon-gebruikers).
+      showError('Dit contract is niet (meer) beschikbaar voor ondertekening. Neem contact op met uw partner.');
       return;
     }
+    signingContract = cRes.data[0];
 
     // Fetch partner
     var pRes = await sb.from('partners').select('*').eq('id', signingContract.partner_id).single();
@@ -2364,40 +2389,51 @@ async function submitSigning() {
     var sigRes = await sb.storage.from('handtekeningen').upload(sigPath, sigBlob, { contentType: 'image/png' });
     var sigUrl = sigRes.error ? null : SUPA_URL + '/storage/v1/object/public/handtekeningen/' + sigPath;
 
-    // Update contract status
+    // Atomic signing-RPC (security-definer, token-gated): update contract + maak client + koppel client_id in één transactie.
+    // Whitelisted velden only → anon kan geen andere kolommen manipuleren.
+    var handtekeningData = sigUrl ? null : canvas.toDataURL('image/png');
+    var clientPayload = null;
+    if (c.klant_naam && c.partner_id) {
+      clientPayload = {
+        contact_person: c.klant_naam,
+        email: c.klant_email || 'geen@email.be',
+        phone: c.klant_telefoon || null,
+        street: c.klant_adres || null,
+        postal_code: c.klant_postcode || null,
+        city: c.klant_gemeente || null
+      };
+    }
+
+    var signingToken = new URLSearchParams(window.location.search).get('contract');
+    if (!signingToken) {
+      throw new Error('Signing-token ontbreekt in URL. Vernieuw de pagina of neem contact op met uw partner.');
+    }
+
+    var signRes = await sb.rpc('anon_sign_contract_complete', {
+      p_token: signingToken,
+      p_handtekening_url: sigUrl,
+      p_handtekening_data: handtekeningData,
+      p_signing_user_agent: navigator.userAgent,
+      p_client_payload: clientPayload
+    });
+    if (signRes.error) {
+      console.error('Signing-RPC error:', signRes.error);
+      throw new Error('Ondertekenen mislukt. Probeer de pagina te vernieuwen of neem contact op met uw partner.');
+    }
+
+    // Als vorige stap slaagde, updatePayload meenemen voor PDF-rendering post-submit.
     var updatePayload = {
       status: 'actief',
       handtekening_url: sigUrl,
-      handtekening_data: sigUrl ? null : canvas.toDataURL('image/png'),
+      handtekening_data: handtekeningData,
       datum_ondertekening: new Date().toISOString().split('T')[0],
       signing_user_agent: navigator.userAgent,
       signing_timestamp: new Date().toISOString(),
       signing_methode: 'op_afstand',
       akkoord_voorwaarden: true,
-      privacy_akkoord: true
+      privacy_akkoord: true,
+      client_id: signRes.data && signRes.data.client_id ? signRes.data.client_id : null
     };
-
-    var updateRes = await sb.from('contracten').update(updatePayload).eq('id', c.id).eq('status', 'concept').select();
-    if (updateRes.error) throw updateRes.error;
-
-    // Create client in clients table and link to contract
-    try {
-      if (c.klant_naam && c.partner_id) {
-        var ins = await sb.from('clients').insert({
-          partner_id: c.partner_id,
-          contact_person: c.klant_naam,
-          email: c.klant_email || 'geen@email.be',
-          phone: c.klant_telefoon || null,
-          street: c.klant_adres || null,
-          postal_code: c.klant_postcode || null,
-          city: c.klant_gemeente || null,
-          notes: 'Aangemaakt bij contractondertekening'
-        }).select('id').single();
-        if (ins.data && ins.data.id) {
-          await sb.from('contracten').update({ client_id: ins.data.id }).eq('id', c.id);
-        }
-      }
-    } catch (clientErr) { console.warn('Klant aanmaken mislukt:', clientErr); }
 
     // Generate onderhoudsbeurten per sector
     try {
@@ -2463,7 +2499,18 @@ async function submitSigning() {
       });
 
       if (allBeurten.length > 0) {
-        await sb.from('onderhoudsbeurten').insert(allBeurten);
+        // Security-definer RPC: verifieert token-match + signing <24h + voorkomt dubbele inserts.
+        // Strip contract_id uit payload — RPC leidt af via token, kan niet door anon gezet worden.
+        var beurtenPayload = allBeurten.map(function(b) {
+          return { sector: b.sector, volgnummer: b.volgnummer, due_date: b.due_date, status: b.status };
+        });
+        var beurtRes = await sb.rpc('anon_insert_onderhoudsbeurten', {
+          p_token: signingToken,
+          p_beurten: beurtenPayload
+        });
+        if (beurtRes.error) {
+          console.warn('Onderhoudsbeurten RPC-error:', beurtRes.error);
+        }
       }
     } catch (beurtErr) { console.warn('Onderhoudsbeurten generatie mislukt:', beurtErr); }
 
@@ -3684,6 +3731,35 @@ init();
   </div>
   <button class="btn" onclick="goToStep(2)">Verder &rarr;</button>
 </div>
+
+<!-- Cookie-consent banner (strikt-noodzakelijk; GDPR/AVG info) -->
+<div id="cc-banner" aria-live="polite" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1A1A2E;color:#fff;padding:14px 20px;box-shadow:0 -4px 20px rgba(0,0,0,0.25);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5">
+  <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;min-width:260px">Dit platform gebruikt uitsluitend strikt-noodzakelijke cookies en localStorage (authenticatie). Geen tracking, geen analytics. Meer info in onze <a href="/privacy/" style="color:#E74C3C;text-decoration:underline;font-weight:500">Privacyverklaring</a> en <a href="/voorwaarden/" style="color:#E74C3C;text-decoration:underline;font-weight:500">Voorwaarden</a>.</div>
+    <button type="button" id="cc-accept" style="background:#E74C3C;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;letter-spacing:0.2px">OK, ik begrijp het</button>
+  </div>
+</div>
+<script>
+(function(){
+  try {
+    if (!localStorage.getItem('cc_v1')) {
+      var el = document.getElementById('cc-banner');
+      if (el) el.style.display = 'block';
+    }
+    var btn = document.getElementById('cc-accept');
+    if (btn) btn.addEventListener('click', function(){
+      try { localStorage.setItem('cc_v1', '1'); } catch(_){}
+      var el = document.getElementById('cc-banner');
+      if (el) el.style.display = 'none';
+    });
+  } catch(_){}
+})();
+</script>
+
+<!-- Impressum-footer voor publieke calculator -->
+<footer style="padding:16px 20px 80px;text-align:center;font-size:11px;color:rgba(107,114,128,0.85);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  &copy; FLANCCO BV &middot; BE 0466.111.526 &middot; <a href="/privacy/" style="color:inherit;text-decoration:underline">Privacyverklaring</a> &middot; <a href="/voorwaarden/" style="color:inherit;text-decoration:underline">Voorwaarden</a>
+</footer>
 
 </body>
 </html>
