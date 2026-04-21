@@ -29,7 +29,11 @@ export default {
     // --- app.flancco-platform.be → admin + portal host
     if (host === "app.flancco-platform.be") {
       if (path === "/" || path === "") {
-        return Response.redirect("https://app.flancco-platform.be/admin/", 302);
+        // Preserve query-string (vb. ?token=..., ?page=...) bij root-redirect
+        return Response.redirect(
+          "https://app.flancco-platform.be/admin/" + url.search,
+          302,
+        );
       }
       return env.ASSETS.fetch(request);
     }
@@ -37,8 +41,11 @@ export default {
     // --- calculator.flancco-platform.be → publieke calculator host
     if (host === "calculator.flancco-platform.be") {
       if (path === "/" || path === "") {
+        // Preserve query-string (vb. ?contract=<token>, ?partner=<slug>) bij root-redirect.
+        // Zonder deze preservatie zouden tekenlinks na 302-hop naar /calculator/ de token
+        // kwijt zijn → "Partner niet gevonden"-error.
         return Response.redirect(
-          "https://calculator.flancco-platform.be/calculator/",
+          "https://calculator.flancco-platform.be/calculator/" + url.search,
           302,
         );
       }
