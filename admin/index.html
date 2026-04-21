@@ -3951,10 +3951,16 @@ async function loadAllData() {
   if (typeof updateFactQueueBadge === 'function') updateFactQueueBadge();
 
 
-  // Deep-link: ?page=techniekers etc.
-  var urlPage = new URLSearchParams(window.location.search).get('page');
+  // Deep-link: ?page=techniekers etc. (+ optional ?preview=<contract-id> trigger)
+  var urlParams   = new URLSearchParams(window.location.search);
+  var urlPage     = urlParams.get('page');
+  var urlPreview  = urlParams.get('preview');
   if (urlPage && document.getElementById('page-' + urlPage)) {
     showPage(urlPage);
+  }
+  if (urlPreview && typeof previewContract === 'function') {
+    // Delay zodat showPage() + renderContracten() afgerond zijn voor de preview-modal opent.
+    setTimeout(function() { previewContract(urlPreview); }, 200);
   }
 }
 
