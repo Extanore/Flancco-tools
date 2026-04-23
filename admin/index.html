@@ -1421,14 +1421,14 @@
             <label>Primaire kleur</label>
             <div style="display:flex;gap:8px;align-items:center">
               <input type="color" id="set-kleur1" style="width:48px;height:36px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:2px">
-              <input type="text" id="set-kleur1-hex" placeholder="#098979" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px" oninput="document.getElementById('set-kleur1').value=this.value">
+              <input type="text" id="set-kleur1-hex" placeholder="#098979" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px">
             </div>
           </div>
           <div class="modal-field">
             <label>Donkere kleur</label>
             <div style="display:flex;gap:8px;align-items:center">
               <input type="color" id="set-kleur2" style="width:48px;height:36px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:2px">
-              <input type="text" id="set-kleur2-hex" placeholder="#066b5e" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px" oninput="document.getElementById('set-kleur2').value=this.value">
+              <input type="text" id="set-kleur2-hex" placeholder="#066b5e" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px">
             </div>
           </div>
         </div>
@@ -3231,6 +3231,60 @@ async function initApp() {
   }
 }
 
+// =============================================
+// COLOR-PICKER HELPERS — bidirectionele sync + hex-validatie
+// Gebruikt door alle partner-branding edit-flows (Instellingen, admin-inline).
+// =============================================
+var HEX_RE_6 = /^#[0-9a-fA-F]{6}$/;
+var HEX_RE_3 = /^#[0-9a-fA-F]{3}$/;
+
+/** Normaliseert een input-string naar lowercase #rrggbb. Ongeldige input → fallback. */
+function normalizeHex(value, fallback) {
+  if (!value) return fallback || '#000000';
+  var v = String(value).trim();
+  if (v && v[0] !== '#') v = '#' + v;
+  if (HEX_RE_3.test(v)) {
+    // Expand 3-digit shorthand (#abc → #aabbcc)
+    v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+  }
+  if (!HEX_RE_6.test(v)) return fallback || '#000000';
+  return v.toLowerCase();
+}
+
+/** oninput-handler voor color-picker: sync naar hex-text. */
+function syncColorPickerToHex(pickerEl, hexInputId) {
+  var hexEl = document.getElementById(hexInputId);
+  if (hexEl) hexEl.value = normalizeHex(pickerEl.value);
+}
+
+/** oninput-handler voor hex-text: sync naar color-picker (enkel bij geldig #RRGGBB). */
+function syncHexToColorPicker(hexEl, pickerId) {
+  var pickerEl = document.getElementById(pickerId);
+  if (!pickerEl) return;
+  var v = String(hexEl.value || '').trim();
+  if (v && v[0] !== '#') v = '#' + v;
+  if (HEX_RE_6.test(v) || HEX_RE_3.test(v)) {
+    pickerEl.value = normalizeHex(v);
+  }
+}
+
+/**
+ * Resolvet de definitieve kleur uit een hex/picker-paar.
+ * Prioriteit: geldige hex-text > picker-waarde > fallback.
+ * Accepteert zowel '#RRGGBB' als 'RRGGBB' in de hex-input.
+ */
+function resolvePartnerColor(hexInputId, pickerInputId, fallback) {
+  var hexEl = document.getElementById(hexInputId);
+  var pickEl = document.getElementById(pickerInputId);
+  var raw = hexEl ? String(hexEl.value || '').trim() : '';
+  if (raw) {
+    if (raw[0] !== '#') raw = '#' + raw;
+    if (HEX_RE_6.test(raw) || HEX_RE_3.test(raw)) return normalizeHex(raw);
+  }
+  if (pickEl && pickEl.value) return normalizeHex(pickEl.value, fallback);
+  return normalizeHex(fallback, '#000000');
+}
+
 function applyBranding(p) {
   const primary = p.kleur_primair || '#098979';
   const dark = p.kleur_donker || '#066b5e';
@@ -3274,10 +3328,12 @@ function loadSettings(p) {
       }
     });
   }
-  document.getElementById('set-kleur1').value = p.kleur_primair || '#098979';
-  document.getElementById('set-kleur1-hex').value = p.kleur_primair || '#098979';
-  document.getElementById('set-kleur2').value = p.kleur_donker || '#066b5e';
-  document.getElementById('set-kleur2-hex').value = p.kleur_donker || '#066b5e';
+  var _kp1 = normalizeHex(p.kleur_primair || '#098979');
+  var _kp2 = normalizeHex(p.kleur_donker || '#066b5e');
+  document.getElementById('set-kleur1').value = _kp1;
+  document.getElementById('set-kleur1-hex').value = _kp1;
+  document.getElementById('set-kleur2').value = _kp2;
+  document.getElementById('set-kleur2-hex').value = _kp2;
   document.getElementById('set-bedrijfsnaam').value = p.bedrijfsnaam || '';
   document.getElementById('set-contact').value = p.contactpersoon || '';
   document.getElementById('set-email').value = p.email || '';
@@ -3325,13 +3381,12 @@ function loadSettings(p) {
   // O.4 — Notificatie-voorkeuren-kaart (alle rollen hebben een login + preferences)
   renderNotifPrefsCard();
 
-  // Color picker sync
-  document.getElementById('set-kleur1').addEventListener('input', e => {
-    document.getElementById('set-kleur1-hex').value = e.target.value;
-  });
-  document.getElementById('set-kleur2').addEventListener('input', e => {
-    document.getElementById('set-kleur2-hex').value = e.target.value;
-  });
+  // Color picker sync — gebruik shared helper (onthoudt normalisatie, geen duplicate-listeners
+  // omdat oninput-attribuut vervangen wordt i.p.v. opgestapeld via addEventListener).
+  document.getElementById('set-kleur1').oninput = function() { syncColorPickerToHex(this, 'set-kleur1-hex'); };
+  document.getElementById('set-kleur2').oninput = function() { syncColorPickerToHex(this, 'set-kleur2-hex'); };
+  document.getElementById('set-kleur1-hex').oninput = function() { syncHexToColorPicker(this, 'set-kleur1'); };
+  document.getElementById('set-kleur2-hex').oninput = function() { syncHexToColorPicker(this, 'set-kleur2'); };
 }
 
 function renderPartnerWarmtepompConfigCard(partnerId) {
@@ -3371,15 +3426,21 @@ function renderPartnerWarmtepompConfigCard(partnerId) {
 async function saveSettings() {
   if (!userPartner) return;
 
+  // Kleuren robuust resolven via gedeelde helper (sync picker <-> hex + validate)
+  var kleurPrimair = resolvePartnerColor('set-kleur1-hex', 'set-kleur1', '#098979');
+  var kleurDonker = resolvePartnerColor('set-kleur2-hex', 'set-kleur2', '#066b5e');
+
   var sectorNamen = {};
-  var defPrimair = document.getElementById('set-kleur1-hex').value || '#098979';
-  var defDonker = document.getElementById('set-kleur2-hex').value || '#066b5e';
+  var defPrimair = kleurPrimair;
+  var defDonker = kleurDonker;
   ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(s) {
-    var naam = document.getElementById('sn-' + s).value.trim();
+    var naamEl = document.getElementById('sn-' + s);
     var kpEl = document.getElementById('sn-kp-' + s);
     var kdEl = document.getElementById('sn-kd-' + s);
-    var kp = kpEl.style.opacity !== '0.35' ? kpEl.value : '';
-    var kd = kdEl.style.opacity !== '0.35' ? kdEl.value : '';
+    if (!naamEl || !kpEl || !kdEl) return; // defensief: grid nog niet gerenderd
+    var naam = naamEl.value.trim();
+    var kp = kpEl.style.opacity !== '0.35' ? normalizeHex(kpEl.value) : '';
+    var kd = kdEl.style.opacity !== '0.35' ? normalizeHex(kdEl.value) : '';
     if (naam || kp || kd) {
       var entry = {};
       if (naam) entry.naam = naam;
@@ -3391,8 +3452,8 @@ async function saveSettings() {
 
   const updates = {
     logo_url: document.getElementById('set-logo-url').value.trim() || null,
-    kleur_primair: document.getElementById('set-kleur1-hex').value,
-    kleur_donker: document.getElementById('set-kleur2-hex').value,
+    kleur_primair: kleurPrimair,
+    kleur_donker: kleurDonker,
     bedrijfsnaam: document.getElementById('set-bedrijfsnaam').value,
     contactpersoon: document.getElementById('set-contact').value,
     email: document.getElementById('set-email').value,
@@ -3400,19 +3461,31 @@ async function saveSettings() {
     sector_namen: sectorNamen
   };
 
-  const { error } = await sb.from('partners').update(updates).eq('id', userPartner.id);
+  const { data, error } = await sb.from('partners').update(updates).eq('id', userPartner.id).select().single();
   if (error) {
-    alert('Fout bij opslaan: ' + error.message);
+    console.error('saveSettings error:', error);
+    showToast('Fout bij opslaan: ' + error.message, 'error');
     return;
   }
 
-  // Update local state & re-apply branding
-  Object.assign(userPartner, updates);
+  // Update local state met server-returned row (meest betrouwbaar) + her-apply branding
+  Object.assign(userPartner, data || updates);
+  var idxPartner = partners.findIndex(function(x) { return x.id === userPartner.id; });
+  if (idxPartner !== -1) Object.assign(partners[idxPartner], data || updates);
   applyBranding(userPartner);
 
+  // Normaliseer UI-velden zodat weergegeven waarden exact matchen met DB-state
+  document.getElementById('set-kleur1').value = kleurPrimair;
+  document.getElementById('set-kleur1-hex').value = kleurPrimair;
+  document.getElementById('set-kleur2').value = kleurDonker;
+  document.getElementById('set-kleur2-hex').value = kleurDonker;
+
   const msg = document.getElementById('settings-saved');
-  msg.style.display = 'inline';
-  setTimeout(() => msg.style.display = 'none', 2500);
+  if (msg) {
+    msg.style.display = 'inline';
+    setTimeout(function() { msg.style.display = 'none'; }, 2500);
+  }
+  showToast('Instellingen opgeslagen');
 }
 
 // =============================================
@@ -5124,8 +5197,8 @@ function renderAdminSettings() {
     // Branding
     html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Branding</label>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
-    html += '<div><label style="font-size:11px;color:var(--grey)">Primaire kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur1-' + p.id + '" value="' + (p.kleur_primair || '#098979') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px"><input type="text" id="adm-kleur1t-' + p.id + '" value="' + (p.kleur_primair || '#098979') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="document.getElementById(\'adm-kleur1-' + p.id + '\').value=this.value"></div></div>';
-    html += '<div><label style="font-size:11px;color:var(--grey)">Donkere kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur2-' + p.id + '" value="' + (p.kleur_donker || '#066b5e') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px"><input type="text" id="adm-kleur2t-' + p.id + '" value="' + (p.kleur_donker || '#066b5e') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="document.getElementById(\'adm-kleur2-' + p.id + '\').value=this.value"></div></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Primaire kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur1-' + p.id + '" value="' + normalizeHex(p.kleur_primair || '#098979') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px" oninput="syncColorPickerToHex(this,\'adm-kleur1t-' + p.id + '\')"><input type="text" id="adm-kleur1t-' + p.id + '" value="' + normalizeHex(p.kleur_primair || '#098979') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="syncHexToColorPicker(this,\'adm-kleur1-' + p.id + '\')"></div></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Donkere kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur2-' + p.id + '" value="' + normalizeHex(p.kleur_donker || '#066b5e') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px" oninput="syncColorPickerToHex(this,\'adm-kleur2t-' + p.id + '\')"><input type="text" id="adm-kleur2t-' + p.id + '" value="' + normalizeHex(p.kleur_donker || '#066b5e') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="syncHexToColorPicker(this,\'adm-kleur2-' + p.id + '\')"></div></div>';
     html += '<div><label style="font-size:11px;color:var(--grey)">Logo</label><div id="adm-logo-uploader-' + p.id + '" style="margin-top:4px"></div><input type="hidden" id="adm-logo-' + p.id + '" value="' + esc(p.logo_url || '') + '"></div>';
     html += '</div></div>';
 
@@ -5842,6 +5915,12 @@ async function saveAdminPartner(partnerId) {
   var adresEl = document.getElementById('adm-adres-' + partnerId);
   var postcodeEl = document.getElementById('adm-postcode-' + partnerId);
   var gemeenteEl = document.getElementById('adm-gemeente-' + partnerId);
+
+  // Kleuren: resolve hex via shared helper zodat picker-only-changes én hex-only-changes
+  // beide correct opgeslagen worden. Valideert formaat en normaliseert naar lowercase #RRGGBB.
+  var kleurPrimair = resolvePartnerColor('adm-kleur1t-' + partnerId, 'adm-kleur1-' + partnerId, '#098979');
+  var kleurDonker = resolvePartnerColor('adm-kleur2t-' + partnerId, 'adm-kleur2-' + partnerId, '#066b5e');
+
   var updates = {
     bedrijfsnaam: document.getElementById('adm-naam-' + partnerId).value.trim(),
     contactpersoon: document.getElementById('adm-contact-' + partnerId).value.trim(),
@@ -5852,24 +5931,46 @@ async function saveAdminPartner(partnerId) {
     adres: adresEl ? (adresEl.value.trim() || null) : null,
     postcode: postcodeEl ? (postcodeEl.value.trim() || null) : null,
     gemeente: gemeenteEl ? (gemeenteEl.value.trim() || null) : null,
-    kleur_primair: document.getElementById('adm-kleur1t-' + partnerId).value.trim() || document.getElementById('adm-kleur1-' + partnerId).value,
-    kleur_donker: document.getElementById('adm-kleur2t-' + partnerId).value.trim() || document.getElementById('adm-kleur2-' + partnerId).value,
+    kleur_primair: kleurPrimair,
+    kleur_donker: kleurDonker,
     logo_url: document.getElementById('adm-logo-' + partnerId).value.trim() || null,
     marge_pct: parseFloat(document.getElementById('adm-marge-' + partnerId).value) || 0,
     planning_fee: parseFloat(document.getElementById('adm-planfee-' + partnerId).value) || 0,
     transport_gratis_km: parseInt(document.getElementById('adm-km-' + partnerId).value) || 0
   };
 
-  var { error } = await sb.from('partners').update(updates).eq('id', partnerId);
-  if (error) { showToast('Fout bij opslaan: ' + error.message, 'error'); return; }
+  var { data, error } = await sb.from('partners').update(updates).eq('id', partnerId).select().single();
+  if (error) {
+    console.error('saveAdminPartner error:', error);
+    showToast('Fout bij opslaan: ' + error.message, 'error');
+    return;
+  }
 
-  // Update local data
+  // Update local data (merge server-returned row zodat defaults/timestamps correct zijn)
   var p = partners.find(function(x) { return x.id === partnerId; });
-  if (p) Object.assign(p, updates);
+  if (p) Object.assign(p, data || updates);
+
+  // Als admin zijn eigen partner-record bewerkt, herlaad branding direct
+  if (userPartner && userPartner.id === partnerId) {
+    Object.assign(userPartner, data || updates);
+    applyBranding(userPartner);
+  }
+
+  // Normaliseer zichtbare velden zodat UI en DB 1-op-1 matchen
+  var pickEl1 = document.getElementById('adm-kleur1-' + partnerId);
+  var hexEl1 = document.getElementById('adm-kleur1t-' + partnerId);
+  if (pickEl1) pickEl1.value = kleurPrimair;
+  if (hexEl1) hexEl1.value = kleurPrimair;
+  var pickEl2 = document.getElementById('adm-kleur2-' + partnerId);
+  var hexEl2 = document.getElementById('adm-kleur2t-' + partnerId);
+  if (pickEl2) pickEl2.value = kleurDonker;
+  if (hexEl2) hexEl2.value = kleurDonker;
 
   var msg = document.getElementById('adm-saved-' + partnerId);
-  msg.style.display = 'inline';
-  setTimeout(function() { msg.style.display = 'none'; }, 2000);
+  if (msg) {
+    msg.style.display = 'inline';
+    setTimeout(function() { msg.style.display = 'none'; }, 2000);
+  }
   showToast('Partner opgeslagen');
 }
 
