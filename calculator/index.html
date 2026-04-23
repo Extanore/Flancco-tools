@@ -2448,11 +2448,36 @@ async function submitSigning() {
       throw new Error('Signing-token ontbreekt in URL. Vernieuw de pagina of neem contact op met uw partner.');
     }
 
+    // Detect client public IP for legal traceability of the signing event.
+    // Strict 3s timeout via AbortController so network issues never block signing.
+    // On any failure (timeout, network, CSP, malformed response) we log a warning
+    // and fall back to null — the signing flow must always be able to proceed.
+    var signingIp = null;
+    try {
+      var ipCtrl = new AbortController();
+      var ipTimer = setTimeout(function() { ipCtrl.abort(); }, 3000);
+      try {
+        var ipRes = await fetch('https://api.ipify.org?format=json', { signal: ipCtrl.signal, cache: 'no-store' });
+        if (ipRes && ipRes.ok) {
+          var ipJson = await ipRes.json();
+          if (ipJson && typeof ipJson.ip === 'string' && ipJson.ip.length > 0 && ipJson.ip.length <= 45) {
+            signingIp = ipJson.ip;
+          }
+        }
+      } finally {
+        clearTimeout(ipTimer);
+      }
+    } catch (ipErr) {
+      console.warn('IP-detectie voor contract-ondertekening mislukt, fallback naar null:', ipErr);
+      signingIp = null;
+    }
+
     var signRes = await sb.rpc('anon_sign_contract_complete', {
       p_token: signingToken,
       p_handtekening_url: sigUrl,
       p_handtekening_data: handtekeningData,
       p_signing_user_agent: navigator.userAgent,
+      p_signing_ip: signingIp,
       p_client_payload: clientPayload
     });
     if (signRes.error) {
@@ -2467,6 +2492,7 @@ async function submitSigning() {
       handtekening_data: handtekeningData,
       datum_ondertekening: new Date().toISOString().split('T')[0],
       signing_user_agent: navigator.userAgent,
+      signing_ip: signingIp,
       signing_timestamp: new Date().toISOString(),
       signing_methode: 'op_afstand',
       akkoord_voorwaarden: true,
