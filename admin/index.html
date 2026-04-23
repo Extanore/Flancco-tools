@@ -1712,6 +1712,22 @@
           <button type="button" class="btn btn-primary" onclick="saveRapportConfig()">Rapport-instellingen opslaan</button>
         </div>
       </div>
+
+      <!-- Duur-regels per sector + partner-override -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><span class="card-title">Duur-regels per sector</span></div>
+        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Bepaal hoe lang een onderhoudsbeurt duurt per sector en installatiegrootte. Standaardregels gelden voor alle partners; partner-specifieke regels overschrijven de standaard.</p>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="duur-sector-tabs"></div>
+        <div id="duur-items-container">
+          <div style="padding:24px;background:var(--light);border-radius:8px;text-align:center;color:var(--grey);font-size:13px">Laden…</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button type="button" onclick="addDuurRegel()" style="padding:8px 16px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Nieuwe regel
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- NIEUWE PARTNER MODAL -->
@@ -3911,6 +3927,277 @@ async function saveChecklistTemplate() {
 }
 
 // =============================================
+// DUUR-REGELS PER SECTOR (duur_instellingen)
+// Sprint 2.2 — beheert default + partner-specifieke duur-regels.
+// Sector-lijst bewust apart van checklistSectors: warmtepomp heeft
+// hier 3 subtypes (lucht-lucht, lucht-water, geothermie-water) omdat
+// de duur per type sterk verschilt.
+// =============================================
+var duurSectors = [
+  { key: 'zonnepanelen',                 label: 'Zonnepanelen',                  metric: 'panelen' },
+  { key: 'warmtepomp_lucht_lucht',       label: 'Warmtepomp lucht-lucht',        metric: 'binnenunits' },
+  { key: 'warmtepomp_lucht_water',       label: 'Warmtepomp lucht-water',        metric: 'binnenunits' },
+  { key: 'warmtepomp_geothermie_water',  label: 'Warmtepomp geothermie-water',   metric: 'binnenunits' },
+  { key: 'ventilatie',                   label: 'Ventilatie',                    metric: 'ventielen' },
+  { key: 'verwarming',                   label: 'Verwarming',                    metric: 'toestellen' },
+  { key: 'airco',                        label: 'Airco',                         metric: 'splits' },
+  { key: 'ic',                           label: 'Industrial Cleaning',           metric: 'eenheden' },
+  { key: 'klussen',                      label: 'Klussen',                       metric: 'eenheden' }
+];
+var activeDuurSector = 'zonnepanelen';
+var allDuurInstellingen = [];
+
+function getDuurSectorLabel(sectorKey) {
+  var s = duurSectors.find(function(x) { return x.key === sectorKey; });
+  return s ? s.label : sectorKey;
+}
+
+function getDuurSectorMetric(sectorKey) {
+  var s = duurSectors.find(function(x) { return x.key === sectorKey; });
+  return s ? s.metric : 'eenheden';
+}
+
+async function initDuurInstellingen() {
+  var container = document.getElementById('duur-sector-tabs');
+  if (!container) return;
+  container.innerHTML = duurSectors.map(function(s) {
+    return '<button type="button" onclick="switchDuurSector(\'' + s.key + '\')" id="duur-tab-' + s.key + '" ' +
+      'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--rule);background:white;color:var(--grey);transition:all 0.15s ease">' +
+      esc(s.label) + '</button>';
+  }).join('');
+  await reloadDuurInstellingen();
+  switchDuurSector(activeDuurSector);
+}
+
+async function reloadDuurInstellingen() {
+  var res = await sb.from('duur_instellingen').select('*').order('sector').order('grootte_min');
+  if (res.error) {
+    console.warn('Kan duur_instellingen niet laden:', res.error.message);
+    allDuurInstellingen = [];
+    return;
+  }
+  allDuurInstellingen = (res.data || []).map(function(r) {
+    return Object.assign({}, r, { _clientId: _makeDuurClientId() });
+  });
+}
+
+function switchDuurSector(sectorKey) {
+  activeDuurSector = sectorKey;
+  duurSectors.forEach(function(s) {
+    var tab = document.getElementById('duur-tab-' + s.key);
+    if (!tab) return;
+    if (s.key === sectorKey) {
+      tab.style.background = 'var(--navy)';
+      tab.style.color = '#fff';
+      tab.style.borderColor = 'var(--navy)';
+    } else {
+      tab.style.background = '#fff';
+      tab.style.color = 'var(--grey)';
+      tab.style.borderColor = 'var(--rule)';
+    }
+  });
+  renderDuurRegels();
+}
+
+function renderDuurRegels() {
+  var container = document.getElementById('duur-items-container');
+  if (!container) return;
+  _ensureDuurClientIds();
+  var metric = getDuurSectorMetric(activeDuurSector);
+  var regels = allDuurInstellingen.filter(function(r) { return r.sector === activeDuurSector; });
+  // Sorteer: eerst defaults (partner_id NULL), daarna per partner op naam
+  regels.sort(function(a, b) {
+    if ((a.partner_id || '') !== (b.partner_id || '')) {
+      if (!a.partner_id) return -1;
+      if (!b.partner_id) return 1;
+      var pa = (typeof allPartners !== 'undefined' ? allPartners : null) || partners || [];
+      var na = (pa.find(function(p) { return p.id === a.partner_id; }) || {}).naam || '';
+      var nb = (pa.find(function(p) { return p.id === b.partner_id; }) || {}).naam || '';
+      return na.localeCompare(nb);
+    }
+    return (a.grootte_min || 0) - (b.grootte_min || 0);
+  });
+
+  if (regels.length === 0) {
+    container.innerHTML = '<div style="padding:24px;background:var(--light);border-radius:8px;text-align:center;color:var(--grey);font-size:13px">Nog geen regels voor ' + esc(getDuurSectorLabel(activeDuurSector)) + '. Klik op "Nieuwe regel" om een regel toe te voegen.</div>';
+    return;
+  }
+
+  var partnersList = (typeof allPartners !== 'undefined' ? allPartners : null) || partners || [];
+  var buildPartnerOptions = function(selectedId) {
+    var opts = '<option value=""' + (!selectedId ? ' selected' : '') + '>Standaard (alle partners)</option>';
+    partnersList.forEach(function(p) {
+      var sel = (p.id === selectedId) ? ' selected' : '';
+      opts += '<option value="' + esc(p.id) + '"' + sel + '>' + esc(p.naam || p.bedrijfsnaam || '—') + '</option>';
+    });
+    return opts;
+  };
+
+  var rowsHtml = regels.map(function(r) {
+    var isNew = !r.id;
+    var cid = r._clientId;
+    return '<tr data-regel-id="' + esc(r.id || '') + '" data-client-id="' + esc(cid) + '">' +
+      '<td style="padding:8px 10px">' +
+        '<input type="number" min="1" max="99999" value="' + (r.grootte_min != null ? r.grootte_min : '') + '" ' +
+          'onchange="updateDuurRegelField(\'' + esc(cid) + '\',\'grootte_min\',this.value)" ' +
+          'style="width:80px;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-size:13px">' +
+      '</td>' +
+      '<td style="padding:8px 10px">' +
+        '<input type="number" min="1" max="99999" value="' + (r.grootte_max != null ? r.grootte_max : '') + '" ' +
+          'placeholder="geen bovengrens" ' +
+          'onchange="updateDuurRegelField(\'' + esc(cid) + '\',\'grootte_max\',this.value)" ' +
+          'style="width:120px;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-size:13px">' +
+      '</td>' +
+      '<td style="padding:8px 10px">' +
+        '<input type="number" min="1" max="1440" value="' + (r.duur_minuten != null ? r.duur_minuten : 60) + '" ' +
+          'onchange="updateDuurRegelField(\'' + esc(cid) + '\',\'duur_minuten\',this.value)" ' +
+          'style="width:100px;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-size:13px">' +
+      '</td>' +
+      '<td style="padding:8px 10px">' +
+        '<select onchange="updateDuurRegelField(\'' + esc(cid) + '\',\'partner_id\',this.value)" ' +
+          'style="padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-size:13px;min-width:200px">' +
+          buildPartnerOptions(r.partner_id || null) +
+        '</select>' +
+      '</td>' +
+      '<td style="padding:8px 10px;text-align:right;white-space:nowrap">' +
+        (isNew || r._dirty ?
+          '<button type="button" onclick="saveDuurRegel(\'' + esc(cid) + '\')" ' +
+            'title="Opslaan" style="padding:6px 10px;border:1px solid var(--navy);border-radius:4px;background:var(--navy);color:#fff;cursor:pointer;font-size:12px;font-weight:600;margin-right:4px">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle"><path d="M20 6L9 17l-5-5"/></svg>' +
+          '</button>' : '') +
+        '<button type="button" onclick="deleteDuurRegel(\'' + esc(cid) + '\')" ' +
+          'title="Verwijderen" style="padding:6px 8px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;color:#DC2626;cursor:pointer">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>' +
+        '</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  container.innerHTML =
+    '<div style="overflow-x:auto">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+        '<thead>' +
+          '<tr style="background:var(--light)">' +
+            '<th style="padding:10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey);border-bottom:1px solid var(--rule)">Min ' + esc(metric) + '</th>' +
+            '<th style="padding:10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey);border-bottom:1px solid var(--rule)">Max ' + esc(metric) + '</th>' +
+            '<th style="padding:10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey);border-bottom:1px solid var(--rule)">Duur (min)</th>' +
+            '<th style="padding:10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey);border-bottom:1px solid var(--rule)">Partner</th>' +
+            '<th style="padding:10px;text-align:right;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey);border-bottom:1px solid var(--rule)">Acties</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody>' + rowsHtml + '</tbody>' +
+      '</table>' +
+    '</div>';
+}
+
+// Helper: vind regel in allDuurInstellingen op basis van _clientId (lokaal werkkopie-id)
+function _findDuurRegelByClientId(clientId) {
+  return allDuurInstellingen.find(function(r) { return r._clientId === clientId; });
+}
+
+var _duurClientIdCounter = 0;
+function _makeDuurClientId() { return '_dc_' + (++_duurClientIdCounter); }
+
+// Zorg dat elke bestaande regel een _clientId krijgt bij eerste render
+function _ensureDuurClientIds() {
+  allDuurInstellingen.forEach(function(r) {
+    if (!r._clientId) r._clientId = _makeDuurClientId();
+  });
+}
+
+function updateDuurRegelField(clientId, field, value) {
+  var regel = _findDuurRegelByClientId(clientId);
+  if (!regel) return;
+  if (field === 'grootte_min' || field === 'grootte_max' || field === 'duur_minuten') {
+    value = value === '' ? null : parseInt(value, 10);
+    if (field === 'grootte_min' && (value == null || isNaN(value))) value = 1;
+    if (field === 'duur_minuten' && (value == null || isNaN(value) || value <= 0)) value = 60;
+  }
+  if (field === 'partner_id' && value === '') value = null;
+  regel[field] = value;
+  regel._dirty = true;
+  renderDuurRegels();
+}
+
+function addDuurRegel() {
+  _ensureDuurClientIds();
+  var nieuw = {
+    _clientId: _makeDuurClientId(),
+    id: null,
+    sector: activeDuurSector,
+    grootte_min: 1,
+    grootte_max: null,
+    duur_minuten: 60,
+    partner_id: null,
+    _dirty: true
+  };
+  allDuurInstellingen.push(nieuw);
+  renderDuurRegels();
+}
+
+async function saveDuurRegel(clientId) {
+  var regel = _findDuurRegelByClientId(clientId);
+  if (!regel) return;
+  // Validatie
+  var min = parseInt(regel.grootte_min, 10);
+  var max = regel.grootte_max == null || regel.grootte_max === '' ? null : parseInt(regel.grootte_max, 10);
+  var duur = parseInt(regel.duur_minuten, 10);
+  if (!min || min < 1) { showToast('Minimum-grootte moet minstens 1 zijn', 'error'); return; }
+  if (max != null && max < min) { showToast('Maximum moet groter of gelijk zijn aan minimum', 'error'); return; }
+  if (!duur || duur < 1 || duur > 1440) { showToast('Duur moet tussen 1 en 1440 minuten liggen', 'error'); return; }
+
+  var payload = {
+    sector: activeDuurSector,
+    grootte_min: min,
+    grootte_max: max,
+    duur_minuten: duur,
+    partner_id: regel.partner_id || null
+  };
+
+  try {
+    if (regel.id) {
+      var upd = await sb.from('duur_instellingen').update(payload).eq('id', regel.id).select().single();
+      if (upd.error) throw upd.error;
+      Object.assign(regel, upd.data, { _clientId: regel._clientId });
+      regel._dirty = false;
+    } else {
+      var ins = await sb.from('duur_instellingen').insert([payload]).select().single();
+      if (ins.error) throw ins.error;
+      Object.assign(regel, ins.data, { _clientId: regel._clientId });
+      regel._dirty = false;
+    }
+    showToast('Duur-regel opgeslagen', 'success');
+    renderDuurRegels();
+  } catch (e) {
+    await infoDialog('Fout bij opslaan: ' + (e.message || e), 'Opslaan mislukt');
+  }
+}
+
+async function deleteDuurRegel(clientId) {
+  var regel = _findDuurRegelByClientId(clientId);
+  if (!regel) return;
+  // Als nog nooit opgeslagen: direct weg uit lokale state
+  if (!regel.id) {
+    allDuurInstellingen = allDuurInstellingen.filter(function(r) { return r._clientId !== clientId; });
+    renderDuurRegels();
+    return;
+  }
+  var ok = await confirmDialog({
+    title: 'Duur-regel verwijderen?',
+    message: 'Regel ' + regel.grootte_min + (regel.grootte_max ? '–' + regel.grootte_max : '+') + ' = ' + regel.duur_minuten + ' min wordt permanent verwijderd.',
+    confirmLabel: 'Verwijderen',
+    cancelLabel: 'Annuleren',
+    variant: 'danger'
+  });
+  if (!ok) return;
+  var res = await sb.from('duur_instellingen').delete().eq('id', regel.id);
+  if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Verwijderen mislukt'); return; }
+  allDuurInstellingen = allDuurInstellingen.filter(function(r) { return r._clientId !== clientId; });
+  showToast('Duur-regel verwijderd', 'success');
+  renderDuurRegels();
+}
+
+// =============================================
 // RAPPORT-INSTELLINGEN (app_settings.rapport_config)
 // =============================================
 var rapportConfigData = null;
@@ -4420,7 +4707,7 @@ function showPage(name) {
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
   const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren' };
   document.getElementById('page-title').textContent = titles[name] || name;
-  if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); }
+  if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); }
   if (name === 'gebruikers') renderGebruikers();
   if (name === 'verlof') renderVerlofPage();
   if (name === 'uren') renderUrenPage();
