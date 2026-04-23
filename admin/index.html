@@ -67,6 +67,13 @@
           fav.setAttribute('type', 'image/png');
         }
       }
+      // Pre-mark dat branding (cached versie) is toegepast — initApp-guard zal sidebar
+      // voor terugkerende partners niet verbergen tijdens de ~100ms partner-fetch, omdat
+      // boot-cache-kleuren al zichtbaar zijn. Admin/bediende/technieker krijgen deze class
+      // in initApp() na rol-detectie.
+      document.addEventListener('DOMContentLoaded', function() {
+        if (document.body) document.body.classList.add('branding-applied');
+      });
     } catch(_) { /* silent: cache-corruption valt terug op default branding */ }
   })();
 
@@ -480,6 +487,66 @@
   .alert-orange { background:#FFF8E7; color:#92400E; border:1px solid #FDE68A; }
   .modal-buttons { display:flex; gap:12px; margin-top:20px; }
   .modal-buttons button { padding:12px 20px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; }
+
+  /* MODAL HEADER + CLOSE — shared styling voor modals met .modal-header structuur */
+  .modal-header {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    padding:0 0 20px; margin:0 0 20px; border-bottom:1px solid var(--rule);
+  }
+  .modal-header h3 {
+    margin:0; font-size:20px; font-weight:700; color:var(--navy); line-height:1.3; letter-spacing:-0.2px;
+  }
+  .modal-header small {
+    display:block; font-size:13px; color:var(--grey); line-height:1.4; margin-top:4px;
+  }
+  .modal-close {
+    flex-shrink:0; width:32px; height:32px; border-radius:8px;
+    background:transparent; border:none; cursor:pointer;
+    font-size:24px; line-height:1; color:var(--grey);
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:background 0.15s, color 0.15s;
+  }
+  .modal-close:hover { background:var(--light); color:var(--navy); }
+  .modal-body { margin-bottom:0; }
+
+  /* Generic form-grid — herbruikbaar over modals heen */
+  .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px 14px; }
+  .form-field { display:flex; flex-direction:column; min-width:0; }
+  .form-field-full { grid-column:1 / -1; }
+  .form-field > label {
+    font-size:11px; font-weight:600; color:var(--grey);
+    text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;
+    display:flex; align-items:center; gap:4px;
+  }
+  .form-field .req { color:var(--red); font-weight:700; }
+  .form-field .hint-inline { font-size:10px; font-weight:500; color:var(--grey); text-transform:none; letter-spacing:normal; margin-left:auto; }
+  .form-field > input, .form-field > select, .form-field > textarea {
+    width:100%; padding:10px 12px;
+    border:1.5px solid var(--rule); border-radius:8px;
+    font-family:inherit; font-size:14px; color:var(--navy);
+    background:#fff;
+    transition:border-color 0.15s, box-shadow 0.15s;
+  }
+  .form-field > input:focus, .form-field > select:focus, .form-field > textarea:focus {
+    outline:none; border-color:var(--navy); box-shadow:0 0 0 3px rgba(26,26,46,0.08);
+  }
+  .form-field > input[readonly] { background:#F3F4F6; color:var(--grey); cursor:not-allowed; }
+  .form-hint {
+    grid-column:1 / -1;
+    display:flex; gap:10px; align-items:flex-start;
+    padding:12px 14px; margin-top:4px;
+    background:#F9FAFB; border:1px solid var(--rule); border-radius:8px;
+    font-size:12px; color:var(--grey); line-height:1.5;
+  }
+  .form-hint svg { flex-shrink:0; color:var(--navy); opacity:0.6; margin-top:1px; }
+  @media (max-width:640px) {
+    .form-grid-2 { grid-template-columns:1fr; }
+  }
+
+  /* Branding-flash guard: verberg sidebar + header tot partner-branding is toegepast.
+     Admin + bediende + technieker krijgen direct 'branding-applied' na rol-detectie. */
+  body.role-partner:not(.branding-applied) .sidebar,
+  body.role-partner:not(.branding-applied) .header { visibility:hidden; }
 
   /* TECH MODAL — checkbox groups */
   .tech-checkbox-group {
@@ -1911,36 +1978,71 @@
       </div>
     </div>
 
-    <!-- Modal: Nieuwe / Bewerk Bediende -->
+    <!-- Modal: Nieuwe / Bewerk Gebruiker -->
     <div class="modal-overlay" id="modal-bediende" style="display:none" onclick="if(event.target===this)closeBediendeModal()">
-      <div class="modal" style="max-width:640px">
+      <div class="modal" style="max-width:640px;padding:28px 28px 0">
         <div class="modal-header">
-          <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-            <h3 id="bed-modal-title">Nieuwe bediende</h3>
-            <small id="bed-modal-subtitle" style="display:none;color:var(--grey);font-size:12px;line-height:1.3"></small>
+          <div style="flex:1;min-width:0">
+            <h3 id="bed-modal-title">Nieuwe gebruiker</h3>
+            <small id="bed-modal-subtitle" style="display:none"></small>
           </div>
-          <button class="modal-close" onclick="closeBediendeModal()">×</button>
+          <button class="modal-close" type="button" aria-label="Sluiten" onclick="closeBediendeModal()">×</button>
         </div>
         <div class="modal-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div><label>Voornaam *</label><input id="bed-voornaam"></div>
-            <div><label>Achternaam *</label><input id="bed-naam"></div>
-            <div><label>Email *</label><input id="bed-email" type="email"></div>
-            <div><label>Telefoon</label><input id="bed-telefoon"></div>
-            <div style="grid-column:span 2"><label>Functie</label><input id="bed-functie" placeholder="bv. Planner, Administratie, Accountmanager"></div>
-            <div><label>Startdatum tewerkstelling</label><input id="bed-startdatum" type="date"></div>
-            <div><label>Wachtwoord *<span id="bed-pw-hint" style="font-weight:400;color:var(--grey);font-size:11px;margin-left:6px">(minstens 6 tekens)</span></label><input id="bed-password" type="password" autocomplete="new-password"></div>
-            <div style="grid-column:span 2"><label>Adres (straat + nr)</label><input id="bed-adres"></div>
-            <div><label>Postcode</label><input id="bed-postcode"></div>
-            <div><label>Gemeente</label><input id="bed-gemeente"></div>
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label>Voornaam <span class="req">*</span></label>
+              <input id="bed-voornaam" autocomplete="given-name">
+            </div>
+            <div class="form-field">
+              <label>Achternaam <span class="req">*</span></label>
+              <input id="bed-naam" autocomplete="family-name">
+            </div>
+            <div class="form-field">
+              <label>E-mail <span class="req">*</span></label>
+              <input id="bed-email" type="email" autocomplete="email">
+            </div>
+            <div class="form-field">
+              <label>Telefoon</label>
+              <input id="bed-telefoon" type="tel" autocomplete="tel">
+            </div>
+            <div class="form-field form-field-full">
+              <label>Functie</label>
+              <input id="bed-functie" placeholder="bv. Planner, Administratie, Accountmanager">
+            </div>
+            <div class="form-field">
+              <label>Startdatum tewerkstelling</label>
+              <input id="bed-startdatum" type="date">
+            </div>
+            <div class="form-field" id="bed-password-field">
+              <label>Wachtwoord <span class="req">*</span><span id="bed-pw-hint" class="hint-inline">min. 6 tekens</span></label>
+              <input id="bed-password" type="password" autocomplete="new-password">
+            </div>
+            <div class="form-field form-field-full">
+              <label>Adres (straat + nr)</label>
+              <input id="bed-adres" autocomplete="street-address">
+            </div>
+            <div class="form-field">
+              <label>Postcode</label>
+              <input id="bed-postcode" autocomplete="postal-code">
+            </div>
+            <div class="form-field">
+              <label>Gemeente</label>
+              <input id="bed-gemeente" autocomplete="address-level2">
+            </div>
+            <div class="form-hint" id="bed-hint-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span id="bed-hint">De gebruiker krijgt een eigen login-account (admin-light: geen toegang tot Partners, Pricing, Gebruikersbeheer). Standaard saldo: 20 vakantiedagen + 12 ADV voor dit jaar.</span>
+            </div>
           </div>
-          <p style="margin-top:12px;color:var(--grey);font-size:12px" id="bed-hint">
-            De bediende krijgt een eigen login-account (admin-light: geen toegang tot Partners, Pricing, Gebruikersbeheer). Standaard saldo: 20 vakantiedagen + 12 ADV voor dit jaar.
-          </p>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-ghost" onclick="closeBediendeModal()">Annuleren</button>
-          <button class="btn btn-primary" id="bed-save-btn" onclick="saveBediende()">Opslaan</button>
+        <div class="modal-footer" style="margin:24px -28px 0;padding:16px 28px">
+          <div class="footer-left">
+            <button class="btn btn-ghost" onclick="closeBediendeModal()">Annuleren</button>
+          </div>
+          <div class="footer-right">
+            <button class="btn btn-primary" id="bed-save-btn" onclick="saveBediende()">Opslaan</button>
+          </div>
         </div>
       </div>
     </div>
@@ -3351,20 +3453,41 @@ async function initApp() {
   document.getElementById('app').style.display = 'block';
   document.getElementById('user-email').textContent = currentUser.email;
 
-  await loadAllData();
-
-  // If partner: apply branding and load settings
+  // Branding-first: voor partners halen we de partner-record vóór loadAllData op zodat
+  // applyBranding() binnen ~200ms na login kan draaien, niet na ~1s (na loadAllData's 20
+  // parallelle queries). Voorkomt de zichtbare Flancco-flash op first-time logins zonder
+  // boot-cache. Voor admin/bediende/technieker zetten we direct de 'branding-applied'
+  // body-class zodat de CSS-guard de sidebar niet onnodig verbergt.
   if (userRole === 'partner' && roleData.partner_id) {
-    userPartner = partners.find(p => p.id === roleData.partner_id);
-    if (userPartner) {
-      applyBranding(userPartner);
-      loadSettings(userPartner);
+    try {
+      var partnerRes = await sb.from('partners').select('*').eq('id', roleData.partner_id).single();
+      if (partnerRes.data) {
+        userPartner = partnerRes.data;
+        applyBranding(userPartner);
+      }
+    } catch (e) {
+      console.warn('Vroege partner-branding-load mislukt — fallback naar post-loadAllData:', e);
     }
+    document.body.classList.add('branding-applied');
   } else {
     // Admin/bediende/technieker: geen partner-branding → cache wissen zodat
     // een vorige partner-login niet doorwerkt bij rol-switch op hetzelfde device.
     try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
     try { if (typeof resetFaviconToDefault === 'function') resetFaviconToDefault(); } catch(_) {}
+    document.body.classList.add('branding-applied');
+  }
+
+  await loadAllData();
+
+  // Settings laden gebeurt na loadAllData (afhankelijk van `partners`-array voor sibling-data
+  // zoals pricing-staffels). Branding zelf is hier al lang toegepast.
+  if (userRole === 'partner' && roleData.partner_id) {
+    if (!userPartner && Array.isArray(partners)) {
+      // Fallback: vroege fetch faalde, val terug op partners uit loadAllData
+      userPartner = partners.find(p => p.id === roleData.partner_id);
+      if (userPartner) applyBranding(userPartner);
+    }
+    if (userPartner) loadSettings(userPartner);
   }
   if (userRole === 'partner' && roleData.partner_id) {
     document.getElementById('contracten-title').textContent = 'Mijn contracten';
@@ -3475,6 +3598,10 @@ function applyBranding(p) {
       logo_url: p.logo_url || ''
     }));
   } catch(_) { /* storage-quota/private-mode: negeer, geen functionele impact */ }
+
+  // Flash-guard: markeer dat partner-branding is toegepast zodat de CSS-regel die sidebar
+  // + header verbergt voor partners (zonder applied-class) nu deblokkeert.
+  document.body.classList.add('branding-applied');
 }
 
 // Favicon helpers — vervangt de tab-icon door partner-logo, of reset naar Flancco-default.
@@ -11662,12 +11789,21 @@ function openBediendeModal(bedId, opts) {
   var b = editing ? (allTechniekers || []).find(function(x) { return x.id === bedId; }) : null;
 
   // Titel + subtitle (subtitle voor context "Nieuw teamlid voor ...")
-  document.getElementById('bed-modal-title').textContent = editing ? 'Bediende bewerken' : 'Nieuwe bediende';
+  document.getElementById('bed-modal-title').textContent = editing ? 'Gebruiker bewerken' : 'Nieuwe gebruiker';
   var subtitleEl = document.getElementById('bed-modal-subtitle');
   if (subtitleEl) {
     if (!editing && opts.headerSubtitle) {
       subtitleEl.textContent = opts.headerSubtitle;
       subtitleEl.style.display = 'block';
+    } else if (editing) {
+      var fullName = [(b && b.voornaam) || '', (b && b.naam) || ''].filter(Boolean).join(' ').trim();
+      if (fullName) {
+        subtitleEl.textContent = fullName;
+        subtitleEl.style.display = 'block';
+      } else {
+        subtitleEl.textContent = '';
+        subtitleEl.style.display = 'none';
+      }
     } else {
       subtitleEl.textContent = '';
       subtitleEl.style.display = 'none';
