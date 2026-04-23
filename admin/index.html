@@ -2369,6 +2369,7 @@
               <tr>
                 <th>Technieker</th>
                 <th style="text-align:right">Gewerkte uren</th>
+                <th style="text-align:right" title="Economische werkloosheid — dagen-equivalent">EW (d)</th>
                 <th style="text-align:right">Verlof (d)</th>
                 <th style="text-align:right">Ziekte (d)</th>
                 <th style="text-align:right">Overuren</th>
@@ -3620,6 +3621,9 @@
 const SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// Economische werkloosheid (EW) — verlof_type UUID. Gebruikt door uren-kolom, dashboard-tegel en CSV-export.
+const EW_VERLOF_TYPE_ID = 'd5d9687d-d480-4ec1-b3c8-94bb26114e95';
 
 // =============================================
 // PLATFORM URLs — hostname-autodetect voor dual-mode (legacy GitHub Pages + Cloudflare Pages)
@@ -5851,6 +5855,85 @@ function renderDashDeadlines(rows) {
   body.innerHTML = html;
 }
 
+/**
+ * EW-tegel op dashboard: huidige maand + 12-maanden sparkline uit view v_ew_maand_stats.
+ * View-kolommen: maand (date, eerste van de maand), ew_registraties (int), ew_dagen_equiv (numeric), dimona_todo (int).
+ * Stille fail bij error — de tegel blijft met default ('—') staan zodat andere widgets niet breken.
+ */
+async function loadEwDashboardTile() {
+  var card   = document.getElementById('stat-ew-card');
+  var valEl  = document.getElementById('stat-ew-dagen');
+  var subEl  = document.getElementById('stat-ew-sub');
+  var spark  = document.getElementById('stat-ew-spark');
+  if (!card || !valEl) return;
+  try {
+    var res = await sb.from('v_ew_maand_stats').select('maand, ew_registraties, ew_dagen_equiv, dimona_todo').order('maand', { ascending: true });
+    if (res.error) throw res.error;
+    var rows = (res.data || []).map(function(r) {
+      return {
+        maand: r.maand,
+        regs: parseInt(r.ew_registraties, 10) || 0,
+        dagen: parseFloat(r.ew_dagen_equiv) || 0,
+        dimona: parseInt(r.dimona_todo, 10) || 0
+      };
+    });
+    // Huidige maand = eerste van de maand ISO
+    var now = new Date();
+    var currentMonthISO = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
+    var current = rows.find(function(r) { return (r.maand || '').substring(0, 7) === currentMonthISO.substring(0, 7); });
+    if (!current) current = { maand: currentMonthISO, regs: 0, dagen: 0, dimona: 0 };
+
+    valEl.textContent = current.dagen.toFixed(1).replace('.', ',');
+    if (subEl) {
+      var regTxt = current.regs + ' registratie' + (current.regs === 1 ? '' : 's');
+      var dimTxt = current.dimona + ' nog te melden in Dimona';
+      subEl.textContent = regTxt + ' · ' + dimTxt;
+    }
+    renderEwSparkline(spark, rows.slice(-12));
+  } catch (err) {
+    console.warn('EW-tegel laden mislukt:', err);
+    valEl.textContent = '—';
+    if (subEl) subEl.textContent = 'Geen data beschikbaar';
+    if (spark) spark.innerHTML = '';
+  }
+}
+
+/**
+ * Eenvoudige SVG-sparkline voor dashboard EW-tegel.
+ * rows: [{ maand, dagen }]. Schaalt tussen 0 en max(dagen); 0-bijkantelen naar onderkant svg.
+ */
+function renderEwSparkline(svg, rows) {
+  if (!svg) return;
+  if (!rows || rows.length === 0) { svg.innerHTML = ''; return; }
+  var W = 120, H = 28, pad = 2;
+  var max = 0;
+  rows.forEach(function(r) { if (r.dagen > max) max = r.dagen; });
+  if (max <= 0) max = 1; // vermijd deling door 0, toon vlakke lijn
+  var n = rows.length;
+  var step = n > 1 ? (W - pad * 2) / (n - 1) : 0;
+  var pts = rows.map(function(r, i) {
+    var x = pad + i * step;
+    var y = H - pad - (r.dagen / max) * (H - pad * 2);
+    return x.toFixed(2) + ',' + y.toFixed(2);
+  }).join(' ');
+  // Gradient-fill onder de lijn voor visuele diepte
+  var areaPts = (pad).toFixed(2) + ',' + (H - pad).toFixed(2) + ' ' + pts + ' ' +
+                (pad + (n - 1) * step).toFixed(2) + ',' + (H - pad).toFixed(2);
+  // Laatste punt: markeer met cirkel (huidige maand)
+  var lastIdx = n - 1;
+  var lastX = pad + lastIdx * step;
+  var lastY = H - pad - ((rows[lastIdx].dagen) / max) * (H - pad * 2);
+  var gradId = 'ew-spark-grad-' + Math.random().toString(36).slice(2, 8);
+  svg.innerHTML =
+    '<defs><linearGradient id="' + gradId + '" x1="0" x2="0" y1="0" y2="1">' +
+      '<stop offset="0%" stop-color="#F59E0B" stop-opacity="0.35"/>' +
+      '<stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>' +
+    '</linearGradient></defs>' +
+    '<polygon points="' + areaPts + '" fill="url(#' + gradId + ')" stroke="none"/>' +
+    '<polyline points="' + pts + '" fill="none" stroke="#D97706" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<circle cx="' + lastX.toFixed(2) + '" cy="' + lastY.toFixed(2) + '" r="2.5" fill="#D97706"/>';
+}
+
 function renderDashboard() {
   // Greeting + datum
   var now = new Date();
@@ -5925,7 +6008,16 @@ function renderDashboard() {
        <div class="stat-card"><div class="stat-label">Deze week</div><div class="stat-value" id="stat-week">0</div><div class="stat-sub">geplande beurten</div></div>
        <div class="stat-card orange"><div class="stat-label">Openstaand</div><div class="stat-value" id="stat-openstaand">0</div><div class="stat-sub">in te plannen</div></div>
        <div class="stat-card red"><div class="stat-label">Interventies</div><div class="stat-value" id="stat-int-open">0</div><div class="stat-sub">open</div></div>
-       <div class="stat-card green"><div class="stat-label">Deadlines 14d</div><div class="stat-value" id="stat-deadlines">0</div><div class="stat-sub">actie vereist</div></div>`
+       <div class="stat-card green"><div class="stat-label">Deadlines 14d</div><div class="stat-value" id="stat-deadlines">0</div><div class="stat-sub">actie vereist</div></div>
+       <div class="stat-card admin-only ew-stat-card" id="stat-ew-card" role="button" tabindex="0" onclick="showPage && showPage('ew')" onkeypress="if(event.key==='Enter'||event.key===' '){showPage&&showPage('ew');}" title="Open EW-overzicht" style="cursor:pointer;position:relative">
+         <div class="stat-label" style="display:flex;align-items:center;gap:6px">
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#D97706"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+           <span>EW deze maand</span>
+         </div>
+         <div class="stat-value" id="stat-ew-dagen" style="color:#D97706">0,0</div>
+         <div class="stat-sub" id="stat-ew-sub">laden…</div>
+         <svg id="stat-ew-spark" width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" style="display:block;margin-top:8px;overflow:visible" aria-hidden="true"></svg>
+       </div>`
     : (function() {
         // Partner-dashboard: operationele KPI's (géén omzet/marge — dat hoort thuis in facturatie-view).
         // IDs matchen loadPlanningDashWidgets() zodat die de live tellers vult; scope op partner gebeurt daar.
@@ -5943,6 +6035,11 @@ function renderDashboard() {
   // Planning-widgets laden (Vandaag + Deadlines) — enkel voor admin/partner dashboard
   if (userRole === 'admin' || userRole === 'partner') {
     loadPlanningDashWidgets();
+  }
+
+  // EW-tegel (admin-only) — maandstats + sparkline
+  if (userRole === 'admin') {
+    loadEwDashboardTile();
   }
 
   const recent = contracts.slice(0, 8);
@@ -14867,6 +14964,167 @@ function _csvCell(v) {
 }
 
 // =============================================
+// EW — CSV-export (globaal, aangeroepen vanuit EW-pagina)
+// =============================================
+
+/**
+ * CSV-cell voor EW-export: escape quotes, wrap met quotes indien puntkomma/quote/newline,
+ * én prefixeer cellen die met = + - @ starten met een enkele quote (CSV-injection defense).
+ */
+function _ewCsvCell(v) {
+  if (v === null || v === undefined) return '';
+  var s = String(v);
+  // CSV-injection prevention — Excel/LO-formule-triggers ontmantelen
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  s = s.replace(/"/g, '""');
+  if (/[";\r\n]/.test(s)) return '"' + s + '"';
+  return s;
+}
+
+function _ewDecodeHalveDag(halveDag) {
+  if (!halveDag) return 'volledig';
+  if (halveDag === 'vm') return 'voormiddag';
+  if (halveDag === 'nm') return 'namiddag';
+  return 'volledig';
+}
+
+function _ewIsValidISODate(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
+}
+
+function _ewFirstOfCurrentMonth() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
+}
+
+function _ewLastOfCurrentMonth() {
+  var d = new Date();
+  var last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return last.getFullYear() + '-' + String(last.getMonth() + 1).padStart(2, '0') + '-' + String(last.getDate()).padStart(2, '0');
+}
+
+/**
+ * Genereer per-dag EW-export (CSV, Belgische ;-separator, UTF-8 BOM).
+ * Elke afwezigheidsrij wordt uitgerold: één CSV-regel per kalenderdag in het bereik.
+ * Voor halve dagen wordt de decodering toegepast op de enige dag (of start/eind-dag bij range).
+ *
+ * @param {Object} filters - { van_datum?, tot_datum?, sector? }
+ * @returns {Promise<{ok:boolean, count?:number, error?:string}>}
+ */
+async function exportEWToCSV(filters) {
+  filters = filters || {};
+  var vanDefault = _ewFirstOfCurrentMonth();
+  var totDefault = _ewLastOfCurrentMonth();
+  var van = _ewIsValidISODate(filters.van_datum) ? filters.van_datum : vanDefault;
+  var tot = _ewIsValidISODate(filters.tot_datum) ? filters.tot_datum : totDefault;
+  if (van > tot) {
+    var tmp = van; van = tot; tot = tmp;
+  }
+  var sector = (typeof filters.sector === 'string' && filters.sector.trim()) ? filters.sector.trim() : null;
+
+  try {
+    var q = sb.from('technieker_afwezigheden')
+      .select('van_datum, tot_datum, halve_dag, ew_sub_reden, ew_sector, reden, opmerking, dimona_gemeld, dimona_melding_datum, techniekers(naam, voornaam, geboortedatum)')
+      .eq('verlof_type_id', EW_VERLOF_TYPE_ID)
+      .is('verwijderd_op', null)
+      // Overlap-filter: afwezigheden waarvan range [van_datum..tot_datum] snijdt met [van..tot]
+      .lte('van_datum', tot)
+      .gte('tot_datum', van)
+      .order('van_datum', { ascending: true });
+    if (sector) q = q.eq('ew_sector', sector);
+
+    var res = await q;
+    if (res.error) throw res.error;
+
+    var data = res.data || [];
+    if (!data.length) {
+      if (typeof showToast === 'function') showToast('Geen EW-registraties in deze periode', 'error');
+      return { ok: false, count: 0, error: 'empty' };
+    }
+
+    var header = ['Voornaam','Achternaam','Geboortedatum','Datum','Dagdeel','Sub-reden','Sector','Opmerking','Dimona_gemeld','Dimona_datum'];
+    var rows = [header.join(';')];
+
+    data.forEach(function(r) {
+      var tech = r.techniekers || {};
+      var voornaam = tech.voornaam || '';
+      var achternaam = tech.naam || '';
+      var gebd = tech.geboortedatum || '';
+      var subReden = r.ew_sub_reden || '';
+      var ewSector = r.ew_sector || '';
+      var opmerking = r.opmerking || r.reden || '';
+      var dimonaGemeld = r.dimona_gemeld ? 'ja' : 'nee';
+      var dimonaDatum = r.dimona_melding_datum || '';
+
+      // Bereik uitrollen per dag
+      var start = r.van_datum;
+      var end = r.tot_datum || r.van_datum;
+      if (!_ewIsValidISODate(start) || !_ewIsValidISODate(end)) return;
+
+      // Beperk tot [van..tot] filter-bereik
+      var effStart = start < van ? van : start;
+      var effEnd   = end > tot   ? tot : end;
+      if (effStart > effEnd) return;
+
+      var isSameDay = (r.van_datum === r.tot_datum) || (r.van_datum && !r.tot_datum);
+      var cur = new Date(effStart + 'T00:00:00');
+      var stop = new Date(effEnd + 'T00:00:00');
+      while (cur <= stop) {
+        var yr = cur.getFullYear();
+        var mo = String(cur.getMonth() + 1).padStart(2, '0');
+        var da = String(cur.getDate()).padStart(2, '0');
+        var iso = yr + '-' + mo + '-' + da;
+
+        // Dagdeel-decoderen: halve_dag geldt enkel als het bereik 1 dag is (of de enige dag matcht)
+        var dagdeel = 'volledig';
+        if (isSameDay) {
+          dagdeel = _ewDecodeHalveDag(r.halve_dag);
+        }
+
+        rows.push([
+          _ewCsvCell(voornaam),
+          _ewCsvCell(achternaam),
+          _ewCsvCell(gebd),
+          _ewCsvCell(iso),
+          _ewCsvCell(dagdeel),
+          _ewCsvCell(subReden),
+          _ewCsvCell(ewSector),
+          _ewCsvCell(opmerking),
+          _ewCsvCell(dimonaGemeld),
+          _ewCsvCell(dimonaDatum)
+        ].join(';'));
+
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
+
+    if (rows.length <= 1) {
+      if (typeof showToast === 'function') showToast('Geen EW-dagen in dit bereik', 'error');
+      return { ok: false, count: 0, error: 'empty' };
+    }
+
+    var csv = rows.join('\r\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = 'ew_export_' + stamp + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    if (typeof showToast === 'function') showToast('EW-export gedownload (' + (rows.length - 1) + ' dagen)');
+    return { ok: true, count: rows.length - 1 };
+  } catch (err) {
+    console.error('exportEWToCSV error:', err);
+    if (typeof showToast === 'function') showToast('EW-export mislukt: ' + (err.message || err), 'error');
+    return { ok: false, error: err.message || String(err) };
+  }
+}
+
+// =============================================
 // VERLOF — helpers
 // =============================================
 function paaszondag(jaar) {
@@ -15964,6 +16222,29 @@ function getOpenstaandeBeurtenZonderUren(van, tot) {
   });
 }
 
+/**
+ * EW-dagen (dagen-equivalent) voor een technieker binnen [van, tot].
+ * - Telt enkel werkdagen (ma-vr) via countWerkdagenOverlap
+ * - Halve dagen blijven 0.5 bij 1-daagse afwezigheid
+ * - Filtert zacht-verwijderde rijen (verwijderd_op IS NULL) en actieve status
+ * Retourneert: { dagen: number, rijen: afwezigheden[] } — rijen dient voor tooltip-context
+ */
+function getEwDagenForTech(techId, van, tot) {
+  var totaal = 0;
+  var rijen = [];
+  (allVerlof || []).forEach(function(v) {
+    if (v.technieker_id !== techId) return;
+    if (v.verlof_type_id !== EW_VERLOF_TYPE_ID) return;
+    if (v.verwijderd_op) return; // zacht-verwijderd: uitsluiten
+    if (v.status && v.status === 'geweigerd') return;
+    var ov = countWerkdagenOverlap(v.van_datum, v.tot_datum, van, tot, v.halve_dag);
+    if (ov === 0) return;
+    totaal += ov;
+    rijen.push(v);
+  });
+  return { dagen: totaal, rijen: rijen };
+}
+
 function renderUren() {
   var bereik = getUrenPeriodeBereik();
   var van = bereik.van, tot = bereik.tot;
@@ -15992,10 +16273,16 @@ function renderUren() {
     // Gewerkte uren: genormaliseerd via helper (beurt_uren_registraties + legacy fallback)
     var gewerkt = getGewerkteUrenForTech(t.id, van, tot);
 
-    // Verlof-dagen (betaald niet-ziekte) + ziekte-dagen apart
+    // EW (economische werkloosheid) — aparte kolom, niet meegeteld in verlof
+    var ew = getEwDagenForTech(t.id, van, tot);
+    var ewDagen = ew.dagen;
+
+    // Verlof-dagen (betaald niet-ziekte, excl. EW) + ziekte-dagen apart
     var verlofDagen = 0, ziekteDagen = 0;
     allVerlof.forEach(function(v) {
       if (v.technieker_id !== t.id) return;
+      if (v.verlof_type_id === EW_VERLOF_TYPE_ID) return; // EW apart gerekend
+      if (v.verwijderd_op) return;                         // zacht-verwijderd uitsluiten
       // Overlap van verlof met periode
       var ov = countWerkdagenOverlap(v.van_datum, v.tot_datum, van, tot, v.halve_dag);
       if (ov === 0) return;
@@ -16007,15 +16294,38 @@ function renderUren() {
     var contractUrenWeek = parseFloat(t.contract_uren_week) || 38;
     var contractUrenDag = parseFloat(t.contract_uren_dag) || 7.6;
     var contractUrenPeriode = werkdagenInPeriode * contractUrenDag;
-    // Verwachte uren na aftrek verlof/ziekte
-    var verwacht = contractUrenPeriode - ((verlofDagen + ziekteDagen) * contractUrenDag);
+    // Verwachte uren na aftrek verlof/ziekte/EW (EW = geen werkdag)
+    var verwacht = contractUrenPeriode - ((verlofDagen + ziekteDagen + ewDagen) * contractUrenDag);
     var overuren = Math.max(0, gewerkt - verwacht);
     var vulling = verwacht > 0 ? Math.min(150, (gewerkt / verwacht) * 100) : 0;
     var vulKleur = vulling >= 100 ? 'var(--red)' : vulling >= 60 ? 'var(--green)' : 'var(--orange)';
 
+    // EW-badge: amber + tooltip met sub-reden/sector/opmerking
+    var ewCell;
+    if (ewDagen > 0) {
+      var tipParts = [];
+      ew.rijen.slice(0, 5).forEach(function(r) {
+        var p = [];
+        if (r.ew_sub_reden) p.push(r.ew_sub_reden);
+        if (r.ew_sector) p.push(r.ew_sector);
+        if (r.halve_dag) p.push(r.halve_dag === 'vm' ? 'VM' : 'NM');
+        var label = (r.van_datum === r.tot_datum ? r.van_datum : r.van_datum + ' → ' + r.tot_datum);
+        if (r.opmerking) p.push(r.opmerking);
+        tipParts.push(label + (p.length ? ' — ' + p.join(' · ') : ''));
+      });
+      if (ew.rijen.length > 5) tipParts.push('… +' + (ew.rijen.length - 5) + ' meer');
+      var tip = esc(tipParts.join('\n'));
+      ewCell = '<td style="text-align:right;font-variant-numeric:tabular-nums">' +
+        '<span title="' + tip + '" style="display:inline-block;padding:2px 10px;border-radius:12px;background:#FEF3C7;color:#92400E;border:1px solid #FBBF24;font-weight:600;font-size:12px">' +
+        ewDagen.toFixed(1) + '</span></td>';
+    } else {
+      ewCell = '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--grey)">0</td>';
+    }
+
     return '<tr>' +
       '<td><strong>' + esc(techNaam(t.id)) + '</strong></td>' +
       '<td style="text-align:right;font-variant-numeric:tabular-nums">' + gewerkt.toFixed(1) + 'u</td>' +
+      ewCell +
       '<td style="text-align:right;font-variant-numeric:tabular-nums">' + verlofDagen.toFixed(1) + '</td>' +
       '<td style="text-align:right;font-variant-numeric:tabular-nums;color:' + (ziekteDagen > 0 ? 'var(--red)' : 'inherit') + '">' + ziekteDagen.toFixed(1) + '</td>' +
       '<td style="text-align:right;font-variant-numeric:tabular-nums">' + overuren.toFixed(1) + 'u</td>' +
@@ -16037,13 +16347,16 @@ function countWerkdagenOverlap(aFrom, aTo, bFrom, bTo, halveDag) {
 
 function exportUrenCsv() {
   var bereik = getUrenPeriodeBereik();
-  var rows = [['Technieker','Gewerkte uren','Verlof (dagen)','Ziekte (dagen)','Overuren','Contract-uren verwacht','Vulling %']];
+  var rows = [['Technieker','Gewerkte uren','EW (dagen)','Verlof (dagen)','Ziekte (dagen)','Overuren','Contract-uren verwacht','Vulling %']];
   var werkdagenInPeriode = countWerkdagen(bereik.van, bereik.tot, null);
   allTechniekers.filter(function(t) { return t.actief !== false && (t.type_personeel || 'technieker') !== 'bediende'; }).forEach(function(t) {
     var gewerkt = getGewerkteUrenForTech(t.id, bereik.van, bereik.tot);
+    var ewDagen = getEwDagenForTech(t.id, bereik.van, bereik.tot).dagen;
     var verlofDagen = 0, ziekteDagen = 0;
     allVerlof.forEach(function(v) {
       if (v.technieker_id !== t.id) return;
+      if (v.verlof_type_id === EW_VERLOF_TYPE_ID) return; // EW apart gerekend
+      if (v.verwijderd_op) return;
       var ov = countWerkdagenOverlap(v.van_datum, v.tot_datum, bereik.van, bereik.tot, v.halve_dag);
       if (ov === 0) return;
       var vt = verlofTypeById(v.verlof_type_id);
@@ -16051,10 +16364,10 @@ function exportUrenCsv() {
       else verlofDagen += ov;
     });
     var contractUrenDag = parseFloat(t.contract_uren_dag) || 7.6;
-    var verwacht = werkdagenInPeriode * contractUrenDag - (verlofDagen + ziekteDagen) * contractUrenDag;
+    var verwacht = werkdagenInPeriode * contractUrenDag - (verlofDagen + ziekteDagen + ewDagen) * contractUrenDag;
     var overuren = Math.max(0, gewerkt - verwacht);
     var vulling = verwacht > 0 ? (gewerkt / verwacht * 100).toFixed(0) : '0';
-    rows.push([techNaam(t.id), gewerkt.toFixed(1), verlofDagen.toFixed(1), ziekteDagen.toFixed(1), overuren.toFixed(1), verwacht.toFixed(1), vulling]);
+    rows.push([techNaam(t.id), gewerkt.toFixed(1), ewDagen.toFixed(1), verlofDagen.toFixed(1), ziekteDagen.toFixed(1), overuren.toFixed(1), verwacht.toFixed(1), vulling]);
   });
   var csv = rows.map(function(r) { return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
   // UTF-8 BOM voor Excel-compatibiliteit
