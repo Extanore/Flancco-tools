@@ -17071,7 +17071,7 @@ async function saveLoonRegels() {
 // =============================================
 // EW — Economische werkloosheid
 // =============================================
-var EW_VERLOF_TYPE_ID = 'd5d9687d-d480-4ec1-b3c8-94bb26114e95';
+// EW_VERLOF_TYPE_ID wordt reeds globaal gedeclareerd (regel 3626 const).
 var ewCurrentMonth = null;        // Date (1e van de maand)
 var ewAllRegistrations = [];      // technieker_afwezigheden rijen met verlof_type_id = EW en verwijderd_op IS NULL
 var ewLoading = false;
@@ -17451,15 +17451,21 @@ async function submitEWRegister() {
           var payload = res && res.data;
           var hasConflict = false;
           var conflictLabel = '';
-          if (payload === true) { hasConflict = true; conflictLabel = 'conflict'; }
-          else if (payload && typeof payload === 'object') {
+          // RPC returnt TABLE-rows als array [{conflict_type, conflict_id, detail}, ...].
+          // Array-check moet VOOR de object-check omdat Array.isArray ⊂ typeof==='object'.
+          if (Array.isArray(payload) && payload.length > 0) {
+            hasConflict = true;
+            var first = payload[0] || {};
+            conflictLabel = first.detail || first.reden || first.message
+              || (first.conflict_type ? ('conflict: ' + first.conflict_type) : 'conflict');
+          } else if (payload === true) {
+            hasConflict = true;
+            conflictLabel = 'conflict';
+          } else if (payload && typeof payload === 'object') {
             if (payload.conflict === true || payload.heeft_conflict === true) {
               hasConflict = true;
               conflictLabel = payload.reden || payload.message || 'conflict';
             }
-          } else if (Array.isArray(payload) && payload.length > 0) {
-            hasConflict = true;
-            conflictLabel = (payload[0] && (payload[0].reden || payload[0].message)) || 'conflict';
           }
           if (hasConflict) {
             var tObj = (allTechniekers || []).find(function(x) { return x.id === tid; });
