@@ -599,6 +599,33 @@
   .quick-add-center:hover svg { transform: rotate(90deg); }
   .quick-add-center svg { transition: transform 0.2s var(--ease); }
 
+  /* ROUTE-SUGGESTIE */
+  .route-btn {
+    position: absolute; top: 4px; right: 4px; z-index: 3;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--white); color: var(--grey);
+    border: 1px solid var(--rule); cursor: pointer;
+    opacity: 0; transition: all 0.18s var(--ease);
+    padding: 0;
+  }
+  .route-btn:hover {
+    opacity: 1 !important; color: var(--navy);
+    border-color: var(--navy); background: #F8FAFC;
+    box-shadow: var(--shadow-sm);
+  }
+  .route-btn:disabled { cursor: wait; opacity: 0.5 !important; }
+  td:hover .route-btn { opacity: 0.7; }
+  .route-btn svg { display: block; }
+  .route-distance {
+    display: block; margin-top: 4px; padding: 2px 6px;
+    font-size: 10px; font-weight: 600; color: var(--grey);
+    background: #F8FAFC; border: 1px solid var(--rule);
+    border-radius: 6px; letter-spacing: 0.2px;
+    text-align: center;
+  }
+  .week-grid td { position: relative; }
+
   /* SECTOR COLORS */
   .sector-zonnepanelen { border-left-color: #D97706; background: linear-gradient(135deg, #FEF9E7 0%, var(--white) 100%); }
   .sector-zonnepanelen .appt-sector { color: #D97706; }
@@ -3074,6 +3101,160 @@ function getAfwezigheidInfo(techId, date) {
   return info;
 }
 
+// =============================================
+// ROUTE-SUGGESTIE (Sprint 2.3)
+// =============================================
+// Heuristiek: lokale sortering op postcode-nabijheid — geen externe API.
+// 1) Sorteer op eerste 2 cijfers postcode (regio-cluster)
+// 2) Dan alfabetisch op gemeente (stadskern-cluster)
+// 3) Dan alfabetisch op straatnaam (straat-cluster)
+// 4) Fallback op bestaande start_tijd (stabiele sort voor beurten zonder adres)
+// Beurten zonder postcode komen achteraan.
+var ROUTE_START_UUR = '08:00';
+var ROUTE_BUFFER_MIN = 15;            // Reistijd-buffer tussen opeenvolgende beurten
+var ROUTE_KM_PER_POSTCODE_UNIT = 5;   // Ruwe proxy: 1 eenheid eerste-2-cijfers ≈ 5 km
+
+function getPostcodePrefix(postcode) {
+  if (!postcode) return null;
+  var digits = String(postcode).replace(/\D/g, '');
+  if (digits.length < 2) return null;
+  var n = parseInt(digits.substring(0, 2), 10);
+  return isNaN(n) ? null : n;
+}
+
+function sortBeurtenByPostcode(beurten) {
+  // Hoofdsortering op postcode-prefix; null-prefix (geen postcode) naar einde.
+  return beurten.slice().sort(function(a, b) {
+    var ia = getClientInfo(a), ib = getClientInfo(b);
+    var pa = getPostcodePrefix(ia.postcode);
+    var pb = getPostcodePrefix(ib.postcode);
+    if (pa === null && pb !== null) return 1;
+    if (pa !== null && pb === null) return -1;
+    if (pa !== pb && pa !== null && pb !== null) return pa - pb;
+    // Gelijke regio → gemeente
+    var ga = (ia.gemeente || '').toLowerCase();
+    var gb = (ib.gemeente || '').toLowerCase();
+    if (ga !== gb) return ga < gb ? -1 : 1;
+    // Gelijke gemeente → straat
+    var sa = (ia.adres || '').toLowerCase();
+    var sb = (ib.adres || '').toLowerCase();
+    if (sa !== sb) return sa < sb ? -1 : 1;
+    // Stabiele fallback: behoud bestaande tijd-volgorde
+    return (a.start_tijd || '99:99').localeCompare(b.start_tijd || '99:99');
+  });
+}
+
+function calculatePostcodeDelta(beurten) {
+  // Som van absolute verschillen tussen opeenvolgende postcode-prefixen.
+  // Beurten zonder postcode worden overgeslagen in de berekening (0 km bijdrage).
+  var total = 0;
+  var prev = null;
+  for (var i = 0; i < beurten.length; i++) {
+    var info = getClientInfo(beurten[i]);
+    var cur = getPostcodePrefix(info.postcode);
+    if (cur === null) continue;
+    if (prev !== null) total += Math.abs(cur - prev);
+    prev = cur;
+  }
+  return total;
+}
+
+function addMinutesToHHMM(hhmm, minutes) {
+  var parts = (hhmm || '08:00').split(':');
+  var h = parseInt(parts[0], 10) || 0;
+  var m = (parseInt(parts[1], 10) || 0) + minutes;
+  h += Math.floor(m / 60);
+  m = ((m % 60) + 60) % 60;
+  h = ((h % 24) + 24) % 24;
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+
+async function suggestRoute(techniekerId, datum, btnEl) {
+  // Vraag bevestiging: suggestie overschrijft start-tijden (toewijzingen blijven).
+  var beurtenAll = getBeurtenForTechDay(techniekerId, parseDate(datum));
+  // Alleen ingeplande (niet uitgevoerd/afgewerkt) beurten herordenen.
+  // Multi-dag beurten overslaan: deze beslaan meerdere dagen en hebben eigen ritme.
+  var beurten = beurtenAll.filter(function(b) {
+    if (b.status !== 'ingepland') return false;
+    if (b.hele_dag) return false;
+    if (b.eind_datum && b.eind_datum !== b.plan_datum) return false;
+    return true;
+  });
+
+  if (beurten.length < 2) {
+    showToast('Minstens 2 herplanbare beurten nodig voor route-suggestie', 'info');
+    return;
+  }
+
+  var tech = allTechniekers.find(function(t) { return t.id === techniekerId; });
+  var techNaam = tech ? (tech.voornaam + ' ' + tech.naam) : 'technieker';
+  var zonderPostcode = beurten.filter(function(b) {
+    var i = getClientInfo(b);
+    return getPostcodePrefix(i.postcode) === null;
+  }).length;
+
+  var bevestig = 'Route optimaliseren voor ' + techNaam + ' op ' + datum + '?\n\n' +
+    beurten.length + ' beurt(en) worden herordend op postcode-nabijheid.\n' +
+    'Start om ' + ROUTE_START_UUR + ' met ' + ROUTE_BUFFER_MIN + ' min reisbuffer tussen beurten.' +
+    (zonderPostcode > 0 ? '\n\nLet op: ' + zonderPostcode + ' beurt(en) zonder postcode komen achteraan.' : '');
+  if (!confirm(bevestig)) return;
+
+  if (btnEl) { btnEl.disabled = true; btnEl.setAttribute('aria-busy', 'true'); }
+
+  try {
+    var sorted = sortBeurtenByPostcode(beurten);
+
+    // Bereken nieuwe start-tijden sequentieel — start om ROUTE_START_UUR + ROUTE_BUFFER_MIN tussen beurten.
+    var cursor = ROUTE_START_UUR;
+    var updates = sorted.map(function(b, idx) {
+      var newStart = cursor;
+      var duur = b.duur_minuten || 60;
+      cursor = addMinutesToHHMM(cursor, duur + ROUTE_BUFFER_MIN);
+      return { id: b.id, start_tijd: newStart, oldStart: b.start_tijd || null };
+    });
+
+    // Parallelle updates — noteer per-beurt succes/fout voor partiële rapportage.
+    var results = await Promise.all(updates.map(function(u) {
+      return sb.from('onderhoudsbeurten')
+        .update({ start_tijd: u.start_tijd, updated_at: new Date().toISOString() })
+        .eq('id', u.id)
+        .then(function(r) { return { id: u.id, newStart: u.start_tijd, oldStart: u.oldStart, error: r.error }; });
+    }));
+
+    var failed = results.filter(function(r) { return r.error; });
+    var ok = results.filter(function(r) { return !r.error; });
+
+    // Lokale state synchroniseren voor geslaagde updates — geen volledige reload nodig voor UX-snelheid.
+    ok.forEach(function(r) {
+      var b = allBeurten.find(function(x) { return x.id === r.id; });
+      if (b) b.start_tijd = r.newStart;
+    });
+
+    if (failed.length === 0) {
+      showToast('Route bijgewerkt: ' + ok.length + ' beurten herordend op postcode-nabijheid', 'success');
+      if (typeof auditLog === 'function') {
+        ok.forEach(function(r) {
+          auditLog('onderhoudsbeurten', r.id, 'route_suggestie',
+            r.oldStart || null, r.newStart);
+        });
+      }
+    } else if (ok.length === 0) {
+      showToast('Route-suggestie mislukt: ' + (failed[0].error.message || 'onbekend'), 'error');
+    } else {
+      showToast('Deels gelukt: ' + ok.length + ' bijgewerkt, ' + failed.length + ' mislukt. Probeer opnieuw.', 'error');
+      console.error('[route-suggestie] gefaalde updates:', failed);
+    }
+
+    renderView();
+    renderSidebar();
+  } catch (e) {
+    showToast('Route-suggestie mislukt: ' + ((e && e.message) || 'onbekend'), 'error');
+    console.error('[route-suggestie]', e);
+  } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.removeAttribute('aria-busy'); }
+  }
+}
+
 // Hex-kleur + alpha → rgba string voor CSS backgrounds
 function hexToRgba(hex, alpha) {
   if (!hex || hex.charAt(0) !== '#') return 'rgba(107,114,128,' + alpha + ')';
@@ -3183,6 +3364,19 @@ function renderWeekView() {
         html += '<td class="' + (isToday ? 'today-col' : '') + weekendCls + '" ' +
           'ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + tech.id + '\', \'' + dayISO + '\')" ' +
           'oncontextmenu="openPlanningCtxMenu(event, \'' + tech.id + '\', \'' + dayISO + '\', false, \'\')">';
+
+        // Route-suggestie: enkel bij ≥2 herplanbare beurten op deze dag.
+        var routeCandidates = beurten.filter(function(b) {
+          return b.status === 'ingepland' && !b.hele_dag &&
+            (!b.eind_datum || b.eind_datum === b.plan_datum);
+        });
+        if (routeCandidates.length >= 2) {
+          var routeIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>';
+          html += '<button class="route-btn" ' +
+            'onclick="event.stopPropagation();suggestRoute(\'' + tech.id + '\', \'' + dayISO + '\', this)" ' +
+            'title="Route-suggestie op postcode-nabijheid (' + routeCandidates.length + ' beurten)">' + routeIcon + '</button>';
+        }
+
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
           var dayInfo = getBeurtDayInfo(b, dayISO);
@@ -3225,6 +3419,14 @@ function renderWeekView() {
             'Duo met ' + esc(hoofdNaam) + '</div>' +
             '</div>';
         });
+        // Afstand-schatting (ruwe proxy via postcode-delta) — enkel tonen bij ≥2 herplanbare beurten.
+        if (routeCandidates.length >= 2) {
+          var sortedForEstimate = sortBeurtenByPostcode(routeCandidates);
+          var delta = calculatePostcodeDelta(sortedForEstimate);
+          var kmEstimate = delta * ROUTE_KM_PER_POSTCODE_UNIT;
+          html += '<span class="route-distance" title="Ruwe schatting op basis van postcode-afstand — geen werkelijke routeberekening">~ ' + kmEstimate + ' km</span>';
+        }
+
         // C4: Quick-add button — centered if empty, below tasks if filled
         var qaIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
         var hasTasks = beurten.length > 0 || ghostBeurten.length > 0;

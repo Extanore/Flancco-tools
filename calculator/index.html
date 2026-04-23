@@ -2575,7 +2575,7 @@ async function submitSigning() {
     // Sync lokale contract-state met getekende waarden zodat PDF direct handtekening toont
     signingContract = Object.assign({}, c, updatePayload);
 
-    // Auto-download branded PDF (sectie M)
+    // Auto-download branded PDF (sectie M) + upload naar Storage voor bevestigingsmail
     var statusEl = document.getElementById('signing-post-pdf-status');
     var dlBtn = document.getElementById('signing-post-dl-btn');
     if (statusEl) {
@@ -2584,18 +2584,46 @@ async function submitSigning() {
       statusEl.style.display = 'block';
     }
     try {
-      await generateContractPDFShared(signingContract, signingPartner, { autoDownload: true });
-      if (statusEl) {
-        statusEl.textContent = '\u2713 Uw contract is automatisch gedownload';
-        statusEl.style.color = '#059669';
+      // Genereer PDF als Blob (voor upload) én trigger download
+      var pdfBlob = await generateContractPDFShared(signingContract, signingPartner, { autoDownload: false, returnBlob: true });
+      if (pdfBlob) {
+        // Trigger user download
+        var partnerNameForFile = (signingPartner && (signingPartner.bedrijfsnaam || signingPartner.naam)) || 'Flancco';
+        var nrSlugForFile = signingContract.contract_nummer || (signingContract.id || '').substring(0, 8);
+        var klantSlugForFile = (signingContract.klant_naam || 'klant').replace(/[^a-zA-Z0-9]+/g, '_');
+        var dlFilename = 'Contract_' + partnerNameForFile.replace(/[^a-zA-Z0-9]+/g, '_') + '_' + klantSlugForFile + '_' + nrSlugForFile + '.pdf';
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(pdfBlob);
+        a.download = dlFilename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+
+        if (statusEl) {
+          statusEl.textContent = '\u2713 Uw contract is automatisch gedownload';
+          statusEl.style.color = '#059669';
+        }
+        if (dlBtn) dlBtn.textContent = '\u21E9 Download opnieuw';
+
+        // Upload PDF naar Storage, dan trigger bevestigingsmail.
+        // De Edge Function leest pdf_url uit de contract-rij — we hoeven de URL niet mee te passen.
+        // Upload + mail zijn non-blocking: als upload faalt, wordt mail alsnog verstuurd (zonder
+        // contract-bijlage, wel met herroepingsformulier).
+        uploadSignedContractPdf(signingContract.id, pdfBlob).then(function() {
+          sendConfirmationEmail(signingContract.id);
+        }).catch(function(uploadErr) {
+          console.warn('PDF-upload mislukt, bevestigingsmail wordt verstuurd zonder contract-bijlage:', uploadErr);
+          sendConfirmationEmail(signingContract.id);
+        });
       }
-      if (dlBtn) dlBtn.textContent = '\u21E9 Download opnieuw';
     } catch (pdfErr) {
       console.error('Auto-download PDF mislukt:', pdfErr);
       if (statusEl) {
         statusEl.textContent = 'Automatische download niet gelukt. Klik hieronder om te downloaden.';
         statusEl.style.color = '#D97706';
       }
+      // Verstuur bevestigingsmail alsnog, zonder PDF-bijlage
+      sendConfirmationEmail(signingContract.id, null);
     }
 
   } catch (err) {
@@ -2603,6 +2631,68 @@ async function submitSigning() {
     calcToast('Er is een fout opgetreden bij het ondertekenen.\n\n' + (err.message || err), 'error');
     btn.disabled = false;
     btn.textContent = '\u2713 Onderteken & bevestig';
+  }
+}
+
+/**
+ * Upload ondertekend contract-PDF naar Storage bucket contracten-pdf.
+ * Retourneert de bucket-path (NIET publieke URL — bucket is private).
+ * De Edge Function downloadt het via service-role op basis van de pdf_url-kolom.
+ */
+async function uploadSignedContractPdf(contractId, pdfBlob) {
+  if (!contractId || !pdfBlob) return null;
+  var fileName = 'contract_' + contractId + '_' + Date.now() + '.pdf';
+  var storagePath = 'signed/' + fileName;
+  var uploadRes = await sb.storage.from('contracten-pdf').upload(storagePath, pdfBlob, {
+    contentType: 'application/pdf',
+    upsert: false
+  });
+  if (uploadRes.error) {
+    console.warn('Contract-PDF upload error:', uploadRes.error);
+    return null;
+  }
+  // Save pdf_url op contract-rij via SECURITY DEFINER RPC (anon heeft geen UPDATE-policy).
+  // Fallback: skip save — Edge Function kan het pad niet vinden, maar email wordt wel verstuurd.
+  try {
+    var updRes = await sb.rpc('anon_set_contract_pdf_url', {
+      p_contract_id: contractId,
+      p_pdf_url: storagePath
+    });
+    if (updRes.error) {
+      console.warn('pdf_url opslaan via RPC mislukt:', updRes.error);
+      // Fallback: probeer directe update (werkt voor admin/authenticated users, niet voor anon)
+      var directUpd = await sb.from('contracten').update({ pdf_url: storagePath }).eq('id', contractId);
+      if (directUpd.error) console.warn('pdf_url directe update ook mislukt:', directUpd.error);
+    }
+  } catch (rpcErr) {
+    console.warn('pdf_url RPC-call mislukt:', rpcErr);
+  }
+  return storagePath;
+}
+
+/**
+ * Roep de send-confirmation Edge Function aan om de bevestigingsmail te versturen
+ * met contract-PDF + herroepingsformulier als bijlagen. Non-blocking — fouten worden gelogd.
+ */
+function sendConfirmationEmail(contractId) {
+  if (!contractId) return;
+  try {
+    fetch(SUPA_URL + '/functions/v1/send-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contract_id: contractId })
+    }).then(function(r) { return r.json(); }).then(function(r) {
+      if (r && r.success) {
+        console.log('Bevestigingsmail verzonden:', r.id, 'attachments:', r.attachments_count);
+        if (r.attachment_warnings && r.attachment_warnings.length > 0) {
+          console.warn('Bevestigingsmail attachment warnings:', r.attachment_warnings);
+        }
+      } else {
+        console.warn('Bevestigingsmail niet verzonden:', r && r.error);
+      }
+    }).catch(function(e) { console.warn('Bevestigingsmail call mislukt:', e); });
+  } catch (mailErr) {
+    console.warn('Bevestigingsmail invocation fout:', mailErr);
   }
 }
 
@@ -3447,6 +3537,30 @@ async function submitContract() {
     var contractId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
     if (!contractId) throw new Error('Browser ondersteunt crypto.randomUUID niet');
 
+    // Detect client public IP for legal traceability of the signing event.
+    // Strict 3s timeout via AbortController so network issues never block signing.
+    // On any failure (timeout, network, CSP, malformed response) we log a warning
+    // and fall back to null — the signing flow must always be able to proceed.
+    var signingIp = null;
+    try {
+      var ipCtrl = new AbortController();
+      var ipTimer = setTimeout(function() { ipCtrl.abort(); }, 3000);
+      try {
+        var ipRes = await fetch('https://api.ipify.org?format=json', { signal: ipCtrl.signal, cache: 'no-store' });
+        if (ipRes && ipRes.ok) {
+          var ipJson = await ipRes.json();
+          if (ipJson && typeof ipJson.ip === 'string' && ipJson.ip.length > 0 && ipJson.ip.length <= 45) {
+            signingIp = ipJson.ip;
+          }
+        }
+      } finally {
+        clearTimeout(ipTimer);
+      }
+    } catch (ipErr) {
+      console.warn('IP-detectie voor contract-ondertekening mislukt, fallback naar null:', ipErr);
+      signingIp = null;
+    }
+
     // Build main payload (uses primary sector for backward-compatible fields)
     var payload = {
       id: contractId,
@@ -3472,6 +3586,7 @@ async function submitContract() {
       akkoord_voorwaarden: true,
       privacy_akkoord: true,
       signing_user_agent: navigator.userAgent,
+      signing_ip: signingIp,
       signing_timestamp: new Date().toISOString(),
       signing_methode: 'op_afstand',
       status: 'getekend',
@@ -3600,18 +3715,6 @@ async function submitContract() {
       } catch (instErr) { console.warn('Installatie aanmaken mislukt:', instErr); }
     }
 
-    // Send confirmation email (non-blocking)
-    try {
-      fetch(SUPA_URL + '/functions/v1/send-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contract_id: contractId })
-      }).then(function(r) { return r.json(); }).then(function(r) {
-        if (r.success) console.log('Bevestigingsmail verzonden:', r.id);
-        else console.warn('Email niet verzonden:', r.error);
-      }).catch(function(e) { console.warn('Email verzending mislukt:', e); });
-    } catch (mailErr) { console.warn('Email call mislukt:', mailErr); }
-
     // Show success
     document.getElementById('submit-row').style.display = 'none';
     var dlHint = document.getElementById('download-hint');
@@ -3646,8 +3749,41 @@ async function submitContract() {
     window._lastSignedContract = Object.assign({}, payload, contractNummer ? { contract_nummer: contractNummer } : {});
     window._lastSignedSectorState = { selectedSectors: selectedSectors.slice(), sectorResults: JSON.parse(JSON.stringify(sectorResults)), s: s };
 
-    // Auto-download PDF (branded, via shared generator)
-    try { downloadContract(); } catch(e) { console.warn('Auto-download mislukt:', e); }
+    // Genereer PDF → trigger download → upload naar Storage → trigger bevestigingsmail met bijlagen.
+    // Volgorde is belangrijk: pdf_url moet op de contract-rij staan VOOR de Edge Function wordt
+    // aangeroepen, anders kan die het PDF niet attachen. Mail-call is altijd non-blocking.
+    (async function() {
+      try {
+        var pdfBlob = await generateContractPDFShared(window._lastSignedContract, partner, { autoDownload: false, returnBlob: true });
+        if (pdfBlob) {
+          // Trigger user download
+          var partnerNameForFile = (partner && (partner.bedrijfsnaam || partner.naam)) || 'Flancco';
+          var nrSlugForFile = contractNummer || (contractId || '').substring(0, 8);
+          var klantSlugForFile = (document.getElementById('klant-naam').value || 'klant').replace(/[^a-zA-Z0-9]+/g, '_');
+          var dlFilename = 'Contract_' + partnerNameForFile.replace(/[^a-zA-Z0-9]+/g, '_') + '_' + klantSlugForFile + '_' + nrSlugForFile + '.pdf';
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(pdfBlob);
+          a.download = dlFilename;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+
+          // Upload naar Storage + trigger mail met bijlage
+          try {
+            await uploadSignedContractPdf(contractId, pdfBlob);
+          } catch (upErr) {
+            console.warn('PDF-upload naar Storage mislukt, mail wordt zonder contract-bijlage verstuurd:', upErr);
+          }
+          sendConfirmationEmail(contractId);
+        } else {
+          // Geen PDF beschikbaar — mail alsnog versturen (alleen herroepingsformulier)
+          sendConfirmationEmail(contractId);
+        }
+      } catch (pdfErr) {
+        console.warn('PDF-generatie/upload mislukt:', pdfErr);
+        sendConfirmationEmail(contractId);
+      }
+    })();
 
     // Disable interactions
     if (document.getElementById('accept-check')) document.getElementById('accept-check').disabled = true;

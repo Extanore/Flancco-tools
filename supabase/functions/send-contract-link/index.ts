@@ -1,10 +1,24 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateHerroepingsformulierPdf, uint8ToBase64 } from "../_shared/herroeping.ts";
 
+// CORS. Bewust permissief: partner-portal + admin-dashboard draaien op verschillende sub-domeinen.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Sender + reply-to zijn env-var overridable zodat we zonder redeploy kunnen swappen
+// wanneer flancco.be DNS-toegang alsnog beschikbaar wordt.
+const FROM_ADDRESS = Deno.env.get("CONTRACT_FROM_ADDRESS") ?? "contracts@flancco-platform.be";
+const REPLY_TO     = Deno.env.get("CONTRACT_REPLY_TO")     ?? "gillian.geernaert@flancco.be";
+
+// Vaste wettelijke verzend-adres van Flancco BV voor het herroepingsformulier.
+// Overridable via env voor staging/testomgevingen.
+const FLANCCO_LEGAL_NAME    = Deno.env.get("FLANCCO_LEGAL_NAME")    ?? "Flancco BV";
+const FLANCCO_LEGAL_ADDRESS = Deno.env.get("FLANCCO_LEGAL_ADDRESS") ?? "Industrieweg 25, 9080 Lochristi, België";
+const FLANCCO_LEGAL_EMAIL   = Deno.env.get("FLANCCO_LEGAL_EMAIL")   ?? "gillian.geernaert@flancco.be";
+const FLANCCO_LEGAL_VAT     = Deno.env.get("FLANCCO_LEGAL_VAT")     ?? "";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -110,7 +124,7 @@ serve(async (req) => {
         verwarming: "Verwarming",
       };
       sectorenHtml = sectoren
-        .map((s: any) => `<li>${sectorLabels[s.sector] || s.sector}</li>`)
+        .map((s: { sector?: string }) => `<li>${sectorLabels[s.sector ?? ""] || s.sector || "Onderhoudsdienst"}</li>`)
         .join("");
     } catch {
       sectorenHtml = "<li>Onderhoudsdiensten</li>";
@@ -121,8 +135,10 @@ serve(async (req) => {
       : "Zie contract";
 
     const primaryColor = partner?.kleur_primair || "#1A1A2E";
+    const partnerNaam = partner?.bedrijfsnaam || partner?.naam || "Flancco";
 
-    // Build email HTML
+    // Build email HTML — herroepingsclausule wordt expliciet zichtbaar gemaakt om te voldoen
+    // aan de informatieplicht in art. VI.64 WER (pre-contractuele informatie).
     const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -131,15 +147,15 @@ serve(async (req) => {
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;margin-top:32px;margin-bottom:32px;">
     <tr>
       <td style="background:${primaryColor};padding:32px;text-align:center;">
-        ${partner?.logo_url ? `<img src="${partner.logo_url}" alt="${partner?.naam}" style="max-height:60px;margin-bottom:12px;">` : ""}
-        <h1 style="color:#fff;margin:0;font-size:22px;">${partner?.naam || "Flancco"}</h1>
+        ${partner?.logo_url ? `<img src="${partner.logo_url}" alt="${escAttr(partnerNaam)}" style="max-height:60px;margin-bottom:12px;">` : ""}
+        <h1 style="color:#fff;margin:0;font-size:22px;">${escHtml(partnerNaam)}</h1>
       </td>
     </tr>
     <tr>
       <td style="padding:32px;">
         <h2 style="color:#1a1a2e;margin-top:0;">Uw onderhoudscontract ter ondertekening</h2>
-        <p>Beste ${contract.klant_naam || "klant"},</p>
-        <p>${partner?.naam || "Uw installateur"} heeft een onderhoudscontract voor u opgesteld. Hieronder vindt u een beknopt overzicht:</p>
+        <p>Beste ${escHtml(contract.klant_naam || "klant")},</p>
+        <p>${escHtml(partnerNaam)} heeft een onderhoudscontract voor u opgesteld. Hieronder vindt u een beknopt overzicht:</p>
 
         <table style="width:100%;background:#f8f9fa;border-radius:8px;padding:16px;margin:20px 0;">
           <tr><td style="padding:8px;">
@@ -147,7 +163,7 @@ serve(async (req) => {
             <ul style="margin:8px 0;padding-left:20px;">${sectorenHtml}</ul>
           </td></tr>
           <tr><td style="padding:8px;">
-            <strong>Frequentie:</strong> ${contract.frequentie || "Jaarlijks"}
+            <strong>Frequentie:</strong> ${escHtml(contract.frequentie || "Jaarlijks")}
           </td></tr>
           <tr><td style="padding:8px;">
             <strong>Totaal per beurt incl. BTW:</strong> ${totaal}
@@ -162,18 +178,71 @@ serve(async (req) => {
 
         <p style="color:#666;font-size:13px;">Deze link is uniek voor u en kan eenmalig worden gebruikt om het contract te ondertekenen.</p>
 
+        <div style="background:#fff8e7;border:1px solid #f0dca0;border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:#7a6520;">
+          <strong>Herroepingsrecht</strong><br>
+          Als consument heeft u het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst
+          zonder opgave van redenen te herroepen, conform EU-richtlijn 2011/83/EU en boek VI WER.
+          Bij deze e-mail vindt u het wettelijke <strong>modelformulier voor herroeping</strong> als bijlage.
+        </div>
+
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
         <p style="color:#888;font-size:13px;">
-          ${partner?.naam || "Flancco"}<br>
-          ${partner?.contact_email ? `${partner.contact_email}<br>` : ""}
-          ${partner?.contact_telefoon ? `${partner.contact_telefoon}<br>` : ""}
-          ${partner?.website ? `${partner.website}` : ""}
+          ${escHtml(partnerNaam)}<br>
+          ${partner?.contact_email ? `${escHtml(partner.contact_email)}<br>` : ""}
+          ${partner?.contact_telefoon ? `${escHtml(partner.contact_telefoon)}<br>` : ""}
+          ${partner?.website ? escHtml(partner.website) : ""}
         </p>
       </td>
     </tr>
   </table>
 </body>
 </html>`;
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // BIJLAGEN: herroepingsformulier (altijd) + eventuele contract-PDF (indien al getekend)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Op het moment dat de partner deze mail verstuurt, is het contract typisch nog NIET
+    // getekend — dus pdf_url ontbreekt. We voegen dan enkel het herroepingsformulier toe.
+    // Als het contract later herverzonden wordt na ondertekening, sturen we ook de PDF mee.
+    const attachments: Array<{ filename: string; content: string }> = [];
+    const attachmentWarnings: string[] = [];
+
+    // 1. Herroepingsformulier — altijd genereren, juridisch verplicht bij contracten op afstand.
+    try {
+      const herroepingBytes = await generateHerroepingsformulierPdf({
+        partnerName: FLANCCO_LEGAL_NAME,
+        partnerAddress: FLANCCO_LEGAL_ADDRESS,
+        partnerEmail: FLANCCO_LEGAL_EMAIL,
+        partnerVatNumber: FLANCCO_LEGAL_VAT || undefined,
+      });
+      attachments.push({
+        filename: "Herroepingsformulier.pdf",
+        content: uint8ToBase64(herroepingBytes),
+      });
+    } catch (hErr) {
+      console.error("Herroepingsformulier-generatie mislukt:", hErr);
+      attachmentWarnings.push("herroepingsformulier");
+    }
+
+    // 2. Contract-PDF (optioneel) — alleen als al eerder getekend en pdf_url bestaat
+    if (contract.pdf_url) {
+      try {
+        // pdf_url kan een publieke URL of een bucket-path zijn. Normaliseer naar path voor Storage-API.
+        const contractPdfBytes = await downloadContractPdf(sb, contract.pdf_url);
+        if (contractPdfBytes) {
+          const contractNr = contract.contract_nummer || contract_id.substring(0, 8);
+          attachments.push({
+            filename: `Contract_${contractNr}.pdf`,
+            content: uint8ToBase64(contractPdfBytes),
+          });
+        } else {
+          attachmentWarnings.push("contract-pdf");
+        }
+      } catch (pdfErr) {
+        console.error("Contract-PDF download mislukt:", pdfErr);
+        attachmentWarnings.push("contract-pdf");
+      }
+    }
 
     // Send email via Resend
     if (!resendApiKey) {
@@ -196,10 +265,12 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${partner?.naam || "Flancco"} <contracts@flancco.be>`,
+        from: `${partnerNaam} <${FROM_ADDRESS}>`,
+        reply_to: [REPLY_TO],
         to: [contract.klant_email],
-        subject: `Uw onderhoudscontract van ${partner?.naam || "Flancco"} ter ondertekening`,
+        subject: `Uw onderhoudscontract van ${partnerNaam} ter ondertekening`,
         html: emailHtml,
+        attachments: attachments.length > 0 ? attachments : undefined,
       }),
     });
 
@@ -215,7 +286,12 @@ serve(async (req) => {
     await sb.from("contracten").update({ verzonden_op: new Date().toISOString() }).eq("id", contract_id);
 
     return new Response(
-      JSON.stringify({ success: true, message: "Email verzonden naar " + contract.klant_email }),
+      JSON.stringify({
+        success: true,
+        message: "Email verzonden naar " + contract.klant_email,
+        attachments_count: attachments.length,
+        ...(attachmentWarnings.length > 0 ? { attachment_warnings: attachmentWarnings } : {}),
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
@@ -225,3 +301,57 @@ serve(async (req) => {
     );
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Download contract-PDF via Storage-API (service-role). Accepteert zowel een volledige publieke URL
+ * als een bucket-path. Returns Uint8Array of null bij fout.
+ */
+async function downloadContractPdf(
+  // deno-lint-ignore no-explicit-any
+  sb: any,
+  pdfUrl: string,
+): Promise<Uint8Array | null> {
+  try {
+    // Normaliseer: extraheer het pad binnen de bucket
+    // Mogelijke vormen:
+    //   - https://.../storage/v1/object/public/contracten-pdf/path/to/file.pdf
+    //   - https://.../storage/v1/object/contracten-pdf/path/to/file.pdf
+    //   - path/to/file.pdf  (al een bucket-path)
+    let bucketPath = pdfUrl;
+    const marker = "/contracten-pdf/";
+    const markerIdx = pdfUrl.indexOf(marker);
+    if (markerIdx !== -1) {
+      bucketPath = pdfUrl.substring(markerIdx + marker.length);
+    }
+
+    const { data, error } = await sb.storage.from("contracten-pdf").download(bucketPath);
+    if (error || !data) {
+      console.warn("Storage download error:", error);
+      return null;
+    }
+    const arrayBuffer = await data.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+  } catch (e) {
+    console.error("downloadContractPdf error:", e);
+    return null;
+  }
+}
+
+/** HTML-escape voor user-controlled velden in de email body. */
+function escHtml(s: string | null | undefined): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Escape voor HTML-attribute waarden (strikter dan tekst). */
+function escAttr(s: string | null | undefined): string {
+  return escHtml(s).replace(/`/g, "&#96;");
+}
