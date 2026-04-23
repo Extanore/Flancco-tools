@@ -1456,7 +1456,7 @@
     <div class="modal-row" style="align-items:flex-end;gap:12px">
       <div class="modal-field" id="qa-duur-wrap" style="flex:0 0 140px">
         <label>Duur (min)</label>
-        <input type="number" id="qa-duur" value="60" min="15" step="15">
+        <input type="number" id="qa-duur" value="60" min="15" max="1440" step="15" oninput="this.dataset.userEdited='true'">
       </div>
       <div id="qa-hele-dag-badge" style="display:none;flex:0 0 auto;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
       <label id="qa-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
@@ -1618,7 +1618,7 @@
 
     <div class="modal-field" id="ni-contract-wrap" style="display:none">
       <label>Contract (optioneel)</label>
-      <select id="ni-contract">
+      <select id="ni-contract" onchange="niSuggestDuur()">
         <option value="">— Eenmalige interventie (zonder contract) —</option>
       </select>
     </div>
@@ -1632,7 +1632,7 @@
 
     <div class="modal-field" id="ni-sector-wrap">
       <label>Sector *</label>
-      <select id="ni-sector" required>
+      <select id="ni-sector" required onchange="niSuggestDuur()">
         <option value="">— Kies sector —</option>
         <option value="zonnepanelen">Zonnepanelen</option>
         <option value="warmtepomp">Warmtepomp</option>
@@ -1682,7 +1682,7 @@
       </div>
       <div class="modal-field" id="ni-duur-wrap" style="flex:0 0 140px">
         <label>Geschatte duur (min)</label>
-        <input type="number" id="ni-duur" value="60" min="15" step="15">
+        <input type="number" id="ni-duur" value="60" min="15" max="1440" step="15" oninput="this.dataset.userEdited='true'">
       </div>
       <div id="ni-hele-dag-badge" style="display:none;flex:0 0 auto;align-self:flex-end;margin-bottom:0;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
       <label id="ni-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;align-self:flex-end;margin-bottom:0;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
@@ -2101,6 +2101,87 @@ var ctxBeurtId = null;
 // HELPERS
 // =============================================
 function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+
+/**
+ * Resolver voor duur_instellingen.
+ * @param {string} sector       Sector-key (bv. 'zonnepanelen', 'warmtepomp_lucht_lucht')
+ * @param {number} grootte      Grootte-metriek (aantal panelen, binnenunits, ...)
+ * @param {string|null} partnerId  Partner-id voor override-lookup (null = enkel defaults)
+ * @returns {number}            Duur in minuten (fallback 60)
+ *
+ * Strategie:
+ *   1. Partner-specifieke match (partner_id === partnerId) binnen grootte-bereik
+ *   2. Default match (partner_id IS NULL) binnen grootte-bereik
+ *   3. Fallback 60 min + console.warn
+ */
+function resolveDuur(sector, grootte, partnerId) {
+  if (!sector) { console.warn('[resolveDuur] Geen sector opgegeven — fallback 60 min'); return 60; }
+  var g = parseInt(grootte, 10);
+  if (isNaN(g) || g < 1) g = 1;
+
+  var regels = allDuurInstellingen || [];
+  var matcher = function(partnerFilter) {
+    return regels.find(function(r) {
+      if (r.sector !== sector) return false;
+      if (partnerFilter === null) { if (r.partner_id != null) return false; }
+      else                         { if (r.partner_id !== partnerFilter) return false; }
+      if (g < r.grootte_min) return false;
+      if (r.grootte_max != null && g > r.grootte_max) return false;
+      return true;
+    });
+  };
+
+  if (partnerId) {
+    var partnerMatch = matcher(partnerId);
+    if (partnerMatch) return partnerMatch.duur_minuten;
+  }
+  var defMatch = matcher(null);
+  if (defMatch) return defMatch.duur_minuten;
+
+  console.warn('[resolveDuur] Geen duur-regel voor sector=' + sector + ', grootte=' + g + ', partnerId=' + (partnerId || 'NULL') + ' — fallback 60 min');
+  return 60;
+}
+
+/**
+ * Leid grootte-metriek af uit contract + sector zodat resolveDuur kan lookuppen.
+ * Warmtepomp-subtypes (lucht-lucht/lucht-water/geothermie-water) worden hier
+ * afgeleid uit config.type/formule.
+ * @returns {{ sector: string, grootte: number }}
+ */
+function getSectorGrootteVoorDuur(contract, sectorKey) {
+  var grootte = 1;
+  var resolvedSector = sectorKey;
+  if (!contract) return { sector: resolvedSector, grootte: grootte };
+
+  var sectoren = contract.sectoren;
+  if (typeof sectoren === 'string') try { sectoren = JSON.parse(sectoren); } catch (e) { sectoren = null; }
+  var cfg = null;
+  if (Array.isArray(sectoren)) {
+    var secData = sectoren.find(function(s) { return (s.sector || s) === sectorKey; });
+    if (secData && secData.configs && secData.configs[0]) cfg = secData.configs[0];
+  }
+
+  if (sectorKey === 'zonnepanelen') {
+    grootte = (cfg && cfg.pan) || contract.aantal_panelen || 1;
+  } else if (sectorKey === 'warmtepomp') {
+    // Subtype afleiden: lucht_lucht (airco-formule), lucht_water, geothermie-water
+    var wpType = (cfg && (cfg.wp_type || cfg.type || '')) || '';
+    if (wpType === 'lucht_lucht' || (cfg && cfg.formule)) resolvedSector = 'warmtepomp_lucht_lucht';
+    else if (wpType === 'lucht_water' || wpType === 'hybride') resolvedSector = 'warmtepomp_lucht_water';
+    else if (wpType === 'bodem' || wpType === 'geothermie') resolvedSector = 'warmtepomp_geothermie_water';
+    else resolvedSector = 'warmtepomp_lucht_water'; // neutrale default
+    grootte = (cfg && cfg.binnenunits) || 1;
+  } else if (sectorKey === 'airco') {
+    grootte = (cfg && cfg.binnenunits) || 1;
+  } else if (sectorKey === 'ventilatie') {
+    grootte = (cfg && cfg.ventielen) || 1;
+  } else if (sectorKey === 'verwarming') {
+    grootte = 1;
+  } else if (sectorKey === 'ic' || sectorKey === 'klussen') {
+    grootte = 1;
+  }
+  return { sector: resolvedSector, grootte: grootte };
+}
 
 function formatDate(d) {
   return d.getDate() + '/' + (d.getMonth() + 1);
@@ -3822,14 +3903,16 @@ function renderSidebar() {
   if (sidebarType === 'interventie') {
     items = (allInterventies || []).filter(function(iv) { return iv.status === 'open'; }).map(function(iv) {
       var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+      var fallbackSector = contract ? contract.sector : '';
+      var resolved = getSectorGrootteVoorDuur(contract, fallbackSector);
       return {
         id: 'int-' + iv.id,
         _isInterventie: true,
         _interventie: iv,
         contract_id: iv.contract_id,
-        sector: contract ? contract.sector : '',
+        sector: fallbackSector,
         due_date: iv.gewenste_datum || null,
-        duur_minuten: iv.geschatte_duur || 60
+        duur_minuten: iv.geschatte_duur || resolveDuur(resolved.sector, resolved.grootte, contract && contract.partner_id)
       };
     });
   } else if (sidebarType === 'losse') {
@@ -3900,6 +3983,8 @@ function renderSidebar() {
         '</div>';
       html += overdueIvs.map(function(iv) {
         var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+        var fallbackSector = contract ? contract.sector : '';
+        var resolved = getSectorGrootteVoorDuur(contract, fallbackSector);
         var card = {
           id: 'int-' + iv.id,
           _isInterventie: true,
@@ -3907,8 +3992,8 @@ function renderSidebar() {
           _overdue: true,
           _beurtId: iv.onderhoudsbeurt_id,
           contract_id: iv.contract_id,
-          sector: contract ? contract.sector : '',
-          duur_minuten: iv.geschatte_duur || 60
+          sector: fallbackSector,
+          duur_minuten: iv.geschatte_duur || resolveDuur(resolved.sector, resolved.grootte, contract && contract.partner_id)
         };
         return renderSidebarCard(card);
       }).join('');
@@ -4174,7 +4259,9 @@ function openEditInterventieModal(ivId) {
   document.getElementById('ei-id').value = iv.id;
   document.getElementById('ei-omschrijving').value = iv.omschrijving || '';
   document.getElementById('ei-ernst').value = iv.ernst || 'normaal';
-  document.getElementById('ei-duur').value = iv.geschatte_duur || 60;
+  var _eiContract = allContracten.find(function(c) { return c.id === iv.contract_id; });
+  var _eiResolved = getSectorGrootteVoorDuur(_eiContract, _eiContract ? _eiContract.sector : '');
+  document.getElementById('ei-duur').value = iv.geschatte_duur || resolveDuur(_eiResolved.sector, _eiResolved.grootte, _eiContract && _eiContract.partner_id);
   document.getElementById('ei-gewenste-datum').value = iv.gewenste_datum || '';
 
   // Info-preview met klant + sector
@@ -4453,6 +4540,23 @@ function fillNiKlantDropdown(preselectId) {
   if (preselectId) sel.value = preselectId;
 }
 
+/**
+ * Automatische duur-suggestie voor nieuwe-interventie modal.
+ * Past ni-duur aan op basis van duur_instellingen tenzij user handmatig
+ * heeft aangepast (ni-duur.dataset.userEdited === 'true').
+ */
+function niSuggestDuur() {
+  var duurEl = document.getElementById('ni-duur');
+  if (!duurEl || duurEl.disabled) return;
+  if (duurEl.dataset.userEdited === 'true') return;
+  var sector = document.getElementById('ni-sector').value;
+  if (!sector) return;
+  var contractId = (document.getElementById('ni-contract') || {}).value;
+  var contract = contractId ? allContracten.find(function(c) { return c.id === contractId; }) : null;
+  var resolved = getSectorGrootteVoorDuur(contract, sector);
+  duurEl.value = resolveDuur(resolved.sector, resolved.grootte, contract && contract.partner_id);
+}
+
 function onNiKlantChange() {
   var val = document.getElementById('ni-klant').value;
   var contractWrap = document.getElementById('ni-contract-wrap');
@@ -4587,8 +4691,10 @@ function openNieuweInterventieModal() {
   document.getElementById('ni-sector').value = '';
   document.getElementById('ni-omschrijving').value = '';
   document.getElementById('ni-ernst').value = 'normaal';
-  document.getElementById('ni-duur').value = '60';
-  document.getElementById('ni-duur').disabled = false;
+  var niDuurEl = document.getElementById('ni-duur');
+  niDuurEl.value = '60';
+  niDuurEl.disabled = false;
+  niDuurEl.dataset.userEdited = 'false';
   // Sectie H: werklocatie-state resetten
   var locWrap = document.getElementById('ni-loc-wrap');
   if (locWrap) locWrap.style.display = 'none';
@@ -4911,7 +5017,8 @@ function openPlanInterventieModal(ivId, techId, dateStr, startTijd) {
   });
   document.getElementById('pi-datum').value = dateStr || iv.gewenste_datum || formatDateISO(new Date());
   document.getElementById('pi-start').value = startTijd || '08:00';
-  document.getElementById('pi-duur').value = iv.geschatte_duur || 60;
+  var _piResolved = getSectorGrootteVoorDuur(contract, sector);
+  document.getElementById('pi-duur').value = iv.geschatte_duur || resolveDuur(_piResolved.sector, _piResolved.grootte, contract && contract.partner_id);
 
   document.getElementById('modal-plan-interventie').classList.add('open');
 }
@@ -7221,8 +7328,10 @@ function quickAdd(techId, datum, mode, opdrachtType) {
 
   // Reset hele-dag + duur + startuur
   document.getElementById('qa-hele-dag').checked = false;
-  document.getElementById('qa-duur').value = 60;
-  document.getElementById('qa-duur').disabled = false;
+  var qaDuurEl = document.getElementById('qa-duur');
+  qaDuurEl.value = 60;
+  qaDuurEl.disabled = false;
+  qaDuurEl.dataset.userEdited = 'false';
   document.getElementById('qa-start').value = '09:00';
   document.getElementById('qa-start-wrap').style.display = 'block';
 
@@ -7363,6 +7472,17 @@ function qaContractChanged() {
   // Auto-set sector from existing contract
   if (val && opt && opt.dataset.sector) {
     document.getElementById('qa-sector').value = opt.dataset.sector;
+  }
+
+  // Auto-suggest duur op basis van duur_instellingen (enkel als user nog niet heeft aangepast)
+  var duurEl = document.getElementById('qa-duur');
+  if (val && duurEl && !duurEl.disabled && (!duurEl.dataset.userEdited || duurEl.dataset.userEdited === 'false')) {
+    var qaContract = allContracten.find(function(c) { return c.id === val; });
+    var qaSector = (opt && opt.dataset.sector) || (qaContract && qaContract.sector);
+    if (qaContract && qaSector) {
+      var qaResolved = getSectorGrootteVoorDuur(qaContract, qaSector);
+      duurEl.value = resolveDuur(qaResolved.sector, qaResolved.grootte, qaContract.partner_id);
+    }
   }
 
   // Populate locatie-picker + PO-cascade
