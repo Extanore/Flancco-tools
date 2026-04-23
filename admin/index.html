@@ -5402,21 +5402,48 @@ async function deletePartner(partnerId) {
     users: results[3].count || 0
   };
 
-  // Contracten / klanten / users = harde blokker
-  var blokkers = [];
-  if (cnt.contracten) blokkers.push(cnt.contracten + ' contract(en)');
-  if (cnt.klanten) blokkers.push(cnt.klanten + ' klant(en)');
-  if (cnt.users) blokkers.push(cnt.users + ' gebruiker(s)');
-  if (blokkers.length) {
-    await infoDialog('Kan partner "' + (p.bedrijfsnaam || p.naam) + '" niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + blokkers.join('\n\u2022 ') + '\n\nVerwijder of herverbind eerst deze records.', 'Verwijdering geblokkeerd');
+  // Contracten / klanten = harde blokker (echte data, geen accidentele cascade)
+  var harde = [];
+  if (cnt.contracten) harde.push(cnt.contracten + ' contract(en)');
+  if (cnt.klanten) harde.push(cnt.klanten + ' klant(en)');
+  if (harde.length) {
+    await infoDialog('Kan partner "' + (p.bedrijfsnaam || p.naam) + '" niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + harde.join('\n\u2022 ') + '\n\nVerwijder of herverbind eerst deze records.', 'Verwijdering geblokkeerd');
     return;
   }
 
-  // Pricing & partner_sectors cascade we zelf (geen blokker maar wel opruimen)
+  // Users mogen mee-cascaden (via edge function delete-user)
   var naam = p.bedrijfsnaam || p.naam;
-  var extra = cnt.pricing ? '\n(' + cnt.pricing + ' pricing-staffel(s) worden ook verwijderd.)' : '';
-  if (!(await confirmDialog({ title: 'Partner verwijderen?', message: 'Partner "' + naam + '" definitief verwijderen?' + extra, variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
+  var extras = [];
+  if (cnt.users) extras.push(cnt.users + ' gebruiker(s) (login-account wordt verwijderd)');
+  if (cnt.pricing) extras.push(cnt.pricing + ' pricing-staffel(s)');
+  var extraMsg = extras.length ? '\n\nWordt ook verwijderd:\n\u2022 ' + extras.join('\n\u2022 ') : '';
+  if (!(await confirmDialog({ title: 'Partner verwijderen?', message: 'Partner "' + naam + '" definitief verwijderen?' + extraMsg, variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
+  // 1) Users eerst via edge function (delete-user doet auth.users + user_roles)
+  if (cnt.users) {
+    var userRoles = await sb.from('user_roles').select('user_id').eq('partner_id', partnerId);
+    if (userRoles.error) { await infoDialog('Fout bij ophalen users: ' + userRoles.error.message, 'Verwijderen mislukt'); return; }
+    var session = (await sb.auth.getSession()).data.session;
+    for (var i = 0; i < (userRoles.data || []).length; i++) {
+      var uid = userRoles.data[i].user_id;
+      var delRes = await fetch(SUPA_URL + '/functions/v1/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+          'apikey': SUPA_KEY
+        },
+        body: JSON.stringify({ userIdToDelete: uid })
+      });
+      var delJson = await delRes.json().catch(function() { return {}; });
+      if (!delRes.ok) {
+        await infoDialog('Fout bij verwijderen gebruiker: ' + (delJson.error || 'onbekende fout') + '\n\nPartner niet verwijderd. Los dit eerst op.', 'Verwijderen mislukt');
+        return;
+      }
+    }
+  }
+
+  // 2) Partner-gerelateerde tabellen opruimen
   await sb.from('pricing').delete().eq('partner_id', partnerId);
   await sb.from('partner_sectors').delete().eq('partner_id', partnerId);
   await sb.from('partner_permissions').delete().eq('partner_id', partnerId);
@@ -5427,6 +5454,7 @@ async function deletePartner(partnerId) {
   partners = partners.filter(function(x) { return x.id !== partnerId; });
   renderPartners();
   if (typeof renderAdminSettings === 'function') renderAdminSettings();
+  showToast('Partner "' + naam + '" verwijderd');
 }
 
 // =============================================
@@ -5706,23 +5734,39 @@ async function sendPartnerInvite() {
       return;
     }
 
-    // Show result with credentials
     var resultDiv = document.getElementById('invite-result');
-    var loginUrl = window.location.origin + window.location.pathname;
-    resultDiv.innerHTML =
-      '<div style="font-weight:600;color:#166534;margin-bottom:8px">Account aangemaakt!</div>' +
-      '<div style="font-size:13px;color:#333;display:flex;flex-direction:column;gap:6px">' +
-        '<div><strong>E-mail:</strong> ' + esc(email) + '</div>' +
-        '<div><strong>Tijdelijk wachtwoord:</strong> <code style="background:#e5e7eb;padding:2px 8px;border-radius:4px;font-size:13px">' + esc(result.temp_password) + '</code></div>' +
-        '<div><strong>Login:</strong> <a href="' + loginUrl + '" target="_blank" style="color:var(--blue)">' + loginUrl + '</a></div>' +
-      '</div>' +
-      '<div style="margin-top:12px;display:flex;gap:8px">' +
-        '<button onclick="copyInviteInfo()" style="padding:6px 14px;border:1.5px solid var(--rule);border-radius:6px;background:white;font-size:12px;font-weight:600;cursor:pointer">Kopieer inloggegevens</button>' +
-      '</div>';
+    var loginUrl = result.login_url || (window.location.origin + window.location.pathname);
+    var emailSent = !!result.email_sent;
+
+    if (emailSent) {
+      resultDiv.innerHTML =
+        '<div style="font-weight:600;color:#166534;margin-bottom:8px">Uitnodiging verstuurd</div>' +
+        '<div style="font-size:13px;color:#374151;line-height:1.5">De partner heeft een email ontvangen op <strong>' + esc(email) + '</strong> met het tijdelijk wachtwoord en een inloglink.</div>' +
+        '<details style="margin-top:12px;font-size:12px;color:#6B7280">' +
+          '<summary style="cursor:pointer;font-weight:600">Toon wachtwoord als backup</summary>' +
+          '<div style="margin-top:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px">' +
+            '<div><strong>E-mail:</strong> ' + esc(email) + '</div>' +
+            '<div style="margin-top:4px"><strong>Wachtwoord:</strong> <code style="background:#fff;border:1px solid #E5E7EB;padding:2px 8px;border-radius:4px;font-size:12px">' + esc(result.temp_password) + '</code></div>' +
+            '<button onclick="copyInviteInfo()" style="margin-top:8px;padding:4px 10px;border:1px solid var(--rule);border-radius:4px;background:white;font-size:11px;font-weight:600;cursor:pointer">Kopieer</button>' +
+          '</div>' +
+        '</details>';
+      showToast('Uitnodiging verstuurd naar ' + email);
+    } else {
+      resultDiv.innerHTML =
+        '<div style="font-weight:600;color:#92400E;margin-bottom:8px">Account aangemaakt (email niet verstuurd)</div>' +
+        '<div style="font-size:12px;color:#92400E;margin-bottom:10px">' + esc(result.email_error || 'Onbekende fout bij verzenden') + '. Deel onderstaande gegevens zelf met de partner.</div>' +
+        '<div style="font-size:13px;color:#333;display:flex;flex-direction:column;gap:6px;padding:12px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px">' +
+          '<div><strong>E-mail:</strong> ' + esc(email) + '</div>' +
+          '<div><strong>Tijdelijk wachtwoord:</strong> <code style="background:#fff;border:1px solid #E5E7EB;padding:2px 8px;border-radius:4px;font-size:13px">' + esc(result.temp_password) + '</code></div>' +
+          '<div><strong>Login:</strong> <a href="' + esc(loginUrl) + '" target="_blank" style="color:var(--blue)">' + esc(loginUrl) + '</a></div>' +
+        '</div>' +
+        '<div style="margin-top:12px;display:flex;gap:8px">' +
+          '<button onclick="copyInviteInfo()" style="padding:6px 14px;border:1.5px solid var(--rule);border-radius:6px;background:white;font-size:12px;font-weight:600;cursor:pointer">Kopieer inloggegevens</button>' +
+        '</div>';
+      showToast('Account aangemaakt — email kon niet verzonden worden', 'error');
+    }
     resultDiv.style.display = 'block';
     btn.style.display = 'none';
-
-    showToast('Partner account aangemaakt voor ' + email);
   } catch (err) {
     showToast('Fout: ' + (err.message || err), 'error');
     btn.disabled = false;
