@@ -1648,7 +1648,22 @@
             <label style="font-size:12px;color:var(--grey);font-weight:600">Planning fee (&euro;)</label>
             <input type="number" id="np-planfee" value="25" min="0" step="0.5" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px;margin-top:4px">
           </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Primaire kleur</label>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <input type="color" id="np-kleur1" value="#098979" oninput="document.getElementById('np-kleur1-hex').value=this.value" style="width:44px;height:42px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px;background:#fff">
+              <input type="text" id="np-kleur1-hex" value="#098979" oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)) document.getElementById('np-kleur1').value=this.value" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Donkere kleur (sidebar)</label>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <input type="color" id="np-kleur2" value="#066b5e" oninput="document.getElementById('np-kleur2-hex').value=this.value" style="width:44px;height:42px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px;background:#fff">
+              <input type="text" id="np-kleur2-hex" value="#066b5e" oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)) document.getElementById('np-kleur2').value=this.value" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">
+            </div>
+          </div>
         </div>
+        <p style="font-size:11px;color:var(--grey);margin:10px 0 0">Kleuren kunnen later nog aangepast worden via het partner-detail of via Instellingen.</p>
         <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
           <button onclick="closeNewPartnerModal()" style="padding:10px 20px;border:1.5px solid var(--rule);border-radius:8px;background:white;font-size:13px;font-weight:600;cursor:pointer">Annuleren</button>
           <button onclick="createNewPartner()" id="np-submit-btn" style="padding:10px 24px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Aanmaken</button>
@@ -5191,6 +5206,10 @@ function openNewPartnerModal() {
   document.getElementById('np-btw').value = '';
   document.getElementById('np-marge').value = '15';
   document.getElementById('np-planfee').value = '25';
+  document.getElementById('np-kleur1').value = '#098979';
+  document.getElementById('np-kleur1-hex').value = '#098979';
+  document.getElementById('np-kleur2').value = '#066b5e';
+  document.getElementById('np-kleur2-hex').value = '#066b5e';
   document.getElementById('np-submit-btn').disabled = false;
   document.getElementById('np-submit-btn').textContent = 'Aanmaken';
   document.getElementById('modal-new-partner').style.display = 'flex';
@@ -5216,6 +5235,15 @@ async function createNewPartner() {
   btn.disabled = true;
   btn.textContent = 'Aanmaken...';
 
+  // Kleuren: prefer hex-input (laat admin exact brand-kleur tikken), fallback op color-picker
+  var HEX_RE = /^#[0-9a-fA-F]{6}$/;
+  var kp_hex = document.getElementById('np-kleur1-hex').value.trim();
+  var kp_pick = document.getElementById('np-kleur1').value;
+  var kleurPrimair = HEX_RE.test(kp_hex) ? kp_hex : kp_pick;
+  var kd_hex = document.getElementById('np-kleur2-hex').value.trim();
+  var kd_pick = document.getElementById('np-kleur2').value;
+  var kleurDonker = HEX_RE.test(kd_hex) ? kd_hex : kd_pick;
+
   var newPartner = {
     naam: naam,
     bedrijfsnaam: naam,
@@ -5227,8 +5255,8 @@ async function createNewPartner() {
     marge_pct: parseFloat(document.getElementById('np-marge').value) || 0,
     planning_fee: parseFloat(document.getElementById('np-planfee').value) || 0,
     transport_gratis_km: 30,
-    kleur_primair: '#098979',
-    kleur_donker: '#066b5e',
+    kleur_primair: kleurPrimair,
+    kleur_donker: kleurDonker,
     actief: true
   };
 
