@@ -5215,8 +5215,8 @@ function renderAdminSettings() {
     html += '<div style="display:flex;flex-direction:column;gap:6px">';
     permList.forEach(function(pm) {
       var enabled = perms[pm.key] || false;
-      html += '<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid ' + (enabled ? 'var(--green)' : 'var(--rule)') + ';background:' + (enabled ? 'rgba(39,174,96,0.06)' : 'var(--white)') + ';cursor:pointer;transition:all 0.2s" onclick="toggleAdminPermission(\'' + p.id + '\',\'' + pm.key + '\',this)">';
-      html += '<div style="width:36px;height:20px;border-radius:10px;background:' + (enabled ? 'var(--green)' : '#ccc') + ';position:relative;transition:background 0.2s;flex-shrink:0"><div style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:2px;' + (enabled ? 'left:18px' : 'left:2px') + ';transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div></div>';
+      html += '<label class="perm-toggle-row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid ' + (enabled ? 'var(--green)' : 'var(--rule)') + ';background:' + (enabled ? 'rgba(39,174,96,0.06)' : 'var(--white)') + ';cursor:pointer;transition:all 0.2s" onclick="toggleAdminPermission(\'' + p.id + '\',\'' + pm.key + '\',this)">';
+      html += '<div class="perm-toggle-track" style="width:36px;height:20px;border-radius:10px;background:' + (enabled ? 'var(--green)' : '#ccc') + ';position:relative;transition:background 0.2s;flex-shrink:0"><div class="perm-toggle-knob" style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:2px;' + (enabled ? 'left:18px' : 'left:2px') + ';transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div></div>';
       html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--navy)">' + pm.label + '</div><div style="font-size:11px;color:var(--grey)">' + pm.desc + '</div></div>';
       html += '<input type="checkbox" ' + (enabled ? 'checked' : '') + ' style="display:none">';
       html += '</label>';
@@ -5989,24 +5989,44 @@ async function loadPartnerPermissions() {
 }
 
 async function toggleAdminPermission(partnerId, permission, label) {
-  var cb = label.querySelector('input[type="checkbox"]');
-  var nowEnabled = cb.checked;
-  cb.checked = !nowEnabled; // toggle
+  if (!label) { console.warn('toggleAdminPermission: label missing'); return; }
 
+  // Defensieve DOM-lookups — class-selectors met legacy attribute-selector als fallback
+  var cb     = label.querySelector('input[type="checkbox"]');
+  var toggle = label.querySelector('.perm-toggle-track') || label.querySelector('div[style*="border-radius:10px"]');
+  var knob   = toggle ? (toggle.querySelector('.perm-toggle-knob') || toggle.querySelector('div')) : null;
+
+  // Als DOM-structuur gewijzigd is (bv. re-render tijdens async operatie), niet crashen
+  if (!cb || !toggle || !knob) {
+    console.warn('toggleAdminPermission: DOM-structuur onverwacht', { hasCb: !!cb, hasToggle: !!toggle, hasKnob: !!knob });
+    showToast('Kon machtiging niet togglen — herlaad de pagina', 'error');
+    return;
+  }
+
+  var nowEnabled = cb.checked;
+  cb.checked = !nowEnabled;
   var newVal = !nowEnabled;
-  var toggle = label.querySelector('div[style*="border-radius:10px"]');
-  var knob = toggle.querySelector('div');
+
   toggle.style.background = newVal ? 'var(--green)' : '#ccc';
-  knob.style.left = newVal ? '18px' : '2px';
+  knob.style.left         = newVal ? '18px' : '2px';
   label.style.borderColor = newVal ? 'var(--green)' : 'var(--rule)';
-  label.style.background = newVal ? 'rgba(39,174,96,0.06)' : 'var(--white)';
+  label.style.background  = newVal ? 'rgba(39,174,96,0.06)' : 'var(--white)';
 
   // Upsert
   var { error } = await sb.from('partner_permissions')
     .upsert({ partner_id: partnerId, permission: permission, enabled: newVal, updated_at: new Date().toISOString() },
       { onConflict: 'partner_id,permission' });
 
-  if (error) { showToast('Fout: ' + error.message, 'error'); return; }
+  if (error) {
+    // Rollback UI als DB-write faalt
+    cb.checked = nowEnabled;
+    toggle.style.background = nowEnabled ? 'var(--green)' : '#ccc';
+    knob.style.left         = nowEnabled ? '18px' : '2px';
+    label.style.borderColor = nowEnabled ? 'var(--green)' : 'var(--rule)';
+    label.style.background  = nowEnabled ? 'rgba(39,174,96,0.06)' : 'var(--white)';
+    showToast('Fout: ' + error.message, 'error');
+    return;
+  }
 
   if (!allPartnerPermissions[partnerId]) allPartnerPermissions[partnerId] = {};
   allPartnerPermissions[partnerId][permission] = newVal;
