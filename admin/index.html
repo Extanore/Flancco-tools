@@ -5228,9 +5228,6 @@ function renderPartners() {
     html += '<button class="icon-btn" title="Bewerken" onclick="editPartnerFromTable(\'' + p.id + '\')">' +
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
       '</button>';
-    html += '<button class="icon-btn icon-btn-danger" title="Verwijderen" onclick="deletePartner(\'' + p.id + '\')">' +
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>' +
-      '</button>';
     html += '</td>';
     html += '</tr>';
 
@@ -5324,7 +5321,6 @@ function renderPartnerDetail(p, actieve, alleContracten) {
 
   h += '<div class="pd-actions admin-only">';
   h += '<button type="button" class="btn btn-ghost" onclick="editPartnerFromTable(\'' + p.id + '\')">Bewerken</button>';
-  h += '<button type="button" class="btn-danger-outline" onclick="deletePartner(\'' + p.id + '\')">Verwijderen</button>';
   h += '</div>';
   h += '</div>';
 
@@ -5570,13 +5566,17 @@ function renderAdminSettings() {
     html += '<div><label style="font-size:11px;color:var(--grey)">Gratis transport (km)</label><input type="number" id="adm-km-' + p.id + '" value="' + (p.transport_gratis_km || 0) + '" min="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
     html += '</div></div>';
 
-    // Save button + invite button
-    html += '<div style="display:flex;gap:8px;align-items:center">';
+    // Save button + invite button + delete button
+    html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
     html += '<button type="button" class="btn btn-primary" onclick="saveAdminPartner(\'' + p.id + '\')">Opslaan</button>';
     html += '<button type="button" class="btn btn-ghost" onclick="openInviteModal(\'' + p.id + '\')">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
     html += 'Uitnodigen</button>';
     html += '<span id="adm-saved-' + p.id + '" style="font-size:12px;color:var(--green);display:none">Opgeslagen!</span>';
+    html += '<div style="flex:1"></div>';
+    html += '<button type="button" class="btn-danger-outline" onclick="deletePartner(\'' + p.id + '\')" style="display:inline-flex;align-items:center;gap:6px">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+    html += 'Partner verwijderen</button>';
     html += '</div>';
 
     html += '</div></div>';
