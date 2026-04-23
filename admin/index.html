@@ -4637,6 +4637,10 @@ async function changePassword() {
       return;
     }
 
+    // Audit: wachtwoordwijziging — geen waarde loggen, enkel event + bron.
+    auditLog('auth_users', currentUser.id, 'wachtwoord_gewijzigd', null,
+      JSON.stringify({ bron: 'password_modal' }));
+
     okEl.style.display = 'block';
     if (typeof showToast === 'function') showToast('Wachtwoord gewijzigd', 'success');
     setTimeout(closePasswordModal, 1200);
@@ -6576,9 +6580,16 @@ async function onbFinish() {
     if (onbDraft.logo_url) patch.logo_url = onbDraft.logo_url;
     var upd = await sb.from('partners').update(patch).eq('id', userPartner.id);
     if (upd.error) throw upd.error;
+    // Audit-log: partner-onboarding voltooid — belangrijke trail voor compliance bij contract-afsluiting.
+    auditLog('partners', userPartner.id, 'onboarding_voltooid',
+      JSON.stringify(_pickPartnerAuditFields(userPartner)),
+      JSON.stringify({ bedrijfsnaam: patch.bedrijfsnaam, contactpersoon: patch.contactpersoon, adres: patch.adres, postcode: patch.postcode, gemeente: patch.gemeente, kleur_primair: patch.kleur_primair, logo_url: patch.logo_url || null, onboarding_completed_at: patch.onboarding_completed_at }));
     // 2) Wachtwoord updaten
     var pass = await sb.auth.updateUser({ password: onbDraft.newPass });
     if (pass.error) throw pass.error;
+    // Audit: wachtwoord gewijzigd via onboarding — geen waarde loggen (security), enkel event.
+    auditLog('auth_users', userPartner.user_id || currentUser.id, 'wachtwoord_gewijzigd', null,
+      JSON.stringify({ bron: 'onboarding_wizard' }));
     // 3) Lokale state verversen
     Object.assign(userPartner, patch);
     applyBranding(userPartner);
