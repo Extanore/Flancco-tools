@@ -3320,6 +3320,7 @@ let allContracten = [];
 let allClients = [];
 let allTechniekers = [];
 let allTechSectoren = [];
+let allTechCertificeringen = [];
 let allVoertuigen = [];
 let allBouwdrogers = [];
 let expandedBouwdrogerId = null;
@@ -4270,7 +4271,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob, locAll, bUrenReg, loonR, feestR, pwpc, bdr] = await Promise.all([
+  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob, locAll, bUrenReg, loonR, feestR, pwpc, bdr, techCerts] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('sort_order').order('staffel_min'),
     sb.from('supplementen').select('*'),
@@ -4290,7 +4291,8 @@ async function loadAllData() {
     sb.from('loon_regels').select('*').order('actief_vanaf', { ascending: false }).then(function(r){return r;}, function(_){return {data:[]};}),
     sb.from('feestdagen').select('*').order('datum', { ascending: true }).then(function(r){return r;}, function(_){return {data:[]};}),
     sb.from('partner_warmtepomp_config').select('*').then(function(r){return r;}, function(_){return {data:[]};}),
-    sb.from('bouwdrogers').select('*').order('serienummer').then(function(r){return r;}, function(_){return {data:[]};})
+    sb.from('bouwdrogers').select('*').order('serienummer').then(function(r){return r;}, function(_){return {data:[]};}),
+    sb.from('technieker_certificeringen').select('*').then(function(r){return r;}, function(_){return {data:[]};})
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
@@ -4308,6 +4310,8 @@ async function loadAllData() {
   allVerlof = vaf.data || [];
   allVerlofSaldi = vsa.data || [];
   allOnderhoudsbeurten = ob.data || [];
+  allTechCertificeringen = (techCerts && techCerts.data) ? techCerts.data : [];
+  window._allTechCertificeringen = allTechCertificeringen;
   window._allClientLocations = (locAll && locAll.data) ? locAll.data : [];
   window._allBeurten = allOnderhoudsbeurten;
   // Nieuwe uren-bronnen (sectie I migraties)
@@ -4338,6 +4342,8 @@ async function loadAllData() {
   await loadFacturatie();
   // Voertuig-verval check (enkel admin) — genereert notificaties vóór we ze inladen
   try { await checkVoertuigVervalNotificaties(); } catch (_) { /* non-blocking */ }
+  // Certificering-verval check (enkel admin) — idem patroon, op technieker_certificeringen
+  try { await checkTechniekerCertVervalNotificaties(); } catch (_) { /* non-blocking */ }
   // Notificaties laden + realtime subscribe (alle rollen)
   await loadNotifications();
   await loadNotificationPreferences();
@@ -4653,6 +4659,21 @@ async function openNotification(id) {
         if (expandedVoertuigId !== n.related_id) toggleVoertuigDetail(n.related_id);
       }
     }, 150);
+  } else if (n.related_type === 'technieker_cert' && n.related_id) {
+    // Cert-id → technieker via in-memory lookup; open de bewerk-modal zodat
+    // de certificering-sectie direct zichtbaar/bewerkbaar is.
+    var cert = (allTechCertificeringen || []).find(function(x) { return x.id === n.related_id; });
+    var targetTechId = cert ? cert.technieker_id : null;
+    showPage('techniekers');
+    if (targetTechId) {
+      setTimeout(function() {
+        if (typeof toggleTechDetail === 'function' && typeof expandedTechId !== 'undefined') {
+          if (expandedTechId !== targetTechId) toggleTechDetail(targetTechId);
+        }
+        var t = (allTechniekers || []).find(function(x) { return x.id === targetTechId; });
+        if (t && typeof openTechModal === 'function') openTechModal(t);
+      }, 150);
+    }
   } else if (n.link_url) {
     if (n.link_url.startsWith('page:')) {
       var pg = n.link_url.substring(5);
@@ -5223,6 +5244,23 @@ function renderDashboard() {
         var vd = new Date(v.verzekering_verval);
         if (vd < today) alerts.push({ level: 'red', msg: 'Verzekering <strong>' + esc(v.nummerplaat) + '</strong> is <strong>verlopen</strong> (' + v.verzekering_verval + ')' });
         else if (vd < warn2m) alerts.push({ level: 'orange', msg: 'Verzekering <strong>' + esc(v.nummerplaat) + '</strong> verloopt binnenkort (' + v.verzekering_verval + ')' });
+      }
+    });
+    // Technieker-certificeringen: rood bij verlopen of <30d, oranje tussen 30-60d
+    var warn30d = new Date(today); warn30d.setDate(warn30d.getDate() + 30);
+    (allTechCertificeringen || []).forEach(function(c) {
+      if (!c || !c.vervaldatum) return;
+      var tech = (allTechniekers || []).find(function(t) { return t.id === c.technieker_id; });
+      if (!tech || tech.actief === false) return;
+      var naam = esc(((tech.voornaam || '') + ' ' + (tech.naam || '')).trim());
+      var cType = esc(c.type || 'Certificaat');
+      var cd = new Date(c.vervaldatum);
+      if (cd < today) {
+        alerts.push({ level: 'red', msg: 'Certificaat <strong>' + cType + '</strong> voor <strong>' + naam + '</strong> is <strong>verlopen</strong> (' + c.vervaldatum + ')' });
+      } else if (cd < warn30d) {
+        alerts.push({ level: 'red', msg: 'Certificaat <strong>' + cType + '</strong> voor <strong>' + naam + '</strong> verloopt <strong>binnenkort</strong> (' + c.vervaldatum + ')' });
+      } else if (cd < warn2m) {
+        alerts.push({ level: 'orange', msg: 'Certificaat <strong>' + cType + '</strong> voor <strong>' + naam + '</strong> verloopt binnenkort (' + c.vervaldatum + ')' });
       }
     });
     // Open interventies
@@ -12243,6 +12281,10 @@ async function deleteTechnieker() {
 async function loadTechCerts(techId) {
   var res = await sb.from('technieker_certificeringen').select('*').eq('technieker_id', techId).order('created_at');
   var certs = res.data || [];
+  // Keep in-memory master list in sync zodat dashboard-alerts en verval-notif
+  // onmiddellijk up-to-date zijn zonder volledige reload.
+  allTechCertificeringen = (allTechCertificeringen || []).filter(function(c) { return c.technieker_id !== techId; }).concat(certs);
+  window._allTechCertificeringen = allTechCertificeringen;
   var list = document.getElementById('tech-cert-list');
   if (certs.length === 0) {
     list.innerHTML = '<p class="cert-empty">Geen certificeringen</p>';
@@ -12669,6 +12711,121 @@ function buildVervalNotif(v, kind, datumIso, herinneringMaanden, today, partnerI
     related_type: 'voertuig',
     related_id: v.id,
     dedup_key: typeKey + '-' + v.id + '-' + datumIso + '-' + status,
+    is_read: false,
+    email_sent: false,
+    email_opt_in: false
+  };
+}
+
+// =============================================
+// TECHNIEKER-CERTIFICERING VERVAL-NOTIFICATIES
+// =============================================
+// Drempels: <0d = verlopen, 0-30d = urgent, 30-60d = binnenkort. Identiek patroon als
+// buildVervalNotif — we laten die functie ongemoeid omdat zijn body expliciet voertuig-
+// termen bevat (merk/model/plaat).
+var TECH_CERT_WARN_DAYS = 60;
+var TECH_CERT_URGENT_DAYS = 30;
+
+/**
+ * Checkt alle certificeringen van actieve techniekers op verlopen of binnenkort-
+ * verlopende vervaldatum en genereert interne notificaties. Idempotent via dedup_key:
+ * dezelfde combinatie (cert + vervaldatum + status) wordt nooit dubbel ingevoegd.
+ *
+ * Triggert bij elke dashboard-load voor admin-rol. Partners zien geen techniekers
+ * (enkel eigen klant-beurten) dus krijgen geen notif.
+ */
+async function checkTechniekerCertVervalNotificaties() {
+  if (userRole !== 'admin') return;
+  if (!Array.isArray(allTechCertificeringen) || allTechCertificeringen.length === 0) return;
+  if (typeof sb === 'undefined' || !sb) return;
+
+  // Bepaal partner-ontvanger: techniekers horen bij Flancco Direct (de eigenaar).
+  var flanccoPartner = (partners || []).find(function(p) {
+    var slug = (p.slug || '').toLowerCase();
+    var naam = (p.bedrijfsnaam || p.naam || '').toLowerCase();
+    return slug === 'flancco' || naam.indexOf('flancco direct') >= 0 || naam.indexOf('flancco bv') >= 0;
+  });
+  if (!flanccoPartner) flanccoPartner = (partners || [])[0];
+  if (!flanccoPartner || !flanccoPartner.id) return;
+
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Enkel certs van actieve techniekers — uit-dienst-records negeren
+  var activeTechIds = {};
+  (allTechniekers || []).forEach(function(t) {
+    if (t && t.actief !== false) activeTechIds[t.id] = t;
+  });
+
+  var rows = [];
+  allTechCertificeringen.forEach(function(c) {
+    if (!c || !c.vervaldatum) return;
+    var tech = activeTechIds[c.technieker_id];
+    if (!tech) return;
+    var rec = buildTechCertVervalNotif(c, tech, today, flanccoPartner.id);
+    if (rec) rows.push(rec);
+  });
+
+  if (rows.length === 0) return;
+
+  try {
+    var up = await sb.from('notifications').upsert(rows, {
+      onConflict: 'partner_id,dedup_key',
+      ignoreDuplicates: true
+    });
+    if (up.error) {
+      console.warn('checkTechniekerCertVervalNotificaties upsert fout:', up.error.message || up.error);
+    }
+  } catch (e) {
+    console.warn('checkTechniekerCertVervalNotificaties exception:', e && e.message ? e.message : e);
+  }
+}
+
+/**
+ * Bouwt één notificatie-rij voor een verlopen/binnenkort-verlopend certificaat.
+ * Returns null als er geen trigger-conditie voldaan is (nog te ver in de toekomst).
+ */
+function buildTechCertVervalNotif(cert, tech, today, partnerId) {
+  var vd = new Date(cert.vervaldatum);
+  vd.setHours(0, 0, 0, 0);
+
+  var urgentDrempel = new Date(today);
+  urgentDrempel.setDate(urgentDrempel.getDate() + TECH_CERT_URGENT_DAYS);
+  var warnDrempel = new Date(today);
+  warnDrempel.setDate(warnDrempel.getDate() + TECH_CERT_WARN_DAYS);
+
+  var status;
+  if (vd < today) status = 'verlopen';
+  else if (vd < urgentDrempel) status = 'urgent';
+  else if (vd < warnDrempel) status = 'binnenkort';
+  else return null;
+
+  var typeKey = 'technieker_cert_verval';
+  var certType = cert.type || 'Certificaat';
+  var naam = ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() || 'Technieker';
+  var datumBE = vd.toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  var title, body;
+  if (status === 'verlopen') {
+    var daysOver = Math.round((today - vd) / (1000 * 60 * 60 * 24));
+    title = 'Certificaat ' + certType + ' voor ' + naam + ' is verlopen sinds ' + daysOver + ' dag' + (daysOver === 1 ? '' : 'en');
+    body = certType + ' is ' + daysOver + ' dag' + (daysOver === 1 ? '' : 'en') + ' geleden verlopen (' + datumBE + '). Vernieuw dringend.';
+  } else {
+    var daysLeft = Math.round((vd - today) / (1000 * 60 * 60 * 24));
+    title = 'Certificaat ' + certType + ' voor ' + naam + ' verloopt over ' + daysLeft + ' dag' + (daysLeft === 1 ? '' : 'en');
+    body = certType + ' verloopt over ' + daysLeft + ' dag' + (daysLeft === 1 ? '' : 'en') + ' (' + datumBE + ').';
+  }
+
+  return {
+    partner_id: partnerId,
+    user_id: null,
+    type: typeKey,
+    title: title,
+    body: body,
+    link_url: null,
+    related_type: 'technieker_cert',
+    related_id: cert.id,
+    dedup_key: typeKey + '-' + cert.id + '-' + cert.vervaldatum + '-' + status,
     is_read: false,
     email_sent: false,
     email_opt_in: false

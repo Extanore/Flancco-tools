@@ -562,6 +562,15 @@
   .appt-card.is-multidag.multidag-end::after   { background: linear-gradient(90deg, rgba(245,158,11,0.4) 0%, #F59E0B 70%); }
   .appt-card.is-multidag.multidag-mid::after   { background: rgba(245,158,11,0.55); }
   .appt-card.dragging { opacity: 0.4; transform: scale(0.95); }
+  /* Cert-warning: beurt toegewezen aan technieker met verlopen certificeringen.
+     Admin heeft doorgeklikt op "Toch toewijzen" — rode rand + alert-icoon. */
+  .appt-card.has-cert-warning { border: 2px solid #DC2626 !important; box-shadow: 0 0 0 2px rgba(220,38,38,0.12); }
+  .appt-card .cert-warn-icon {
+    position: absolute; top: 6px; left: 6px;
+    width: 16px; height: 16px; color: #DC2626;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .appt-card.has-cert-warning .appt-klant { padding-left: 18px; }
   .appt-card .appt-extra-techs { display: flex; gap: 3px; margin-top: 3px; }
   .extra-tech-badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -2050,6 +2059,7 @@ var allInterventies = [];
 var allRapporten = [];
 var sidebarType = 'onderhoud'; // 'onderhoud' | 'interventie' | 'losse'
 var allTechSectoren = [];
+var allTechCertificeringen = [];
 var allAfwezigheden = [];
 var allContracten = [];
 var allClients = [];
@@ -2312,6 +2322,26 @@ function techHasSector(techId, sector) {
   });
 }
 var techHasCert = techHasSector; // backward compat
+
+/**
+ * Returnt de lijst verlopen certificeringen voor een technieker (vervaldatum < vandaag).
+ * Lege array = alles in orde. Gebruikt door saveEditBeurt om een confirm te tonen
+ * vóór we een beurt toewijzen aan iemand met verlopen kwalificaties.
+ */
+function getVerlopenCertificeringen(techId) {
+  if (!techId || !Array.isArray(allTechCertificeringen)) return [];
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return allTechCertificeringen.filter(function(c) {
+    if (!c || c.technieker_id !== techId || !c.vervaldatum) return false;
+    var vd = new Date(c.vervaldatum);
+    vd.setHours(0, 0, 0, 0);
+    return vd < today;
+  });
+}
+function hasVerlopenCertificeringen(techId) {
+  return getVerlopenCertificeringen(techId).length > 0;
+}
 
 // Fix #6 Multi-dag helpers: range-check i.p.v. exact-match op plan_datum.
 // Een beurt spant [plan_datum, eind_datum]. Als eind_datum NULL is → eendaags.
@@ -2825,7 +2855,8 @@ async function loadPlanningData() {
     sb.from('klant_installaties').select('*'),
     sb.from('rapporten').select('id, technieker_id, onderhoudsbeurt_id, uren_data, datum_onderhoud'),
     sb.from('client_locations').select('id, client_id, label, street, house_number, postal_code, city, country, is_primary, po_number'),
-    sb.from('beurt_uren_registraties').select('*').then(function(r) { return r; }, function() { return { data: [] }; })
+    sb.from('beurt_uren_registraties').select('*').then(function(r) { return r; }, function() { return { data: [] }; }),
+    sb.from('technieker_certificeringen').select('id, technieker_id, type, vervaldatum').then(function(r) { return r; }, function() { return { data: [] }; })
   ]);
 
   allBeurten = results[0].data || [];
@@ -2842,6 +2873,7 @@ async function loadPlanningData() {
   allRapporten = results[11].data || [];
   window._allClientLocations = results[12].data || [];
   window._allUrenRegistraties = (results[13] && results[13].data) || [];
+  allTechCertificeringen = (results[14] && results[14].data) || [];
 
   populateFilterDropdowns();
 }
@@ -3410,12 +3442,23 @@ function renderApptCard(b, info, dayInfo) {
   var multiDagClass = dayInfo.isMultiDay ? ' is-multidag' + (isFirstDay ? ' multidag-start' : '') + (isLastDay ? ' multidag-end' : '') + (!isFirstDay && !isLastDay ? ' multidag-mid' : '') : '';
   var titleSuffix = dayInfo.isMultiDay ? ' (dag ' + dayInfo.dayIndex + '/' + dayInfo.totalDays + ')' : '';
 
-  return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + multiDagClass + '" ' +
+  // Cert-waarschuwing: markeer beurt-card visueel zodra de toegewezen primary-technieker
+  // verlopen certificeringen heeft. Admin heeft in de edit-modal doorgeklikt op
+  // "Toch toewijzen" (zie saveEditBeurt). We re-evalueren hier op basis van actuele
+  // cert-data zodat de markering persistent is over page-loads — geen DB-flag nodig.
+  var certWarn = b.technieker_id && hasVerlopenCertificeringen(b.technieker_id);
+  var certWarnClass = certWarn ? ' has-cert-warning' : '';
+  var certWarnIcon = certWarn
+    ? '<span class="cert-warn-icon" title="Technieker heeft verlopen certificeringen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>'
+    : '';
+
+  return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + multiDagClass + certWarnClass + '" ' +
     dragAttr +
     'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
     'oncontextmenu="onCardContext(event, \'' + b.id + '\')" ' +
     'style="cursor:pointer;position:relative" ' +
     'title="' + esc(info.naam) + ' - ' + esc(info.sector) + (info && info.isLosseOpdracht ? ' (losse opdracht)' : '') + titleSuffix + '">' +
+    certWarnIcon +
     '<div class="appt-klant">' + beurtRefHtml(b) + esc(info.naam) + losseBadge + multiDagBadge + '</div>' +
     '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
     (timeStr ? '<div class="appt-time">' + timeStr + (duurStr ? '<span class="appt-duur">· ' + duurStr + '</span>' : '') + '</div>' : '') +
@@ -5270,6 +5313,20 @@ async function planBeurt(beurtId, techId, planDatum, startTijd) {
     return;
   }
 
+  // Cert-verloopcheck bij directe toewijzing (niet via edit-modal). Identiek patroon.
+  if (techId !== beurt.technieker_id) {
+    var verlopenCerts = getVerlopenCertificeringen(techId);
+    if (verlopenCerts.length > 0) {
+      var tObj = allTechniekers.find(function(t) { return t.id === techId; });
+      var tNaam = tObj ? (tObj.voornaam + ' ' + tObj.naam) : 'Technieker';
+      var cNamen = verlopenCerts.map(function(c) { return c.type || 'certificaat'; }).join(', ');
+      if (!confirm(tNaam + ' heeft een of meerdere verlopen certificeringen (' + cNamen + '). Toch toewijzen?')) return;
+      beurt._cert_warning_ack = true;
+    } else if (beurt._cert_warning_ack) {
+      beurt._cert_warning_ack = false;
+    }
+  }
+
   // Validation: check max beurten per dag
   var tech = allTechniekers.find(function(t) { return t.id === techId; });
   if (tech && tech.max_beurten_per_dag) {
@@ -6585,6 +6642,23 @@ async function saveEditBeurt() {
     showToast((tech ? tech.voornaam + ' ' + tech.naam : 'Technieker') +
       ' is niet toegewezen aan sector ' + info.sector, 'error');
     return;
+  }
+
+  // Cert-verloopcheck: enkel waarschuwen als de primary-technieker wijzigt of als het
+  // een nieuwe toewijzing is (voorkomt herhaalde prompts bij elke save van zelfde beurt).
+  if (techId && techId !== beurt.technieker_id) {
+    var verlopenCerts = getVerlopenCertificeringen(techId);
+    if (verlopenCerts.length > 0) {
+      var techObj = allTechniekers.find(function(t) { return t.id === techId; });
+      var techNaam = techObj ? (techObj.voornaam + ' ' + techObj.naam) : 'Technieker';
+      var certNamen = verlopenCerts.map(function(c) { return c.type || 'certificaat'; }).join(', ');
+      var bevestig = confirm(techNaam + ' heeft een of meerdere verlopen certificeringen (' + certNamen + '). Toch toewijzen?');
+      if (!bevestig) return;
+      beurt._cert_warning_ack = true;
+    } else {
+      // Technieker gewijzigd naar iemand zonder verlopen certs → waarschuwing opheffen
+      if (beurt._cert_warning_ack) beurt._cert_warning_ack = false;
+    }
   }
 
   // Collect extra technieker IDs from chips
