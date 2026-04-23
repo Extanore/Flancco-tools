@@ -3239,14 +3239,30 @@ async function checkAuth() {
 }
 
 async function doLogin() {
-  const email = document.getElementById('login-email').value;
-  const pass = document.getElementById('login-pass').value;
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) {
-    document.getElementById('login-error').textContent = 'Ongeldige inloggegevens';
-  } else {
-    currentUser = data.user;
-    await initApp();
+  var emailEl = document.getElementById('login-email');
+  var passEl = document.getElementById('login-pass');
+  var errEl = document.getElementById('login-error');
+  if (!emailEl || !passEl) {
+    if (errEl) errEl.textContent = 'Login-formulier niet geladen. Herlaad de pagina.';
+    return;
+  }
+  var email = emailEl.value.trim();
+  var pass = passEl.value;
+  if (!email || !pass) {
+    if (errEl) errEl.textContent = 'Vul e-mail en wachtwoord in.';
+    return;
+  }
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email: email, password: pass });
+    if (error) {
+      if (errEl) errEl.textContent = 'Ongeldige inloggegevens';
+    } else {
+      currentUser = data.user;
+      await initApp();
+    }
+  } catch (e) {
+    if (errEl) errEl.textContent = 'Inloggen mislukt. Controleer je verbinding en probeer opnieuw.';
+    console.error('doLogin error:', e);
   }
 }
 
@@ -4025,6 +4041,11 @@ async function saveRapportConfig() {
 async function doLogout() {
   try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
   try { localStorage.removeItem('flancco_role_cache'); } catch(_) {}
+  // window.__flanccoBoot bevat in-memory kopie van partner-branding voor FOUC-preventie.
+  // Wissen voorkomt dat een volgende login (bv. admin op zelfde device) nog partner-kleuren
+  // ziet tijdens first-paint voordat initApp() nieuwe branding toepast.
+  try { if (window.__flanccoBoot) { delete window.__flanccoBoot; } } catch(_) {}
+  try { if (typeof resetFaviconToDefault === 'function') resetFaviconToDefault(); } catch(_) {}
   // Ruim html[data-*] attributen op zodat post-logout landing-page geen
   // gecachte role-scope meer toepast.
   var htmlEl = document.documentElement;
@@ -4032,6 +4053,13 @@ async function doLogout() {
    'data-perm-manage-users','data-perm-verlof-beheer'].forEach(function(attr) {
     htmlEl.removeAttribute(attr);
   });
+  // Inline CSS custom properties verwijderen (door early-boot gezet).
+  try {
+    var rootStyle = htmlEl.style;
+    ['--navy','--navy-light','--red-fouc-override'].forEach(function(prop) {
+      rootStyle.removeProperty(prop);
+    });
+  } catch(_) {}
   await sb.auth.signOut();
   location.reload();
 }
@@ -12724,17 +12752,27 @@ async function saveBouwdroger() {
     notitie: document.getElementById('bd-notitie').value.trim() || null
   };
 
-  var res;
-  if (editId) {
-    res = await sb.from('bouwdrogers').update(payload).eq('id', editId).select();
-  } else {
-    res = await sb.from('bouwdrogers').insert([payload]).select();
-  }
-  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+  try {
+    var res;
+    if (editId) {
+      res = await sb.from('bouwdrogers').update(payload).eq('id', editId).select();
+    } else {
+      res = await sb.from('bouwdrogers').insert([payload]).select();
+    }
+    if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
-  closeBouwdrogerModal();
-  showToast(editId ? 'Bouwdroger bijgewerkt' : 'Bouwdroger toegevoegd', 'success');
-  await loadAllData();
+    closeBouwdrogerModal();
+    showToast(editId ? 'Bouwdroger bijgewerkt' : 'Bouwdroger toegevoegd', 'success');
+    try {
+      await loadAllData();
+    } catch (reloadErr) {
+      console.error('loadAllData na saveBouwdroger mislukt:', reloadErr);
+      showToast('Opgeslagen, maar lijst herladen mislukt. Herlaad de pagina.', 'info');
+    }
+  } catch (e) {
+    console.error('saveBouwdroger error:', e);
+    showToast('Opslaan mislukt: ' + (e && e.message ? e.message : 'onbekende fout'), 'error');
+  }
 }
 
 async function deleteBouwdroger() {
