@@ -1242,6 +1242,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Instellingen</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('auditlog')" data-page="auditlog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span>Audit-log</span>
+    </a>
     <a class="nav-item partner-only" onclick="showPage('instellingen')" data-page="instellingen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Instellingen</span>
@@ -1866,6 +1870,95 @@
             <button type="button" id="tour-prev" class="tour-btn tour-btn-ghost" onclick="tourPrev()">Vorige</button>
             <button type="button" id="tour-next" class="tour-btn tour-btn-primary" onclick="tourNext()">Volgende</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG PAGE (admin only) -->
+    <div class="page admin-only" id="page-auditlog">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Audit-log</span>
+        </div>
+        <p style="font-size:13px;color:var(--grey);margin:0 0 16px">Volledig historisch overzicht van business-kritieke mutaties in het platform. Gebruikt voor compliance, incidentonderzoek en verdediging bij klachten of betwistingen.</p>
+
+        <!-- Filters -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;padding:14px;background:var(--light);border-radius:8px">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Vanaf</label>
+            <input type="date" id="audit-f-van" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Tot</label>
+            <input type="date" id="audit-f-tot" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Entiteit</label>
+            <select id="audit-f-tabel" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;background:white">
+              <option value="">Alle</option>
+              <option value="contracten">Contracten</option>
+              <option value="onderhoudsbeurten">Onderhoudsbeurten</option>
+              <option value="rapporten">Rapporten</option>
+              <option value="interventies">Interventies</option>
+              <option value="pricing">Pricing</option>
+              <option value="partners">Partners</option>
+              <option value="techniekers">Personeel</option>
+              <option value="user_roles">Rollen / rechten</option>
+              <option value="auth_users">Gebruikers (auth)</option>
+              <option value="clients">Klanten</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Uitvoerder</label>
+            <select id="audit-f-user" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;background:white">
+              <option value="">Alle</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Record-ID</label>
+            <input type="text" id="audit-f-record" placeholder="UUID" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;font-family:ui-monospace,Menlo,monospace">
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:6px">
+            <button class="btn btn-primary" type="button" onclick="applyAuditFilters()" style="flex:1">Filter</button>
+            <button class="btn btn-ghost" type="button" onclick="resetAuditFilters()" style="flex:0 0 auto;padding-left:12px;padding-right:12px" title="Reset filters">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Totaal + Export -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap">
+          <div id="audit-count" style="font-size:12px;color:var(--grey)">&nbsp;</div>
+          <button class="btn btn-ghost" type="button" onclick="exportAuditCsv()" style="display:flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            CSV-export
+          </button>
+        </div>
+
+        <!-- Tabel -->
+        <div style="overflow-x:auto;border:1px solid var(--rule);border-radius:8px">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead style="background:var(--light);border-bottom:1px solid var(--rule)">
+              <tr>
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap">Tijdstip</th>
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Uitvoerder</th>
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Actie</th>
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Entiteit</th>
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Record-ID</th>
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Wijziging</th>
+              </tr>
+            </thead>
+            <tbody id="audit-tbody">
+              <tr><td colspan="6" style="padding:24px;text-align:center;color:var(--grey);font-size:13px">Laden…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginatie -->
+        <div id="audit-pager" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" type="button" id="audit-prev" onclick="auditPrev()">&laquo; Vorige</button>
+          <span id="audit-page-info" style="font-size:12px;color:var(--grey)">&nbsp;</span>
+          <button class="btn btn-ghost" type="button" id="audit-next" onclick="auditNext()">Volgende &raquo;</button>
         </div>
       </div>
     </div>
@@ -3784,11 +3877,21 @@ async function saveSettings() {
     sector_namen: sectorNamen
   };
 
+  // Snapshot vóór update voor audit-diff.
+  var _prevSelfSnapshot = userPartner ? _pickPartnerAuditFields(userPartner) : null;
+
   const { data, error } = await sb.from('partners').update(updates).eq('id', userPartner.id).select().single();
   if (error) {
     console.error('saveSettings error:', error);
     showToast('Fout bij opslaan: ' + error.message, 'error');
     return;
+  }
+
+  // Audit: partner bewerkt eigen branding/instellingen.
+  var _newSelfSnapshot = _pickPartnerAuditFields(data || updates);
+  var _selfDiff = _diffAuditSnapshots(_prevSelfSnapshot, _newSelfSnapshot);
+  if (_selfDiff.changed) {
+    auditLog('partners', userPartner.id, 'instellingen_gewijzigd', JSON.stringify(_selfDiff.oud), JSON.stringify(_selfDiff.nieuw));
   }
 
   // Update local state met server-returned row (meest betrouwbaar) + her-apply branding
@@ -4711,7 +4814,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren', auditlog: 'Audit-log' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -4719,6 +4822,7 @@ function showPage(name) {
   if (name === 'uren') renderUrenPage();
   if (name === 'notificaties') { renderNotificatiesPage(); }
   if (name === 'bouwdrogers') renderBouwdrogers();
+  if (name === 'auditlog') { initAuditLogPage(); }
   if (name === 'instellingen' && userRole === 'partner' && typeof can === 'function' && can('manage_users') && typeof renderPartnerTeamList === 'function') renderPartnerTeamList();
 }
 
@@ -5288,6 +5392,8 @@ async function deleteUser(userId, email) {
     var res = await sb.functions.invoke('delete-user', { body: { userIdToDelete: userId } });
     if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Verwijderen mislukt'); return; }
     if (res.data && res.data.error) { await infoDialog('Fout: ' + res.data.error, 'Verwijderen mislukt'); return; }
+    auditLog('auth_users', userId, 'verwijderd',
+      JSON.stringify({ email: email || null }), null);
     await renderGebruikers();
   } catch (e) {
     await infoDialog('Fout: ' + (e && e.message ? e.message : e), 'Verwijderen mislukt');
@@ -5296,12 +5402,18 @@ async function deleteUser(userId, email) {
 
 async function toggleUserPermission(roleId, permKey, value) {
   // Fetch current permissions
-  var cur = await sb.from('user_roles').select('permissions').eq('id', roleId).single();
+  var cur = await sb.from('user_roles').select('permissions, user_id').eq('id', roleId).single();
   if (cur.error) { showToast('Fout: ' + cur.error.message, 'error'); return; }
   var perms = cur.data.permissions || {};
+  var oldHad = !!perms[permKey];
   if (value) perms[permKey] = true; else delete perms[permKey];
   var upd = await sb.from('user_roles').update({ permissions: perms }).eq('id', roleId);
   if (upd.error) { await infoDialog('Fout bij opslaan: ' + upd.error.message, 'Opslaan mislukt'); return; }
+  if (oldHad !== !!value) {
+    auditLog('user_roles', roleId, 'permission_wijziging',
+      JSON.stringify({ key: permKey, waarde: oldHad }),
+      JSON.stringify({ key: permKey, waarde: !!value }));
+  }
 }
 
 // =============================================
@@ -5900,6 +6012,11 @@ async function deletePartner(partnerId) {
   var res = await sb.from('partners').delete().eq('id', partnerId);
   if (res.error) { await infoDialog('Fout bij verwijderen: ' + res.error.message, 'Verwijderen mislukt'); return; }
 
+  // Audit: snapshot bewaren want partner is nu weg.
+  auditLog('partners', partnerId, 'verwijderd',
+    JSON.stringify({ bedrijfsnaam: p.bedrijfsnaam || p.naam, slug: p.slug, marge_pct: p.marge_pct, planning_fee: p.planning_fee }),
+    JSON.stringify({ cascade_users: cnt.users || 0, cascade_pricing: cnt.pricing || 0 }));
+
   // Refresh lokale cache
   partners = partners.filter(function(x) { return x.id !== partnerId; });
   renderPartners();
@@ -6132,6 +6249,9 @@ async function createNewPartner() {
     return;
   }
 
+  auditLog('partners', data.id, 'aangemaakt', null,
+    JSON.stringify({ bedrijfsnaam: data.bedrijfsnaam, slug: data.slug, marge_pct: data.marge_pct, planning_fee: data.planning_fee }));
+
   partners.push(data);
   closeNewPartnerModal();
   renderPartners();
@@ -6187,6 +6307,10 @@ async function sendPartnerInvite() {
       btn.textContent = 'Account aanmaken';
       return;
     }
+
+    // Audit: partner-invite succesvol. record_id = partner_id (de user-id is vaak niet meegegeven).
+    auditLog('auth_users', result.user_id || partnerId, 'partner_invite', null,
+      JSON.stringify({ email: email, partner_id: partnerId, email_sent: !!result.email_sent }));
 
     var resultDiv = document.getElementById('invite-result');
     var loginUrl = result.login_url || (window.location.origin + window.location.pathname);
@@ -6746,11 +6870,22 @@ async function saveAdminPartner(partnerId) {
     transport_gratis_km: parseInt(document.getElementById('adm-km-' + partnerId).value) || 0
   };
 
+  // Snapshot vóór update voor audit-diff.
+  var _prevPartner = partners.find(function(x) { return x.id === partnerId; });
+  var _prevSnapshot = _prevPartner ? _pickPartnerAuditFields(_prevPartner) : null;
+
   var { data, error } = await sb.from('partners').update(updates).eq('id', partnerId).select().single();
   if (error) {
     console.error('saveAdminPartner error:', error);
     showToast('Fout bij opslaan: ' + error.message, 'error');
     return;
+  }
+
+  // Audit-log: enkel gewijzigde velden loggen — minder ruis.
+  var _newSnapshot = _pickPartnerAuditFields(data || updates);
+  var _diff = _diffAuditSnapshots(_prevSnapshot, _newSnapshot);
+  if (_diff.changed) {
+    auditLog('partners', partnerId, 'gewijzigd', JSON.stringify(_diff.oud), JSON.stringify(_diff.nieuw));
   }
 
   // Update local data (merge server-returned row zodat defaults/timestamps correct zijn)
@@ -7467,12 +7602,24 @@ async function savePricing(partnerId, btn) {
     return { id: inp.dataset.id, flancco_forfait: parseFloat(inp.value) };
   });
 
+  // Lookup map voor oude forfait-waarden (voor audit-diff).
+  var prevMap = {};
+  (allPricing || []).forEach(function(p) { prevMap[p.id] = p; });
+
   var errCount = 0;
   for (var i = 0; i < updates.length; i++) {
     var u = updates[i];
     if (isNaN(u.flancco_forfait) || u.flancco_forfait < 0) { errCount++; continue; }
+    var prev = prevMap[u.id];
+    var oud = prev ? prev.flancco_forfait : null;
     var res = await sb.from('pricing').update({ flancco_forfait: u.flancco_forfait }).eq('id', u.id);
-    if (res.error) errCount++;
+    if (res.error) { errCount++; continue; }
+    // Enkel loggen wanneer de waarde werkelijk is gewijzigd (geen no-op-entries).
+    if (Number(oud) !== Number(u.flancco_forfait)) {
+      auditLog('pricing', u.id, 'forfait_wijziging',
+        oud !== null && oud !== undefined ? String(oud) : null,
+        String(u.flancco_forfait));
+    }
   }
 
   // Reset alle inputs naar readonly — exacte styling van initial render
@@ -7682,12 +7829,22 @@ async function saveWarmtepompPricing(partnerId, btn) {
 
   // 1) Pricing rows — canonical = flancco_forfait
   var priceInputs = scope.querySelectorAll('.pricing-input-flancco');
+  // Lookup map voor oude forfait-waarden (voor audit-diff).
+  var _wpPrevMap = {};
+  (allPricing || []).forEach(function(p) { _wpPrevMap[p.id] = p; });
   for (var i = 0; i < priceInputs.length; i++) {
     var inp = priceInputs[i];
     var v = parseFloat(inp.value);
     if (isNaN(v) || v < 0) { errCount++; continue; }
+    var wpPrev = _wpPrevMap[inp.dataset.id];
+    var wpOud = wpPrev ? wpPrev.flancco_forfait : null;
     var res = await sb.from('pricing').update({ flancco_forfait: v }).eq('id', inp.dataset.id);
-    if (res.error) errCount++;
+    if (res.error) { errCount++; continue; }
+    if (Number(wpOud) !== Number(v)) {
+      auditLog('pricing', inp.dataset.id, 'forfait_wijziging',
+        wpOud !== null && wpOud !== undefined ? String(wpOud) : null,
+        String(v));
+    }
   }
 
   // 2) Per subtype: actief + formule + allin_multiplier → upsert
@@ -8086,7 +8243,12 @@ function copyTekenLink(token) {
 
 async function annuleerContract(id) {
   if (!(await confirmDialog({ title: 'Contract annuleren?', message: 'Contract annuleren? Dit kan niet ongedaan worden.', variant: 'danger', confirmLabel: 'Annuleren contract', cancelLabel: 'Terug' }))) return;
-  await sb.from('contracten').update({ status: 'geannuleerd' }).eq('id', id);
+  // Lees oude status VOOR de update zodat audit-log een accurate diff kan tonen.
+  var prev = allContracten.find(function(x) { return x.id === id; });
+  var oudeStatus = prev ? (prev.status || null) : null;
+  var res = await sb.from('contracten').update({ status: 'geannuleerd' }).eq('id', id);
+  if (res && res.error) { showToast('Fout bij annuleren: ' + res.error.message, 'error'); return; }
+  auditLog('contracten', id, 'status_wijziging', oudeStatus, 'geannuleerd');
   await loadAllData();
   renderContracten();
   showToast('Contract geannuleerd');
@@ -8148,6 +8310,11 @@ async function deleteContract(id) {
     showToast('Fout bij verwijderen: ' + err.message, 'error');
     return;
   }
+
+  // Audit: volledige snapshot loggen omdat het record niet meer bestaat na delete.
+  auditLog('contracten', id, 'verwijderd',
+    c ? JSON.stringify({ klant_naam: c.klant_naam, status: c.status, partner_id: c.partner_id, contract_nummer: c.contract_nummer || null }) : null,
+    JSON.stringify({ beurten: nBeurt, rapporten: nRap, interventies: nInt, facturatie_regels: nFact }));
 
   await loadAllData();
   renderContracten();
@@ -8709,6 +8876,10 @@ async function saveNewContract() {
 
   // Auto-create installatie for the client if contract has client_id
   var contract = data && data[0];
+  if (contract && contract.id) {
+    auditLog('contracten', contract.id, 'aangemaakt', null,
+      JSON.stringify({ klant_naam: payload.klant_naam, partner_id: payload.partner_id, status: payload.status, bron: 'admin_form' }));
+  }
   if (contract && contract.client_id) {
     try {
       var instSector = contract.sector || 'zonnepanelen';
@@ -12206,17 +12377,16 @@ async function saveBediende() {
 
   try {
     if (editing) {
-      var { error } = await sb.from('techniekers').update({
-        voornaam: voornaam,
-        naam: naam,
-        telefoon: telefoon || null,
-        functie: functie || null,
-        start_datum: startdatum || null,
-        adres: adres || null,
-        postcode: postcode || null,
-        gemeente: gemeente || null,
-      }).eq('id', bedId);
+      // Snapshot vóór update voor audit.
+      var _prevBed = (allTechniekers || []).find(function(x) { return x.id === bedId; });
+      var _prevBedSnap = _prevBed ? { voornaam: _prevBed.voornaam, naam: _prevBed.naam, telefoon: _prevBed.telefoon, functie: _prevBed.functie, start_datum: _prevBed.start_datum, adres: _prevBed.adres, postcode: _prevBed.postcode, gemeente: _prevBed.gemeente } : null;
+      var _newBedSnap = { voornaam: voornaam, naam: naam, telefoon: telefoon || null, functie: functie || null, start_datum: startdatum || null, adres: adres || null, postcode: postcode || null, gemeente: gemeente || null };
+      var { error } = await sb.from('techniekers').update(_newBedSnap).eq('id', bedId);
       if (error) { showToast('Fout bij bewerken: ' + error.message, 'error'); return; }
+      var _bedDiff = _diffAuditSnapshots(_prevBedSnap, _newBedSnap);
+      if (_bedDiff.changed) {
+        auditLog('techniekers', bedId, 'gewijzigd', JSON.stringify(_bedDiff.oud), JSON.stringify(_bedDiff.nieuw));
+      }
     } else {
       // Lock-overrides van openBediendeModal-caller doorgeven aan edge function v3.
       // Zonder overrides leidt de edge function role/partner_id af van de caller-auth.
@@ -12236,6 +12406,12 @@ async function saveBediende() {
       var res = await sb.functions.invoke('create-bediende', { body: createBody });
       if (res.error) { showToast('Fout bij aanmaken: ' + res.error.message, 'error'); return; }
       if (res.data && res.data.error) { showToast('Fout: ' + res.data.error, 'error'); return; }
+      // Audit: edge function returneert de nieuwe user-id. Fallback: record_id = placeholder uuid met email-hash als detail.
+      var _newUserId = (res.data && (res.data.user_id || res.data.userId || res.data.id)) || null;
+      if (_newUserId) {
+        auditLog('auth_users', _newUserId, 'aangemaakt', null,
+          JSON.stringify({ email: email, voornaam: voornaam, naam: naam, role: createBody.role || null, partner_id: createBody.partner_id || null }));
+      }
     }
     closeBediendeModal();
     // Refresh techniekers data
@@ -12278,12 +12454,16 @@ async function deleteBediende(bedId, naam) {
   if (b.user_id) {
     try {
       await sb.functions.invoke('delete-user', { body: { userIdToDelete: b.user_id } });
+      auditLog('auth_users', b.user_id, 'verwijderd',
+        JSON.stringify({ voornaam: b.voornaam, naam: b.naam, partner_id: b.partner_id || null, bron: 'bediende_delete' }), null);
     } catch (e) { /* continue — delete user_roles + techniekers via RLS */ }
     await sb.from('user_roles').delete().eq('user_id', b.user_id);
   }
 
   var res = await sb.from('techniekers').delete().eq('id', bedId);
   if (res.error) { showToast('Fout bij verwijderen: ' + res.error.message, 'error'); return; }
+  auditLog('techniekers', bedId, 'verwijderd',
+    JSON.stringify({ voornaam: b.voornaam, naam: b.naam, partner_id: b.partner_id || null }), null);
 
   var r = await sb.from('techniekers').select('*').order('created_at');
   allTechniekers = r.data || [];
@@ -14095,6 +14275,8 @@ function globalSearch(q) {
 
 // =============================================
 // AUDIT LOGGING
+// Centrale helper — faalt-stil zodat audit-problemen nooit de business-flow breken.
+// DB-kolomnamen: tabel, record_id, actie, oude_waarde (TEXT), nieuwe_waarde (TEXT), user_id, created_at (DEFAULT now()).
 // =============================================
 async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
   try {
@@ -14108,6 +14290,338 @@ async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
       user_id: userId
     });
   } catch(e) { console.warn('Audit log failed:', e); }
+}
+
+// Audit helpers ------------------------------------------------------------
+// Selecteer alleen business-relevante partner-velden voor audit-diff (ignore timestamps/onboarding-flags die ruis geven).
+function _pickPartnerAuditFields(p) {
+  if (!p) return {};
+  return {
+    bedrijfsnaam: p.bedrijfsnaam || p.naam || null,
+    contactpersoon: p.contactpersoon || null,
+    email: p.email || null,
+    telefoon: p.telefoon || null,
+    btw_nummer: p.btw_nummer || null,
+    adres: p.adres || null,
+    postcode: p.postcode || null,
+    gemeente: p.gemeente || null,
+    website: p.website || null,
+    marge_pct: (typeof p.marge_pct === 'number') ? p.marge_pct : (p.marge_pct || null),
+    planning_fee: (typeof p.planning_fee === 'number') ? p.planning_fee : (p.planning_fee || null),
+    transport_gratis_km: p.transport_gratis_km || null,
+    kleur_primair: p.kleur_primair || null,
+    kleur_donker: p.kleur_donker || null,
+    logo_url: p.logo_url || null,
+    contract_getekend: p.contract_getekend || null,
+    actief: (p.actief === false) ? false : (p.actief || null)
+  };
+}
+// Genereer diff van twee snapshots — enkel gewijzigde keys blijven over.
+function _diffAuditSnapshots(oud, nieuw) {
+  oud = oud || {}; nieuw = nieuw || {};
+  var diffOud = {}, diffNieuw = {}, changed = false;
+  var keys = Object.keys(Object.assign({}, oud, nieuw));
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var a = oud[k], b = nieuw[k];
+    if (typeof a === 'object' && a !== null) a = JSON.stringify(a);
+    if (typeof b === 'object' && b !== null) b = JSON.stringify(b);
+    if (a !== b) { diffOud[k] = oud[k] === undefined ? null : oud[k]; diffNieuw[k] = nieuw[k] === undefined ? null : nieuw[k]; changed = true; }
+  }
+  return { changed: changed, oud: diffOud, nieuw: diffNieuw };
+}
+
+// =============================================
+// AUDIT-LOG ADMIN-PAGINA — filters + pagination + CSV-export
+// =============================================
+var AUDIT_PAGE_SIZE = 50;
+var auditState = {
+  page: 0,
+  filters: null,   // laatst toegepaste filters (server-query)
+  total: 0,
+  rows: [],
+  users: {}        // cache user_id -> label voor rendering
+};
+var AUDIT_TABEL_LABELS = {
+  contracten: 'Contract', onderhoudsbeurten: 'Onderhoudsbeurt', rapporten: 'Rapport',
+  interventies: 'Interventie', pricing: 'Pricing', partners: 'Partner',
+  techniekers: 'Personeel', user_roles: 'Rol / rechten', auth_users: 'Gebruiker',
+  clients: 'Klant'
+};
+
+async function initAuditLogPage() {
+  // Default-datumvenster: laatste 30 dagen (alleen op eerste open of na reset).
+  var vanEl = document.getElementById('audit-f-van');
+  var totEl = document.getElementById('audit-f-tot');
+  if (vanEl && !vanEl.value) {
+    var d = new Date(); d.setDate(d.getDate() - 30);
+    vanEl.value = d.toISOString().slice(0, 10);
+  }
+  if (totEl && !totEl.value) {
+    totEl.value = new Date().toISOString().slice(0, 10);
+  }
+  await _auditPopulateUserFilter();
+  await loadAuditLogPage(true);
+}
+
+async function _auditPopulateUserFilter() {
+  var sel = document.getElementById('audit-f-user');
+  if (!sel) return;
+  // Haal distinct user_id's uit audit_log + kruisverwijs naar user_roles voor email-label.
+  try {
+    var uniq = await sb.from('audit_log').select('user_id').not('user_id', 'is', null).limit(2000);
+    var ids = {};
+    (uniq.data || []).forEach(function(r) { if (r.user_id) ids[r.user_id] = true; });
+    var userIds = Object.keys(ids);
+    if (!userIds.length) { sel.innerHTML = '<option value="">Alle</option>'; return; }
+    var labels = await _auditResolveUserLabels(userIds);
+    var opts = '<option value="">Alle</option>';
+    userIds.sort(function(a, b) { return (labels[a] || '').localeCompare(labels[b] || ''); }).forEach(function(uid) {
+      opts += '<option value="' + esc(uid) + '">' + esc(labels[uid] || uid.slice(0, 8)) + '</option>';
+    });
+    sel.innerHTML = opts;
+  } catch (e) {
+    console.warn('audit users filter load failed:', e);
+  }
+}
+
+async function _auditResolveUserLabels(userIds) {
+  var out = {};
+  if (!userIds || !userIds.length) return out;
+  // Combineer: user_roles → techniekers (voor naam) en fallback op email uit auth (niet direct queryable).
+  try {
+    var roles = await sb.from('user_roles').select('user_id, role').in('user_id', userIds);
+    (roles.data || []).forEach(function(r) { out[r.user_id] = r.role || ''; });
+  } catch(e) {}
+  try {
+    var techs = await sb.from('techniekers').select('user_id, voornaam, naam').in('user_id', userIds);
+    (techs.data || []).forEach(function(t) {
+      if (t.user_id) {
+        var naam = (t.voornaam || '') + ' ' + (t.naam || '');
+        naam = naam.trim();
+        if (naam) out[t.user_id] = naam + (out[t.user_id] ? ' (' + out[t.user_id] + ')' : '');
+      }
+    });
+  } catch(e) {}
+  // Fallback: user-id zelf als label.
+  userIds.forEach(function(uid) { if (!out[uid]) out[uid] = uid.slice(0, 8); });
+  // Cache in globale state zodat tabel-rendering geen extra roundtrips doet.
+  Object.assign(auditState.users, out);
+  return out;
+}
+
+function _auditBuildQuery(filters, forCount) {
+  var q = forCount ?
+    sb.from('audit_log').select('*', { count: 'exact', head: true }) :
+    sb.from('audit_log').select('*').order('created_at', { ascending: false });
+  if (filters.van) q = q.gte('created_at', filters.van + 'T00:00:00');
+  if (filters.tot) q = q.lte('created_at', filters.tot + 'T23:59:59.999');
+  if (filters.tabel) q = q.eq('tabel', filters.tabel);
+  if (filters.user_id) q = q.eq('user_id', filters.user_id);
+  if (filters.record_id) q = q.eq('record_id', filters.record_id);
+  return q;
+}
+
+function _auditReadFilters() {
+  return {
+    van: (document.getElementById('audit-f-van') || {}).value || null,
+    tot: (document.getElementById('audit-f-tot') || {}).value || null,
+    tabel: (document.getElementById('audit-f-tabel') || {}).value || null,
+    user_id: (document.getElementById('audit-f-user') || {}).value || null,
+    record_id: ((document.getElementById('audit-f-record') || {}).value || '').trim() || null
+  };
+}
+
+async function loadAuditLogPage(resetPage) {
+  var body = document.getElementById('audit-tbody');
+  var info = document.getElementById('audit-page-info');
+  var countEl = document.getElementById('audit-count');
+  if (!body) return;
+  if (resetPage) auditState.page = 0;
+  auditState.filters = _auditReadFilters();
+
+  body.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--grey);font-size:13px">Laden…</td></tr>';
+
+  try {
+    // Count
+    var cntRes = await _auditBuildQuery(auditState.filters, true);
+    auditState.total = cntRes.count || 0;
+
+    // Rows
+    var from = auditState.page * AUDIT_PAGE_SIZE;
+    var to = from + AUDIT_PAGE_SIZE - 1;
+    var rowsRes = await _auditBuildQuery(auditState.filters, false).range(from, to);
+    if (rowsRes.error) throw rowsRes.error;
+    auditState.rows = rowsRes.data || [];
+
+    // Resolve user labels voor deze pagina
+    var needed = [];
+    auditState.rows.forEach(function(r) { if (r.user_id && !auditState.users[r.user_id]) needed.push(r.user_id); });
+    if (needed.length) await _auditResolveUserLabels(needed);
+
+    if (!auditState.rows.length) {
+      body.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:var(--grey);font-size:13px">Geen audit-entries voor deze filters.</td></tr>';
+    } else {
+      body.innerHTML = auditState.rows.map(_auditRenderRow).join('');
+    }
+
+    if (countEl) countEl.textContent = auditState.total + ' entries — pagina ' + (auditState.page + 1) + ' van ' + Math.max(1, Math.ceil(auditState.total / AUDIT_PAGE_SIZE));
+    if (info) info.textContent = (from + 1) + '–' + Math.min(to + 1, auditState.total) + ' van ' + auditState.total;
+
+    var prevBtn = document.getElementById('audit-prev');
+    var nextBtn = document.getElementById('audit-next');
+    if (prevBtn) prevBtn.disabled = auditState.page === 0;
+    if (nextBtn) nextBtn.disabled = (from + AUDIT_PAGE_SIZE) >= auditState.total;
+  } catch (e) {
+    console.error('loadAuditLogPage error:', e);
+    body.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:var(--red);font-size:13px">Fout bij laden: ' + esc(e.message || String(e)) + '</td></tr>';
+  }
+}
+
+function _auditRenderRow(r) {
+  var label = AUDIT_TABEL_LABELS[r.tabel] || r.tabel;
+  var userLabel = r.user_id ? (auditState.users[r.user_id] || r.user_id.slice(0, 8)) : '<em style="color:var(--grey)">systeem</em>';
+  var ts = r.created_at ? new Date(r.created_at).toLocaleString('nl-BE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+  var rid = r.record_id ? r.record_id.slice(0, 8) + '…' : '—';
+  var diff = _auditRenderDiff(r.oude_waarde, r.nieuwe_waarde);
+  return '' +
+    '<tr style="border-bottom:1px solid var(--rule)">' +
+      '<td style="padding:10px 12px;white-space:nowrap;font-variant-numeric:tabular-nums">' + esc(ts) + '</td>' +
+      '<td style="padding:10px 12px">' + userLabel + '</td>' +
+      '<td style="padding:10px 12px"><code style="background:var(--light);padding:2px 6px;border-radius:4px;font-size:12px">' + esc(r.actie || '—') + '</code></td>' +
+      '<td style="padding:10px 12px">' + esc(label) + '</td>' +
+      '<td style="padding:10px 12px"><code title="' + esc(r.record_id || '') + '" style="font-size:11px;color:var(--grey);cursor:copy" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + esc(r.record_id || '') + '\')">' + esc(rid) + '</code></td>' +
+      '<td style="padding:10px 12px">' + diff + '</td>' +
+    '</tr>';
+}
+
+function _auditTryParse(txt) {
+  if (txt === null || txt === undefined) return null;
+  if (typeof txt !== 'string') return txt;
+  var s = txt.trim();
+  if (!s) return null;
+  if ((s[0] === '{' && s.slice(-1) === '}') || (s[0] === '[' && s.slice(-1) === ']')) {
+    try { return JSON.parse(s); } catch(e) { return s; }
+  }
+  return s;
+}
+
+function _auditRenderDiff(oud, nieuw) {
+  var oParsed = _auditTryParse(oud);
+  var nParsed = _auditTryParse(nieuw);
+  // Scalar-scalar (bv. status_wijziging 'ingepland' → 'uitgevoerd')
+  if (typeof oParsed !== 'object' && typeof nParsed !== 'object') {
+    if (oud === null && nieuw === null) return '<span style="color:var(--grey)">—</span>';
+    return '<span style="font-size:12px">' +
+      '<span style="color:#DC2626;text-decoration:line-through">' + esc(oud === null ? '∅' : String(oud)) + '</span> ' +
+      '<span style="color:var(--grey)">→</span> ' +
+      '<span style="color:#059669;font-weight:600">' + esc(nieuw === null ? '∅' : String(nieuw)) + '</span>' +
+    '</span>';
+  }
+  // Object-diff: samenstellen van enkel gewijzigde keys
+  var keys = {};
+  if (oParsed && typeof oParsed === 'object') Object.keys(oParsed).forEach(function(k) { keys[k] = true; });
+  if (nParsed && typeof nParsed === 'object') Object.keys(nParsed).forEach(function(k) { keys[k] = true; });
+  var rows = [];
+  Object.keys(keys).forEach(function(k) {
+    var ov = oParsed && typeof oParsed === 'object' ? oParsed[k] : undefined;
+    var nv = nParsed && typeof nParsed === 'object' ? nParsed[k] : undefined;
+    var os = ov === undefined || ov === null ? '∅' : (typeof ov === 'object' ? JSON.stringify(ov) : String(ov));
+    var ns = nv === undefined || nv === null ? '∅' : (typeof nv === 'object' ? JSON.stringify(nv) : String(nv));
+    if (os === ns) return;
+    rows.push('<div style="display:flex;gap:6px;align-items:baseline;line-height:1.4;font-size:12px"><span style="font-weight:600;min-width:100px;color:var(--navy)">' + esc(k) + ':</span><span style="color:#DC2626;text-decoration:line-through">' + esc(os) + '</span><span style="color:var(--grey)">→</span><span style="color:#059669;font-weight:600">' + esc(ns) + '</span></div>');
+  });
+  var summary = rows.length ? rows.join('') : '<span style="color:var(--grey);font-size:12px">—</span>';
+  var fullJson = JSON.stringify({ oud: oParsed, nieuw: nParsed }, null, 2);
+  return summary +
+    '<details style="margin-top:6px"><summary style="cursor:pointer;font-size:11px;color:var(--grey)">Volledige JSON</summary>' +
+    '<pre style="margin:6px 0 0;padding:10px;background:var(--light);border-radius:6px;font-size:11px;overflow:auto;max-width:520px;white-space:pre-wrap;word-break:break-word">' + esc(fullJson) + '</pre>' +
+    '</details>';
+}
+
+function applyAuditFilters() { loadAuditLogPage(true); }
+function resetAuditFilters() {
+  var van = document.getElementById('audit-f-van');
+  var tot = document.getElementById('audit-f-tot');
+  var tabel = document.getElementById('audit-f-tabel');
+  var user = document.getElementById('audit-f-user');
+  var rec = document.getElementById('audit-f-record');
+  if (van) van.value = '';
+  if (tot) tot.value = '';
+  if (tabel) tabel.value = '';
+  if (user) user.value = '';
+  if (rec) rec.value = '';
+  initAuditLogPage();
+}
+function auditPrev() {
+  if (auditState.page <= 0) return;
+  auditState.page -= 1;
+  loadAuditLogPage(false);
+}
+function auditNext() {
+  var max = Math.max(0, Math.ceil(auditState.total / AUDIT_PAGE_SIZE) - 1);
+  if (auditState.page >= max) return;
+  auditState.page += 1;
+  loadAuditLogPage(false);
+}
+
+async function exportAuditCsv() {
+  var filters = _auditReadFilters();
+  try {
+    // Haal alle matchende rows (stream in chunks van 1000 om payload te managen)
+    var all = [];
+    var chunk = 0, chunkSize = 1000;
+    while (true) {
+      var q = _auditBuildQuery(filters, false).range(chunk * chunkSize, (chunk + 1) * chunkSize - 1);
+      var res = await q;
+      if (res.error) throw res.error;
+      all = all.concat(res.data || []);
+      if (!res.data || res.data.length < chunkSize) break;
+      chunk++;
+      if (chunk > 50) break; // safety-rail: max 50k rows
+    }
+    if (!all.length) { showToast('Geen entries om te exporteren', 'error'); return; }
+
+    // Resolve user labels voor CSV
+    var needed = [];
+    all.forEach(function(r) { if (r.user_id && !auditState.users[r.user_id]) needed.push(r.user_id); });
+    if (needed.length) await _auditResolveUserLabels(needed);
+
+    var header = ['tijdstip', 'uitvoerder_id', 'uitvoerder_label', 'actie', 'tabel', 'record_id', 'oude_waarde', 'nieuwe_waarde'];
+    var csvRows = [header.join(';')];
+    all.forEach(function(r) {
+      var userLabel = r.user_id ? (auditState.users[r.user_id] || '') : '';
+      csvRows.push([
+        r.created_at || '',
+        r.user_id || '',
+        _csvCell(userLabel),
+        _csvCell(r.actie || ''),
+        _csvCell(r.tabel || ''),
+        r.record_id || '',
+        _csvCell(r.oude_waarde || ''),
+        _csvCell(r.nieuwe_waarde || '')
+      ].join(';'));
+    });
+    var csv = '\ufeff' + csvRows.join('\r\n'); // BOM voor Excel UTF-8
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().slice(0, 10);
+    a.href = URL.createObjectURL(blob);
+    a.download = 'audit-log-' + stamp + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 500);
+    showToast('Export gedownload (' + all.length + ' entries)');
+  } catch (e) {
+    console.error('exportAuditCsv error:', e);
+    showToast('Export mislukt: ' + (e.message || e), 'error');
+  }
+}
+function _csvCell(v) {
+  if (v === null || v === undefined) return '';
+  var s = String(v).replace(/"/g, '""');
+  if (/[";\r\n]/.test(s)) return '"' + s + '"';
+  return s;
 }
 
 // =============================================

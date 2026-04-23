@@ -1869,6 +1869,18 @@ async function saveContract() {
     var contractId = inserted[0].id;
     var tekenToken = inserted[0].teken_token;
 
+    // Audit-log: contract aangemaakt vanuit wizard. Faalt-stil zodat UX nooit breekt.
+    try {
+      var _sess = await sb.auth.getSession();
+      var _uid = (_sess && _sess.data && _sess.data.session) ? _sess.data.session.user.id : null;
+      sb.from('audit_log').insert({
+        tabel: 'contracten', record_id: contractId, actie: 'aangemaakt',
+        oude_waarde: null,
+        nieuwe_waarde: JSON.stringify({ klant_naam: payload.klant_naam, partner_id: payload.partner_id, status: payload.status || 'concept', bron: 'wizard' }),
+        user_id: _uid
+      }).then(function(){}, function(e){ console.warn('Audit log failed:', e); });
+    } catch (e) { console.warn('Audit log failed:', e); }
+
     showToast('Contract opgeslagen als concept');
 
     // Redirect to contracten page

@@ -5317,6 +5317,8 @@ async function _saveNieuweInterventieInner(action) {
     contractId = cRes.data.id;
     allContracten = allContracten || [];
     allContracten.push(cRes.data);
+    auditLog('contracten', contractId, 'aangemaakt', null,
+      JSON.stringify({ klant_naam: contractPayload.klant_naam || null, partner_id: contractPayload.partner_id, status: contractPayload.status || 'actief', bron: 'planning_eenmalig' }));
   }
 
   if (!contractId) { await infoDialog('Kon geen contract bepalen voor deze interventie.', 'Niet gelukt'); return; }
@@ -7924,6 +7926,8 @@ async function saveQuickAdd(action) {
       }
       if (contractRes.error) { await infoDialog('Fout bij contract aanmaken: ' + contractRes.error.message, 'Opslaan mislukt'); return; }
       contractId = contractRes.data[0].id;
+      auditLog('contracten', contractId, 'aangemaakt', null,
+        JSON.stringify({ klant_naam: klantNaam, partner_id: partnerId, sector: sector, status: 'actief', bron: 'planning_quickadd' }));
     }
 
     if (!poNumberFinal && klantPo) poNumberFinal = klantPo;
