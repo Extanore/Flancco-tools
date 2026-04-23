@@ -135,7 +135,8 @@
   .sidebar-logo small { color: rgba(255,255,255,0.5); font-size: 11px; display: block; margin-top: 2px; }
   .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,0.65); font-size: 13px; cursor: pointer; transition: 0.2s; text-decoration: none; }
   .nav-item:hover, .nav-item.active { color: white; background: rgba(255,255,255,0.08); }
-  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; display: block; vertical-align: middle; }
+  .nav-item span { line-height: 1; }
   .nav-item.nav-sub { padding-left: 36px; font-size: 12px; opacity: 0.8; }
   .nav-item.nav-sub svg { width: 15px; height: 15px; }
   .nav-chevron { width: 14px !important; height: 14px !important; transition: transform 0.2s ease; opacity: 0.55; }
@@ -243,9 +244,25 @@
   .btn-action-red:hover { border-color: var(--red); color: var(--red); }
   .btn-action-danger:hover { border-color: var(--red); color: var(--red); background:#FEF2F2; }
 
+  /* USER CARDS — sectie R: card-per-tenant op Gebruikers-pagina */
+  .user-card { background:#fff; border:1px solid var(--rule); border-radius:10px; padding:16px 20px; margin-bottom:16px; }
+  .user-card-empty { border-style:dashed; background:#FAFBFC; }
+  .user-card-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--rule); }
+  .user-card-empty .user-card-header { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .user-card-title { display:flex; align-items:center; gap:10px; font-size:14px; min-width:0; }
+  .user-card-count { color:var(--grey); font-weight:400; font-size:12px; }
+  .user-card-logo { width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; object-fit:contain; flex-shrink:0; }
+  .user-card-logo-flancco { background:var(--navy); color:#fff; font-weight:700; font-size:13px; }
+  .user-card-empty-body { padding:24px 0; text-align:center; color:var(--grey); font-size:13px; }
+  .user-card-table { margin:0; }
+  @media (max-width:700px) {
+    .user-card { padding:14px; }
+    .user-card-header { flex-direction:column; align-items:flex-start; gap:10px; }
+  }
+
   /* PAGE SECTIONS */
-  .page { display: none; }
-  .page.active { display: block; }
+  .page { display: none !important; }
+  .page.active { display: block !important; }
 
   /* FORECAST */
   .forecast-chart { height: 240px; display: flex; align-items: flex-end; gap: 4px; padding: 16px 0; }
@@ -350,9 +367,10 @@
   .save-msg { font-size: 12px; color: var(--green); margin-left: 12px; display: none; }
 
   /* =============================================
-     DESIGN-SYSTEEM BUTTONS
-     Primair = NAVY (#1A1A2E), accent/destructief = ROOD (#E74C3C).
-     Groen wordt NIET gebruikt voor primary action (enkel semantic succes zoals "uitgevoerd").
+     DESIGN-SYSTEEM BUTTONS — bron van waarheid
+     Primair = NAVY (#1A1A2E), destructief = ROOD (#E74C3C).
+     Groen (--green) is GEEN primary action — enkel semantic "succes/afgewerkt".
+     Voor save/opslaan-acties altijd .btn.btn-primary (navy).
      ============================================= */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -360,11 +378,12 @@
     border-radius: 8px; border: 1.5px solid transparent; cursor: pointer;
     appearance: none; -webkit-appearance: none;
     transition: background .15s, color .15s, border-color .15s, transform .05s;
-    user-select: none; white-space: nowrap; background: transparent; color: var(--navy);
+    user-select: none; white-space: nowrap;
   }
   .btn:active:not(:disabled) { transform: translateY(1px); }
   .btn:disabled { opacity:.5; cursor:not-allowed; }
   .btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .btn.btn-sm { padding:6px 12px; font-size:12px; line-height:1.2; }
 
   .btn.btn-primary { background: var(--navy); color:#fff; border-color: var(--navy); }
   .btn.btn-primary:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
@@ -378,35 +397,39 @@
   .btn.btn-danger-ghost { background:#fff; color: var(--red); border-color: var(--red); }
   .btn.btn-danger-ghost:hover:not(:disabled) { background: rgba(231,76,60,0.08); }
 
-  .btn.btn-secondary { background:#fff; color: var(--grey); border-color: var(--rule); }
-  .btn.btn-secondary:hover:not(:disabled) { border-color: var(--navy); color: var(--navy); }
+  /* Backwards-compat: .btn.btn-secondary mapt op ghost-stijl */
+  .btn.btn-secondary { background:#fff; color: var(--navy); border-color: var(--rule); }
+  .btn.btn-secondary:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
 
   /* Success-variant — enkel voor semantic "gelukt/afgewerkt" acties, NIET voor opslaan */
   .btn.btn-success { background: var(--green); color:#fff; border-color: var(--green); }
   .btn.btn-success:hover:not(:disabled) { filter: brightness(0.92); }
 
-  /* Legacy aliases — bestaande HTML blijft werken zonder visuele regressie.
-     Migreer waar mogelijk naar expliciete btn btn-primary / btn-ghost / btn-danger. */
-  .btn-save {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
-    border-radius:8px; border:1.5px solid var(--navy);
-    background: var(--navy); color:#fff; cursor:pointer;
-    appearance:none; -webkit-appearance:none; transition: background .15s, border-color .15s;
+  /* Modal-footer layout (gedeeld voor large + standaard modals) */
+  .modal-lg-footer, .modal-footer {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:16px 24px; border-top:1px solid var(--rule); background:#FAFBFC;
   }
-  .btn-save:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
-  .btn-save:disabled { opacity:.5; cursor:not-allowed; }
+  .modal-lg-footer .footer-left, .modal-lg-footer .footer-right,
+  .modal-footer .footer-left, .modal-footer .footer-right { display:flex; gap:8px; }
 
-  .btn-submit {
-    display:inline-flex; align-items:center; justify-content:center;
+  /* Legacy aliases — niet-gemigreerde HTML krijgt automatisch nieuwe stijl.
+     Identiek aan .btn.btn-primary / .btn.btn-ghost zodat geen visuele drift ontstaat. */
+  .btn-save, .btn-submit {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
     padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
     border-radius:8px; border:1.5px solid var(--navy);
     background: var(--navy); color:#fff; cursor:pointer;
-    appearance:none; -webkit-appearance:none; transition: background .15s, border-color .15s;
+    appearance:none; -webkit-appearance:none;
+    transition: background .15s, border-color .15s, transform .05s;
+    white-space:nowrap;
   }
+  .btn-save:hover:not(:disabled),
   .btn-submit:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
-  .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
-  /* Specialisatie voor destructieve submit-knoppen die btn-submit hergebruiken */
+  .btn-save:disabled, .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-save:active:not(:disabled),
+  .btn-submit:active:not(:disabled) { transform: translateY(1px); }
+  /* Destructieve submit-knoppen die btn-submit hergebruiken */
   .btn-submit[id*="delete"], .btn-submit[id*="verwijder"] {
     background: var(--red); border-color: var(--red);
   }
@@ -414,20 +437,16 @@
   .btn-submit[id*="verwijder"]:hover:not(:disabled) { background:#C0392B; border-color:#C0392B; }
 
   .btn-cancel {
-    display:inline-flex; align-items:center; justify-content:center;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
     padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
     border-radius:8px; border:1.5px solid var(--rule);
     background:#fff; color: var(--navy); cursor:pointer;
-    appearance:none; -webkit-appearance:none; transition: border-color .15s, background .15s;
+    appearance:none; -webkit-appearance:none;
+    transition: border-color .15s, background .15s, transform .05s;
+    white-space:nowrap;
   }
   .btn-cancel:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
-
-  /* Shared footer layout voor modals (optioneel, overschrijfbaar per modal) */
-  .modal-lg-footer {
-    display:flex; justify-content:space-between; align-items:center; gap:12px;
-    padding:16px 24px; border-top:1px solid var(--rule); background:#FAFBFC;
-  }
-  .modal-lg-footer .footer-left, .modal-lg-footer .footer-right { display:flex; gap:8px; }
+  .btn-cancel:active:not(:disabled) { transform: translateY(1px); }
 
   /* MODAL */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
@@ -500,9 +519,7 @@
   .modal-tab-body { padding: 24px 28px; overflow-y: auto; flex: 1; }
   .modal-tab-pane { display: none; }
   .modal-tab-pane.active { display: block; }
-  .modal-lg-footer { padding: 16px 28px; border-top: 1px solid var(--rule); background: var(--light); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  .modal-lg-footer .footer-left { display: flex; gap: 8px; }
-  .modal-lg-footer .footer-right { display: flex; gap: 8px; }
+  /* .modal-lg-footer gedefinieerd in DESIGN-SYSTEEM BUTTONS block hierboven */
 
   /* LOCATIE REPEATER */
   .loc-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--grey); letter-spacing: 0.5px; margin: 0 0 10px; }
@@ -1106,6 +1123,10 @@
     <a class="nav-item admin-only" onclick="showPage('wagenpark')" data-page="wagenpark">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2"/><path d="M9 17h6"/><path d="M5 6h9"/></svg>
       <span>Wagenpark</span>
+    </a>
+    <a class="nav-item admin-only" onclick="showPage('bouwdrogers')" data-page="bouwdrogers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <span>Bouwdrogers</span>
     </a>
 
     <!-- FINANCIEEL (admin) -->
@@ -1823,7 +1844,7 @@
             <div style="display:flex;gap:12px;align-items:center">
               <input type="text" id="tech-search" placeholder="Zoek technieker..." oninput="renderTechniekers()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:220px">
             </div>
-            <button class="btn" onclick="openTechModal()">+ Nieuwe technieker</button>
+            <button class="btn btn-primary" onclick="openTechModal()">+ Nieuwe technieker</button>
           </div>
           <table class="expandable-table">
             <thead>
@@ -1878,7 +1899,10 @@
     <div class="modal-overlay" id="modal-bediende" style="display:none" onclick="if(event.target===this)closeBediendeModal()">
       <div class="modal" style="max-width:640px">
         <div class="modal-header">
-          <h3 id="bed-modal-title">Nieuwe bediende</h3>
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <h3 id="bed-modal-title">Nieuwe bediende</h3>
+            <small id="bed-modal-subtitle" style="display:none;color:var(--grey);font-size:12px;line-height:1.3"></small>
+          </div>
           <button class="modal-close" onclick="closeBediendeModal()">×</button>
         </div>
         <div class="modal-body">
@@ -2194,7 +2218,7 @@
               <option value="uit_dienst">Uit dienst</option>
             </select>
           </div>
-          <button class="btn" onclick="openWagenModal()">+ Nieuw voertuig</button>
+          <button class="btn btn-primary" onclick="openWagenModal()">+ Nieuw voertuig</button>
         </div>
         <table class="expandable-table">
           <thead>
@@ -2211,6 +2235,44 @@
             </tr>
           </thead>
           <tbody id="wagen-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page admin-only" id="page-bouwdrogers">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="bd-search" placeholder="Zoek serienummer, model..." oninput="renderBouwdrogers()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:240px">
+            <select id="bd-regio-filter" onchange="renderBouwdrogers()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+              <option value="">Alle regio's</option>
+              <option value="oost_west_vlaanderen">Oost- / West-Vlaanderen</option>
+              <option value="antwerpen_limburg">Antwerpen / Limburg</option>
+            </select>
+            <select id="bd-status-filter" onchange="renderBouwdrogers()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+              <option value="">Alle statussen</option>
+              <option value="beschikbaar">Beschikbaar</option>
+              <option value="in_gebruik">In gebruik</option>
+              <option value="onderhoud">In onderhoud</option>
+              <option value="kapot">Kapot</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openBouwdrogerModal()">+ Nieuwe droger</button>
+        </div>
+        <table class="expandable-table">
+          <thead>
+            <tr>
+              <th style="width:36px"></th>
+              <th>Serienummer</th>
+              <th>Model</th>
+              <th>Regio</th>
+              <th>Huidige locatie</th>
+              <th>Status</th>
+              <th>Terug verwacht</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="bouwdroger-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -2313,7 +2375,7 @@
     </div>
 
     <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeNieuweInterventieModal()">Annuleren</button>
+      <button class="btn btn-ghost" onclick="closeNieuweInterventieModal()">Annuleren</button>
       <button class="btn btn-primary" onclick="saveNieuweInterventie()">Interventie aanmaken</button>
     </div>
   </div>
@@ -2335,8 +2397,8 @@
       <strong style="font-size:13px;color:#92400E">Interventieaanvraag — goedkeuring vereist</strong>
       <p style="font-size:12px;color:#92400E;margin:6px 0" id="int-prijs-info"></p>
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-success" style="font-size:12px;padding:6px 16px" onclick="goedkeurInterventie()">Goedkeuren</button>
-        <button class="btn btn-secondary" style="font-size:12px;padding:6px 16px;color:var(--red);border-color:var(--red)" onclick="afwijsInterventie()">Afwijzen</button>
+        <button class="btn btn-success btn-sm" onclick="goedkeurInterventie()">Goedkeuren</button>
+        <button class="btn btn-danger-ghost btn-sm" onclick="afwijsInterventie()">Afwijzen</button>
       </div>
     </div>
 
@@ -2376,8 +2438,8 @@
     </div>
 
     <div class="modal-buttons" style="margin-top:16px">
-      <button class="btn btn-secondary" onclick="closeInterventieModal()">Sluiten</button>
-      <button class="btn" id="int-save-btn" onclick="saveInterventie()">Opslaan</button>
+      <button class="btn btn-ghost" onclick="closeInterventieModal()">Sluiten</button>
+      <button class="btn btn-primary" id="int-save-btn" onclick="saveInterventie()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -2388,8 +2450,8 @@
     <h2 id="rapport-detail-title">Rapport</h2>
     <div id="rapport-detail-content"></div>
     <div class="modal-buttons" style="margin-top:16px">
-      <button class="btn btn-secondary" onclick="document.getElementById('modal-rapport-detail').classList.remove('open')">Sluiten</button>
-      <a id="rapport-detail-pdf" href="#" target="_blank" class="btn" style="display:none;text-decoration:none">Download PDF</a>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-rapport-detail').classList.remove('open')">Sluiten</button>
+      <a id="rapport-detail-pdf" href="#" target="_blank" class="btn btn-primary" style="display:none;text-decoration:none">Download PDF</a>
     </div>
   </div>
 </div>
@@ -2866,8 +2928,8 @@
           </div>
           <input type="hidden" id="tech-cert-edit-id">
           <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="cancelCertForm()">Annuleren</button>
-            <button class="btn" style="font-size:12px;padding:6px 14px" onclick="saveTechCert()">Opslaan</button>
+            <button class="btn btn-ghost btn-sm" onclick="cancelCertForm()">Annuleren</button>
+            <button class="btn btn-primary btn-sm" onclick="saveTechCert()">Opslaan</button>
           </div>
         </div>
         <button id="tech-cert-add-btn" class="btn-add-cert" style="display:none" onclick="showCertForm()">+ Certificering</button>
@@ -2881,10 +2943,9 @@
     </div>
 
     <div class="modal-buttons">
-      <button class="btn btn-danger" id="tech-delete-btn" style="display:none" onclick="deleteTechnieker()">Verwijderen</button>
-      <span style="flex:1"></span>
-      <button class="btn btn-secondary" onclick="closeTechModal()">Annuleren</button>
-      <button class="btn" onclick="saveTechnieker()">Opslaan</button>
+      <button class="btn btn-danger" id="tech-delete-btn" style="display:none;margin-right:auto" onclick="deleteTechnieker()">Verwijderen</button>
+      <button class="btn btn-ghost" onclick="closeTechModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveTechnieker()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -2948,9 +3009,70 @@
     <div class="modal-field"><label>Notities</label><textarea id="wagen-notities" rows="2" placeholder="Optionele notities..." style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea></div>
 
     <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeWagenModal()">Annuleren</button>
-      <button class="btn btn-danger" id="wagen-delete-btn" style="display:none" onclick="deleteVoertuig()">Verwijderen</button>
-      <button class="btn" onclick="saveVoertuig()">Opslaan</button>
+      <button class="btn btn-danger" id="wagen-delete-btn" style="display:none;margin-right:auto" onclick="deleteVoertuig()">Verwijderen</button>
+      <button class="btn btn-ghost" onclick="closeWagenModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveVoertuig()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOUWDROGER MODAL -->
+<div class="modal-overlay" id="modal-bouwdroger">
+  <div class="modal" style="max-width:560px">
+    <h2 id="bd-modal-title">Nieuwe bouwdroger</h2>
+    <input type="hidden" id="bd-edit-id">
+    <div class="modal-row">
+      <div class="modal-field"><label>Serienummer *</label><input id="bd-serienummer" placeholder="BD-2026-001"></div>
+      <div class="modal-field"><label>Model</label><input id="bd-model" placeholder="Trotec TTK 165 S"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Regio *</label>
+        <select id="bd-regio">
+          <option value="">— Kies regio —</option>
+          <option value="oost_west_vlaanderen">Oost- / West-Vlaanderen</option>
+          <option value="antwerpen_limburg">Antwerpen / Limburg</option>
+        </select>
+      </div>
+      <div class="modal-field"><label>Status</label>
+        <select id="bd-status">
+          <option value="beschikbaar">Beschikbaar</option>
+          <option value="in_gebruik">In gebruik</option>
+          <option value="onderhoud">In onderhoud</option>
+          <option value="kapot">Kapot</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field"><label>Huidige locatie (adres)</label><input id="bd-locatie" placeholder="Klant/werf — automatisch gevuld bij uitgifte"></div>
+    <div class="modal-field"><label>Notities</label><textarea id="bd-notitie" rows="2" placeholder="Optionele notities..." style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea></div>
+
+    <div class="modal-buttons">
+      <button class="btn btn-danger" id="bd-delete-btn" style="display:none;margin-right:auto" onclick="deleteBouwdroger()">Verwijderen</button>
+      <button class="btn btn-ghost" onclick="closeBouwdrogerModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveBouwdroger()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOUWDROGER UITGEVEN MODAL -->
+<div class="modal-overlay" id="modal-droger-uitgeven">
+  <div class="modal" style="max-width:520px">
+    <h2>Bouwdroger uitgeven</h2>
+    <input type="hidden" id="uitgeef-droger-id">
+    <div class="modal-field"><label>Droger</label><input id="uitgeef-droger-label" readonly style="background:#f5f5f5"></div>
+    <div class="modal-field"><label>Klant *</label>
+      <select id="uitgeef-client" onchange="uitgeefClientChanged()"></select>
+      <small style="color:var(--grey);font-size:11px">Regio wordt automatisch vergeleken met de droger — je krijgt een waarschuwing bij cross-regio.</small>
+    </div>
+    <div id="uitgeef-regio-waarschuwing" style="display:none;padding:8px 12px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;font-size:12px;color:#92400E;margin-bottom:12px"></div>
+    <div class="modal-row">
+      <div class="modal-field"><label>Uitgegeven op *</label><input type="date" id="uitgeef-datum"></div>
+      <div class="modal-field"><label>Verwacht terug op</label><input type="date" id="uitgeef-terug"></div>
+    </div>
+    <div class="modal-field"><label>Notitie</label><textarea id="uitgeef-notitie" rows="2" placeholder="Extra info (optioneel)..." style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea></div>
+
+    <div class="modal-buttons">
+      <button class="btn btn-ghost" onclick="closeUitgeefModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveUitgeefDroger()">Uitgeven</button>
     </div>
   </div>
 </div>
@@ -2994,9 +3116,9 @@
     <div id="verlof-retro-warn" style="display:none;background:#E0E7FF;border-left:3px solid #6366F1;padding:10px;border-radius:6px;margin-top:10px;font-size:13px">⏮ Deze verlofdatum ligt in het verleden — retroactief.</div>
 
     <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeVerlofModal()">Annuleren</button>
-      <button class="btn btn-danger" id="verlof-delete-btn" style="display:none" onclick="deleteVerlof()">Verwijderen</button>
-      <button class="btn" onclick="saveVerlof()">Opslaan</button>
+      <button class="btn btn-danger" id="verlof-delete-btn" style="display:none;margin-right:auto" onclick="deleteVerlof()">Verwijderen</button>
+      <button class="btn btn-ghost" onclick="closeVerlofModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveVerlof()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -3013,8 +3135,8 @@
     </div>
     <div id="feestdagen-preview" style="background:#f9fafb;border:1px solid var(--rule);border-radius:6px;padding:12px;font-size:12px;max-height:220px;overflow-y:auto;margin-top:8px"></div>
     <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeFeestdagenBulk()">Annuleren</button>
-      <button class="btn" onclick="importeerFeestdagen()">Importeren</button>
+      <button class="btn btn-ghost" onclick="closeFeestdagenBulk()">Annuleren</button>
+      <button class="btn btn-primary" onclick="importeerFeestdagen()">Importeren</button>
     </div>
   </div>
 </div>
@@ -3026,10 +3148,10 @@
     <p style="color:var(--grey);font-size:13px;margin-top:-4px">Er staan al beurten op deze dagen voor deze technieker. Wat wil je doen?</p>
     <div id="conflict-taken-lijst" style="background:#f9fafb;border:1px solid var(--rule);border-radius:6px;padding:12px;font-size:13px;max-height:220px;overflow-y:auto;margin:12px 0"></div>
     <div class="modal-buttons" style="flex-wrap:wrap;gap:8px">
-      <button class="btn btn-secondary" onclick="closeVerlofConflict()">Annuleren</button>
+      <button class="btn btn-ghost" onclick="closeVerlofConflict()">Annuleren</button>
       <button class="btn btn-ghost" onclick="resolveVerlofConflict('keep')">Laat taken staan</button>
       <button class="btn btn-ghost" onclick="resolveVerlofConflict('unassign')">Maak los (in_te_plannen)</button>
-      <button class="btn" onclick="resolveVerlofConflict('delete')">Verwijder taken</button>
+      <button class="btn btn-danger" onclick="resolveVerlofConflict('delete')">Verwijder taken</button>
     </div>
   </div>
 </div>
@@ -3081,6 +3203,8 @@ let allClients = [];
 let allTechniekers = [];
 let allTechSectoren = [];
 let allVoertuigen = [];
+let allBouwdrogers = [];
+let expandedBouwdrogerId = null;
 let allInterventies = [];
 let allRapporten = [];
 let allVerlofTypes = [];
@@ -3594,14 +3718,14 @@ async function saveChecklistTemplate() {
   });
   if (data.id) {
     var res = await sb.from('checklist_templates').update({ items: items, updated_at: new Date().toISOString() }).eq('id', data.id);
-    if (res.error) { alert('Fout: ' + res.error.message); return; }
+    if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Opslaan mislukt'); return; }
   } else {
     var res = await sb.from('checklist_templates').insert({ sector: activeChecklistSector, items: items });
-    if (res.error) { alert('Fout: ' + res.error.message); return; }
+    if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Opslaan mislukt'); return; }
     if (res.data && res.data[0]) data.id = res.data[0].id;
   }
   data.items = items;
-  alert('Checklist voor ' + activeChecklistSector + ' opgeslagen!');
+  showToast('Checklist voor ' + activeChecklistSector + ' opgeslagen', 'success');
 }
 
 // =============================================
@@ -3858,12 +3982,10 @@ async function saveRapportConfig() {
       updated_by: currentUser ? currentUser.id : null
     }, { onConflict: 'key' });
     if (res.error) throw res.error;
-    if (typeof showToast === 'function') showToast('Rapport-instellingen opgeslagen', 'success');
-    else alert('Rapport-instellingen opgeslagen');
+    showToast('Rapport-instellingen opgeslagen', 'success');
     renderRapportConfig();
   } catch (e) {
-    if (typeof showToast === 'function') showToast('Opslaan mislukt: ' + (e.message || 'fout'), 'error');
-    else alert('Fout bij opslaan: ' + (e.message || 'onbekend'));
+    showToast('Opslaan mislukt: ' + (e.message || 'fout'), 'error');
   }
 }
 
@@ -3954,7 +4076,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob, locAll, bUrenReg, loonR, feestR, pwpc] = await Promise.all([
+  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob, locAll, bUrenReg, loonR, feestR, pwpc, bdr] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('sort_order').order('staffel_min'),
     sb.from('supplementen').select('*'),
@@ -3973,7 +4095,8 @@ async function loadAllData() {
     sb.from('beurt_uren_registraties').select('*').order('start_tijd', { ascending: false }).then(function(r){return r;}, function(_){return {data:[]};}),
     sb.from('loon_regels').select('*').order('actief_vanaf', { ascending: false }).then(function(r){return r;}, function(_){return {data:[]};}),
     sb.from('feestdagen').select('*').order('datum', { ascending: true }).then(function(r){return r;}, function(_){return {data:[]};}),
-    sb.from('partner_warmtepomp_config').select('*').then(function(r){return r;}, function(_){return {data:[]};})
+    sb.from('partner_warmtepomp_config').select('*').then(function(r){return r;}, function(_){return {data:[]};}),
+    sb.from('bouwdrogers').select('*').order('serienummer').then(function(r){return r;}, function(_){return {data:[]};})
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
@@ -3984,6 +4107,7 @@ async function loadAllData() {
   allTechniekers = tech.data || [];
   allTechSectoren = techSec.data || [];
   allVoertuigen = voert.data || [];
+  allBouwdrogers = (bdr && bdr.data) ? bdr.data : [];
   allInterventies = intv.data || [];
   allRapporten = rpt.data || [];
   allVerlofTypes = vt.data || [];
@@ -4100,13 +4224,15 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); }
   if (name === 'gebruikers') renderGebruikers();
   if (name === 'verlof') renderVerlofPage();
   if (name === 'uren') renderUrenPage();
   if (name === 'notificaties') { renderNotificatiesPage(); }
+  if (name === 'bouwdrogers') renderBouwdrogers();
+  if (name === 'instellingen' && userRole === 'partner' && typeof can === 'function' && can('manage_users') && typeof renderPartnerTeamList === 'function') renderPartnerTeamList();
 }
 
 // =============================================
@@ -4310,16 +4436,7 @@ async function openNotification(id) {
   if (!n) return;
   if (!n.is_read) await markNotificationRead(id, false);
   closeNotifDropdown();
-  if (n.link_url) {
-    if (n.link_url.startsWith('page:')) {
-      var pg = n.link_url.substring(5);
-      showPage(pg);
-    } else if (n.link_url.startsWith('#')) {
-      window.location.hash = n.link_url;
-    } else if (n.link_url.startsWith('http')) {
-      window.open(n.link_url, '_blank', 'noopener');
-    }
-  } else if (n.related_type === 'interventie' && n.related_id) {
+  if (n.related_type === 'interventie' && n.related_id) {
     showPage('interventies');
   } else if (n.related_type === 'rapport' && n.related_id) {
     showPage('rapporten');
@@ -4342,6 +4459,15 @@ async function openNotification(id) {
         if (expandedVoertuigId !== n.related_id) toggleVoertuigDetail(n.related_id);
       }
     }, 150);
+  } else if (n.link_url) {
+    if (n.link_url.startsWith('page:')) {
+      var pg = n.link_url.substring(5);
+      showPage(pg);
+    } else if (n.link_url.startsWith('#')) {
+      window.location.hash = n.link_url;
+    } else if (n.link_url.startsWith('http')) {
+      window.open(n.link_url, '_blank', 'noopener');
+    }
   }
 }
 
@@ -4451,72 +4577,190 @@ async function renderGebruikers() {
   if (!container) return;
   container.innerHTML = '<p style="font-size:13px;color:var(--grey)">Laden...</p>';
 
-  // Fetch all user_roles + emails via auth.users (via RPC or join)
-  // RLS filtert voor partners automatisch op eigen tenant (user_roles_partner_select),
-  // maar we dubbel-checken client-side als extra veiligheid.
+  // Fetch all user_roles. RLS filtert voor partners automatisch op eigen tenant
+  // (user_roles_partner_select), maar we dubbel-checken client-side bij rendering.
   var rolesRes = await sb.from('user_roles').select('*');
   if (rolesRes.error) {
     container.innerHTML = '<p style="color:var(--red)">Fout bij laden: ' + esc(rolesRes.error.message) + '</p>';
     return;
   }
   var roles = rolesRes.data || [];
-  var isPartnerViewer = userRole === 'partner';
-  if (isPartnerViewer && userPartner) {
-    roles = roles.filter(function(r) { return r.partner_id === userPartner.id && r.role !== 'admin'; });
-  }
 
-  // Fetch user emails via edge function or RPC; fallback: show user_id
+  // Fetch user emails via RPC (best-effort — fallback: trunc user_id)
   var emailMap = {};
   try {
     var emailsRes = await sb.rpc('get_user_emails');
     if (emailsRes.data) emailsRes.data.forEach(function(u) { emailMap[u.id] = u.email; });
   } catch(e) { /* RPC may not exist yet */ }
 
-  // Partner-viewer ziet geen 'manage_partners' (super-admin-recht) — ze kunnen het
-  // toch niet zetten (RLS WITH CHECK blokkeert) en het zou verwarring scheppen.
-  var permLabels = isPartnerViewer
-    ? { manage_pricing: 'Prijsbeheer', manage_users: 'Teambeheer' }
-    : { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer (super-admin)' };
-  var permKeys = Object.keys(permLabels);
+  // Group roles per tenant: Flancco (admin + partner-without-tenant) + per-partner
+  var flanccoRoles = roles.filter(function(r) {
+    return r.role === 'admin' || (r.role === 'partner' && !r.partner_id);
+  });
+  var partnerGroups = {};
+  (partners || []).forEach(function(p) {
+    partnerGroups[p.id] = { partner: p, roles: [] };
+  });
+  roles.forEach(function(r) {
+    if (r.role === 'partner' && r.partner_id && partnerGroups[r.partner_id]) {
+      partnerGroups[r.partner_id].roles.push(r);
+    }
+  });
 
   var canManageUsers = !!(userPermissions && userPermissions.manage_users);
+  var currentUserId = (currentUser && currentUser.id) || null;
 
-  var html = '<table class="data-table" style="width:100%"><thead><tr>' +
-    '<th>Gebruiker</th><th>Rol</th>';
-  permKeys.forEach(function(k) { html += '<th style="text-align:center">' + permLabels[k] + '</th>'; });
-  if (canManageUsers) html += '<th style="text-align:right;width:80px">ACTIES</th>';
-  html += '</tr></thead><tbody>';
+  var html = '';
 
-  var delSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
-
-  roles.forEach(function(r) {
-    var email = emailMap[r.user_id] || r.user_id.substring(0, 8) + '…';
-    var isSelf = r.user_id === currentUser.id;
-    html += '<tr>' +
-      '<td>' + esc(email) + (isSelf ? ' <span style="color:var(--grey);font-size:11px">(jij)</span>' : '') + '</td>' +
-      '<td>' + esc(r.role) + (r.partner_id ? ' <span style="color:var(--grey);font-size:11px">(partner)</span>' : '') + '</td>';
-    permKeys.forEach(function(k) {
-      var checked = (r.permissions && r.permissions[k]) ? 'checked' : '';
-      var disabled = (isSelf && k === 'manage_users') ? 'disabled title="Kan eigen super-admin niet uitschakelen"' : '';
-      html += '<td style="text-align:center"><input type="checkbox" ' + checked + ' ' + disabled +
-        ' onchange="toggleUserPermission(\'' + r.id + '\',\'' + k + '\',this.checked)"></td>';
-    });
-    if (canManageUsers) {
-      var btnDisabled = isSelf ? ' disabled title="Je kunt jezelf niet verwijderen"' : ' title="Verwijder gebruiker"';
-      html += '<td style="text-align:right">' +
-        '<button class="icon-btn icon-btn-danger"' + btnDisabled +
-        ' onclick="deleteUser(\'' + r.user_id + '\', \'' + esc(email).replace(/'/g, "\\'") + '\')">' + delSvg + '</button>' +
-        '</td>';
+  if (userRole === 'partner' && userPartner) {
+    // Partner-viewer: alleen eigen kaart
+    var g = partnerGroups[userPartner.id];
+    if (g) {
+      html += renderUserCard({
+        title: userPartner.naam,
+        logoHtml: buildUserCardLogo(userPartner),
+        roles: g.roles,
+        emailMap: emailMap,
+        currentUserId: currentUserId,
+        permKeys: ['manage_pricing', 'manage_users'],
+        permLabels: { manage_pricing: 'Prijsbeheer', manage_users: 'Teambeheer' },
+        canManageUsers: canManageUsers,
+        addContext: { role: 'partner', partnerId: userPartner.id, partnerNaam: userPartner.naam }
+      });
     }
-    html += '</tr>';
-  });
-  html += '</tbody></table>';
-  html += '<p style="font-size:12px;color:var(--grey);margin-top:12px"><strong>Tip:</strong> nieuwe gebruikers worden aangemaakt via Supabase Auth. Verwijderen kan rechtstreeks via de prullenbak-knop rechts (enkel super-admin).</p>';
+  } else {
+    // Super-admin: Flancco-team kaart eerst, dan elke partner-tenant
+    html += renderUserCard({
+      title: 'Flancco-team',
+      logoHtml: '<div class="user-card-logo user-card-logo-flancco" aria-hidden="true">F</div>',
+      roles: flanccoRoles,
+      emailMap: emailMap,
+      currentUserId: currentUserId,
+      permKeys: ['manage_pricing', 'manage_partners', 'manage_users'],
+      permLabels: { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer' },
+      canManageUsers: canManageUsers,
+      addContext: { role: 'admin', partnerId: null, partnerNaam: null }
+    });
+    // Partners alfabetisch op naam voor stabiele volgorde
+    var sortedPids = Object.keys(partnerGroups).sort(function(a, b) {
+      var na = (partnerGroups[a].partner.naam || '').toLowerCase();
+      var nb = (partnerGroups[b].partner.naam || '').toLowerCase();
+      return na.localeCompare(nb);
+    });
+    sortedPids.forEach(function(pid) {
+      var g = partnerGroups[pid];
+      html += renderUserCard({
+        title: g.partner.naam,
+        logoHtml: buildUserCardLogo(g.partner),
+        roles: g.roles,
+        emailMap: emailMap,
+        currentUserId: currentUserId,
+        permKeys: ['manage_pricing', 'manage_users'],
+        permLabels: { manage_pricing: 'Prijsbeheer', manage_users: 'Teambeheer' },
+        canManageUsers: canManageUsers,
+        addContext: { role: 'partner', partnerId: g.partner.id, partnerNaam: g.partner.naam }
+      });
+    });
+  }
+
+  html += '<p style="font-size:12px;color:var(--grey);margin-top:16px;line-height:1.5">' +
+    '<strong>Tip:</strong> nieuwe gebruikers maak je aan via <em>+ Nieuwe gebruiker</em> in de juiste kaart. ' +
+    'Verwijderen via de prullenbak-knop rechts op een rij. ' +
+    'Wijzigingen in permissies zijn direct actief bij volgende login.' +
+    '</p>';
+
   container.innerHTML = html;
 }
 
+function buildUserCardLogo(partner) {
+  if (partner && partner.logo_url) {
+    return '<img src="' + esc(partner.logo_url) + '" alt="" class="user-card-logo" style="object-fit:contain;background:#fff;padding:2px;border:1px solid var(--rule)">';
+  }
+  var initial = esc(((partner && partner.naam) || '?').charAt(0).toUpperCase());
+  return '<div class="user-card-logo" style="background:var(--light);color:var(--navy);font-weight:700;font-size:13px" aria-hidden="true">' + initial + '</div>';
+}
+
+function renderUserCard(opts) {
+  // safeAddCtx: serialized context-object voor inline onclick (single-quote safe)
+  var safeAddCtx = JSON.stringify(opts.addContext).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
+  var addBtn = opts.canManageUsers
+    ? '<button type="button" class="btn btn-primary btn-sm" onclick="openNewUserModal(JSON.parse(this.dataset.ctx))" data-ctx="' + safeAddCtx + '">+ Nieuwe gebruiker</button>'
+    : '';
+  var header = '<div class="user-card-header">' +
+    '<div class="user-card-title">' + opts.logoHtml + '<strong>' + esc(opts.title) + '</strong> <span class="user-card-count">(' + opts.roles.length + ')</span></div>' +
+    addBtn +
+  '</div>';
+
+  if (opts.roles.length === 0) {
+    return '<div class="user-card user-card-empty">' + header +
+      '<div class="user-card-empty-body">Nog geen gebruikers. ' + (opts.canManageUsers ? 'Klik op <strong>+ Nieuwe gebruiker</strong> om te starten.' : '') + '</div>' +
+    '</div>';
+  }
+
+  var delSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+
+  var tableHtml = '<table class="user-card-table" style="width:100%"><thead><tr><th>Gebruiker</th><th>Rol</th>';
+  opts.permKeys.forEach(function(k) {
+    tableHtml += '<th style="text-align:center">' + opts.permLabels[k] + '</th>';
+  });
+  if (opts.canManageUsers) tableHtml += '<th style="text-align:right;width:60px"></th>';
+  tableHtml += '</tr></thead><tbody>';
+
+  // Rij-volgorde: huidige gebruiker eerst (visueel anker), dan alfabetisch op email
+  var sortedRoles = opts.roles.slice().sort(function(a, b) {
+    if (opts.currentUserId) {
+      if (a.user_id === opts.currentUserId) return -1;
+      if (b.user_id === opts.currentUserId) return 1;
+    }
+    var ea = (opts.emailMap[a.user_id] || a.user_id).toLowerCase();
+    var eb = (opts.emailMap[b.user_id] || b.user_id).toLowerCase();
+    return ea.localeCompare(eb);
+  });
+
+  sortedRoles.forEach(function(r) {
+    var email = opts.emailMap[r.user_id] || (r.user_id.substring(0, 8) + '…');
+    var isSelf = opts.currentUserId && r.user_id === opts.currentUserId;
+    var perms = r.permissions || {};
+    tableHtml += '<tr>' +
+      '<td>' + esc(email) + (isSelf ? ' <span style="font-size:11px;color:var(--grey)">(jij)</span>' : '') + '</td>' +
+      '<td>' + esc(r.role) + '</td>';
+    opts.permKeys.forEach(function(k) {
+      var checked = !!perms[k];
+      var disabled = (isSelf && k === 'manage_users') || !opts.canManageUsers;
+      var disTitle = (isSelf && k === 'manage_users') ? ' title="Kan eigen super-admin niet uitschakelen"' : '';
+      tableHtml += '<td style="text-align:center"><input type="checkbox" ' +
+        (checked ? 'checked' : '') + (disabled ? ' disabled' : '') + disTitle +
+        ' onchange="toggleUserPermission(\'' + r.id + '\',\'' + k + '\',this.checked)"></td>';
+    });
+    if (opts.canManageUsers) {
+      var safeEmail = esc(email).replace(/'/g, "\\'");
+      var deleteBtn = isSelf
+        ? '<button type="button" class="btn-action" disabled title="Je kunt jezelf niet verwijderen" style="opacity:0.3">' + delSvg + '</button>'
+        : '<button type="button" class="btn-action btn-action-danger" onclick="deleteUser(\'' + r.user_id + '\',\'' + safeEmail + '\')" title="Verwijderen">' + delSvg + '</button>';
+      tableHtml += '<td style="text-align:right">' + deleteBtn + '</td>';
+    }
+    tableHtml += '</tr>';
+  });
+  tableHtml += '</tbody></table>';
+
+  return '<div class="user-card">' + header + tableHtml + '</div>';
+}
+
+function openNewUserModal(context) {
+  // Super-admin route → opent Bediende-modal met locks zodat de juiste tenant + rol
+  // wordt meegestuurd naar create-bediende edge function v3.
+  var subtitle = context.partnerNaam
+    ? 'Nieuw teamlid voor ' + context.partnerNaam
+    : 'Nieuwe Flancco-medewerker';
+  openBediendeModal(null, {
+    lockedRole: context.role,
+    lockedPartnerId: context.partnerId,
+    headerSubtitle: subtitle
+  });
+}
+
 async function deleteUser(userId, email) {
-  if (userId === currentUser.id) { alert('Je kunt jezelf niet verwijderen.'); return; }
+  if (userId === currentUser.id) { showToast('Je kunt jezelf niet verwijderen.', 'error'); return; }
 
   // Blokker-check: koppelingen aan onderhoudsbeurten / rapporten / interventies
   try {
@@ -4530,8 +4774,8 @@ async function deleteUser(userId, email) {
     if (results[1].count) lijn.push(results[1].count + ' rapport(en)');
     if (results[2].count) lijn.push(results[2].count + ' interventie(s)');
     if (lijn.length) {
-      alert('Kan ' + email + ' niet verwijderen.\n\nGekoppeld aan:\n\u2022 ' + lijn.join('\n\u2022 ') +
-        '\n\nDraag eerst die records over aan een andere medewerker.');
+      await infoDialog('Kan ' + email + ' niet verwijderen.\n\nGekoppeld aan:\n\u2022 ' + lijn.join('\n\u2022 ') +
+        '\n\nDraag eerst die records over aan een andere medewerker.', 'Verwijdering geblokkeerd');
       return;
     }
   } catch(e) { /* ignore — count queries mogen falen */ }
@@ -4540,22 +4784,22 @@ async function deleteUser(userId, email) {
 
   try {
     var res = await sb.functions.invoke('delete-user', { body: { userIdToDelete: userId } });
-    if (res.error) { alert('Fout: ' + res.error.message); return; }
-    if (res.data && res.data.error) { alert('Fout: ' + res.data.error); return; }
+    if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Verwijderen mislukt'); return; }
+    if (res.data && res.data.error) { await infoDialog('Fout: ' + res.data.error, 'Verwijderen mislukt'); return; }
     await renderGebruikers();
   } catch (e) {
-    alert('Fout: ' + (e && e.message ? e.message : e));
+    await infoDialog('Fout: ' + (e && e.message ? e.message : e), 'Verwijderen mislukt');
   }
 }
 
 async function toggleUserPermission(roleId, permKey, value) {
   // Fetch current permissions
   var cur = await sb.from('user_roles').select('permissions').eq('id', roleId).single();
-  if (cur.error) { alert('Fout: ' + cur.error.message); return; }
+  if (cur.error) { showToast('Fout: ' + cur.error.message, 'error'); return; }
   var perms = cur.data.permissions || {};
   if (value) perms[permKey] = true; else delete perms[permKey];
   var upd = await sb.from('user_roles').update({ permissions: perms }).eq('id', roleId);
-  if (upd.error) { alert('Fout bij opslaan: ' + upd.error.message); return; }
+  if (upd.error) { await infoDialog('Fout bij opslaan: ' + upd.error.message, 'Opslaan mislukt'); return; }
 }
 
 // =============================================
@@ -5075,7 +5319,7 @@ function filterContractenByPartner(partnerId) {
 }
 
 async function deletePartner(partnerId) {
-  if (userRole !== 'admin') { alert('Alleen admin kan partners verwijderen.'); return; }
+  if (userRole !== 'admin') { showToast('Alleen admin kan partners verwijderen.', 'error'); return; }
   var p = partners.find(function(x) { return x.id === partnerId; });
   if (!p) return;
 
@@ -5099,7 +5343,7 @@ async function deletePartner(partnerId) {
   if (cnt.klanten) blokkers.push(cnt.klanten + ' klant(en)');
   if (cnt.users) blokkers.push(cnt.users + ' gebruiker(s)');
   if (blokkers.length) {
-    alert('Kan partner "' + (p.bedrijfsnaam || p.naam) + '" niet verwijderen.\n\nEr zijn nog gekoppelde records:\n• ' + blokkers.join('\n• ') + '\n\nVerwijder of herverbind eerst deze records.');
+    await infoDialog('Kan partner "' + (p.bedrijfsnaam || p.naam) + '" niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + blokkers.join('\n\u2022 ') + '\n\nVerwijder of herverbind eerst deze records.', 'Verwijdering geblokkeerd');
     return;
   }
 
@@ -5112,7 +5356,7 @@ async function deletePartner(partnerId) {
   await sb.from('partner_sectors').delete().eq('partner_id', partnerId);
   await sb.from('partner_permissions').delete().eq('partner_id', partnerId);
   var res = await sb.from('partners').delete().eq('id', partnerId);
-  if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+  if (res.error) { await infoDialog('Fout bij verwijderen: ' + res.error.message, 'Verwijderen mislukt'); return; }
 
   // Refresh lokale cache
   partners = partners.filter(function(x) { return x.id !== partnerId; });
@@ -7573,9 +7817,8 @@ function previewContract(contractId, mode) {
   html += '<div class="sig-grid">';
   html += '<div class="sig-box"><h3>' + pName + '</h3><div class="sig-line">Vertegenwoordigd door de Dienstverlener</div><div class="sig-line">Datum: ' + today + '</div></div>';
   html += '<div class="sig-box"><h3>De Klant</h3><div class="sig-line">Naam: <strong>' + (c.klant_naam || '') + '</strong></div>';
-  // Handtekening-bron: calculator schrijft naar handtekening_url (Storage) + handtekening_data (fallback base64).
-  // Legacy contracten hebben enkel de oude handtekening-kolom. Volgorde: URL → data → legacy.
-  var sigSrc = c.handtekening_url || c.handtekening_data || c.handtekening || '';
+  // Handtekening-bron: resolveSignatureSrc() prefereert base64 boven Storage-URL (cross-origin-safe voor html2canvas).
+  var sigSrc = resolveSignatureSrc(c);
   var sigDatum = c.datum_ondertekening || today;
   if (sigSrc) {
     html += '<div style="margin:12px 0"><img src="' + sigSrc + '" style="max-width:200px;max-height:80px" alt="Handtekening"></div>';
@@ -7853,7 +8096,9 @@ async function saveNewContract() {
   const email = document.getElementById('nc-email').value.trim();
 
   if (!partnerId || !voornaam || !achternaam || !adres || !pcgem || !tel || !email) {
-    alert('Vul alle verplichte velden in.');
+    showToast('Vul alle verplichte velden in.', 'error');
+    var miss = !partnerId ? 'nc-partner' : !voornaam ? 'nc-voornaam' : !achternaam ? 'nc-achternaam' : !adres ? 'nc-adres' : !pcgem ? 'nc-pcgem' : !tel ? 'nc-tel' : 'nc-email';
+    var elM = document.getElementById(miss); if (elM) elM.focus();
     return;
   }
 
@@ -7895,7 +8140,7 @@ async function saveNewContract() {
 
   const { data, error } = await sb.from('contracten').insert([payload]).select();
   if (error) {
-    alert('Fout bij opslaan: ' + error.message);
+    await infoDialog('Fout bij opslaan: ' + error.message, 'Opslaan mislukt');
     return;
   }
 
@@ -7928,6 +8173,23 @@ async function saveNewContract() {
 // KLANTEN
 // =============================================
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function formatClientName(c, variant) {
+  variant = variant || 'full';
+  if (!c) return '—';
+  var primary = c.company_name || c.contact_person || '—';
+  var secondary = (c.company_name && c.contact_person) ? c.contact_person : null;
+  if (variant === 'primary') return esc(primary);
+  if (variant === 'short')   return esc(primary) + (secondary ? ' (' + esc(secondary) + ')' : '');
+  return '<strong>' + esc(primary) + '</strong>' + (secondary ? '<br><small style="color:var(--grey)">' + esc(secondary) + '</small>' : '');
+}
+
+// Handtekening-bron-resolver: prefereert base64 (handtekening_data) boven Storage-URL om cross-origin issues
+// bij html2canvas PDF-render te vermijden. Legacy contracten vallen terug op de oude handtekening-kolom.
+function resolveSignatureSrc(c) {
+  if (!c) return '';
+  return c.handtekening_data || c.handtekening || c.handtekening_url || '';
+}
 
 // =============================================
 // LOGO UPLOAD & NORMALISATIE
@@ -8165,6 +8427,8 @@ function getPartnerBranding(partner, sector) {
   return fallback;
 }
 
+// API must stay in sync with admin/planning.html en admin/contracten-wizard.html showToast(msg, type).
+// Types: 'success' (default) | 'error' | 'info'.
 function showToast(msg, type) {
   var existing = document.getElementById('admin-toast');
   if (existing) existing.remove();
@@ -8300,6 +8564,25 @@ function toggleSelectMode() {
   renderKlanten();
 }
 
+/**
+ * Bereken het aantal kolommen van de klanten-tabel zoals door renderKlantenThead() opgebouwd.
+ * Wordt gebruikt door de detail-rij (F.1) zodat colspan exact matcht met de header,
+ * rekening houdend met selectModeActief (checkbox-kolom) en userRole (partner-kolom).
+ */
+function getKlantenColspan() {
+  var n = 0;
+  if (selectModeActief && userRole === 'admin') n += 1; // checkbox
+  n += 1; // expand-chevron
+  n += 1; // naam / bedrijf
+  if (userRole === 'admin') n += 1; // partner
+  n += 1; // email
+  n += 1; // telefoon
+  n += 1; // gemeente
+  n += 1; // contracten
+  n += 1; // acties (.not-technieker — gerenderd, CSS verbergt voor technieker)
+  return n;
+}
+
 function renderKlantenThead() {
   var thead = document.getElementById('klanten-thead');
   if (!thead) return;
@@ -8353,10 +8636,8 @@ function renderKlanten() {
     noEl.style.display = 'block';
   } else {
     noEl.style.display = 'none';
-    // Hoeveel kolommen voor de colspan van de detail-rij?
-    var colCount = 7; // expand + naam + email + telefoon + gemeente + contracten + acties
-    if (userRole === 'admin') colCount += 1; // partner kolom
-    if (selectModeActief && userRole === 'admin') colCount += 1; // checkbox kolom
+    // Colspan voor de detail-rij — moet exact matchen met renderKlantenThead()
+    var colCount = getKlantenColspan();
 
     tbody.innerHTML = list.map(function(c) {
       var partner = partners.find(function(p) { return p.id === c.partner_id; });
@@ -8377,8 +8658,7 @@ function renderKlanten() {
           ? '<td class="klant-checkbox-cell" onclick="event.stopPropagation()"><input type="checkbox" class="klant-checkbox" value="' + c.id + '"></td>'
           : '') +
         '<td class="klant-expand-cell" onclick="toggleKlantDetail(\'' + c.id + '\')"><button type="button" class="expand-btn" aria-label="Toon details">' + expandSvg + '</button></td>' +
-        '<td onclick="toggleKlantDetail(\'' + c.id + '\')"><strong>' + esc(c.contact_person || '') + '</strong>' + isShared +
-          (c.company_name ? '<br><small style="color:var(--grey)">' + esc(c.company_name) + '</small>' : '') + '</td>' +
+        '<td onclick="toggleKlantDetail(\'' + c.id + '\')">' + formatClientName(c, 'full') + isShared + '</td>' +
         '<td class="admin-only" onclick="toggleKlantDetail(\'' + c.id + '\')">' + (partner ? esc(partner.naam) : '—') + '</td>' +
         '<td onclick="toggleKlantDetail(\'' + c.id + '\')">' + esc(c.email || '') + '</td>' +
         '<td onclick="toggleKlantDetail(\'' + c.id + '\')">' + esc(c.phone || '') + '</td>' +
@@ -9109,7 +9389,8 @@ function updateKlantenBulkBar() {
   var cnt = document.getElementById('klanten-bulk-count');
   if (!bar || !cnt) return;
   cnt.textContent = checked + ' geselecteerd';
-  bar.classList.toggle('open', checked > 0);
+  // Bar enkel zichtbaar in select-modus (admin) én bij minstens 1 selectie
+  bar.classList.toggle('open', selectModeActief && userRole === 'admin' && checked > 0);
 }
 function clearKlantenSelectie() {
   document.querySelectorAll('.klant-checkbox').forEach(function(cb) { cb.checked = false; });
@@ -9121,6 +9402,13 @@ document.addEventListener('change', function(e) {
   if (e.target && e.target.classList && e.target.classList.contains('klant-checkbox')) {
     updateKlantenBulkBar();
   }
+});
+// Escape verlaat select-modus (alleen als geen modal open staat)
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape' || !selectModeActief) return;
+  // Niet triggeren als er een open modal is (modals vangen Escape zelf af)
+  if (document.querySelector('.modal.open, .modal-overlay.open')) return;
+  toggleSelectMode();
 });
 
 async function saveKlant() {
@@ -9372,8 +9660,9 @@ async function saveKlant() {
   }
 
   // Re-open dossier if it was open, so user sees updated data
+  // Hier altijd de legacy tab-dossier herladen (rest van de code hangt af van currentDossierData state).
   if (currentDossierClientId) {
-    await showKlantDossier(currentDossierClientId);
+    await showKlantDossierLegacy(currentDossierClientId);
   }
 }
 
@@ -9384,7 +9673,7 @@ async function deleteKlant() {
 
   var { error } = await sb.from('clients').delete().eq('id', id);
   if (error) {
-    alert('Fout bij verwijderen: ' + error.message);
+    await infoDialog('Fout bij verwijderen: ' + error.message, 'Verwijderen mislukt');
     return;
   }
 
@@ -9416,8 +9705,8 @@ async function deleteKlantRow(klantId) {
       if (cnt.contracten) lijn.push(cnt.contracten + ' contract(en)');
       if (cnt.interventies) lijn.push(cnt.interventies + ' interventie(s)');
       if (cnt.rapporten) lijn.push(cnt.rapporten + ' rapport(en)');
-      alert('Kan deze klant niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + lijn.join('\n\u2022 ') +
-        '\n\nVerwijder of archiveer eerst deze records via hun eigen pagina.');
+      await infoDialog('Kan deze klant niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + lijn.join('\n\u2022 ') +
+        '\n\nVerwijder of archiveer eerst deze records via hun eigen pagina.', 'Verwijdering geblokkeerd');
       return;
     }
 
@@ -9427,7 +9716,7 @@ async function deleteKlantRow(klantId) {
 
     await sb.from('client_locations').delete().eq('client_id', klantId);
     var res = await sb.from('clients').delete().eq('id', klantId);
-    if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+    if (res.error) { await infoDialog('Fout bij verwijderen: ' + res.error.message, 'Verwijderen mislukt'); return; }
     // Page-restore zodat we op Klanten blijven, niet terugvallen op dashboard (J.1)
     var pageBeforeReload = getCurrentPageName() || 'klanten';
     await loadAllData();
@@ -9435,7 +9724,7 @@ async function deleteKlantRow(klantId) {
       showPage(pageBeforeReload);
     }
   } catch (e) {
-    alert('Fout: ' + (e && e.message ? e.message : e));
+    await infoDialog('Fout: ' + (e && e.message ? e.message : e), 'Verwijderen mislukt');
   }
 }
 
@@ -9534,8 +9823,7 @@ function csvCurrentPartnerLabel(filterSelectId) {
 function exportKlantenCSV() {
   var list = getFilteredKlanten();
   if (list.length === 0) {
-    if (typeof showToast === 'function') showToast('Geen klanten om te exporteren.', 'info');
-    else alert('Geen klanten om te exporteren.');
+    showToast('Geen klanten om te exporteren.', 'info');
     return;
   }
 
@@ -9590,8 +9878,7 @@ function exportContractenCSV() {
   });
 
   if (list.length === 0) {
-    if (typeof showToast === 'function') showToast('Geen contracten om te exporteren.', 'info');
-    else alert('Geen contracten om te exporteren.');
+    showToast('Geen contracten om te exporteren.', 'info');
     return;
   }
 
@@ -9688,7 +9975,23 @@ async function loadDossierData(clientId) {
   };
 }
 
-async function showKlantDossier(clientId) {
+/**
+ * F.5 — Globale entry-point voor klant-detail.
+ * Redirect naar de klanten-pagina + open de expandable detail-rij voor deze klant.
+ * Wordt o.a. aangeroepen vanuit globale search.
+ *
+ * De legacy tab-based dossier-pagina blijft beschikbaar via showKlantDossierLegacy()
+ * — die wordt intern nog gebruikt voor refresh-flows na save/delete in modals.
+ */
+function showKlantDossier(clientId) {
+  if (!clientId) return;
+  try { showPage('klanten'); } catch (e) { console.warn('showPage klanten faalde', e); }
+  setTimeout(function() {
+    try { toggleKlantDetail(clientId); } catch (e) { console.warn('toggleKlantDetail faalde', e); }
+  }, 150);
+}
+
+async function showKlantDossierLegacy(clientId) {
   var client = allClients.find(function(c) { return c.id === clientId; });
   if (!client) return;
   currentDossierClientId = clientId;
@@ -10010,8 +10313,8 @@ function renderDossierHistoriek(clientId) {
     if (rapport) {
       rapportLink = '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
         '<span style="font-size:11px;color:var(--text-secondary)">' + esc(rapport.referentie) + '</span>' +
-        '<button class="btn btn-secondary" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();showRapportDetail(\'' + rapport.id + '\')">Bekijk rapport</button>' +
-        (rapport.pdf_url ? '<a href="' + rapport.pdf_url + '" target="_blank" class="btn btn-secondary" style="font-size:11px;padding:3px 10px;text-decoration:none" onclick="event.stopPropagation()">Download PDF</a>' : '') +
+        '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showRapportDetail(\'' + rapport.id + '\')">Bekijk rapport</button>' +
+        (rapport.pdf_url ? '<a href="' + rapport.pdf_url + '" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none" onclick="event.stopPropagation()">Download PDF</a>' : '') +
       '</div>';
     }
 
@@ -10076,7 +10379,7 @@ async function showRapportDetail(rapportId) {
   // Fallback: fetch from DB
   if (!rapport) {
     var res = await sb.from('rapporten').select('*').eq('id', rapportId).single();
-    if (res.error || !res.data) { alert('Rapport niet gevonden'); return; }
+    if (res.error || !res.data) { showToast('Rapport niet gevonden.', 'error'); return; }
     rapport = res.data;
   }
 
@@ -10180,7 +10483,7 @@ function openShareKlantModal(clientId) {
     var existing = (currentDossierData.delingen || []).filter(function(d) { return d.status !== 'ingetrokken'; }).map(function(d) { return d.gedeeld_met_partner_id; });
     return existing.indexOf(p.id) < 0;
   });
-  if (opts.length === 0) { alert('Alle partners hebben al toegang tot deze klant.'); return; }
+  if (opts.length === 0) { showToast('Alle partners hebben al toegang tot deze klant.', 'info'); return; }
   var html = '<div class="modal-field"><label>Partner *</label><select id="share-partner">' +
     opts.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('') + '</select></div>' +
     '<div class="modal-field"><label>Rechten</label><select id="share-permission">' +
@@ -10190,8 +10493,8 @@ function openShareKlantModal(clientId) {
   overlay.className = 'modal-overlay open';
   overlay.id = 'modal-share-klant';
   overlay.innerHTML = '<div class="modal" style="max-width:400px"><h2>Klant delen</h2>' + html +
-    '<div class="modal-buttons"><button class="btn btn-secondary" onclick="document.getElementById(\'modal-share-klant\').remove()">Annuleren</button>' +
-    '<button class="btn" onclick="saveShareKlant(\'' + clientId + '\')">Delen</button></div></div>';
+    '<div class="modal-buttons"><button class="btn btn-ghost" onclick="document.getElementById(\'modal-share-klant\').remove()">Annuleren</button>' +
+    '<button class="btn btn-primary" onclick="saveShareKlant(\'' + clientId + '\')">Delen</button></div></div>';
   document.body.appendChild(overlay);
 }
 
@@ -10209,7 +10512,7 @@ async function saveShareKlant(clientId) {
     permission: permission,
     status: 'actief'
   });
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Delen mislukt'); return; }
   document.getElementById('modal-share-klant').remove();
   // Reload dossier data
   currentDossierData = await loadDossierData(clientId);
@@ -10221,7 +10524,7 @@ async function saveShareKlant(clientId) {
 async function intrekkenDeling(delingId, clientId) {
   if (!(await confirmDialog({ title: 'Deling intrekken?', message: 'Deling intrekken? De partner verliest toegang tot deze klant.', variant: 'danger', confirmLabel: 'Intrekken' }))) return;
   var res = await sb.from('klant_delingen').update({ status: 'ingetrokken' }).eq('id', delingId);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Intrekken mislukt'); return; }
   currentDossierData = await loadDossierData(clientId);
   var client = allClients.find(function(c) { return c.id === clientId; });
   var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
@@ -10232,7 +10535,7 @@ async function intrekkenDeling(delingId, clientId) {
 function openBulkShareModal() {
   var checkboxes = document.querySelectorAll('.klant-checkbox:checked');
   var clientIds = Array.from(checkboxes).map(function(cb) { return cb.value; });
-  if (clientIds.length === 0) { alert('Selecteer eerst klanten om te delen.'); return; }
+  if (clientIds.length === 0) { showToast('Selecteer eerst klanten om te delen.', 'error'); return; }
 
   var html = '<div class="modal-field"><label>Partner *</label><select id="bulk-share-partner">' +
     partners.map(function(p) { return '<option value="' + p.id + '">' + esc(p.naam) + '</option>'; }).join('') + '</select></div>' +
@@ -10244,8 +10547,8 @@ function openBulkShareModal() {
   overlay.className = 'modal-overlay open';
   overlay.id = 'modal-bulk-share';
   overlay.innerHTML = '<div class="modal" style="max-width:400px"><h2>Bulk delen</h2>' + html +
-    '<div class="modal-buttons"><button class="btn btn-secondary" onclick="document.getElementById(\'modal-bulk-share\').remove()">Annuleren</button>' +
-    '<button class="btn" onclick="saveBulkShare()">Delen</button></div></div>';
+    '<div class="modal-buttons"><button class="btn btn-ghost" onclick="document.getElementById(\'modal-bulk-share\').remove()">Annuleren</button>' +
+    '<button class="btn btn-primary" onclick="saveBulkShare()">Delen</button></div></div>';
   overlay.dataset.clientIds = JSON.stringify(clientIds);
   document.body.appendChild(overlay);
 }
@@ -10268,9 +10571,9 @@ async function saveBulkShare() {
   });
 
   var res = await sb.from('klant_delingen').upsert(inserts, { onConflict: 'client_id,gedeeld_met_partner_id', ignoreDuplicates: true });
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
   modal.remove();
-  alert(clientIds.length + ' klant(en) gedeeld.');
+  showToast(clientIds.length + ' klant(en) gedeeld.', 'success');
   // Uncheck all
   document.querySelectorAll('.klant-checkbox:checked').forEach(function(cb) { cb.checked = false; });
 }
@@ -10301,8 +10604,8 @@ function openCsvImportModal() {
     '<div class="modal-field"><label>CSV-bestand</label><input type="file" id="csv-file" accept=".csv,.txt" onchange="parseCsvPreview()"></div>' +
     '<div id="csv-preview" style="margin-top:12px"></div>' +
     '<div class="modal-buttons" style="margin-top:16px">' +
-      '<button class="btn btn-secondary" onclick="document.getElementById(\'modal-csv-import\').remove()">Annuleren</button>' +
-      '<button class="btn" id="csv-import-btn" onclick="executeCsvImport()" style="display:none">Importeren</button>' +
+      '<button class="btn btn-ghost" onclick="document.getElementById(\'modal-csv-import\').remove()">Annuleren</button>' +
+      '<button class="btn btn-primary" id="csv-import-btn" onclick="executeCsvImport()" style="display:none">Importeren</button>' +
     '</div></div>';
   document.body.appendChild(overlay);
 }
@@ -10486,15 +10789,19 @@ async function executeCsvImport() {
 
   document.getElementById('modal-csv-import').remove();
   var msg = inserted + ' van ' + validRows.length + ' klant(en) geimporteerd.';
-  if (failed) msg += '\n\n' + failed + ' mislukt:\n- ' + failures.slice(0, 5).join('\n- ') + (failures.length > 5 ? '\n(+' + (failures.length - 5) + ' meer)' : '');
-  alert(msg);
+  if (failed) {
+    msg += '\n\n' + failed + ' mislukt:\n- ' + failures.slice(0, 5).join('\n- ') + (failures.length > 5 ? '\n(+' + (failures.length - 5) + ' meer)' : '');
+    await infoDialog(msg, 'Import voltooid (met fouten)');
+  } else {
+    showToast(msg, 'success');
+  }
   await loadAllData();
 }
 
 function copyPortalLink(token) {
   var url = PORTAL_BASE_URL + '/?token=' + token;
   navigator.clipboard.writeText(url).then(function() {
-    alert('Portaallink gekopieerd!\n\n' + url);
+    showToast('Portaallink gekopieerd naar klembord.', 'success');
   }).catch(function() {
     prompt('Kopieer deze link:', url);
   });
@@ -10536,9 +10843,9 @@ async function deleteKlantFromDossier(id, gdpr) {
     auditLog('clients', id, gdpr ? 'gdpr_verwijdering' : 'verwijderd', null, contractIds.length + ' contracten verwijderd');
     closeKlantDossier();
     await loadAllData();
-    alert(gdpr ? 'Alle klantdata is volledig verwijderd (GDPR).' : 'Klant verwijderd.');
+    showToast(gdpr ? 'Alle klantdata is volledig verwijderd (GDPR).' : 'Klant verwijderd.', 'success');
   } catch (err) {
-    alert('Fout bij verwijderen: ' + (err.message || err));
+    showToast('Fout bij verwijderen: ' + (err.message || err), 'error');
   }
 }
 
@@ -10671,7 +10978,7 @@ async function saveInstallatie() {
   var clientId = document.getElementById('inst-client-id').value;
   var instId = document.getElementById('inst-id').value;
   var type = document.getElementById('inst-type').value;
-  if (!type) { alert('Kies een installatietype.'); return; }
+  if (!type) { showToast('Kies een installatietype.', 'error'); return; }
 
   var payload = {
     client_id: clientId,
@@ -10726,7 +11033,7 @@ async function saveInstallatie() {
     var instTab = document.querySelector('.dossier-tab[data-tab="installaties"] .dossier-tab-count');
     if (instTab) instTab.textContent = '(' + currentDossierData.installaties.length + ')';
   } catch (err) {
-    alert('Fout bij opslaan: ' + (err.message || err));
+    showToast('Fout bij opslaan: ' + (err.message || err), 'error');
   }
 }
 
@@ -10744,7 +11051,7 @@ async function deleteInstallatie() {
     var instTab = document.querySelector('.dossier-tab[data-tab="installaties"] .dossier-tab-count');
     if (instTab) instTab.textContent = '(' + currentDossierData.installaties.length + ')';
   } catch (err) {
-    alert('Fout bij verwijderen: ' + (err.message || err));
+    showToast('Fout bij verwijderen: ' + (err.message || err), 'error');
   }
 }
 
@@ -10794,7 +11101,7 @@ async function saveLocatie() {
   var huisnr = document.getElementById('loc-huisnr').value.trim();
   var postcode = document.getElementById('loc-postcode').value.trim();
   var gemeente = document.getElementById('loc-gemeente').value.trim();
-  if (!label || !straat || !huisnr || !postcode || !gemeente) { alert('Vul alle verplichte velden in.'); return; }
+  if (!label || !straat || !huisnr || !postcode || !gemeente) { showToast('Vul alle verplichte velden in.', 'error'); return; }
 
   var isPrimary = document.getElementById('loc-primary').checked;
   var payload = {
@@ -10826,7 +11133,7 @@ async function saveLocatie() {
     var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
     renderDossierOverzicht(client, contracts);
   } catch (err) {
-    alert('Fout bij opslaan: ' + (err.message || err));
+    showToast('Fout bij opslaan: ' + (err.message || err), 'error');
   }
 }
 
@@ -10842,7 +11149,7 @@ async function deleteLocatie(locId) {
     var contracts = allContracten.filter(function(c) { return c.client_id === clientId; });
     renderDossierOverzicht(client, contracts);
   } catch (err) {
-    alert('Fout bij verwijderen: ' + (err.message || err));
+    showToast('Fout bij verwijderen: ' + (err.message || err), 'error');
   }
 }
 
@@ -10931,11 +11238,16 @@ function renderPartnerTeamList() {
 }
 
 function openTeamLidModal(teamLidId) {
-  // Hergebruik bestaande Bediende-modal + save-flow. Server-side edge function
-  // `create-bediende` v3 detecteert dat caller=partner en zet role='partner' + partner_id
-  // op de nieuwe auth-user. Voor partners blijft de modal zelf identiek — velden
-  // (naam/email/telefoon/functie/wachtwoord) zijn één-op-één bruikbaar.
-  openBediendeModal(teamLidId || undefined);
+  // Hergebruik bestaande Bediende-modal + save-flow. Voor partners locken we role+
+  // partner_id zodat de UI duidelijk maakt voor wie het teamlid wordt aangemaakt;
+  // edge function `create-bediende` v3 valideert RLS dat caller eigenaar is.
+  var opts = {};
+  if (userRole === 'partner' && userPartner) {
+    opts.lockedRole = 'partner';
+    opts.lockedPartnerId = userPartner.id;
+    opts.headerSubtitle = 'Nieuw teamlid voor ' + userPartner.naam;
+  }
+  openBediendeModal(teamLidId || null, opts);
 }
 
 async function deleteTeamLid(teamLidId, naam) {
@@ -11227,10 +11539,30 @@ function renderBedienden() {
   }).join('');
 }
 
-function openBediendeModal(bedId) {
+// Module-state voor de Bediende-modal — wordt door openBediendeModal gevuld en door
+// saveBediende() gelezen om role/partner_id-locks (gebruikt door Gebruikers-pagina
+// en Partner-Team-card) door te geven aan de create-bediende edge function.
+var _bediendeModalOpts = {};
+
+function openBediendeModal(bedId, opts) {
+  opts = opts || {};
+  _bediendeModalOpts = opts;
   var editing = !!bedId;
   var b = editing ? (allTechniekers || []).find(function(x) { return x.id === bedId; }) : null;
+
+  // Titel + subtitle (subtitle voor context "Nieuw teamlid voor ...")
   document.getElementById('bed-modal-title').textContent = editing ? 'Bediende bewerken' : 'Nieuwe bediende';
+  var subtitleEl = document.getElementById('bed-modal-subtitle');
+  if (subtitleEl) {
+    if (!editing && opts.headerSubtitle) {
+      subtitleEl.textContent = opts.headerSubtitle;
+      subtitleEl.style.display = 'block';
+    } else {
+      subtitleEl.textContent = '';
+      subtitleEl.style.display = 'none';
+    }
+  }
+
   document.getElementById('bed-voornaam').value = b ? (b.voornaam || '') : '';
   document.getElementById('bed-naam').value = b ? (b.naam || '') : '';
   document.getElementById('bed-email').value = b ? (b.email || '') : '';
@@ -11254,7 +11586,18 @@ function openBediendeModal(bedId) {
     pwRow.style.display = '';
     emailField.removeAttribute('readonly');
     emailField.style.background = '';
-    if (hint) hint.textContent = 'De bediende krijgt een eigen login-account (admin-light: geen toegang tot Partners, Pricing, Gebruikersbeheer). Standaard saldo: 20 vakantiedagen + 12 ADV voor dit jaar.';
+    if (hint) {
+      // Hint contextueel: super-admin die teamlid voor partner aanmaakt krijgt andere copy
+      // dan partner die zelf eigen team beheert (=lockedRole='partner') of admin die
+      // Flancco-medewerker aanmaakt (=lockedRole='admin').
+      if (opts.lockedRole === 'partner' && opts.lockedPartnerId) {
+        hint.textContent = 'Het teamlid krijgt een partner-login binnen de gekozen tenant. Standaard saldo: 20 vakantiedagen + 12 ADV voor dit jaar.';
+      } else if (opts.lockedRole === 'admin') {
+        hint.textContent = 'De medewerker krijgt een Flancco-login (admin-light: geen toegang tot Partners, Pricing, Gebruikersbeheer). Standaard saldo: 20 vakantiedagen + 12 ADV voor dit jaar.';
+      } else {
+        hint.textContent = 'De bediende krijgt een eigen login-account (admin-light: geen toegang tot Partners, Pricing, Gebruikersbeheer). Standaard saldo: 20 vakantiedagen + 12 ADV voor dit jaar.';
+      }
+    }
   }
   document.getElementById('bed-save-btn').dataset.bedId = editing ? bedId : '';
   document.getElementById('modal-bediende').style.display = 'flex';
@@ -11262,6 +11605,7 @@ function openBediendeModal(bedId) {
 
 function closeBediendeModal() {
   document.getElementById('modal-bediende').style.display = 'none';
+  _bediendeModalOpts = {};
 }
 
 async function saveBediende() {
@@ -11279,10 +11623,10 @@ async function saveBediende() {
   var gemeente = (document.getElementById('bed-gemeente').value || '').trim();
   var password = (document.getElementById('bed-password').value || '').trim();
 
-  if (!voornaam || !naam) { alert('Voornaam en achternaam zijn verplicht.'); return; }
+  if (!voornaam || !naam) { showToast('Voornaam en achternaam zijn verplicht.', 'error'); return; }
   if (!editing) {
-    if (!email) { alert('Email is verplicht.'); return; }
-    if (!password || password.length < 6) { alert('Wachtwoord van minstens 6 tekens is verplicht.'); return; }
+    if (!email) { showToast('Email is verplicht.', 'error'); return; }
+    if (!password || password.length < 6) { showToast('Wachtwoord van minstens 6 tekens is verplicht.', 'error'); return; }
   }
 
   btn.disabled = true;
@@ -11300,19 +11644,26 @@ async function saveBediende() {
         postcode: postcode || null,
         gemeente: gemeente || null,
       }).eq('id', bedId);
-      if (error) { alert('Fout bij bewerken: ' + error.message); return; }
+      if (error) { showToast('Fout bij bewerken: ' + error.message, 'error'); return; }
     } else {
-      var res = await sb.functions.invoke('create-bediende', {
-        body: {
-          email: email, password: password,
-          voornaam: voornaam, naam: naam,
-          telefoon: telefoon, functie: functie,
-          start_datum: startdatum,
-          adres: adres, postcode: postcode, gemeente: gemeente
-        }
-      });
-      if (res.error) { alert('Fout bij aanmaken: ' + res.error.message); return; }
-      if (res.data && res.data.error) { alert('Fout: ' + res.data.error); return; }
+      // Lock-overrides van openBediendeModal-caller doorgeven aan edge function v3.
+      // Zonder overrides leidt de edge function role/partner_id af van de caller-auth.
+      var createBody = {
+        email: email, password: password,
+        voornaam: voornaam, naam: naam,
+        telefoon: telefoon, functie: functie,
+        start_datum: startdatum,
+        adres: adres, postcode: postcode, gemeente: gemeente
+      };
+      if (_bediendeModalOpts && _bediendeModalOpts.lockedRole) {
+        createBody.role = _bediendeModalOpts.lockedRole;
+      }
+      if (_bediendeModalOpts && Object.prototype.hasOwnProperty.call(_bediendeModalOpts, 'lockedPartnerId')) {
+        createBody.partner_id = _bediendeModalOpts.lockedPartnerId; // mag null zijn voor admin/Flancco
+      }
+      var res = await sb.functions.invoke('create-bediende', { body: createBody });
+      if (res.error) { showToast('Fout bij aanmaken: ' + res.error.message, 'error'); return; }
+      if (res.data && res.data.error) { showToast('Fout: ' + res.data.error, 'error'); return; }
     }
     closeBediendeModal();
     // Refresh techniekers data
@@ -11322,8 +11673,13 @@ async function saveBediende() {
     renderPersoneelCounts();
     // Partner team-lijstje in Instellingen meteen mee verversen
     if (userRole === 'partner') renderPartnerTeamList();
+    // Super-admin Gebruikers-pagina (card-per-tenant) ook mee verversen indien geopend
+    var gebruikersPage = document.getElementById('page-gebruikers');
+    if (gebruikersPage && gebruikersPage.classList.contains('active')) {
+      renderGebruikers();
+    }
   } catch (e) {
-    alert('Onverwachte fout: ' + (e.message || e));
+    showToast('Onverwachte fout: ' + (e.message || e), 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Opslaan';
@@ -11334,7 +11690,7 @@ async function deleteBediende(bedId, naam) {
   if (!(await confirmDialog({ title: 'Bediende verwijderen?', message: 'Bediende "' + naam + '" definitief verwijderen?\n\nDit wist zowel de bediende-rij als het login-account.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
   var b = (allTechniekers || []).find(function(x) { return x.id === bedId; });
-  if (!b) { alert('Bediende niet gevonden'); return; }
+  if (!b) { showToast('Bediende niet gevonden', 'error'); return; }
 
   // Check op aanwezige verlof-aanvragen
   try {
@@ -11355,7 +11711,7 @@ async function deleteBediende(bedId, naam) {
   }
 
   var res = await sb.from('techniekers').delete().eq('id', bedId);
-  if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout bij verwijderen: ' + res.error.message, 'error'); return; }
 
   var r = await sb.from('techniekers').select('*').order('created_at');
   allTechniekers = r.data || [];
@@ -11547,7 +11903,7 @@ function previewTechnieker(id) {
 async function saveTechnieker() {
   var naam = document.getElementById('tech-naam').value.trim();
   var voornaam = document.getElementById('tech-voornaam').value.trim();
-  if (!naam || !voornaam) { alert('Voornaam en naam zijn verplicht'); return; }
+  if (!naam || !voornaam) { showToast('Voornaam en naam zijn verplicht', 'error'); return; }
 
   var urenWeek = parseFloat(document.getElementById('tech-uren-week').value) || 38;
 
@@ -11582,7 +11938,7 @@ async function saveTechnieker() {
   } else {
     res = await sb.from('techniekers').insert([payload]).select();
   }
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   var techId = res.data[0].id;
 
@@ -11599,7 +11955,7 @@ async function saveTechnieker() {
     });
     if (secRows.length > 0) {
       var secRes = await sb.from('technieker_sectoren').insert(secRows);
-      if (secRes.error) { alert('Fout sectoren: ' + secRes.error.message); }
+      if (secRes.error) { showToast('Fout sectoren: ' + secRes.error.message, 'error'); }
     }
   }
 
@@ -11627,7 +11983,7 @@ async function deleteTechnieker() {
   await sb.from('technieker_sectoren').delete().eq('technieker_id', editId);
   await sb.from('technieker_afwezigheden').delete().eq('technieker_id', editId);
   var res = await sb.from('techniekers').delete().eq('id', editId);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   closeTechModal();
   showToast('Medewerker verwijderd');
@@ -11708,7 +12064,7 @@ async function saveTechCert() {
   if (!techId) return;
   var typeVal = document.getElementById('tech-cert-type').value;
   var certType = typeVal === '__andere__' ? document.getElementById('tech-cert-custom').value.trim() : typeVal;
-  if (!certType) { alert('Type is verplicht'); return; }
+  if (!certType) { showToast('Type is verplicht', 'error'); return; }
 
   var data = {
     technieker_id: techId,
@@ -11724,7 +12080,7 @@ async function saveTechCert() {
   } else {
     res = await sb.from('technieker_certificeringen').insert([data]);
   }
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   cancelCertForm();
   loadTechCerts(techId);
@@ -11735,7 +12091,7 @@ async function deleteTechCert(certId) {
   if (!(await confirmDialog({ title: 'Certificering verwijderen?', message: 'Certificering definitief verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var techId = document.getElementById('tech-edit-id').value;
   var res = await sb.from('technieker_certificeringen').delete().eq('id', certId);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
   loadTechCerts(techId);
   showToast('Certificering verwijderd');
 }
@@ -12115,7 +12471,7 @@ async function saveVoertuig() {
   var merk = document.getElementById('wagen-merk').value.trim();
   var model = document.getElementById('wagen-model').value.trim();
   var plaat = document.getElementById('wagen-plaat').value.trim();
-  if (!merk || !model || !plaat) { alert('Merk, model en nummerplaat zijn verplicht'); return; }
+  if (!merk || !model || !plaat) { showToast('Merk, model en nummerplaat zijn verplicht', 'error'); return; }
 
   var kmVal = parseInt(document.getElementById('wagen-km').value) || 0;
   var payload = {
@@ -12145,7 +12501,7 @@ async function saveVoertuig() {
   } else {
     res = await sb.from('voertuigen').insert([payload]).select();
   }
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   var voertuigId = res.data[0].id;
   if (kmVal > 0) {
@@ -12167,9 +12523,315 @@ async function deleteVoertuig() {
   await sb.from('voertuig_km_log').delete().eq('voertuig_id', editId);
   await sb.from('voertuig_kosten').delete().eq('voertuig_id', editId);
   var res = await sb.from('voertuigen').delete().eq('id', editId);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   closeWagenModal();
+  await loadAllData();
+}
+
+// =============================================
+// BOUWDROGERS (Q.10.b)
+// Verhuur-drogers met regio-indeling, uitgifte-flow en cross-regio waarschuwing.
+// =============================================
+function postcodeToRegio(postcode) {
+  if (!postcode) return null;
+  var pc = String(postcode).trim();
+  if (!pc) return null;
+  var first = pc.charAt(0);
+  // BE-postcodes: 1xxx-4xxx = Antwerpen/Limburg/Vlaams-Brabant/Waals-Brabant; 8xxx-9xxx = West-/Oost-Vlaanderen
+  if (first >= '1' && first <= '4') return 'antwerpen_limburg';
+  if (first === '8' || first === '9') return 'oost_west_vlaanderen';
+  return null;
+}
+
+function regioLabel(r) {
+  if (r === 'oost_west_vlaanderen') return 'Oost- / West-Vlaanderen';
+  if (r === 'antwerpen_limburg') return 'Antwerpen / Limburg';
+  return '—';
+}
+
+function statusLabelBouwdroger(s) {
+  return ({ beschikbaar:'Beschikbaar', in_gebruik:'In gebruik', onderhoud:'In onderhoud', kapot:'Kapot' })[s] || s || '—';
+}
+
+function statusColorBouwdroger(s) {
+  return ({ beschikbaar:'var(--green)', in_gebruik:'var(--navy)', onderhoud:'#F59E0B', kapot:'var(--red)' })[s] || 'var(--grey)';
+}
+
+function renderBouwdrogers() {
+  var tbody = document.getElementById('bouwdroger-tbody');
+  if (!tbody) return;
+  var q = (document.getElementById('bd-search') && document.getElementById('bd-search').value || '').toLowerCase().trim();
+  var regioF = (document.getElementById('bd-regio-filter') && document.getElementById('bd-regio-filter').value) || '';
+  var statusF = (document.getElementById('bd-status-filter') && document.getElementById('bd-status-filter').value) || '';
+
+  var list = (allBouwdrogers || []).filter(function(d) {
+    if (regioF && d.regio !== regioF) return false;
+    if (statusF && d.status !== statusF) return false;
+    if (q) {
+      var hay = ((d.serienummer || '') + ' ' + (d.model || '') + ' ' + (d.huidige_locatie || '')).toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--grey);font-size:13px">Geen bouwdrogers gevonden.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(function(d) {
+    var client = d.huidige_client_id ? (allClients || []).find(function(c) { return c.id === d.huidige_client_id; }) : null;
+    var locatieLabel = d.huidige_locatie || (client ? formatClientName(client, 'short') : '—');
+    var terug = d.verwacht_terug_op ? new Date(d.verwacht_terug_op).toLocaleDateString('nl-BE', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+    var isExpanded = (expandedBouwdrogerId === d.id);
+    var mainRow = '<tr class="exp-row ' + (isExpanded ? 'expanded' : '') + '" data-bd-id="' + d.id + '" onclick="toggleBouwdrogerDetail(\'' + d.id + '\')">' +
+      '<td class="exp-chevron-cell"><svg class="exp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></td>' +
+      '<td><strong>' + esc(d.serienummer || '—') + '</strong></td>' +
+      '<td>' + esc(d.model || '—') + '</td>' +
+      '<td>' + esc(regioLabel(d.regio)) + '</td>' +
+      '<td>' + esc(locatieLabel) + '</td>' +
+      '<td><span style="color:' + statusColorBouwdroger(d.status) + ';font-weight:600">● ' + esc(statusLabelBouwdroger(d.status)) + '</span></td>' +
+      '<td>' + esc(terug) + '</td>' +
+      '<td onclick="event.stopPropagation()"><button class="btn-action" onclick="editBouwdroger(\'' + d.id + '\')" title="Bewerken"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>' +
+      '</tr>';
+    var detailRow = isExpanded
+      ? '<tr class="exp-detail-row"><td colspan="8"><div class="exp-detail-inner">' + buildBouwdrogerDetailHTML(d.id) + '</div></td></tr>'
+      : '';
+    return mainRow + detailRow;
+  }).join('');
+}
+
+function toggleBouwdrogerDetail(id) {
+  expandedBouwdrogerId = (expandedBouwdrogerId === id) ? null : id;
+  renderBouwdrogers();
+}
+
+function buildBouwdrogerDetailHTML(id) {
+  var d = (allBouwdrogers || []).find(function(x) { return x.id === id; });
+  if (!d) return '<p style="color:var(--grey)">Niet gevonden.</p>';
+  var client = d.huidige_client_id ? (allClients || []).find(function(c) { return c.id === d.huidige_client_id; }) : null;
+  var uitgegeven = d.uitgegeven_op ? new Date(d.uitgegeven_op).toLocaleDateString('nl-BE', { day:'2-digit', month:'long', year:'numeric' }) : '—';
+  var terug = d.verwacht_terug_op ? new Date(d.verwacht_terug_op).toLocaleDateString('nl-BE', { day:'2-digit', month:'long', year:'numeric' }) : '—';
+
+  var actions = '';
+  if (d.status === 'beschikbaar') {
+    actions = '<button class="btn btn-primary" onclick="openUitgeefModal(\'' + d.id + '\')">Droger uitgeven</button>';
+  } else if (d.status === 'in_gebruik') {
+    actions = '<button class="btn btn-ghost" onclick="sluitDrogerTerug(\'' + d.id + '\')">Droger terug binnen nemen</button>';
+  }
+
+  return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding:16px">' +
+    '<div>' +
+      '<h4 style="margin:0 0 8px;font-size:11px;color:var(--grey);letter-spacing:0.5px">DROGER</h4>' +
+      '<div style="font-size:13px;line-height:1.7">' +
+        '<strong>' + esc(d.serienummer || '—') + '</strong><br>' +
+        esc(d.model || 'Geen model opgegeven') + '<br>' +
+        '<span style="color:var(--grey)">' + esc(regioLabel(d.regio)) + '</span>' +
+      '</div>' +
+      (d.notitie ? '<div style="margin-top:8px;padding:8px;background:#F9FAFB;border-radius:6px;font-size:12px;color:var(--navy)">' + esc(d.notitie) + '</div>' : '') +
+    '</div>' +
+    '<div>' +
+      '<h4 style="margin:0 0 8px;font-size:11px;color:var(--grey);letter-spacing:0.5px">STATUS</h4>' +
+      '<div style="font-size:13px;line-height:1.7">' +
+        '<span style="color:' + statusColorBouwdroger(d.status) + ';font-weight:600">● ' + esc(statusLabelBouwdroger(d.status)) + '</span><br>' +
+        (client
+          ? 'Bij: <strong>' + formatClientName(client, 'short') + '</strong><br><span style="color:var(--grey)">' + esc(client.postal_code || '') + ' ' + esc(client.city || '') + '</span>'
+          : '<span style="color:var(--grey)">' + esc(d.huidige_locatie || 'Geen actieve locatie') + '</span>'
+        ) +
+      '</div>' +
+    '</div>' +
+    '<div>' +
+      '<h4 style="margin:0 0 8px;font-size:11px;color:var(--grey);letter-spacing:0.5px">UITGIFTE</h4>' +
+      '<div style="font-size:13px;line-height:1.7">' +
+        '<span style="color:var(--grey)">Uitgegeven:</span> ' + esc(uitgegeven) + '<br>' +
+        '<span style="color:var(--grey)">Terug verwacht:</span> ' + esc(terug) +
+      '</div>' +
+      (actions ? '<div style="margin-top:12px">' + actions + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function openBouwdrogerModal(editData) {
+  document.getElementById('bd-modal-title').textContent = editData ? 'Bouwdroger bewerken' : 'Nieuwe bouwdroger';
+  document.getElementById('bd-edit-id').value = editData ? editData.id : '';
+  document.getElementById('bd-serienummer').value = (editData && editData.serienummer) || '';
+  document.getElementById('bd-model').value = (editData && editData.model) || '';
+  document.getElementById('bd-regio').value = (editData && editData.regio) || '';
+  document.getElementById('bd-status').value = (editData && editData.status) || 'beschikbaar';
+  document.getElementById('bd-locatie').value = (editData && editData.huidige_locatie) || '';
+  document.getElementById('bd-notitie').value = (editData && editData.notitie) || '';
+  document.getElementById('bd-delete-btn').style.display = editData ? 'inline-flex' : 'none';
+  document.getElementById('modal-bouwdroger').classList.add('open');
+}
+
+function closeBouwdrogerModal() {
+  document.getElementById('modal-bouwdroger').classList.remove('open');
+}
+
+function editBouwdroger(id) {
+  var d = (allBouwdrogers || []).find(function(x) { return x.id === id; });
+  if (!d) { showToast('Droger niet gevonden', 'error'); return; }
+  openBouwdrogerModal(d);
+}
+
+async function saveBouwdroger() {
+  var editId = document.getElementById('bd-edit-id').value;
+  var serienummer = document.getElementById('bd-serienummer').value.trim();
+  var regio = document.getElementById('bd-regio').value;
+  if (!serienummer) { showToast('Serienummer is verplicht', 'error'); return; }
+  if (!regio) { showToast('Regio is verplicht', 'error'); return; }
+
+  var payload = {
+    serienummer: serienummer,
+    model: document.getElementById('bd-model').value.trim() || null,
+    regio: regio,
+    status: document.getElementById('bd-status').value || 'beschikbaar',
+    huidige_locatie: document.getElementById('bd-locatie').value.trim() || null,
+    notitie: document.getElementById('bd-notitie').value.trim() || null
+  };
+
+  var res;
+  if (editId) {
+    res = await sb.from('bouwdrogers').update(payload).eq('id', editId).select();
+  } else {
+    res = await sb.from('bouwdrogers').insert([payload]).select();
+  }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+
+  closeBouwdrogerModal();
+  showToast(editId ? 'Bouwdroger bijgewerkt' : 'Bouwdroger toegevoegd', 'success');
+  await loadAllData();
+}
+
+async function deleteBouwdroger() {
+  var editId = document.getElementById('bd-edit-id').value;
+  if (!editId) return;
+  var ok = await confirmDialog({
+    title: 'Bouwdroger verwijderen?',
+    message: 'Deze droger wordt permanent verwijderd. Historische uitgifte-gegevens kunnen verloren gaan.',
+    variant: 'danger',
+    confirmLabel: 'Verwijderen'
+  });
+  if (!ok) return;
+
+  var res = await sb.from('bouwdrogers').delete().eq('id', editId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+
+  closeBouwdrogerModal();
+  showToast('Bouwdroger verwijderd', 'success');
+  await loadAllData();
+}
+
+function openUitgeefModal(drogerId) {
+  var d = (allBouwdrogers || []).find(function(x) { return x.id === drogerId; });
+  if (!d) { showToast('Droger niet gevonden', 'error'); return; }
+  if (d.status !== 'beschikbaar') { showToast('Enkel beschikbare drogers kunnen uitgegeven worden', 'error'); return; }
+
+  document.getElementById('uitgeef-droger-id').value = drogerId;
+  document.getElementById('uitgeef-droger-label').value = (d.serienummer || '—') + (d.model ? ' · ' + d.model : '') + ' · ' + regioLabel(d.regio);
+  document.getElementById('uitgeef-datum').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('uitgeef-terug').value = '';
+  document.getElementById('uitgeef-notitie').value = '';
+  document.getElementById('uitgeef-regio-waarschuwing').style.display = 'none';
+
+  var sel = document.getElementById('uitgeef-client');
+  var clients = (allClients || []).slice().sort(function(a, b) {
+    return (a.company_name || a.contact_person || '').localeCompare(b.company_name || b.contact_person || '');
+  });
+  sel.innerHTML = '<option value="">— Selecteer klant —</option>';
+  clients.forEach(function(c) {
+    var label = (c.company_name || c.contact_person || '—') + (c.city ? ' (' + c.city + ')' : '');
+    sel.innerHTML += '<option value="' + c.id + '" data-postcode="' + esc(c.postal_code || '') + '">' + esc(label) + '</option>';
+  });
+
+  document.getElementById('modal-droger-uitgeven').classList.add('open');
+}
+
+function closeUitgeefModal() {
+  document.getElementById('modal-droger-uitgeven').classList.remove('open');
+}
+
+function uitgeefClientChanged() {
+  var drogerId = document.getElementById('uitgeef-droger-id').value;
+  var d = (allBouwdrogers || []).find(function(x) { return x.id === drogerId; });
+  var sel = document.getElementById('uitgeef-client');
+  var warnEl = document.getElementById('uitgeef-regio-waarschuwing');
+  if (!d || !sel.value) { warnEl.style.display = 'none'; return; }
+
+  var opt = sel.options[sel.selectedIndex];
+  var postcode = opt ? opt.dataset.postcode : '';
+  var clientRegio = postcodeToRegio(postcode);
+
+  if (clientRegio && clientRegio !== d.regio) {
+    warnEl.innerHTML = '<strong>Cross-regio waarschuwing:</strong> droger staat in ' + esc(regioLabel(d.regio)) +
+      ', klant bevindt zich in ' + esc(regioLabel(clientRegio)) +
+      '. Dit kan extra transport-kosten genereren.';
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+  }
+}
+
+async function saveUitgeefDroger() {
+  var drogerId = document.getElementById('uitgeef-droger-id').value;
+  var clientId = document.getElementById('uitgeef-client').value;
+  var uitgegevenOp = document.getElementById('uitgeef-datum').value;
+  var terug = document.getElementById('uitgeef-terug').value;
+  var notitie = document.getElementById('uitgeef-notitie').value.trim();
+
+  if (!clientId) { showToast('Kies een klant', 'error'); return; }
+  if (!uitgegevenOp) { showToast('Kies een uitgiftedatum', 'error'); return; }
+
+  var client = (allClients || []).find(function(c) { return c.id === clientId; });
+  var locatieStr = client
+    ? (formatClientName(client, 'short') + (client.city ? ' — ' + client.city : ''))
+    : null;
+
+  var existing = (allBouwdrogers || []).find(function(x) { return x.id === drogerId; });
+  var combinedNotitie = existing && existing.notitie
+    ? existing.notitie + (notitie ? '\n---\n' + uitgegevenOp + ': ' + notitie : '')
+    : (notitie ? uitgegevenOp + ': ' + notitie : null);
+
+  var payload = {
+    status: 'in_gebruik',
+    huidige_client_id: clientId,
+    huidige_locatie: locatieStr,
+    uitgegeven_op: uitgegevenOp,
+    verwacht_terug_op: terug || null
+  };
+  if (notitie) payload.notitie = combinedNotitie;
+
+  var res = await sb.from('bouwdrogers').update(payload).eq('id', drogerId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+
+  closeUitgeefModal();
+  showToast('Droger uitgegeven', 'success');
+  await loadAllData();
+}
+
+async function sluitDrogerTerug(drogerId) {
+  var d = (allBouwdrogers || []).find(function(x) { return x.id === drogerId; });
+  if (!d) return;
+  var label = (d.serienummer || 'Droger') + (d.model ? ' (' + d.model + ')' : '');
+  var ok = await confirmDialog({
+    title: 'Droger terug binnen?',
+    message: label + ' wordt gemarkeerd als beschikbaar en losgekoppeld van de huidige klant.',
+    variant: 'primary',
+    confirmLabel: 'Bevestigen'
+  });
+  if (!ok) return;
+
+  var res = await sb.from('bouwdrogers').update({
+    status: 'beschikbaar',
+    huidige_client_id: null,
+    huidige_locatie: null,
+    uitgegeven_op: null,
+    verwacht_terug_op: null
+  }).eq('id', drogerId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+
+  showToast('Droger terug in voorraad', 'success');
   await loadAllData();
 }
 
@@ -12209,8 +12871,8 @@ async function saveNieuweInterventie() {
   var gewenste = document.getElementById('ni-gewenste-datum').value;
   var duur = parseInt(document.getElementById('ni-duur').value, 10) || 60;
 
-  if (!contractId) { alert('Selecteer een klant/contract.'); return; }
-  if (!omschrijving) { alert('Vul een omschrijving in.'); return; }
+  if (!contractId) { showToast('Selecteer een klant/contract.', 'error'); return; }
+  if (!omschrijving) { showToast('Vul een omschrijving in.', 'error'); return; }
 
   var payload = {
     contract_id: contractId,
@@ -12226,7 +12888,7 @@ async function saveNieuweInterventie() {
   } catch(e) {}
 
   var res = await sb.from('interventies').insert([payload]).select();
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   closeNieuweInterventieModal();
   showToast('Interventie aangemaakt');
@@ -12391,7 +13053,7 @@ async function saveInterventie() {
     updated_at: new Date().toISOString()
   };
   var res = await sb.from('interventies').update(payload).eq('id', id);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
   if (oldStatus !== payload.status) {
     auditLog('interventies', id, 'status_wijziging', oldStatus, payload.status);
   }
@@ -12409,7 +13071,7 @@ async function goedkeurInterventie() {
   var id = document.getElementById('int-edit-id').value;
   if (!id) return;
   var res = await sb.from('interventies').update({ partner_goedkeuring: 'goedgekeurd', updated_at: new Date().toISOString() }).eq('id', id);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
   auditLog('interventies', id, 'partner_goedkeuring', 'pending', 'goedgekeurd');
   closeInterventieModal();
   await loadAllData();
@@ -12423,7 +13085,7 @@ async function afwijsInterventie() {
   var payload = { partner_goedkeuring: 'afgewezen', updated_at: new Date().toISOString() };
   if (reden) payload.afhandel_notitie = 'Afgewezen door partner: ' + reden;
   var res = await sb.from('interventies').update(payload).eq('id', id);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
   auditLog('interventies', id, 'partner_goedkeuring', 'pending', 'afgewezen');
   closeInterventieModal();
   await loadAllData();
@@ -12510,11 +13172,11 @@ async function sendInterventieBericht() {
   var fileInput = document.getElementById('int-chat-files');
   var files = fileInput.files;
 
-  if (!text && files.length === 0) { alert('Typ een bericht of voeg een bijlage toe.'); return; }
+  if (!text && files.length === 0) { showToast('Typ een bericht of voeg een bijlage toe.', 'error'); return; }
 
   var sess = await sb.auth.getSession();
   var myUserId = sess.data.session ? sess.data.session.user.id : null;
-  if (!myUserId) { alert('Niet ingelogd'); return; }
+  if (!myUserId) { showToast('Niet ingelogd', 'error'); return; }
 
   // Upload bijlagen
   var bijlageUrls = [];
@@ -12538,7 +13200,7 @@ async function sendInterventieBericht() {
     gelezen_door: [myUserId]
   });
 
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   document.getElementById('int-chat-input').value = '';
   fileInput.value = '';
@@ -12662,7 +13324,7 @@ function renderRapportenPage() {
 async function deleteRapport(rapportId, beurtId) {
   if (!(await confirmDialog({ title: 'Rapport verwijderen?', message: 'Ben je zeker dat je dit rapport wilt verwijderen? Dit kan niet ongedaan gemaakt worden.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var res = await sb.from('rapporten').delete().eq('id', rapportId);
-  if (res.error) { alert('Fout bij verwijderen: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout bij verwijderen: ' + res.error.message, 'error'); return; }
   // Reset beurt status back to 'uitgevoerd' so it appears in rapportage tab
   if (beurtId) {
     await sb.from('onderhoudsbeurten').update({ status: 'uitgevoerd', updated_at: new Date().toISOString() }).eq('id', beurtId);
@@ -12684,7 +13346,7 @@ function globalSearch(q) {
   (allClients || []).forEach(function(c) {
     var haystack = ((c.contact_person || '') + ' ' + (c.company_name || '') + ' ' + (c.city || '') + ' ' + (c.email || '') + ' ' + (c.phone || '')).toLowerCase();
     if (haystack.indexOf(term) !== -1) {
-      results.push({ type: 'Klant', label: esc(c.contact_person || '') + (c.company_name ? ' — ' + esc(c.company_name) : ''), sub: esc(c.city || ''), action: "showKlantDossier('" + c.id + "')" });
+      results.push({ type: 'Klant', label: formatClientName(c, 'short'), sub: esc(c.city || ''), action: "showKlantDossier('" + c.id + "')" });
     }
   });
 
@@ -13161,8 +13823,7 @@ async function saveSaldoInline(inputEl) {
     console.error('Saldo upsert faalde:', e);
     inputEl.dataset.saving = 'false';
     inputEl.dataset.error = 'true';
-    if (typeof showToast === 'function') showToast('Opslaan mislukt: ' + (e.message || 'onbekende fout'), 'error');
-    else alert('Opslaan mislukt: ' + (e.message || 'onbekende fout'));
+    showToast('Opslaan mislukt: ' + (e.message || 'onbekende fout'), 'error');
   }
 }
 
@@ -13238,8 +13899,7 @@ async function saveBulkToekennen() {
   }).filter(Boolean);
 
   if (toApply.length === 0) {
-    if (typeof showToast === 'function') showToast('Vul minstens één verloftype in.', 'error');
-    else alert('Vul minstens één verloftype in.');
+    showToast('Vul minstens één verloftype in.', 'error');
     return;
   }
 
@@ -13284,8 +13944,7 @@ async function saveBulkToekennen() {
   if (typeof renderVerlofPersoneel === 'function') renderVerlofPersoneel();
 
   if (errors > 0) {
-    if (typeof showToast === 'function') showToast(errors + ' rijen faalden — check console.', 'error');
-    else alert(errors + ' rijen faalden.');
+    showToast(errors + ' rijen faalden — check console.', 'error');
   } else {
     if (typeof showToast === 'function') showToast('Saldi toegekend voor ' + techs.length + ' personeelsleden.', 'success');
   }
@@ -13475,7 +14134,7 @@ function openVerlofModal(id) {
 
   if (id) {
     var v = allVerlof.find(function(x) { return x.id === id; });
-    if (!v) { alert('Verlof niet gevonden.'); return; }
+    if (!v) { showToast('Verlof niet gevonden.', 'error'); return; }
     techSel.value = v.technieker_id;
     typeSel.value = v.verlof_type_id;
     document.getElementById('verlof-van').value = v.van_datum;
@@ -13570,11 +14229,11 @@ async function saveVerlof() {
   var reden = document.getElementById('verlof-reden').value.trim() || null;
   var editId = document.getElementById('verlof-edit-id').value;
 
-  if (!techId) { alert('Kies een technieker.'); return; }
-  if (!typeId) { alert('Kies een verloftype.'); return; }
-  if (!van) { alert('Vul een startdatum in.'); return; }
-  if (tot < van) { alert('Einddatum ligt vóór startdatum.'); return; }
-  if (half && van !== tot) { alert('Halve dag kan enkel bij 1-daagse verlof (van = tot).'); return; }
+  if (!techId) { showToast('Kies een technieker.', 'error'); return; }
+  if (!typeId) { showToast('Kies een verloftype.', 'error'); return; }
+  if (!van) { showToast('Vul een startdatum in.', 'error'); return; }
+  if (tot < van) { showToast('Einddatum ligt vóór startdatum.', 'error'); return; }
+  if (half && van !== tot) { showToast('Halve dag kan enkel bij 1-daagse verlof (van = tot).', 'error'); return; }
 
   // Saldo blokkade
   if (document.getElementById('verlof-saldo-warn').style.display === 'block') {
@@ -13599,7 +14258,7 @@ async function _persistVerlof(payload, editId) {
   var res;
   if (editId) res = await sb.from('technieker_afwezigheden').update(payload).eq('id', editId).select().single();
   else res = await sb.from('technieker_afwezigheden').insert(payload).select().single();
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   // Refresh lokale cache
   var vafRes = await sb.from('technieker_afwezigheden').select('*').order('van_datum', { ascending: false });
@@ -13618,7 +14277,7 @@ async function deleteVerlof() {
 async function deleteVerlofById(id) {
   if (!(await confirmDialog({ title: 'Verlof verwijderen?', message: 'Deze verlofaanvraag definitief verwijderen?', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   var res = await sb.from('technieker_afwezigheden').delete().eq('id', id);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
   allVerlof = allVerlof.filter(function(v) { return v.id !== id; });
   renderVerlof();
   renderVerlofSaldoGrid();
@@ -13649,11 +14308,11 @@ async function resolveVerlofConflict(actie) {
   var ids = currentVerlofConflict.taken.map(function(t) { return t.id; });
   if (actie === 'delete') {
     var r = await sb.from('onderhoudsbeurten').delete().in('id', ids);
-    if (r.error) { alert('Fout: ' + r.error.message); return; }
+    if (r.error) { showToast('Fout: ' + r.error.message, 'error'); return; }
     allOnderhoudsbeurten = allOnderhoudsbeurten.filter(function(b) { return ids.indexOf(b.id) === -1; });
   } else if (actie === 'unassign') {
     var r = await sb.from('onderhoudsbeurten').update({ status: 'in_te_plannen', technieker_id: null, plan_datum: null, plan_tijd: null }).in('id', ids);
-    if (r.error) { alert('Fout: ' + r.error.message); return; }
+    if (r.error) { showToast('Fout: ' + r.error.message, 'error'); return; }
     allOnderhoudsbeurten.forEach(function(b) { if (ids.indexOf(b.id) !== -1) { b.status = 'in_te_plannen'; b.technieker_id = null; b.plan_datum = null; b.plan_tijd = null; } });
   }
   // Bij 'keep' doen we niks met de taken — ze staan gewoon op verlof-dag (admin weet dat)
@@ -13689,9 +14348,9 @@ async function importeerFeestdagen() {
   var jaar = parseInt(document.getElementById('feestdagen-jaar').value, 10);
   var dagen = getBelgieFeestdagen(jaar);
   var feestType = allVerlofTypes.find(function(vt) { return vt.code === 'feestdag'; });
-  if (!feestType) { alert('Verloftype "Feestdag" niet gevonden in DB.'); return; }
+  if (!feestType) { showToast('Verloftype "Feestdag" niet gevonden in DB.', 'error'); return; }
   var techs = allTechniekers.filter(function(t) { return t.actief !== false; });
-  if (!techs.length) { alert('Geen actieve techniekers.'); return; }
+  if (!techs.length) { showToast('Geen actieve techniekers.', 'error'); return; }
 
   var nieuwe = [];
   techs.forEach(function(t) {
@@ -13713,18 +14372,18 @@ async function importeerFeestdagen() {
     });
   });
 
-  if (!nieuwe.length) { alert('Alle feestdagen van ' + jaar + ' zijn al toegewezen.'); return; }
+  if (!nieuwe.length) { showToast('Alle feestdagen van ' + jaar + ' zijn al toegewezen.', 'info'); return; }
   if (!(await confirmDialog({ title: 'Feestdagen aanmaken?', message: nieuwe.length + ' feestdag-records aanmaken voor ' + techs.length + ' medewerker(s)?', confirmLabel: 'Aanmaken' }))) return;
 
   var res = await sb.from('technieker_afwezigheden').insert(nieuwe);
-  if (res.error) { alert('Fout: ' + res.error.message); return; }
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
 
   var vafRes = await sb.from('technieker_afwezigheden').select('*').order('van_datum', { ascending: false });
   allVerlof = vafRes.data || [];
   closeFeestdagenBulk();
   renderVerlof();
   renderVerlofSaldoGrid();
-  alert(nieuwe.length + ' feestdagen geïmporteerd.');
+  showToast(nieuwe.length + ' feestdagen geïmporteerd.', 'success');
 }
 
 // =============================================
@@ -14393,9 +15052,12 @@ async function markeerGefactureerd(burId) {
   var reg = (window._allBeurtUrenReg || []).find(function(r) { return r.id === burId; });
   if (!reg) return;
 
-  var ok = (typeof confirmDialog === 'function')
-    ? await confirmDialog({ title: 'Op factuur zetten?', message: 'Deze interventie-uren worden gemarkeerd als gefactureerd. Je kan dit terugdraaien via de DB.', confirmLabel: 'Markeer gefactureerd', variant: 'primary' })
-    : confirm('Markeer deze uren als gefactureerd?');
+  var ok = await confirmDialog({
+    title: 'Op factuur zetten?',
+    message: 'Deze interventie-uren worden gemarkeerd als gefactureerd. Je kan dit terugdraaien via de DB.',
+    confirmLabel: 'Markeer gefactureerd',
+    variant: 'primary'
+  });
   if (!ok) return;
 
   var nowIso = new Date().toISOString();
@@ -14404,14 +15066,14 @@ async function markeerGefactureerd(burId) {
     .eq('id', burId);
 
   if (res.error) {
-    if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
+    showToast('Fout: ' + res.error.message, 'error');
     return;
   }
   reg.gefactureerd = true;
   reg.gefactureerd_op = nowIso;
   renderInterventieFacturatie();
   updateFactQueueBadge();
-  if (typeof showToast === 'function') showToast('Uren gemarkeerd als gefactureerd', 'success');
+  showToast('Uren gemarkeerd als gefactureerd', 'success');
 }
 
 // =============================================
@@ -14494,14 +15156,12 @@ async function markeerForfaitGefactureerd(beurtId) {
   var beurt = (allOnderhoudsbeurten || []).find(function(b) { return b.id === beurtId; });
   if (!beurt) return;
 
-  var ok = (typeof confirmDialog === 'function')
-    ? await confirmDialog({
-        title: 'Op factuur zetten?',
-        message: 'Deze losse opdracht wordt gemarkeerd als gefactureerd. Je kan dit via de "Ongedaan"-knop terugdraaien.',
-        confirmLabel: 'Markeer gefactureerd',
-        variant: 'primary'
-      })
-    : confirm('Markeer als gefactureerd?');
+  var ok = await confirmDialog({
+    title: 'Op factuur zetten?',
+    message: 'Deze losse opdracht wordt gemarkeerd als gefactureerd. Je kan dit via de "Ongedaan"-knop terugdraaien.',
+    confirmLabel: 'Markeer gefactureerd',
+    variant: 'primary'
+  });
   if (!ok) return;
 
   var nowIso = new Date().toISOString();
@@ -14510,8 +15170,7 @@ async function markeerForfaitGefactureerd(beurtId) {
     .eq('id', beurtId);
 
   if (res.error) {
-    if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
-    else alert('Fout: ' + res.error.message);
+    showToast('Fout: ' + res.error.message, 'error');
     return;
   }
 
@@ -14519,21 +15178,19 @@ async function markeerForfaitGefactureerd(beurtId) {
   beurt.gefactureerd_op = nowIso;
   renderForfaitFacturatie();
   updateFactQueueBadge();
-  if (typeof showToast === 'function') showToast('Forfait gemarkeerd als gefactureerd', 'success');
+  showToast('Forfait gemarkeerd als gefactureerd', 'success');
 }
 
 async function ongedaanForfaitFacturatie(beurtId) {
   var beurt = (allOnderhoudsbeurten || []).find(function(b) { return b.id === beurtId; });
   if (!beurt) return;
 
-  var ok = (typeof confirmDialog === 'function')
-    ? await confirmDialog({
-        title: 'Ongedaan maken?',
-        message: 'Deze opdracht wordt terug in de facturatie-queue geplaatst.',
-        confirmLabel: 'Ongedaan maken',
-        variant: 'primary'
-      })
-    : confirm('Ongedaan maken?');
+  var ok = await confirmDialog({
+    title: 'Ongedaan maken?',
+    message: 'Deze opdracht wordt terug in de facturatie-queue geplaatst.',
+    confirmLabel: 'Ongedaan maken',
+    variant: 'primary'
+  });
   if (!ok) return;
 
   var nowIso = new Date().toISOString();
@@ -14542,8 +15199,7 @@ async function ongedaanForfaitFacturatie(beurtId) {
     .eq('id', beurtId);
 
   if (res.error) {
-    if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
-    else alert('Fout: ' + res.error.message);
+    showToast('Fout: ' + res.error.message, 'error');
     return;
   }
 
@@ -14551,7 +15207,7 @@ async function ongedaanForfaitFacturatie(beurtId) {
   beurt.gefactureerd_op = null;
   renderForfaitFacturatie();
   updateFactQueueBadge();
-  if (typeof showToast === 'function') showToast('Terug als openstaand gemarkeerd', 'success');
+  showToast('Terug als openstaand gemarkeerd', 'success');
 }
 
 // =============================================

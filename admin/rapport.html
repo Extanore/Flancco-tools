@@ -191,6 +191,7 @@
   .wizard-nav { display: flex; justify-content: space-between; margin-top: 24px; }
 
   .sector-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .ref-chip { display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; margin-right: 4px; }
   .sector-zonnepanelen { background: #F39C1220; color: #F39C12; }
   .sector-warmtepomp { background: #E74C3C20; color: #E74C3C; }
   .sector-ventilatie { background: #1A1A2E20; color: #1A1A2E; }
@@ -1063,11 +1064,19 @@ async function selectBeurt() {
 
   var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var info = document.getElementById('beurt-info-box');
+  // Q.9 — Business-referentie prominent tonen. ref_nummer (OND-YYYY-XXXX) wint van beurt-index.
+  // Voor child-beurten van een multi-day interventie: gebruik parent interventies.volgnummer (INT-YYYY-XXXX).
+  var refNummer = currentBeurt.ref_nummer
+    || (currentBeurt.interventies && currentBeurt.interventies.volgnummer)
+    || '';
+  var beurtLabel = refNummer
+    ? '<span class="ref-chip">' + esc(refNummer) + '</span> · Beurt ' + currentBeurt.volgnummer
+    : 'Beurt ' + currentBeurt.volgnummer;
   info.innerHTML =
     '<strong>' + esc(currentContract.klant_naam) + '</strong><br>' +
     esc(currentContract.klant_adres || '') + ', ' + esc(currentContract.klant_postcode || '') + ' ' + esc(currentContract.klant_gemeente || '') + '<br>' +
     'Sector: <span class="sector-badge sector-' + currentBeurt.sector + '">' + (sectorLabel[currentBeurt.sector] || currentBeurt.sector) + '</span>' +
-    ' — Beurt ' + currentBeurt.volgnummer +
+    ' — ' + beurtLabel +
     (currentBeurt.plan_datum ? '<br>Gepland: ' + currentBeurt.plan_datum : '');
   info.style.display = 'block';
 

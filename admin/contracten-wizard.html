@@ -226,15 +226,84 @@
 
   /* WIZARD FOOTER */
   .wizard-footer { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 12px; }
-  .btn { padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
-  .btn-primary { background: var(--navy); color: white; }
-  .btn-primary:hover { background: var(--navy-light); }
-  .btn-primary:disabled { background: var(--rule); cursor: not-allowed; }
-  .btn-secondary { background: none; border: 1.5px solid var(--rule); color: var(--grey); }
-  .btn-secondary:hover { border-color: var(--navy); color: var(--navy); }
-  .btn-success { background: var(--green); color: white; }
-  .btn-success:hover { opacity: 0.9; }
-  .btn-success:disabled { background: var(--rule); cursor: not-allowed; }
+
+  /* =============================================
+     DESIGN-SYSTEEM BUTTONS — bron van waarheid (consistent met admin/index.html)
+     Primair = NAVY, destructief = ROOD. Groen enkel voor semantic succes, NIET voor opslaan.
+     ============================================= */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1;
+    border-radius: 8px; border: 1.5px solid transparent; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    transition: background .15s, color .15s, border-color .15s, transform .05s;
+    user-select: none; white-space: nowrap;
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .btn.btn-sm { padding:6px 12px; font-size:12px; line-height:1.2; }
+
+  .btn.btn-primary { background: var(--navy); color:#fff; border-color: var(--navy); }
+  .btn.btn-primary:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .btn.btn-primary:disabled { background: var(--rule); border-color: var(--rule); color:#fff; }
+
+  .btn.btn-ghost { background:#fff; color:var(--navy); border-color: var(--rule); }
+  .btn.btn-ghost:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
+
+  .btn.btn-danger { background: var(--red); color:#fff; border-color: var(--red); }
+  .btn.btn-danger:hover:not(:disabled) { background:#C0392B; border-color:#C0392B; }
+
+  .btn.btn-danger-ghost { background:#fff; color: var(--red); border-color: var(--red); }
+  .btn.btn-danger-ghost:hover:not(:disabled) { background: rgba(231,76,60,0.08); }
+
+  /* Backwards-compat: btn-secondary mapt op ghost-stijl */
+  .btn.btn-secondary { background:#fff; color: var(--navy); border-color: var(--rule); }
+  .btn.btn-secondary:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
+
+  /* Success-variant — enkel voor semantic "gelukt/afgewerkt" acties, NIET voor opslaan */
+  .btn.btn-success { background: var(--green); color:#fff; border-color: var(--green); }
+  .btn.btn-success:hover:not(:disabled) { filter: brightness(0.92); }
+
+  /* Modal — minimaal noodzakelijk voor confirmDialog/infoDialog */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:#fff; border-radius:16px; padding:32px; width:560px; max-width:calc(100vw - 32px); max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.15); }
+
+  /* Modal-footer layout */
+  .modal-lg-footer, .modal-footer {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:16px 24px; border-top:1px solid var(--rule); background:#FAFBFC;
+  }
+  .modal-lg-footer .footer-left, .modal-lg-footer .footer-right,
+  .modal-footer .footer-left, .modal-footer .footer-right { display:flex; gap:8px; }
+
+  /* Legacy aliases — niet-gemigreerde HTML krijgt automatisch nieuwe stijl. */
+  .btn-save, .btn-submit {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
+    border-radius:8px; border:1.5px solid var(--navy);
+    background: var(--navy); color:#fff; cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    transition: background .15s, border-color .15s, transform .05s;
+    white-space:nowrap;
+  }
+  .btn-save:hover:not(:disabled),
+  .btn-submit:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .btn-save:disabled, .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-save:active:not(:disabled),
+  .btn-submit:active:not(:disabled) { transform: translateY(1px); }
+  .btn-cancel {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
+    border-radius:8px; border:1.5px solid var(--rule);
+    background:#fff; color: var(--navy); cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    transition: border-color .15s, background .15s, transform .05s;
+    white-space:nowrap;
+  }
+  .btn-cancel:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
+  .btn-cancel:active:not(:disabled) { transform: translateY(1px); }
 
   /* NIEUWE KLANT FORM */
   .new-client-form { display: none; border: 1.5px dashed var(--rule); border-radius: 8px; padding: 16px; margin-top: 12px; }
@@ -403,7 +472,7 @@
         </div>
       </div>
       <div class="wizard-footer">
-        <button class="btn btn-secondary" onclick="goStep(1)">&larr; Vorige</button>
+        <button class="btn btn-ghost" onclick="goStep(1)">&larr; Vorige</button>
         <button class="btn btn-primary" id="btn-step2-next" onclick="goStep(3)">Volgende &rarr;</button>
       </div>
     </div>
@@ -428,7 +497,7 @@
         </div>
       </div>
       <div class="wizard-footer">
-        <button class="btn btn-secondary" onclick="goStep(2)">&larr; Vorige</button>
+        <button class="btn btn-ghost" onclick="goStep(2)">&larr; Vorige</button>
         <button class="btn btn-primary" id="btn-step3-next" onclick="goStep(4)" disabled>Volgende &rarr;</button>
       </div>
     </div>
@@ -489,7 +558,7 @@
         </div>
       </div>
       <div class="wizard-footer">
-        <button class="btn btn-secondary" onclick="goStep(3)">&larr; Vorige</button>
+        <button class="btn btn-ghost" onclick="goStep(3)">&larr; Vorige</button>
         <button class="btn btn-primary" onclick="goStep(5)">Volgende &rarr;</button>
       </div>
     </div>
@@ -512,8 +581,8 @@
         </div>
       </div>
       <div class="wizard-footer">
-        <button class="btn btn-secondary" onclick="goStep(4)">&larr; Vorige</button>
-        <button class="btn btn-success" id="btn-save-concept" onclick="saveContract()">Opslaan als concept</button>
+        <button class="btn btn-ghost" onclick="goStep(4)">&larr; Vorige</button>
+        <button class="btn btn-primary" id="btn-save-concept" onclick="saveContract()">Opslaan als concept</button>
       </div>
     </div>
 
@@ -611,12 +680,102 @@ function getSectorSupplement(sector, type) {
   return 0;
 }
 
-function showToast(msg) {
+// API must stay in sync with admin/index.html en admin/planning.html showToast(msg, type).
+// Types: 'success' (default) | 'error' | 'info'.
+function showToast(msg, type) {
   var t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  // Behoud de bestaande wizard-toast classes ('toast' / 'visible') én voeg type-class toe.
+  t.className = 'toast toast-' + (type || 'success') + ' visible';
+  t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+  t.setAttribute('role', type === 'error' ? 'alert' : 'status');
   t.textContent = msg;
-  t.classList.add('visible');
-  setTimeout(function() { t.classList.remove('visible'); }, 3000);
+  var duration = type === 'error' ? 5000 : 3000;
+  setTimeout(function() { t.classList.remove('visible'); }, duration);
 }
+
+// =============================================
+// FLANCCO-STIJL DIALOGS — vervangt native alert/confirm
+// API must stay in sync with admin/index.html en admin/planning.html.
+// =============================================
+function confirmDialog(opts) {
+  return new Promise(function(resolve) {
+    opts = opts || {};
+    var title = opts.title || 'Bevestigen';
+    var message = opts.message || '';
+    var confirmLabel = opts.confirmLabel || 'Bevestigen';
+    var cancelLabel = opts.cancelLabel || 'Annuleren';
+    var variant = opts.variant || 'primary';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.style.zIndex = '2147482000';
+    overlay.innerHTML =
+      '<div class="modal" style="max-width:440px;padding:28px" role="alertdialog" aria-modal="true">' +
+        '<h2 style="margin:0 0 10px;font-size:18px;color:var(--navy)">' + esc(title) + '</h2>' +
+        '<p style="margin:0 0 24px;color:#4B5563;font-size:14px;line-height:1.5;white-space:pre-wrap">' + esc(message) + '</p>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+          (cancelLabel ? '<button type="button" class="btn btn-ghost" data-role="cancel">' + esc(cancelLabel) + '</button>' : '') +
+          '<button type="button" class="btn btn-' + (variant === 'danger' ? 'danger' : 'primary') + '" data-role="confirm">' + esc(confirmLabel) + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    function finish(result) {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(result);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+      if (e.key === 'Enter')  { e.preventDefault(); finish(true);  }
+    }
+    var cancelBtn = overlay.querySelector('[data-role=cancel]');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { finish(false); });
+    overlay.querySelector('[data-role=confirm]').addEventListener('click', function() { finish(true); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) finish(false); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(function() {
+      var btn = overlay.querySelector('[data-role=confirm]');
+      if (btn) btn.focus();
+    }, 0);
+  });
+}
+
+function infoDialog(message, title) {
+  return confirmDialog({
+    title: title || 'Opgelet',
+    message: message,
+    confirmLabel: 'OK',
+    cancelLabel: ''
+  });
+}
+
+(function overrideAlert() {
+  if (window.__flanccoAlertOverridden) return;
+  window.__flanccoAlertOverridden = true;
+  var nativeAlert = window.alert;
+  window.alert = function(msg) {
+    try {
+      var text = (msg == null) ? '' : String(msg);
+      if (text.length > 120 || text.indexOf('\n') >= 0) {
+        if (typeof infoDialog === 'function') { infoDialog(text); return; }
+      }
+      if (typeof showToast === 'function') {
+        var t = text.toLowerCase();
+        var isErr = /fout|error|mislukt|niet|kan niet|ongeldig|verplicht|selecteer|vul|kies/.test(t);
+        showToast(text, isErr ? 'error' : 'info');
+        return;
+      }
+    } catch (_) { /* fallback */ }
+    nativeAlert.call(window, msg);
+  };
+})();
 
 // =============================================
 // WIZARD BRANDING — partner-kleuren + logo (J.2)

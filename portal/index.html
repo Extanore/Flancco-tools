@@ -111,6 +111,7 @@
 
   /* SECTOR BADGE */
   .sector-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .ref-chip { display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; margin-right: 4px; }
   .sector-zonnepanelen { background: #F39C1220; color: #F39C12; }
   .sector-warmtepomp { background: #E74C3C20; color: #E74C3C; }
   .sector-ventilatie { background: #1A1A2E20; color: #1A1A2E; }
@@ -223,6 +224,17 @@ var rapporten = [];
 var interventies = [];
 
 function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// Q.9 — business-referentie chip. ref_nummer wint; fallback op parent interventies.volgnummer.
+function beurtRefHtml(b) {
+  if (!b) return '';
+  var ref = b.ref_nummer || '';
+  if (!ref && b.parent_interventie_id) {
+    var parent = (interventies || []).find(function(i) { return i.id === b.parent_interventie_id; });
+    ref = (parent && parent.volgnummer) || '';
+  }
+  return ref ? '<span class="ref-chip">' + esc(ref) + '</span>' : '';
+}
 
 var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
 var statusLabels = { toekomstig: 'Toekomstig', in_te_plannen: 'In te plannen', ingepland: 'Ingepland', uitgevoerd: 'Uitgevoerd', geannuleerd: 'Geannuleerd' };
@@ -345,7 +357,7 @@ function renderOverzicht() {
     document.getElementById('next-beurt').innerHTML =
       '<div class="beurt-card">' +
         '<div class="beurt-left">' +
-          '<strong>' + (sectorLabels[next.sector] || next.sector) + ' — beurt ' + next.volgnummer + '</strong>' +
+          '<strong>' + beurtRefHtml(next) + (sectorLabels[next.sector] || next.sector) + ' — beurt ' + next.volgnummer + '</strong>' +
           '<small>' + (next.plan_datum ? 'Gepland: ' + next.plan_datum : 'Verwacht: ' + (next.due_date || '—')) + '</small>' +
         '</div>' +
         '<span class="beurt-status status-' + next.status + '">' + (statusLabels[next.status] || next.status) + '</span>' +
@@ -360,7 +372,7 @@ function renderBeurten() {
     var contract = contracten.find(function(c) { return c.id === b.contract_id; });
     return '<div class="beurt-card">' +
       '<div class="beurt-left">' +
-        '<strong><span class="sector-badge sector-' + (b.sector || 'zonnepanelen') + '">' + (sectorLabels[b.sector] || b.sector) + '</span> — Beurt ' + b.volgnummer + '</strong>' +
+        '<strong>' + beurtRefHtml(b) + '<span class="sector-badge sector-' + (b.sector || 'zonnepanelen') + '">' + (sectorLabels[b.sector] || b.sector) + '</span> — Beurt ' + b.volgnummer + '</strong>' +
         '<small>' +
           (b.plan_datum ? 'Gepland: ' + b.plan_datum : 'Verwacht: ' + (b.due_date || '—')) +
           (b.uitvoer_datum ? ' · Uitgevoerd: ' + b.uitvoer_datum : '') +

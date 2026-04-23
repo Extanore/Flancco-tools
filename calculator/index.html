@@ -3745,12 +3745,18 @@ function downloadContract() {
   }
 
   var s = (state && state.s) || {};
+  var btwPct = (typeof s.btwPct === 'number') ? s.btwPct : 21;
+  var totaalIncl = (typeof s.total === 'number') ? s.total : (parseFloat(stored.totaal_incl_btw) || 0);
+  // sharedState bewaart `totalExcl` (na korting) en `total` (incl BTW); `subtotalExcl`/`btwBedrag`
+  // bestaan niet op dat object — deriveer ze correct zodat PDF niet "\u20AC 0,00" toont.
+  var subtotalExcl = (typeof s.totalExcl === 'number') ? s.totalExcl : (totaalIncl / (1 + btwPct / 100));
+  var btwBedrag = totaalIncl - subtotalExcl;
   var pricing = {
     lines: pricingLines,
-    btwPct: s.btwPct || 21,
-    subtotalExcl: s.subtotalExcl || 0,
-    btwBedrag: s.btwBedrag || 0,
-    totaalIncl: s.total || parseFloat(stored.totaal_incl_btw) || 0
+    btwPct: btwPct,
+    subtotalExcl: subtotalExcl,
+    btwBedrag: btwBedrag,
+    totaalIncl: totaalIncl
   };
 
   var c = Object.assign({}, stored, {
