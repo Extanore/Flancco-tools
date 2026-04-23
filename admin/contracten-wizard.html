@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" id="app-favicon">
 <title>Flancco — Nieuw Contract</title>
 <script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
 <script>
@@ -800,6 +801,14 @@ function applyWizardBranding(p) {
       logo.innerHTML = '<h2 style="color:white;font-size:18px;margin:0">' + esc(p.bedrijfsnaam || p.naam || 'Flancco') + '</h2><small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>';
     }
   }
+  var fav = document.getElementById('app-favicon');
+  if (fav && p.logo_url) {
+    fav.setAttribute('href', p.logo_url);
+    fav.setAttribute('type', 'image/png');
+  } else if (fav) {
+    fav.setAttribute('href', '/favicon.svg');
+    fav.setAttribute('type', 'image/svg+xml');
+  }
 }
 
 function resetWizardBranding() {
@@ -809,6 +818,11 @@ function resetWizardBranding() {
   if (sidebar) sidebar.style.background = '';
   var logo = document.getElementById('sidebar-logo');
   if (logo) logo.innerHTML = '<h2>FLANCC<span>O</span></h2><small>Partner Platform</small>';
+  var fav = document.getElementById('app-favicon');
+  if (fav) {
+    fav.setAttribute('href', '/favicon.svg');
+    fav.setAttribute('type', 'image/svg+xml');
+  }
 }
 
 // =============================================

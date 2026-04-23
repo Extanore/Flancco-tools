@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" id="app-favicon">
 <title>Flancco — Partner Platform</title>
 <!-- Sentry (enkel op productiehosts — niet op localhost) -->
 <script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
@@ -56,6 +57,14 @@
       root.style.setProperty('--navy-light', b.kleur_primair || b.kleur_donker);
       // Voorkomt Flancco-rode "O" via generieke :root-regel — partner-span krijgt geen rood.
       root.style.setProperty('--red-fouc-override', 'inherit');
+      // Favicon swap: partner-logo vervangt standaard-favicon in browser-tab.
+      if (b.logo_url) {
+        var fav = document.getElementById('app-favicon');
+        if (fav) {
+          fav.setAttribute('href', b.logo_url);
+          fav.setAttribute('type', 'image/png');
+        }
+      }
     } catch(_) { /* silent: cache-corruption valt terug op default branding */ }
   })();
 
@@ -612,9 +621,10 @@
 
   /* Uitzondering: partner met manage_users mag Personeel + Gebruikers pagina's zien
      ondanks hun admin-only class (tenant-scoped team-mgmt, sectie N + commit f892478).
-     Hogere specificiteit dan de generieke admin-only-hide hierboven. */
+     Hogere specificiteit dan de generieke admin-only-hide hierboven.
+     Nav-items krijgen flex (icoon naast tekst); page-containers krijgen revert. */
   html[data-role="partner"][data-perm-manage-users="true"] a.nav-item[data-page="techniekers"],
-  html[data-role="partner"][data-perm-manage-users="true"] a.nav-item[data-page="gebruikers"],
+  html[data-role="partner"][data-perm-manage-users="true"] a.nav-item[data-page="gebruikers"] { display: flex !important; }
   html[data-role="partner"][data-perm-manage-users="true"] #page-techniekers,
   html[data-role="partner"][data-perm-manage-users="true"] #page-gebruikers { display: revert !important; }
 
@@ -3249,6 +3259,7 @@ async function initApp() {
     // op eerstvolgende refresh (anders zou FOUC-CSS nog oude role blijven toepassen).
     try { localStorage.removeItem('flancco_role_cache'); } catch(_) {}
     try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+    try { if (typeof resetFaviconToDefault === 'function') resetFaviconToDefault(); } catch(_) {}
     document.getElementById('login-error').textContent = 'Geen toegang. Neem contact op met Flancco.' + (roleError ? ' (' + roleError.message + ')' : '');
     await sb.auth.signOut();
     return;
@@ -3331,6 +3342,7 @@ async function initApp() {
     // Admin/bediende/technieker: geen partner-branding → cache wissen zodat
     // een vorige partner-login niet doorwerkt bij rol-switch op hetzelfde device.
     try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+    try { if (typeof resetFaviconToDefault === 'function') resetFaviconToDefault(); } catch(_) {}
   }
   if (userRole === 'partner' && roleData.partner_id) {
     document.getElementById('contracten-title').textContent = 'Mijn contracten';
@@ -3428,6 +3440,9 @@ function applyBranding(p) {
   // Page title
   document.getElementById('page-title').textContent = 'Dashboard — ' + p.naam;
 
+  // Favicon: partner-logo in browser-tab (ook zichtbaar in bookmarks en tab-overzicht)
+  setFaviconToPartnerLogo(p.logo_url);
+
   // Cache voor early-boot op volgende refresh (voorkomt Flancco-flash)
   try {
     localStorage.setItem('flancco_partner_branding', JSON.stringify({
@@ -3438,6 +3453,24 @@ function applyBranding(p) {
       logo_url: p.logo_url || ''
     }));
   } catch(_) { /* storage-quota/private-mode: negeer, geen functionele impact */ }
+}
+
+// Favicon helpers — vervangt de tab-icon door partner-logo, of reset naar Flancco-default.
+function setFaviconToPartnerLogo(logoUrl) {
+  var fav = document.getElementById('app-favicon');
+  if (!fav) return;
+  if (logoUrl) {
+    fav.setAttribute('href', logoUrl);
+    fav.setAttribute('type', 'image/png');
+  } else {
+    resetFaviconToDefault();
+  }
+}
+function resetFaviconToDefault() {
+  var fav = document.getElementById('app-favicon');
+  if (!fav) return;
+  fav.setAttribute('href', '/favicon.svg');
+  fav.setAttribute('type', 'image/svg+xml');
 }
 
 function loadSettings(p) {

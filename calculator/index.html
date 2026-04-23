@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" id="app-favicon">
 <title>Onderhoudscalculator</title>
 <script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
 <script>
@@ -2658,6 +2659,13 @@ function applyBranding(p, sector) {
     img.src = p.logo_url;
     img.alt = p.naam;
     img.style.display = 'block';
+
+    // Favicon: partner-logo in browser-tab (ook zichtbaar in bookmarks en tab-overzicht)
+    var fav = document.getElementById('app-favicon');
+    if (fav) {
+      fav.setAttribute('href', p.logo_url);
+      fav.setAttribute('type', 'image/png');
+    }
   }
 
   // Partner intro text
