@@ -622,11 +622,15 @@
   /* Uitzondering: partner met manage_users mag Personeel + Gebruikers pagina's zien
      ondanks hun admin-only class (tenant-scoped team-mgmt, sectie N + commit f892478).
      Hogere specificiteit dan de generieke admin-only-hide hierboven.
-     Nav-items krijgen flex (icoon naast tekst); page-containers krijgen revert. */
+     Nav-items krijgen flex (icoon naast tekst); page-containers volgen de standaard
+     .page / .page.active toggle (verborgen tenzij actief, anders stapelen alle
+     admin-only pagina's zich onder de huidige view). */
   html[data-role="partner"][data-perm-manage-users="true"] a.nav-item[data-page="techniekers"],
   html[data-role="partner"][data-perm-manage-users="true"] a.nav-item[data-page="gebruikers"] { display: flex !important; }
   html[data-role="partner"][data-perm-manage-users="true"] #page-techniekers,
-  html[data-role="partner"][data-perm-manage-users="true"] #page-gebruikers { display: revert !important; }
+  html[data-role="partner"][data-perm-manage-users="true"] #page-gebruikers { display: none !important; }
+  html[data-role="partner"][data-perm-manage-users="true"] #page-techniekers.active,
+  html[data-role="partner"][data-perm-manage-users="true"] #page-gebruikers.active { display: block !important; }
 
   /* =============================================
      PARTNER PRODUCT-TOUR (O.2)
