@@ -4726,8 +4726,51 @@ async function savePlanInterventie() {
   renderSidebar();
 }
 
+// Re-entrancy guard: voorkomt dat dezelfde gebruiker via double-click of snelle keyboard-submits
+// twee parallelle saveNieuweInterventie-runs start. Dit is partial mitigation — het beschermt enkel
+// tegen same-user double-click, niet tegen échte multi-user concurrency. Voor dat laatste zit er
+// verderop (bij multi-day) een pre-insert conflict-check via SELECT die concurrent-inserts detecteert
+// binnen een klein tijdsvenster. Echte serialisatie zou een DB-level unique constraint op
+// (contract_id, plan_datum, client_location_id) of een RPC met SELECT FOR UPDATE vereisen — zie commit-log.
+var _niSavingInFlight = false;
+
+function _niSetSavingUi(busy) {
+  var btnSave = document.getElementById('ni-btn-save');
+  var btnOpmaken = document.getElementById('ni-btn-opmaken');
+  var splitToggle = document.querySelector('#ni-save-split .btn-split-toggle');
+  if (btnSave) {
+    btnSave.disabled = !!busy;
+    if (busy) {
+      if (!btnSave.dataset.origLabel) btnSave.dataset.origLabel = btnSave.textContent;
+      btnSave.textContent = 'Bezig met opslaan...';
+    } else if (btnSave.dataset.origLabel) {
+      btnSave.textContent = btnSave.dataset.origLabel;
+      delete btnSave.dataset.origLabel;
+    }
+  }
+  if (btnOpmaken) btnOpmaken.disabled = !!busy;
+  if (splitToggle) splitToggle.disabled = !!busy;
+}
+
 async function saveNieuweInterventie(action) {
   action = action || 'opmaken';
+
+  // Re-entrancy guard: blokkeer double-click/parallel submit voor dezelfde modal-instantie.
+  if (_niSavingInFlight) {
+    showToast('Opslaan bezig, even geduld...', 'info');
+    return;
+  }
+  _niSavingInFlight = true;
+
+  try {
+    await _saveNieuweInterventieInner(action);
+  } finally {
+    _niSavingInFlight = false;
+    _niSetSavingUi(false);
+  }
+}
+
+async function _saveNieuweInterventieInner(action) {
   var step = document.getElementById('ni-step').value;
 
   var klantVal = document.getElementById('ni-klant').value;
@@ -4821,6 +4864,10 @@ async function saveNieuweInterventie(action) {
       return;
     }
   }
+
+  // Vanaf hier starten échte DB-writes → zichtbare busy-state + disabled save-knoppen.
+  // Alle validatie is afgerond; re-entrancy-guard is al actief. Finally-block herstelt UI.
+  _niSetSavingUi(true);
 
   // Bepaal client_id en evt. bestaand legacy contract
   var clientId = null;
@@ -4953,6 +5000,47 @@ async function saveNieuweInterventie(action) {
       if (!dagen || dagen.length !== aantalDagen) {
         await infoDialog('Kon dagen niet berekenen. Controleer startdatum en weekend-instelling.', 'Opslaan mislukt');
         return;
+      }
+
+      // Race-condition guard (Q.8): detect concurrent multi-day creation vóór we de beurt-loop starten.
+      // Twee gebruikers die tegelijk hetzelfde (klant + locatie + datumreeks) inplannen zouden anders
+      // dubbele beurten genereren — eigen parent_interventie_id per run, maar op dezelfde fysieke dagen.
+      // We SELECT'en alle bestaande ingeplande/afgewerkte beurten voor (contract, locatie) binnen de
+      // datum-range. Vinden we ≥1 hit, vragen we de user expliciet te bevestigen dat dit OK is.
+      // Dit is géén harde serialisatie — tussen SELECT en INSERT blijft een klein race-venster open.
+      // Voor volledige bescherming is een DB-level UNIQUE-constraint of een SECURITY DEFINER RPC nodig.
+      try {
+        var rangeStart = formatDateISO(dagen[0]);
+        var rangeEnd = formatDateISO(dagen[dagen.length - 1]);
+        var conflictQuery = sb.from('onderhoudsbeurten')
+          .select('id, plan_datum, status, parent_interventie_id')
+          .eq('contract_id', contractId)
+          .gte('plan_datum', rangeStart)
+          .lte('plan_datum', rangeEnd)
+          .not('status', 'in', '("geannuleerd")');
+        if (clientLocationId) conflictQuery = conflictQuery.eq('client_location_id', clientLocationId);
+        var conflictRes = await conflictQuery;
+        if (!conflictRes.error && conflictRes.data && conflictRes.data.length > 0) {
+          var datumsStr = conflictRes.data
+            .map(function(r) { return r.plan_datum; })
+            .filter(function(v, i, a) { return a.indexOf(v) === i; })
+            .sort()
+            .join(', ');
+          var bevestig = await confirmDialog({
+            title: 'Mogelijk dubbele interventie',
+            message: 'Voor dezelfde klant/locatie bestaan er al ' + conflictRes.data.length + ' beurt(en) in deze datum-range (' + datumsStr + '). Een andere gebruiker heeft mogelijk net iets ingepland. Toch doorgaan en deze interventie toevoegen?',
+            confirmLabel: 'Toch toevoegen',
+            cancelLabel: 'Annuleren',
+            variant: 'danger'
+          });
+          if (!bevestig) {
+            showToast('Opslaan geannuleerd om dubbele inplanning te voorkomen.', 'info');
+            return;
+          }
+        }
+      } catch (e) {
+        // Check faalde (network/schema) — niet-fataal: doorgaan zonder blokkade maar loggen.
+        console.warn('Conflict-check multi-day faalde, doorgaan zonder blokkade:', e);
       }
 
       // Forward-compat helper voor onderhoudsbeurt met parent_interventie_id
