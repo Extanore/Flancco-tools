@@ -4708,7 +4708,7 @@ async function savePlanInterventie() {
     notities: 'Interventie: ' + (iv.omschrijving || '').slice(0, 200)
   };
   var bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select();
-  if (bRes.error) { await infoDialog('Fout bij aanmaken beurt: ' + bRes.error.message, 'Opslaan mislukt'); return; }
+  if (bRes.error) { await infoDialog(formatBeurtInsertError(bRes.error, 'Fout bij aanmaken beurt'), 'Opslaan mislukt'); return; }
   var newBeurtId = bRes.data[0].id;
 
   // 2. Koppel interventie aan beurt + update status/plan_datum
@@ -4733,6 +4733,30 @@ async function savePlanInterventie() {
 // binnen een klein tijdsvenster. Echte serialisatie zou een DB-level unique constraint op
 // (contract_id, plan_datum, client_location_id) of een RPC met SELECT FOR UPDATE vereisen — zie commit-log.
 var _niSavingInFlight = false;
+
+// Herkent PostgreSQL unique_violation (23505) op de partial-unique-index
+// ux_onderhoudsbeurten_contract_datum_locatie_sector (migratie
+// unique_onderhoudsbeurten_per_contract_datum_locatie_sector). Dit is de
+// tweede verdedigingslinie naast de pre-insert conflict-check: als twee users
+// tegelijk een beurt aanmaken glipt er één door de SELECT-check, maar de DB
+// blokkeert de tweede INSERT. Deze helper vertaalt de ruwe Postgres-error
+// naar een begrijpelijke melding.
+function isOnderhoudsbeurtDuplicateError(err) {
+  if (!err) return false;
+  if (err.code === '23505') return true;
+  var msg = (err.message || '').toLowerCase();
+  return msg.indexOf('ux_onderhoudsbeurten_contract_datum_locatie_sector') !== -1 ||
+         (msg.indexOf('duplicate key') !== -1 && msg.indexOf('onderhoudsbeurten') !== -1);
+}
+
+function formatBeurtInsertError(err, context) {
+  if (isOnderhoudsbeurtDuplicateError(err)) {
+    return 'Er bestaat al een actieve beurt voor deze combinatie van contract, datum, locatie en sector' +
+           (context ? ' (' + context + ')' : '') +
+           '. Ververs de planning — mogelijk heeft een collega zojuist iets ingepland.';
+  }
+  return (context ? context + ': ' : '') + (err && err.message ? err.message : 'onbekende fout');
+}
 
 function _niSetSavingUi(busy) {
   var btnSave = document.getElementById('ni-btn-save');
@@ -5079,7 +5103,7 @@ async function _saveNieuweInterventieInner(action) {
         };
         var bRes = await insertBeurtWithRetry(beurtPayload);
         if (bRes.error) {
-          await infoDialog('Fout bij aanmaken beurt dag ' + (di + 1) + ': ' + bRes.error.message, 'Opslaan mislukt');
+          await infoDialog(formatBeurtInsertError(bRes.error, 'Fout bij aanmaken beurt dag ' + (di + 1)), 'Opslaan mislukt');
           return;
         }
         if (!firstBeurtId) firstBeurtId = bRes.data.id;
@@ -5139,7 +5163,7 @@ async function _saveNieuweInterventieInner(action) {
         delete beurtPayload.po_number;
         bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select().single();
       }
-      if (bRes.error) { await infoDialog('Fout bij aanmaken beurt: ' + bRes.error.message, 'Opslaan mislukt'); return; }
+      if (bRes.error) { await infoDialog(formatBeurtInsertError(bRes.error, 'Fout bij aanmaken beurt'), 'Opslaan mislukt'); return; }
       // Koppel interventie aan beurt
       await sb.from('interventies').update({ onderhoudsbeurt_id: bRes.data.id }).eq('id', newIv.id);
     }
@@ -7547,7 +7571,7 @@ async function saveQuickAdd(action) {
     }
     res = await sb.from('onderhoudsbeurten').insert([retryPayload]).select();
   }
-  if (res.error) { await infoDialog('Fout: ' + res.error.message, 'Opslaan mislukt'); return; }
+  if (res.error) { await infoDialog(formatBeurtInsertError(res.error, 'Fout'), 'Opslaan mislukt'); return; }
 
   await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, status + ' via quick-add' + (isLosse ? ' (losse opdracht)' : ''));
   var msgPrefix = newClientActive ? 'Klant aangemaakt + ' : '';
