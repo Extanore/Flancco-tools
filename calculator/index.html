@@ -3410,13 +3410,13 @@ async function submitContract() {
       var klantGemeente = document.getElementById('klant-gemeente').value.trim();
       var klantTel = document.getElementById('klant-tel').value.trim();
 
-      // Check for existing client (same email + partner)
-      var existingRes = await sb.from('clients').select('id').eq('partner_id', partner.id).eq('email', klantEmail).limit(1);
-      if (existingRes.data && existingRes.data.length > 0) {
-        clientId = existingRes.data[0].id;
-      } else {
-        // Create new client
+      // Anon has no SELECT policy on clients → existing-client lookup always fails and
+      // ends up in the catch. We skip it entirely and always create a new client row with
+      // a client-generated UUID (no RETURNING needed). De-duplication gebeurt admin-side.
+      clientId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+      if (clientId) {
         var clientPayload = {
+          id: clientId,
           partner_id: partner.id,
           contact_person: klantContact || klantNaam,
           company_name: klantNaam !== klantContact ? klantNaam : null,
@@ -3428,15 +3428,18 @@ async function submitContract() {
           city: klantGemeente,
           country: klantPostcode && parseInt(klantPostcode) >= 1000 && parseInt(klantPostcode) <= 9999 ? 'BE' : 'NL'
         };
-        var clientRes = await sb.from('clients').insert([clientPayload]).select();
-        if (clientRes.data && clientRes.data.length > 0) {
-          clientId = clientRes.data[0].id;
-        }
+        var clientRes = await sb.from('clients').insert([clientPayload]);
+        if (clientRes.error) { console.warn('Client aanmaken mislukt:', clientRes.error); clientId = null; }
       }
-    } catch (clientErr) { console.warn('Client aanmaken mislukt:', clientErr); }
+    } catch (clientErr) { console.warn('Client aanmaken mislukt:', clientErr); clientId = null; }
+
+    // Client-generate contract UUID so we don't need RETURNING (anon has no SELECT on contracten)
+    var contractId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+    if (!contractId) throw new Error('Browser ondersteunt crypto.randomUUID niet');
 
     // Build main payload (uses primary sector for backward-compatible fields)
     var payload = {
+      id: contractId,
       partner_id: partner.id,
       client_id: clientId,
       sector: selectedSectors[0], // primary sector
@@ -3479,10 +3482,18 @@ async function submitContract() {
       payload.korting_bedrag = s.discountAmount;
     }
 
-    var insertRes = await sb.from('contracten').insert([payload]).select();
+    var insertRes = await sb.from('contracten').insert([payload]);
     if (insertRes.error) throw insertRes.error;
+    // contractId is al boven gegenereerd; insertRes.data is null bij return=minimal
 
-    var contractId = insertRes.data[0].id;
+    // Haal contract_nummer op via narrow SECURITY DEFINER RPC (anon heeft geen SELECT op contracten)
+    var contractNummer = null;
+    try {
+      var nrRes = await sb.rpc('anon_get_contract_summary', { p_contract_id: contractId });
+      if (nrRes && nrRes.data && nrRes.data[0] && nrRes.data[0].contract_nummer) {
+        contractNummer = nrRes.data[0].contract_nummer;
+      }
+    } catch (nrErr) { console.warn('Contract-nummer ophalen mislukt:', nrErr); }
 
     // Insert contract_regels per sector
     try {
@@ -3571,11 +3582,10 @@ async function submitContract() {
             instPayload.heating_type = secInputs.ketelType || null;
           }
 
-          // Check if installatie already exists for this client + sector
-          var existInst = await sb.from('klant_installaties').select('id').eq('client_id', clientId).eq('installation_type', sec).limit(1);
-          if (!existInst.data || existInst.data.length === 0) {
-            await sb.from('klant_installaties').insert([instPayload]);
-          }
+          // Anon kan niet SELECTEREN op klant_installaties — dedup wordt admin-side afgehandeld.
+          // We creëren altijd een nieuwe installatie-rij (client_id is zojuist aangemaakt, dus geen dup-risico).
+          var instRes = await sb.from('klant_installaties').insert([instPayload]);
+          if (instRes.error) console.warn('Installatie insert mislukt:', instRes.error);
         }
       } catch (instErr) { console.warn('Installatie aanmaken mislukt:', instErr); }
     }
@@ -3603,7 +3613,7 @@ async function submitContract() {
 
     // Fill post-submit summary
     var datumF = new Date(datum).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
-    document.getElementById('post-nr').textContent = insertRes.data[0].contract_nummer || '\u2014';
+    document.getElementById('post-nr').textContent = contractNummer || '\u2014';
     document.getElementById('post-datum').textContent = datumF;
     document.getElementById('post-diensten').textContent = selectedSectors.map(function(sec) {
       var cfg = SECTORS[sec];
@@ -3623,7 +3633,7 @@ async function submitContract() {
       (partner.telefoon ? ' \u2014 ' + partner.telefoon : '') + (partner.email ? ' \u2014 ' + partner.email : '');
 
     // Cache de getekende contract-row + state voor downloadContract() (sectie M)
-    window._lastSignedContract = Object.assign({}, insertRes.data[0] || {}, payload);
+    window._lastSignedContract = Object.assign({}, payload, contractNummer ? { contract_nummer: contractNummer } : {});
     window._lastSignedSectorState = { selectedSectors: selectedSectors.slice(), sectorResults: JSON.parse(JSON.stringify(sectorResults)), s: s };
 
     // Auto-download PDF (branded, via shared generator)
