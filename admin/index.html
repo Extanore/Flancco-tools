@@ -1178,6 +1178,54 @@
     .ew-toolbar { flex-direction:column; align-items:stretch; }
     .ew-filters { justify-content:flex-start; }
   }
+
+  /* =========================================================================
+     DATA-VIEW TEMPLATE — generieke layout-classes voor data-dense admin-pages
+     (Verlof, Uren, EW, Audit, ... ). Volgt design-template admin data-view
+     (goedgekeurd 2026-04-24): card-header met titel+subtitle links + acties
+     rechts, toolbar met navigator/filters, optionele legenda, grid/tabel.
+     De .ew-* classes zijn een vroegere variant — blijven bestaan voor de
+     EW-pagina zelf; nieuwe pagina's gebruiken .dv-*.
+     ========================================================================= */
+  .dv-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
+  .dv-header-left { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .dv-title { font-size:22px; font-weight:700; color:var(--navy); margin:0; letter-spacing:-0.01em; line-height:1.2; }
+  .dv-subtitle { font-size:13px; color:var(--grey); margin:0; line-height:1.4; }
+  .dv-header-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  .dv-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 0; margin-bottom:16px; border-bottom:1px solid var(--rule); flex-wrap:wrap; }
+  .dv-toolbar-left { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .dv-toolbar-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto; }
+
+  .dv-nav { display:flex; align-items:center; gap:6px; }
+  .dv-nav-btn { background:transparent; border:1.5px solid var(--rule); border-radius:8px; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--navy); transition:background 0.15s, border-color 0.15s; padding:0; }
+  .dv-nav-btn:hover { background:#F3F4F6; border-color:var(--navy); }
+  .dv-nav-label { background:transparent; border:none; font-size:15px; font-weight:700; color:var(--navy); cursor:pointer; min-width:160px; padding:6px 14px; border-radius:8px; text-transform:capitalize; transition:background 0.15s; text-align:center; }
+  .dv-nav-label:hover { background:#F3F4F6; }
+  .dv-nav-label[disabled] { cursor:default; }
+
+  .dv-filters { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .dv-select { padding:8px 32px 8px 12px; border:1.5px solid var(--rule); border-radius:8px; font-size:13px; background:#fff; color:var(--navy); cursor:pointer; font-family:inherit; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); background-repeat:no-repeat; background-position:right 10px center; }
+  .dv-select:focus { outline:none; border-color:var(--navy); }
+
+  .dv-legend { display:flex; gap:18px; padding:10px 0 16px; font-size:12px; color:var(--grey); flex-wrap:wrap; }
+  .dv-legend-item { display:inline-flex; align-items:center; gap:6px; }
+  .dv-legend-swatch { display:inline-block; width:16px; height:16px; border-radius:3px; border:1px solid var(--rule); }
+
+  /* View-toggle (period-switch, type-switch, ...) — styled als segmented control,
+     behoort visueel bij dv-toolbar-left. */
+  .dv-view-toggle { display:inline-flex; gap:0; border:1.5px solid var(--rule); border-radius:8px; overflow:hidden; background:#fff; }
+  .dv-view-toggle button { padding:7px 14px; background:transparent; border:none; font-size:13px; font-weight:600; color:var(--grey); cursor:pointer; transition:background 0.15s, color 0.15s; font-family:inherit; }
+  .dv-view-toggle button:not(:last-child) { border-right:1.5px solid var(--rule); }
+  .dv-view-toggle button:hover:not(.active) { background:#F9FAFB; color:var(--navy); }
+  .dv-view-toggle button.active { background:var(--navy); color:#fff; }
+
+  @media (max-width:900px) {
+    .dv-header { flex-direction:column; align-items:stretch; }
+    .dv-toolbar { flex-direction:column; align-items:stretch; }
+    .dv-toolbar-right { margin-left:0; }
+    .dv-filters { justify-content:flex-start; }
+  }
 </style>
 </head>
 <body>
@@ -2262,30 +2310,48 @@
 
       <div class="v-tab-pane" id="vtab-kalender" style="display:none">
         <div class="card">
-          <div class="v-kalender-toolbar">
-            <select id="v-kal-jaar" onchange="renderVerlofKalender()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100px"></select>
-            <div class="v-kal-legend" id="v-kal-legend"></div>
+          <div class="dv-header">
+            <div class="dv-header-left">
+              <h2 class="dv-title">Verlofkalender</h2>
+              <p class="dv-subtitle">Jaaroverzicht van alle goedgekeurde en aangevraagde verlofperiodes per technieker</p>
+            </div>
           </div>
+          <div class="dv-toolbar">
+            <div class="dv-toolbar-left">
+              <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Jaar</label>
+              <select id="v-kal-jaar" class="dv-select" onchange="renderVerlofKalender()" style="width:110px"></select>
+            </div>
+          </div>
+          <div class="dv-legend" id="v-kal-legend"></div>
           <div class="v-kalender-wrap" id="v-kalender-wrap"></div>
         </div>
       </div>
 
       <div class="v-tab-pane" id="vtab-aanvragen" style="display:none">
         <div class="card">
-          <div class="v-sub-toolbar">
-            <select id="verlof-filter-tech" onchange="renderVerlofAanvragen()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;min-width:180px">
-              <option value="">Alle techniekers</option>
-            </select>
-            <select id="verlof-filter-type" onchange="renderVerlofAanvragen()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
-              <option value="">Alle types</option>
-            </select>
-            <select id="verlof-filter-status" onchange="renderVerlofAanvragen()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
-              <option value="">Alle statussen</option>
-              <option value="aangevraagd">Aangevraagd</option>
-              <option value="goedgekeurd">Goedgekeurd</option>
-              <option value="geweigerd">Geweigerd</option>
-            </select>
-            <select id="verlof-filter-jaar" onchange="renderVerlofAanvragen()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100px"></select>
+          <div class="dv-header">
+            <div class="dv-header-left">
+              <h2 class="dv-title">Verlofaanvragen</h2>
+              <p class="dv-subtitle">Overzicht van alle aangevraagde, goedgekeurde en geweigerde verlofperiodes</p>
+            </div>
+          </div>
+          <div class="dv-toolbar">
+            <div class="dv-toolbar-left"></div>
+            <div class="dv-toolbar-right">
+              <select id="verlof-filter-tech" class="dv-select" onchange="renderVerlofAanvragen()" style="min-width:180px">
+                <option value="">Alle techniekers</option>
+              </select>
+              <select id="verlof-filter-type" class="dv-select" onchange="renderVerlofAanvragen()">
+                <option value="">Alle types</option>
+              </select>
+              <select id="verlof-filter-status" class="dv-select" onchange="renderVerlofAanvragen()">
+                <option value="">Alle statussen</option>
+                <option value="aangevraagd">Aangevraagd</option>
+                <option value="goedgekeurd">Goedgekeurd</option>
+                <option value="geweigerd">Geweigerd</option>
+              </select>
+              <select id="verlof-filter-jaar" class="dv-select" onchange="renderVerlofAanvragen()" style="width:100px"></select>
+            </div>
           </div>
           <table>
             <thead>
@@ -2307,20 +2373,26 @@
 
       <div class="v-tab-pane" id="vtab-saldo" style="display:none">
         <div class="card">
-          <div class="v-saldo-toolbar">
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Jaar</label>
-              <select id="v-saldo-jaar" onchange="renderVerlofSaldoTab()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:100px"></select>
+          <div class="dv-header">
+            <div class="dv-header-left">
+              <h2 class="dv-title">Verlofsaldo</h2>
+              <p class="dv-subtitle">Openstaand saldo vakantiedagen en ADV per technieker — inclusief bulk-toekenning en feestdagen-import</p>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-ghost" onclick="openBulkToekennenModal()">
+            <div class="dv-header-actions">
+              <button class="btn btn-ghost" onclick="openBulkToekennenModal()" title="Ken saldo toe aan meerdere techniekers tegelijk">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 Bulk toekennen
               </button>
-              <button class="btn btn-ghost" onclick="openFeestdagenBulk()">
+              <button class="btn btn-ghost" onclick="openFeestdagenBulk()" title="Importeer Belgische feestdagen voor dit jaar">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 Feestdagen importeren
               </button>
+            </div>
+          </div>
+          <div class="dv-toolbar">
+            <div class="dv-toolbar-left">
+              <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Jaar</label>
+              <select id="v-saldo-jaar" class="dv-select" onchange="renderVerlofSaldoTab()" style="width:110px"></select>
             </div>
           </div>
           <div id="verlof-saldo-container"></div>
@@ -2342,24 +2414,40 @@
         </button>
       </div>
 
-      <!-- TAB 1: OVERZICHT PERSONEEL (legacy) -->
+      <!-- TAB 1: OVERZICHT PERSONEEL -->
       <div class="u-tab-pane" id="utab-overzicht">
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <div class="dv-header">
+            <div class="dv-header-left">
+              <h2 class="dv-title">Uren-overzicht</h2>
+              <p class="dv-subtitle">Totalen per technieker voor de gekozen periode — gewerkte uren, EW, verlof, ziekte en overuren-saldo</p>
+            </div>
+            <div class="dv-header-actions">
+              <button class="btn btn-ghost" onclick="exportUrenCsv()" title="Exporteer huidig overzicht naar CSV">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="dv-toolbar">
+            <div class="dv-toolbar-left">
               <div class="view-toggle" style="display:inline-flex;gap:0;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden">
                 <button class="u-period-btn active" data-period="week" onclick="switchUrenPeriode('week')">Week</button>
                 <button class="u-period-btn" data-period="maand" onclick="switchUrenPeriode('maand')">Maand</button>
                 <button class="u-period-btn" data-period="kwartaal" onclick="switchUrenPeriode('kwartaal')">Kwartaal</button>
                 <button class="u-period-btn" data-period="jaar" onclick="switchUrenPeriode('jaar')">Jaar</button>
               </div>
-              <div style="display:flex;gap:6px;align-items:center">
-                <button class="btn-nav" onclick="urenNavPeriode(-1)">‹</button>
-                <span id="uren-periode-label" style="font-weight:600;font-size:13px;min-width:140px;text-align:center"></span>
-                <button class="btn-nav" onclick="urenNavPeriode(1)">›</button>
+              <div class="dv-nav">
+                <button class="dv-nav-btn" onclick="urenNavPeriode(-1)" aria-label="Vorige periode">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <span class="dv-nav-label" id="uren-periode-label"></span>
+                <button class="dv-nav-btn" onclick="urenNavPeriode(1)" aria-label="Volgende periode">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
               </div>
             </div>
-            <button class="btn btn-ghost" onclick="exportUrenCsv()">Export CSV</button>
           </div>
 
           <div id="uren-openstaand-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:#FEF3C7;border:1px solid #FBBF24;border-radius:8px;font-size:13px;color:#92400E"></div>
@@ -2386,25 +2474,44 @@
       <!-- TAB 2: LOON-EXPORT (CAO) -->
       <div class="u-tab-pane" id="utab-loon" style="display:none">
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <div class="dv-header">
+            <div class="dv-header-left">
+              <h2 class="dv-title">Loon-export (CAO)</h2>
+              <p class="dv-subtitle">Overuren-toeslagen volgens CAO-regels, klaar voor aanlevering aan het sociaal secretariaat</p>
+            </div>
+            <div class="dv-header-actions">
+              <button class="btn btn-ghost" onclick="openLoonRegelsModal()" title="Beheer CAO-toeslagen en tarieven">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Loon-regels
+              </button>
+              <button class="btn btn-primary" onclick="exportLoonCsv()" title="Download CSV voor sociaal secretariaat">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="dv-toolbar">
+            <div class="dv-toolbar-left">
               <div class="view-toggle" style="display:inline-flex;gap:0;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden">
                 <button class="le-period-btn active" data-period="maand" onclick="switchLoonPeriode('maand')">Maand</button>
                 <button class="le-period-btn" data-period="kwartaal" onclick="switchLoonPeriode('kwartaal')">Kwartaal</button>
                 <button class="le-period-btn" data-period="jaar" onclick="switchLoonPeriode('jaar')">Jaar</button>
               </div>
-              <div style="display:flex;gap:6px;align-items:center">
-                <button class="btn-nav" onclick="loonNavPeriode(-1)">‹</button>
-                <span id="loon-periode-label" style="font-weight:600;font-size:13px;min-width:160px;text-align:center"></span>
-                <button class="btn-nav" onclick="loonNavPeriode(1)">›</button>
+              <div class="dv-nav">
+                <button class="dv-nav-btn" onclick="loonNavPeriode(-1)" aria-label="Vorige periode">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <span class="dv-nav-label" id="loon-periode-label"></span>
+                <button class="dv-nav-btn" onclick="loonNavPeriode(1)" aria-label="Volgende periode">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
               </div>
-              <select id="loon-filter-tech" onchange="renderLoonExport()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+            </div>
+            <div class="dv-toolbar-right">
+              <select id="loon-filter-tech" class="dv-select" onchange="renderLoonExport()">
                 <option value="">Alle techniekers</option>
               </select>
-            </div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-ghost" onclick="openLoonRegelsModal()">Loon-regels</button>
-              <button class="btn btn-primary" onclick="exportLoonCsv()">Download CSV (sociaal secretariaat)</button>
             </div>
           </div>
 
