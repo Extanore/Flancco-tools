@@ -2638,9 +2638,48 @@ function getBeurtenForTechDay(techId, date) {
   });
 }
 
+/**
+ * Beurten in de backlog ("In te plannen"-zijbalk).
+ * Filter-logica:
+ *   - status === 'in_te_plannen'
+ *   - ÉÉN van:
+ *       (a) due_date IS NULL            → losse/legacy beurten zonder vervaldag
+ *       (b) due_date <= today + leadDays → terugkerende beurten binnen lead-window
+ * Beurten met due_date in de verre toekomst (bv. jaar 2 van een 3-jarig contract)
+ * blijven onzichtbaar tot X dagen (app_settings.planning_lead_days, default 42)
+ * vóór hun vervaldag, zodat admins niet overspoeld worden met future-work.
+ */
 function getInTePlannen() {
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var leadDays = getPlanningLeadDays();
+  var horizon = new Date(today);
+  horizon.setDate(horizon.getDate() + leadDays);
+  var horizonIso = formatDateISO(horizon);
+
   return allBeurten.filter(function(b) {
-    return b.status === 'in_te_plannen';
+    if (b.status !== 'in_te_plannen') return false;
+    if (!b.due_date) return true;
+    return b.due_date <= horizonIso;
+  });
+}
+
+/**
+ * Beurten die nog niet zichtbaar zijn in de backlog maar wel bestaan (bv. jaar 2/3
+ * van een terugkerend contract). Nodig voor een "toekomstige beurten"-collapse
+ * sectie zodat admins zien wat er in de pijplijn zit.
+ */
+function getFutureInTePlannen() {
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var leadDays = getPlanningLeadDays();
+  var horizon = new Date(today);
+  horizon.setDate(horizon.getDate() + leadDays);
+  var horizonIso = formatDateISO(horizon);
+
+  return allBeurten.filter(function(b) {
+    if (b.status !== 'in_te_plannen') return false;
+    return b.due_date && b.due_date > horizonIso;
   });
 }
 
@@ -3111,7 +3150,8 @@ async function loadPlanningData() {
     sb.from('rapporten').select('id, technieker_id, onderhoudsbeurt_id, uren_data, datum_onderhoud'),
     sb.from('client_locations').select('id, client_id, label, street, house_number, postal_code, city, country, is_primary, po_number'),
     sb.from('beurt_uren_registraties').select('*').then(function(r) { return r; }, function() { return { data: [] }; }),
-    sb.from('technieker_certificeringen').select('id, technieker_id, type, vervaldatum').then(function(r) { return r; }, function() { return { data: [] }; })
+    sb.from('technieker_certificeringen').select('id, technieker_id, type, vervaldatum').then(function(r) { return r; }, function() { return { data: [] }; }),
+    sb.from('app_settings').select('key, value').in('key', ['planning_lead_days']).then(function(r) { return r; }, function() { return { data: [] }; })
   ]);
 
   allBeurten = results[0].data || [];
@@ -3129,8 +3169,28 @@ async function loadPlanningData() {
   window._allClientLocations = results[12].data || [];
   window._allUrenRegistraties = (results[13] && results[13].data) || [];
   allTechCertificeringen = (results[14] && results[14].data) || [];
+  // App-settings → map in window._appSettings. Enige key op dit moment:
+  // planning_lead_days = hoeveel dagen vóór de due_date een beurt zichtbaar wordt
+  // in "In te plannen". Default 42 (6 weken) zodat terugkerende contracten (bv.
+  // 3-jarig jaarlijks onderhoud) pas in het juiste jaar opduiken.
+  var settingsRows = (results[15] && results[15].data) || [];
+  window._appSettings = {};
+  settingsRows.forEach(function(r) { window._appSettings[r.key] = r.value; });
 
   populateFilterDropdowns();
+}
+
+/**
+ * Leest planning_lead_days uit app_settings met een veilige default (42 = 6 weken).
+ * Ondersteunt zowel primitieve waarde als {days: 42} jsonb-shape.
+ */
+function getPlanningLeadDays() {
+  var raw = window._appSettings && window._appSettings.planning_lead_days;
+  if (raw == null) return 42;
+  if (typeof raw === 'number') return Math.max(0, Math.round(raw));
+  if (typeof raw === 'string' && !isNaN(parseInt(raw, 10))) return Math.max(0, parseInt(raw, 10));
+  if (typeof raw === 'object' && raw.days != null) return Math.max(0, parseInt(raw.days, 10) || 42);
+  return 42;
 }
 
 function populateFilterDropdowns() {

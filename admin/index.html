@@ -1910,6 +1910,25 @@
           </button>
         </div>
       </div>
+
+      <!-- Planning — terugkerende contracten (lead-days horizon) -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><span class="card-title">Planning — terugkerende contracten</span></div>
+        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Bij contracten met meerdere onderhoudsbeurten (bijvoorbeeld een driejarig contract met jaarlijks onderhoud) verschijnt elke toekomstige beurt automatisch in de sectie <strong>In te plannen</strong> — maar pas wanneer de vervaldag binnen het ingestelde venster valt. Default: 42 dagen (6 weken) vóór de vervaldag.</p>
+        <div style="display:grid;grid-template-columns:minmax(0,240px) 1fr;gap:16px;align-items:end;max-width:640px">
+          <div>
+            <label for="planning-lead-days" style="display:block;font-size:12px;color:var(--grey);font-weight:600;margin-bottom:6px">Dagen vóór vervaldag</label>
+            <input type="number" id="planning-lead-days" min="0" max="365" step="1" value="42" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px">
+          </div>
+          <div style="font-size:12px;color:var(--grey);padding-bottom:10px">
+            Voorbeeld: bij <strong>42 dagen</strong> verschijnt een beurt met vervaldag 15 juni voor het eerst op 4 mei in <em>In te plannen</em>.
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;border-top:1px solid var(--rule);padding-top:16px">
+          <button type="button" class="btn btn-ghost" onclick="loadPlanningLeadDays()">Wijzigingen ongedaan maken</button>
+          <button type="button" class="btn btn-primary" onclick="savePlanningLeadDays()">Planning-instelling opslaan</button>
+        </div>
+      </div>
     </div>
 
     <!-- NIEUWE PARTNER MODAL -->
@@ -5018,6 +5037,73 @@ async function saveRapportConfig() {
   }
 }
 
+// =============================================
+// PLANNING LEAD-DAYS — horizon voor "In te plannen"
+// Bij terugkerende contracten (bv. 3 jaar × jaarlijks onderhoud)
+// verschijnt elke toekomstige beurt pas in "In te plannen" wanneer
+// de vervaldag binnen dit aantal dagen valt.
+// =============================================
+var PLANNING_LEAD_DAYS_DEFAULT = 42;
+
+function parsePlanningLeadDaysValue(raw) {
+  if (raw === null || raw === undefined) return PLANNING_LEAD_DAYS_DEFAULT;
+  var n;
+  if (typeof raw === 'number') n = raw;
+  else if (typeof raw === 'string') n = parseInt(raw, 10);
+  else if (typeof raw === 'object') {
+    // jsonb kan {"days": N} of directe scalar opslaan
+    if (raw.days !== undefined) n = parseInt(raw.days, 10);
+    else if (raw.value !== undefined) n = parseInt(raw.value, 10);
+    else n = NaN;
+  } else {
+    n = NaN;
+  }
+  if (!isFinite(n) || n < 0) return PLANNING_LEAD_DAYS_DEFAULT;
+  if (n > 365) n = 365;
+  return n;
+}
+
+async function loadPlanningLeadDays() {
+  var input = document.getElementById('planning-lead-days');
+  if (!input) return;
+  try {
+    var res = await sb.from('app_settings').select('value').eq('key', 'planning_lead_days').maybeSingle();
+    if (res.error) throw res.error;
+    var days = parsePlanningLeadDaysValue(res.data ? res.data.value : null);
+    input.value = String(days);
+  } catch (e) {
+    input.value = String(PLANNING_LEAD_DAYS_DEFAULT);
+    console.warn('[planning-lead-days] load mislukt, default ' + PLANNING_LEAD_DAYS_DEFAULT + ' gebruikt:', e && e.message);
+  }
+}
+
+async function savePlanningLeadDays() {
+  var input = document.getElementById('planning-lead-days');
+  if (!input) return;
+  var raw = parseInt(input.value, 10);
+  if (!isFinite(raw) || raw < 0) {
+    showToast('Geef een geldig aantal dagen op (0 of hoger).', 'error');
+    return;
+  }
+  if (raw > 365) {
+    showToast('Maximum is 365 dagen.', 'error');
+    return;
+  }
+  try {
+    var res = await sb.from('app_settings').upsert({
+      key: 'planning_lead_days',
+      value: raw,
+      updated_at: new Date().toISOString(),
+      updated_by: currentUser ? currentUser.id : null
+    }, { onConflict: 'key' });
+    if (res.error) throw res.error;
+    input.value = String(raw);
+    showToast('Planning-instelling opgeslagen (' + raw + ' dagen).', 'success');
+  } catch (e) {
+    showToast('Opslaan mislukt: ' + (e.message || 'fout'), 'error');
+  }
+}
+
 async function doLogout() {
   try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
   try { localStorage.removeItem('flancco_role_cache'); } catch(_) {}
@@ -5276,7 +5362,7 @@ function showPage(name) {
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
   const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren', ew: 'Economische werkloosheid', auditlog: 'Audit-log' };
   document.getElementById('page-title').textContent = titles[name] || name;
-  if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); }
+  if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
   if (name === 'verlof') renderVerlofPage();
   if (name === 'uren') renderUrenPage();
