@@ -7381,26 +7381,34 @@ async function finishTour() {
   }
 }
 
-async function toggleAdminSector(partnerId, sector, label) {
-  var cb = label.querySelector('input[type="checkbox"]');
-  var nowActive = cb.checked;
+// Pure business-helper voor sector-activatie. UI-agnostic — wordt gebruikt vanuit zowel
+// Partnerbeheer (toggleAdminSector) als Prijsbeheer (togglePricingSector). Houdt DB-state,
+// auto-seeds warmtepomp_config + pricing-template en updatet in-memory caches. UI-feedback
+// (toasts, styling) blijft de verantwoordelijkheid van de caller.
+async function setPartnerSectorActive(partnerId, sector, nowActive) {
+  var result = { success: false, pricingSeeded: false, wpConfigSeeded: false, error: null };
+
   var existing = (allPartnerSectors[partnerId] || []).find(function(s) { return s.sector === sector; });
 
   if (existing) {
-    await sb.from('partner_sectors').update({ actief: nowActive }).eq('id', existing.id);
+    var upd = await sb.from('partner_sectors').update({ actief: nowActive }).eq('id', existing.id);
+    if (upd.error) { result.error = upd.error; return result; }
     existing.actief = nowActive;
   } else if (nowActive) {
-    var { data } = await sb.from('partner_sectors').insert({ partner_id: partnerId, sector: sector, actief: true }).select().single();
-    if (data) {
+    var ins = await sb.from('partner_sectors').insert({ partner_id: partnerId, sector: sector, actief: true }).select().single();
+    if (ins.error) { result.error = ins.error; return result; }
+    if (ins.data) {
       if (!allPartnerSectors[partnerId]) allPartnerSectors[partnerId] = [];
-      allPartnerSectors[partnerId].push(data);
+      allPartnerSectors[partnerId].push(ins.data);
     }
+  } else {
+    // Sector was niet actief en wordt niet actief — geen DB-write nodig.
+    result.success = true;
+    return result;
   }
 
-  // Auto-seed sub-configuratie bij FIRST-TIME activatie zodat de calculator de sector
-  // kan tonen ook zonder dat admin eerst via Prijsbeheer config invulde. Zonder deze seed
-  // filtert de calculator warmtepomp stil weg (partner_warmtepomp_config leeg → 0 actieve
-  // types → sector verdwijnt uit sector-grid).
+  // Auto-seed warmtepomp sub-configuratie bij FIRST-TIME activatie zodat de calculator
+  // de sector kan tonen ook zonder expliciete Prijsbeheer-stap.
   if (nowActive && sector === 'warmtepomp') {
     try {
       var existingWp = await sb.from('partner_warmtepomp_config').select('type').eq('partner_id', partnerId);
@@ -7410,7 +7418,7 @@ async function toggleAdminSector(partnerId, sector, label) {
           { partner_id: partnerId, type: 'lucht_water', actief: true, formule: 'basic', allin_multiplier: 1.000 },
           { partner_id: partnerId, type: 'geothermie',  actief: true, formule: 'basic', allin_multiplier: 1.000 }
         ]);
-        // Reload in-memory cache zodat Prijsbeheer direct de nieuwe rijen toont.
+        result.wpConfigSeeded = true;
         var reloadWp = await sb.from('partner_warmtepomp_config').select('*');
         allPartnerWpConfig = (reloadWp && reloadWp.data) ? reloadWp.data : allPartnerWpConfig;
       }
@@ -7420,10 +7428,7 @@ async function toggleAdminSector(partnerId, sector, label) {
   }
 
   // Auto-seed pricing-staffels vanuit Flancco Direct-template zodat een nieuwe partner
-  // meteen een werkende calculator-link heeft. Zonder deze seed filtert calculator de
-  // sector stil weg (pricing leeg → showError "Diensten nog niet volledig geconfigureerd").
-  // Werkt voor elke sector. Admin kan nadien finetunen in Prijsbeheer. Niet-blocking.
-  var pricingWasSeeded = false;
+  // meteen een werkende calculator-link heeft. Admin kan nadien finetunen.
   if (nowActive) {
     try {
       var templatePartner = (partners || []).find(function(p) { return p.slug === 'flancco'; });
@@ -7452,8 +7457,7 @@ async function toggleAdminSector(partnerId, sector, label) {
             });
             var insertPr = await sb.from('pricing').insert(rows);
             if (!insertPr.error) {
-              pricingWasSeeded = true;
-              // Reload in-memory cache zodat Prijsbeheer direct de nieuwe rijen toont.
+              result.pricingSeeded = true;
               var reloadPr = await sb.from('pricing').select('*');
               if (reloadPr && reloadPr.data) allPricing = reloadPr.data;
             }
@@ -7465,24 +7469,86 @@ async function toggleAdminSector(partnerId, sector, label) {
     }
   }
 
-  // UX: na activatie herinner admin om pricing-staffels in te stellen. Bij deactivatie geen toast
-  // (actie is vanzelfsprekend). Bestaande sectoren met al-pricing tonen ook geen toast.
+  result.success = true;
+  return result;
+}
+
+async function toggleAdminSector(partnerId, sector, label) {
+  var cb = label.querySelector('input[type="checkbox"]');
+  var nowActive = cb.checked;
+  var result = await setPartnerSectorActive(partnerId, sector, nowActive);
+
+  if (!result.success) {
+    if (typeof showToast === 'function') {
+      showToast('Sector kon niet worden bijgewerkt: ' + (result.error && result.error.message || 'onbekende fout'), 'error');
+    }
+    cb.checked = !nowActive;
+    return;
+  }
+
+  // UX-toast
   if (nowActive && typeof showToast === 'function') {
     var heeftPricing = (allPricing || []).some(function(pr) {
       return pr.partner_id === partnerId && pr.sector === sector && pr.actief;
     });
-    if (pricingWasSeeded) {
+    if (result.pricingSeeded) {
       showToast('Sector toegevoegd met default pricing. Pas aan in Prijsbeheer indien nodig.', 'info');
     } else if (!heeftPricing) {
       showToast('Sector toegevoegd. Configureer pricing-staffels in Prijsbeheer om de calculator volledig te activeren.', 'info');
     }
   }
 
-  // Update visual
+  // Visuele feedback op het label.
   var color = allSectorColors[sector];
   label.style.borderColor = nowActive ? color : 'var(--rule)';
   label.style.background = nowActive ? color + '15' : 'transparent';
   label.style.color = nowActive ? color : 'var(--grey)';
+}
+
+// Sector-toggle vanuit Prijsbeheer. Hard-block op deactivering zolang er actieve
+// contracten hangen (data-integriteit). Re-rendert Prijsbeheer en houdt het detail-
+// panel van de betrokken partner open zodat admin de UI-refresh direct ziet.
+async function togglePricingSector(partnerId, sector, cb) {
+  var nowActive = cb.checked;
+
+  if (!nowActive) {
+    try {
+      var tel = await sb.from('contracten')
+        .select('id', { count: 'exact', head: true })
+        .eq('partner_id', partnerId).eq('sector', sector).eq('status', 'actief');
+      var count = tel.count || 0;
+      if (count > 0) {
+        showToast('Kan sector niet deactiveren: ' + count + ' actief contract' + (count === 1 ? '' : 'en') + '. Archiveer of verwijder eerst de bijhorende contracten.', 'error');
+        cb.checked = true;
+        return;
+      }
+    } catch (e) {
+      console.warn('Contract-count check mislukt:', e);
+    }
+  }
+
+  var result = await setPartnerSectorActive(partnerId, sector, nowActive);
+  if (!result.success) {
+    showToast('Sector kon niet worden bijgewerkt: ' + (result.error && result.error.message || 'onbekende fout'), 'error');
+    cb.checked = !nowActive;
+    return;
+  }
+
+  if (nowActive) {
+    showToast(result.pricingSeeded ? 'Sector toegevoegd met default pricing. Pas aan indien nodig.' : 'Sector toegevoegd.', 'success');
+  } else {
+    showToast('Sector gedeactiveerd.', 'info');
+  }
+
+  // Re-render Prijsbeheer. Houd expand-state behouden zodat admin de nieuwe
+  // sector-tab onmiddellijk ziet verschijnen in het detail-panel.
+  renderPricing();
+  setTimeout(function() {
+    var detail = document.getElementById('pricing-detail-' + partnerId);
+    var main = document.getElementById('pricing-row-' + partnerId);
+    if (detail) detail.removeAttribute('hidden');
+    if (main) main.classList.add('expanded');
+  }, 30);
 }
 
 async function saveAdminPartner(partnerId) {
@@ -7965,6 +8031,11 @@ function renderPricing() {
     var marge = parseFloat(p.marge_pct) / 100;
     var plan = parseFloat(p.planning_fee);
 
+    // Actieve sectoren voor deze partner (bron: partner_sectors.actief=true), onafhankelijk
+    // van of er al pricing-staffels geconfigureerd zijn.
+    var pSectorsAll = allPartnerSectors[p.id] || [];
+    var activeSectors = pSectorsAll.filter(function(s) { return s.actief; }).map(function(s) { return s.sector; });
+
     // Group by sector
     var sectors = {};
     pricing.forEach(function(pr) {
@@ -7973,7 +8044,11 @@ function renderPricing() {
       sectors[sec].push(pr);
     });
     var sectorKeys = Object.keys(sectors);
-    if (sectorKeys.length === 0 && !filterSector) return '';
+
+    // Partner wordt ALTIJD getoond (ook zonder sectoren/pricing). Detail-panel bevat
+    // dan de sector-activatie-strip + lege-staat zodat admin de partner kan configureren
+    // zonder terug te hoeven naar Partnerbeheer. Sector-filter blijft wel respecteren.
+    if (filterSector && sectorKeys.length === 0) return '';
 
     // Partner row — Vercel-stijl in expandable-table pattern (uniform met Klanten/Techniekers)
     var brandColor = p.kleur_primair || '#098979';
@@ -7982,7 +8057,7 @@ function renderPricing() {
     var html = '<tr class="exp-main" id="pricing-row-' + p.id + '" data-pid="' + p.id + '" onclick="togglePricingDetail(\'' + p.id + '\')">';
     // Chevron-cel
     html += '<td class="exp-chevron-cell"><button type="button" class="exp-chevron-btn" onclick="event.stopPropagation();togglePricingDetail(\'' + p.id + '\')" aria-label="Details">' + chevronSvg + '</button></td>';
-    // Partner-cel: logo + naam
+    // Partner-cel: logo + naam (+ waarschuwing indien geen actieve sectoren)
     html += '<td><div style="display:flex;align-items:center;gap:10px;min-width:0">';
     html += '<div style="width:24px;height:24px;border-radius:5px;background:' + brandColor + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
     if (p.logo_url) {
@@ -7992,6 +8067,14 @@ function renderPricing() {
     }
     html += '</div>';
     html += '<strong style="font-size:13px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"' + (p.email ? ' title="' + esc(p.email) + '"' : '') + '>' + esc(p.bedrijfsnaam || p.naam) + '</strong>';
+    // Status-chip: flagt partners die nog niet volledig geconfigureerd zijn.
+    if (activeSectors.length === 0) {
+      html += '<span title="Nog geen sectoren geactiveerd — calculator toont error" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:#FEF3C7;color:#92400E;font-size:10px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;flex-shrink:0">';
+      html += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+      html += 'niet geconfigureerd</span>';
+    } else if (sectorKeys.length === 0) {
+      html += '<span title="Sectoren actief maar nog geen pricing-staffels" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:#EFF6FF;color:#1E40AF;font-size:10px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;flex-shrink:0">pricing ontbreekt</span>';
+    }
     html += '</div></td>';
     // Stats — right-aligned, tabular
     html += '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--navy);font-weight:500">' + pricing.length + '</td>';
@@ -8001,6 +8084,43 @@ function renderPricing() {
 
     // Detail-rij (collapsed by default)
     html += '<tr class="exp-detail-row" id="pricing-detail-' + p.id + '" hidden><td colspan="5"><div class="exp-detail-inner" style="padding:0">';
+
+    // Sector-activatie-strip — altijd zichtbaar bovenaan het detail-panel. Één UI-punt
+    // voor admin om te zien welke sectoren actief zijn + direct te toggelen zonder naar
+    // Partnerbeheer te moeten. Auto-seed laadt default pricing bij activatie.
+    html += '<div style="padding:16px 24px;border-bottom:1px solid var(--rule);background:#fafbfc">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">';
+    html += '<div><div style="font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px">Actieve sectoren</div>';
+    html += '<div style="font-size:12px;color:var(--grey);margin-top:2px">Activeer een sector om default pricing-staffels te laden. Deactivering wordt geblokkeerd zolang er actieve contracten zijn.</div></div>';
+    html += '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    allSectorsList.forEach(function(sec) {
+      var isActive = activeSectors.indexOf(sec) !== -1;
+      var secColor = allSectorColors[sec] || '#6B7280';
+      var secLabel = allSectorLabels[sec] || sec;
+      var cbId = 'pricing-sec-cb-' + p.id + '-' + sec;
+      html += '<label for="' + cbId + '" style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:18px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid ' + (isActive ? secColor : 'var(--rule)') + ';background:' + (isActive ? secColor + '15' : 'var(--white)') + ';color:' + (isActive ? secColor : 'var(--grey)') + ';transition:all 0.15s" onclick="event.stopPropagation()">';
+      html += '<input type="checkbox" id="' + cbId + '" ' + (isActive ? 'checked' : '') + ' onchange="togglePricingSector(\'' + p.id + '\',\'' + sec + '\', this)" style="margin:0;accent-color:' + secColor + '">';
+      html += '<span>' + secLabel + '</span>';
+      html += '</label>';
+    });
+    html += '</div>';
+    html += '</div>';
+
+    // Empty-state: geen actieve sectoren én geen pricing → nudge richting activatie.
+    if (activeSectors.length === 0 && sectorKeys.length === 0) {
+      html += '<div style="padding:32px 24px;text-align:center;color:var(--grey)">';
+      html += '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;opacity:0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+      html += '<div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px">Nog geen sectoren actief voor deze partner</div>';
+      html += '<div style="font-size:12px">Activeer hierboven minstens één sector om de calculator-link werkbaar te maken.</div>';
+      html += '</div>';
+    } else if (sectorKeys.length === 0) {
+      // Sectoren actief maar pricing leeg — auto-seed faalde of template-data ontbreekt.
+      html += '<div style="padding:32px 24px;text-align:center;color:var(--grey)">';
+      html += '<div style="font-size:13px;color:var(--navy);margin-bottom:4px">Sectoren zijn actief maar er zijn nog geen pricing-staffels geconfigureerd.</div>';
+      html += '<div style="font-size:12px">Dit kan gebeuren als het Flancco-template voor deze sector leeg is. Deactiveer en heractiveer de sector of voeg manueel staffels toe via de database.</div>';
+      html += '</div>';
+    }
 
     // Sector tabs
     if (sectorKeys.length > 1) {
