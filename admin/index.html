@@ -1555,13 +1555,12 @@
     <!-- KLANTEN PAGE -->
     <div class="page" id="page-klanten">
       <div class="card" id="klanten-lijst">
-        <div class="card-header">
-          <span class="card-title">Klanten</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="text" id="klanten-zoek" placeholder="Zoek op naam, gemeente, email..." oninput="renderKlanten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;width:240px">
-            <select id="filter-klant-partner" class="admin-only" onchange="renderKlanten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
-              <option value="">Alle partners</option>
-            </select>
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Klanten</h2>
+            <p class="dv-subtitle">Alle klantdossiers met contactpersonen, installaties en contracten — inclusief bulk-acties en CSV-synchronisatie</p>
+          </div>
+          <div class="dv-header-actions">
             <div class="dropdown" id="klanten-meer-dropdown">
               <button type="button" class="dropdown-btn" onclick="toggleKlantenMeer(event)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
@@ -1578,8 +1577,21 @@
                 </button>
               </div>
             </div>
-            <button type="button" id="btn-select-mode" class="btn btn-ghost admin-only" onclick="toggleSelectMode()" style="margin:0;font-size:12px">Selecteer</button>
-            <button type="button" class="btn btn-primary" onclick="openKlantModal()" style="margin:0;font-size:12px">+ Nieuwe klant</button>
+            <button type="button" id="btn-select-mode" class="btn btn-ghost admin-only" onclick="toggleSelectMode()">Selecteer</button>
+            <button type="button" class="btn btn-primary" onclick="openKlantModal()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nieuwe klant
+            </button>
+          </div>
+        </div>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-left">
+            <input type="text" id="klanten-zoek" placeholder="Zoek op naam, gemeente, email..." oninput="renderKlanten()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:280px">
+          </div>
+          <div class="dv-toolbar-right">
+            <select id="filter-klant-partner" class="dv-select admin-only" onchange="renderKlanten()">
+              <option value="">Alle partners</option>
+            </select>
           </div>
         </div>
         <div class="bulk-bar" id="klanten-bulk-bar">
@@ -1609,15 +1621,24 @@
     <!-- PRICING PAGE -->
     <div class="page" id="page-pricing">
       <div class="card">
-        <!-- Filters bar -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-          <p style="font-size:13px;color:var(--grey);margin:0">Basisforfaits per partner en sector. Eindklantprijs = (forfait × marge%) + planning fee + BTW.</p>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button type="button" id="btn-toggle-all-pricing" onclick="toggleAllPricingDetails()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:12px;font-weight:600;background:var(--white);color:var(--navy);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" onmouseenter="this.style.borderColor='var(--navy)'" onmouseleave="this.style.borderColor='var(--rule)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg> Alles uitklappen</button>
-            <select id="pricing-filter-partner" onchange="renderPricing()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);cursor:pointer">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Prijsbeheer</h2>
+            <p class="dv-subtitle">Basisforfaits per partner en sector. Eindklantprijs = (forfait × marge%) + planning fee + BTW.</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" id="btn-toggle-all-pricing" class="btn btn-ghost" onclick="toggleAllPricingDetails()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>
+              Alles uitklappen
+            </button>
+          </div>
+        </div>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-right">
+            <select id="pricing-filter-partner" class="dv-select" onchange="renderPricing()">
               <option value="">Alle partners</option>
             </select>
-            <select id="pricing-filter-sector" onchange="renderPricing()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:var(--white);cursor:pointer">
+            <select id="pricing-filter-sector" class="dv-select" onchange="renderPricing()">
               <option value="">Alle sectoren</option>
               <option value="zonnepanelen">Zonnepanelen</option>
               <option value="warmtepomp">Warmtepomp</option>
@@ -1798,10 +1819,12 @@
     <!-- GEBRUIKERS PAGE (super-admin only) -->
     <div class="page admin-only perm-users" id="page-gebruikers">
       <div class="card">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-          <span class="card-title">Gebruikers & rechten</span>
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Gebruikers &amp; rechten</h2>
+            <p class="dv-subtitle">Beheer interne medewerkers en hun toegangsrechten. Wijzigingen werken door bij de volgende login.</p>
+          </div>
         </div>
-        <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Beheer interne medewerkers en hun toegangsrechten. Wijzigingen werken bij volgende login.</p>
         <div id="gebruikers-list"></div>
       </div>
     </div>
@@ -2107,27 +2130,36 @@
     <!-- FACTURATIE PAGE -->
     <div class="page" id="page-facturatie">
       <div class="card">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-          <span class="card-title">Facturatie</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="fact-filter-partner" class="admin-only" onchange="renderFacturatie()" style="padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Facturatie</h2>
+            <p class="dv-subtitle">Overzicht van alle facturatie-records per partner en klant, met export naar boekhouding</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" onclick="exportFacturatieCSV()" title="Download gefilterde facturatie-records als CSV">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporteer CSV
+            </button>
+            <button type="button" class="btn btn-primary admin-only" onclick="createFacturatieRecord()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nieuw record
+            </button>
+          </div>
+        </div>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-right">
+            <select id="fact-filter-partner" class="dv-select admin-only" onchange="renderFacturatie()">
               <option value="">Alle partners</option>
             </select>
-            <select id="fact-filter-status" onchange="renderFacturatie()" style="padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px">
+            <select id="fact-filter-status" class="dv-select" onchange="renderFacturatie()">
               <option value="">Alle statussen</option>
               <option value="open">Open</option>
               <option value="te_factureren">Te factureren</option>
               <option value="gefactureerd">Gefactureerd</option>
               <option value="geexporteerd">Geëxporteerd</option>
             </select>
-            <button class="admin-only" onclick="createFacturatieRecord()" style="padding:6px 14px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">+ Nieuw</button>
-            <button type="button" class="btn btn-ghost" onclick="exportFacturatieCSV()" style="padding:6px 14px;font-size:12px">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              CSV Export
-            </button>
           </div>
         </div>
-        <p style="font-size:12px;color:var(--grey);margin-bottom:16px">Overzicht van alle facturatie-records per partner en klant.</p>
         <div id="facturatie-list"></div>
         <p id="no-facturatie" style="display:none;text-align:center;color:var(--grey);padding:40px;font-size:13px">Geen facturatie-records gevonden.</p>
       </div>
