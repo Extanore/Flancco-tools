@@ -1340,13 +1340,20 @@ var SECTORS = {
     },
     _wpTypeCfg: function(typeKey) {
       var t = ((partnerSectorConfig.warmtepomp || {}).types || {})[typeKey];
-      return t || { actief: false, formule: 'basic', allin_multiplier: 1.65 };
+      return t || { actief: false, formule: 'basic' };
     },
-    _param: function(pricing, subtype, key) {
-      // Vind één parameter-bedrag (Flancco-forfait, excl marge)
+    _param: function(pricing, subtype, key, formule) {
+      // Vind één parameter-bedrag (Flancco-forfait, excl marge).
+      // Voor lucht_lucht bestaan 2 aparte staffels (basic/allin) met gelijke parameter_keys
+      // maar andere prijzen — filter dus ook op formule_scope. Voor lucht_water/geothermie
+      // is er slechts 1 scope (basic), maar we laten de filter toe zodat de caller altijd
+      // defensief de juiste rij krijgt.
+      var scope = (subtype === 'lucht_lucht' && formule === 'allin') ? 'allin' : 'basic';
       for (var i = 0; i < pricing.length; i++) {
         var pr = pricing[i];
-        if (pr.subtype === subtype && pr.parameter_key === key) return parseFloat(pr.flancco_forfait) || 0;
+        if (pr.subtype === subtype && pr.parameter_key === key && pr.formule_scope === scope) {
+          return parseFloat(pr.flancco_forfait) || 0;
+        }
       }
       return 0;
     },
@@ -1443,8 +1450,7 @@ var SECTORS = {
         if (vrAantalEl) vrAantalEl.style.display = (formule === 'allin' && vierwegOn) ? 'block' : 'none';
         return {
           subtype: 'lucht_lucht',
-          formule: formule,
-          allin_multiplier: typeCfg.allin_multiplier || 1.65,
+          formule: formule, // 'basic' of 'allin' — bepaalt welke staffel _param raadpleegt
           binnenunits: Math.max(1, parseInt((document.getElementById('wp-ll-binnenunits') || {}).value) || 1),
           buitenunits: Math.max(1, parseInt((document.getElementById('wp-ll-buitenunits') || {}).value) || 1),
           moeilijk: !!(document.getElementById('wp-ll-moeilijk') || {}).checked,
@@ -1457,22 +1463,20 @@ var SECTORS = {
         if (glLiterElG) glLiterElG.style.display = glycolOnG ? 'block' : 'none';
         return {
           subtype: 'geothermie',
-          formule: 'basic',
-          allin_multiplier: 1.0,
+          formule: 'basic', // geothermie kent géén all-in formule
           buitenunits: Math.max(1, parseInt((document.getElementById('wp-geo-buitenunits') || {}).value) || 1),
           ketels: Math.max(1, parseInt((document.getElementById('wp-geo-ketels') || {}).value) || 1),
           glycol_liter: glycolOnG ? Math.max(1, parseInt((document.getElementById('wp-geo-glycol-n') || {}).value) || 0) : 0,
           moeilijk: !!(document.getElementById('wp-geo-moeilijk') || {}).checked
         };
       }
-      // lucht_water (default)
+      // lucht_water (default) — géén all-in formule
       var glycolOn = !!(document.getElementById('wp-lw-glycol') || {}).checked;
       var glLiterEl = document.getElementById('wp-lw-glycol-liter');
       if (glLiterEl) glLiterEl.style.display = glycolOn ? 'block' : 'none';
       return {
         subtype: 'lucht_water',
-        formule: 'basic', // lucht_water heeft één formule
-        allin_multiplier: 1.0,
+        formule: 'basic',
         buitenunits: Math.max(1, parseInt((document.getElementById('wp-lw-buitenunits') || {}).value) || 1),
         ketels: Math.max(1, parseInt((document.getElementById('wp-lw-ketels') || {}).value) || 1),
         glycol_liter: glycolOn ? Math.max(1, parseInt((document.getElementById('wp-lw-glycol-n') || {}).value) || 0) : 0,
@@ -1497,36 +1501,33 @@ var SECTORS = {
       }
 
       if (sub === 'lucht_lucht') {
-        var basis = P(pricing, 'lucht_lucht', 'basispakket');
+        var f = inputs.formule || 'basic'; // 'basic' of 'allin' — kiest welke staffel bevraagd wordt
+        var basis = P(pricing, 'lucht_lucht', 'basispakket', f);
         add('Basispakket (1 binnen + 1 buiten)', basis);
 
         // Binnenunits-cascade: 2e = extra_binnenunit, 3e+ = derde_plus
         if (inputs.binnenunits >= 2) {
-          add('2e binnenunit', P(pricing, 'lucht_lucht', 'extra_binnenunit'));
+          add('2e binnenunit', P(pricing, 'lucht_lucht', 'extra_binnenunit', f));
         }
         if (inputs.binnenunits >= 3) {
           var nDriePlus = inputs.binnenunits - 2;
-          add(nDriePlus + ' \u00D7 extra binnenunit (vanaf 3e)', nDriePlus * P(pricing, 'lucht_lucht', 'derde_plus_binnenunit'));
+          add(nDriePlus + ' \u00D7 extra binnenunit (vanaf 3e)', nDriePlus * P(pricing, 'lucht_lucht', 'derde_plus_binnenunit', f));
         }
         var extraBuiten = Math.max(0, inputs.buitenunits - 1);
-        if (extraBuiten > 0) add(extraBuiten + ' \u00D7 extra buitenunit', extraBuiten * P(pricing, 'lucht_lucht', 'extra_buitenunit'));
+        if (extraBuiten > 0) add(extraBuiten + ' \u00D7 extra buitenunit', extraBuiten * P(pricing, 'lucht_lucht', 'extra_buitenunit', f));
 
-        if (inputs.moeilijk) add('Moeilijk bereikbare units', P(pricing, 'lucht_lucht', 'moeilijk_bereikbaar'));
+        if (inputs.moeilijk) add('Moeilijk bereikbare units', P(pricing, 'lucht_lucht', 'moeilijk_bereikbaar', f));
 
-        if (inputs.formule === 'allin' && inputs.vierweg_aantal > 0) {
-          add(inputs.vierweg_aantal + ' \u00D7 vierwegkanaal-onderhoud', inputs.vierweg_aantal * P(pricing, 'lucht_lucht', 'vierwegkanaal'));
+        if (f === 'allin' && inputs.vierweg_aantal > 0) {
+          add(inputs.vierweg_aantal + ' \u00D7 vierwegkanaal-onderhoud', inputs.vierweg_aantal * P(pricing, 'lucht_lucht', 'vierwegkanaal', f));
         }
 
-        // ALL-IN-multiplier op het totaal (na subtotaal)
-        var mult = (inputs.formule === 'allin') ? (inputs.allin_multiplier || 1.65) : 1;
-        var subtotalFlanccoAdj = subtotalFlancco * mult;
+        // Geen multiplier meer — elke regel draagt haar eigen absolute prijs (uit de gekozen staffel).
+        var subtotalExcl = subtotalFlancco * (1 + marge) + planFee;
 
-        var subtotalExcl = subtotalFlanccoAdj * (1 + marge) + planFee;
-
-        // Voor weergave: per regel partnerprijs (excl btw, excl planFee — planFee ligt op basispakket-regel)
-        // We nemen multiplier op alle lijnen mee; planFee enkel op de eerste (basispakket) regel
+        // Per regel partnerprijs (excl btw); planFee enkel op de eerste (basispakket) regel.
         var displayLines = lines.map(function(l, idx) {
-          var amt = l.flancco * mult * (1 + marge) + (idx === 0 ? planFee : 0);
+          var amt = l.flancco * (1 + marge) + (idx === 0 ? planFee : 0);
           return { label: l.label, amount: amt };
         });
 
@@ -1535,8 +1536,8 @@ var SECTORS = {
           subtotalExcl: subtotalExcl,
           basePrice: subtotalExcl,
           subtype: sub,
-          formule: inputs.formule,
-          multiplier: mult,
+          formule: f,
+          multiplier: 1,
           rawLines: lines,
           marge: marge,
           planFee: planFee
@@ -1545,22 +1546,23 @@ var SECTORS = {
 
       // lucht_water OF geothermie — zelfde additieve structuur, andere subtype-key voor pricing
       // lookup. Basispakket-label verschilt per subtype voor heldere contract-communicatie.
+      // Geen basic/all-in splitsing: alle rijen staan onder formule_scope='basic'.
       var subKey = (sub === 'geothermie') ? 'geothermie' : 'lucht_water';
       var basisLabel = (sub === 'geothermie')
         ? 'Basispakket (bodemcircuit + mengpomp + warmtewisselaar + magneetfilter)'
         : 'Basispakket (buitenunit + mengpomp + ketel + magneetfilter)';
-      var b = P(pricing, subKey, 'basispakket');
+      var b = P(pricing, subKey, 'basispakket', 'basic');
       add(basisLabel, b);
 
       var extraB = Math.max(0, inputs.buitenunits - 1);
-      if (extraB > 0) add(extraB + ' \u00D7 extra buitenunit', extraB * P(pricing, subKey, 'extra_buitenunit'));
+      if (extraB > 0) add(extraB + ' \u00D7 extra buitenunit', extraB * P(pricing, subKey, 'extra_buitenunit', 'basic'));
 
       var extraK = Math.max(0, inputs.ketels - 1);
-      if (extraK > 0) add(extraK + ' \u00D7 extra ketel', extraK * P(pricing, subKey, 'extra_ketel'));
+      if (extraK > 0) add(extraK + ' \u00D7 extra ketel', extraK * P(pricing, subKey, 'extra_ketel', 'basic'));
 
-      if (inputs.glycol_liter > 0) add(inputs.glycol_liter + ' liter glycol-vulling', inputs.glycol_liter * P(pricing, subKey, 'glycol_vulling'));
+      if (inputs.glycol_liter > 0) add(inputs.glycol_liter + ' liter glycol-vulling', inputs.glycol_liter * P(pricing, subKey, 'glycol_vulling', 'basic'));
 
-      if (inputs.moeilijk) add('Moeilijk bereikbaar', P(pricing, subKey, 'moeilijk_bereikbaar'));
+      if (inputs.moeilijk) add('Moeilijk bereikbaar', P(pricing, subKey, 'moeilijk_bereikbaar', 'basic'));
 
       var subtotalExcl2 = subtotalFlancco * (1 + marge) + planFee;
       var displayLines2 = lines.map(function(l, idx) {
@@ -1606,7 +1608,7 @@ var SECTORS = {
       var typeLabel = typeKey === 'lucht_lucht' ? 'Lucht-lucht (airco)'
         : typeKey === 'geothermie' ? 'Geothermie (bodem-water)'
         : 'Lucht-water';
-      var formuleLabel = (typeKey === 'lucht_lucht') ? (formule === 'allin' ? ' \u2014 ALL-IN (\u00D7' + (typeCfg.allin_multiplier || 1.65).toFixed(2).replace('.', ',') + ')' : ' \u2014 BASIC') : '';
+      var formuleLabel = (typeKey === 'lucht_lucht') ? (formule === 'allin' ? ' \u2014 ALL-IN' : ' \u2014 BASIC') : '';
       return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Warmtepomp ' + typeLabel + formuleLabel + '</div>' +
         '<table class="staffel-table"><thead><tr><th>Parameter</th><th>Tarief incl. btw</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table>' +
@@ -2132,7 +2134,7 @@ async function init() {
     (secRes.data || []).forEach(function(s) { partnerSectorConfig[s.sector] = { formule: s.formule || null }; });
     if (partnerSectors.length === 0) { showError('Er zijn geen actieve diensten beschikbaar voor deze partner.'); return; }
 
-    // Warmtepomp: fetch type-specific config (lucht_lucht / lucht_water — actief, formule, multiplier)
+    // Warmtepomp: fetch type-specific config (lucht_lucht / lucht_water / geothermie — actief + gekozen formule)
     if (partnerSectors.indexOf('warmtepomp') !== -1) {
       var pwcRes = await sb.from('partner_warmtepomp_config').select('*').eq('partner_id', partner.id).eq('actief', true);
       partnerSectorConfig.warmtepomp = partnerSectorConfig.warmtepomp || {};
@@ -2140,8 +2142,7 @@ async function init() {
       (pwcRes.data || []).forEach(function(c) {
         partnerSectorConfig.warmtepomp.types[c.type] = {
           actief: c.actief,
-          formule: c.formule || 'basic',
-          allin_multiplier: parseFloat(c.allin_multiplier) || 1.65
+          formule: c.formule || 'basic' // exclusieve keuze basic XOR allin; prijzen staan al per scope in pricing
         };
       });
       // Verwijder warmtepomp uit sectors als er geen enkel type actief is

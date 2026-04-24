@@ -4289,10 +4289,9 @@ function renderPartnerWarmtepompConfigCard(partnerId) {
   var typeLabels = { lucht_lucht: 'Lucht-lucht (airco / reversibel)', lucht_water: 'Lucht-water (vloerverwarming / radiatoren)', geothermie: 'Geothermische warmtepomp (bodem-water)' };
   body.innerHTML = actieveRows.map(function(c) {
     var formuleTxt = c.type === 'lucht_lucht' ? (c.formule === 'allin' ? 'ALL-IN' : 'BASIC') : 'Standaard';
-    var multTxt = (c.type === 'lucht_lucht' && c.formule === 'allin') ? ' &middot; multiplier &times;' + (parseFloat(c.allin_multiplier) || 1.65).toFixed(3).replace('.', ',') : '';
     return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#fff;border:1px solid var(--rule);border-radius:8px;margin-bottom:8px">' +
       '<span style="font-size:13px;font-weight:600;color:var(--navy)">' + esc(typeLabels[c.type] || c.type) + '</span>' +
-      '<span style="font-size:12px;color:var(--grey)"><strong style="color:var(--navy)">' + formuleTxt + '</strong>' + multTxt + '</span>' +
+      '<span style="font-size:12px;color:var(--grey)"><strong style="color:var(--navy)">' + formuleTxt + '</strong></span>' +
       '</div>';
   }).join('');
 }
@@ -8305,8 +8304,8 @@ function editPricing(partnerId, btn) {
     inp.style.background = '#fff';
     inp.style.border = '1.5px solid var(--rule)';
   });
-  // WP-specifieke config-inputs activeren (actief/formule/mult)
-  scope.querySelectorAll('.wp-config-actief, .wp-config-formule, .wp-config-mult').forEach(function(inp) {
+  // WP-specifieke config-inputs activeren (actief-checkbox + formule-radio's)
+  scope.querySelectorAll('.wp-config-actief, .wp-config-formule').forEach(function(inp) {
     inp.disabled = false;
   });
   btn.style.display = 'none';
@@ -8426,9 +8425,13 @@ async function savePricing(partnerId, btn) {
 
 // =============================================
 // WARMTEPOMP PRICING — parameter-model per subtype
-// Subtypes: lucht_lucht (airco/reversibel, basic/allin) + lucht_water (één formule) + geothermie
-// Panel rendert config-row (actief + formule + allin-multiplier) +
-// parameter-tabel (flancco/partner/eindklant) per subtype.
+// Subtypes: lucht_lucht (airco/reversibel — ondersteunt BASIC + ALL-IN als 2 aparte prijskaders)
+//           lucht_water (vloerverwarming/radiatoren — enkel basic)
+//           geothermie (bodem-water — enkel basic)
+//
+// Data-model: elke pricing-rij heeft formule_scope 'basic' OF 'allin' (geen 'beide' meer).
+// Admin vult voor lucht_lucht 2 volledig onafhankelijke staffels in. Partner kiest
+// exclusief BASIC of ALL-IN — die keuze bepaalt welke staffel in de calculator verschijnt.
 // =============================================
 var WP_SUBTYPES = [
   { key: 'lucht_lucht', label: 'Lucht-lucht (airco / reversibel)', supportsAllin: true },
@@ -8448,8 +8451,43 @@ function _wpConfigFor(partnerId, subtype) {
     type: subtype,
     actief: false,
     formule: 'basic',
-    allin_multiplier: 1.650
+    allin_multiplier: null
   };
+}
+
+// Helper: render de staffel-tabel voor één scope (basic OF allin).
+// Géén cascade op basis van multiplier — elke prijs is absoluut, partnerPrice = flancco × (1+marge).
+function _wpRenderScopeTable(rows, color, marge, isActiveScope, scopeKey) {
+  if (rows.length === 0) {
+    return '<div style="padding:20px;text-align:center;font-size:12px;color:var(--grey);background:#fff;border-radius:8px;border:1px dashed var(--rule)">Nog geen ' + scopeKey.toUpperCase() + '-parameters geconfigureerd.</div>';
+  }
+
+  var html = '';
+  html += '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px">';
+  html += '<thead><tr style="background:var(--light)">';
+  html += '<th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;border-radius:8px 0 0 0">Parameter</th>';
+  html += '<th style="text-align:right;padding:10px 14px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px">Flancco forfait</th>';
+  html += '<th style="text-align:right;padding:10px 14px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px">Partnerprijs</th>';
+  html += '<th style="text-align:right;padding:10px 14px;font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;letter-spacing:0.5px;border-radius:0 8px 0 0">Eindklant incl.</th>';
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(function(pr, ri) {
+    var flanccoF = parseFloat(pr.flancco_forfait) || 0;
+    var partnerPrice = flanccoF * (1 + marge);
+    var clientPrice = Math.round(partnerPrice * 1.21);
+    var stripe = ri % 2 === 0 ? 'background:var(--white)' : 'background:#fafbfc';
+    var lastRow = ri === rows.length - 1;
+    var inputBaseStyle = 'width:90px;text-align:right;padding:6px 10px;border:1.5px solid transparent;border-radius:6px;font-size:13px;font-weight:600;background:transparent;font-family:inherit';
+
+    html += '<tr style="' + stripe + ';transition:background 0.15s" onmouseenter="this.style.background=\'' + color + '08\'" onmouseleave="this.style.background=\'' + (ri % 2 === 0 ? 'var(--white)' : '#fafbfc') + '\'">';
+    html += '<td style="padding:10px 14px;font-weight:600;color:var(--navy);' + (lastRow ? 'border-radius:0 0 0 8px' : '') + '">' + esc(pr.label) + '</td>';
+    html += '<td style="text-align:right;padding:10px 14px"><input class="pricing-input pricing-input-flancco" type="number" step="0.01" min="0" value="' + flanccoF.toFixed(2) + '" data-id="' + pr.id + '" data-marge="' + marge + '" data-plan="0" onchange="cascadeFromFlancco(this)" readonly style="' + inputBaseStyle + ';color:var(--navy)"></td>';
+    html += '<td style="text-align:right;padding:10px 14px"><input class="pricing-input-partner" type="number" step="0.01" min="0" value="' + partnerPrice.toFixed(2) + '" data-id="' + pr.id + '" data-marge="' + marge + '" data-plan="0" onchange="cascadeFromPartner(this)" readonly style="' + inputBaseStyle + ';color:var(--grey)"></td>';
+    html += '<td style="text-align:right;padding:10px 14px;' + (lastRow ? 'border-radius:0 0 8px 0' : '') + '"><input class="pricing-input-eindklant" type="number" step="1" min="0" value="' + clientPrice + '" data-id="' + pr.id + '" data-marge="' + marge + '" data-plan="0" onchange="cascadeFromEindklant(this)" readonly style="' + inputBaseStyle + ';color:' + color + ';font-size:14px;font-weight:700"></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
 }
 
 function renderWarmtepompPricingPanel(partner, secPricing, color, marge, plan) {
@@ -8458,94 +8496,77 @@ function renderWarmtepompPricingPanel(partner, secPricing, color, marge, plan) {
 
   WP_SUBTYPES.forEach(function(st, stIdx) {
     var cfg = _wpConfigFor(partner.id, st.key);
-    var formule = cfg.formule || 'basic';
+    var chosenFormule = cfg.formule || 'basic';
+    if (!st.supportsAllin) chosenFormule = 'basic'; // defensief — geothermie/lucht_water hebben geen allin
     var actief = !!cfg.actief;
-    var mult = parseFloat(cfg.allin_multiplier) || 1.65;
 
-    // Filter pricing op subtype + formule_scope (beide / basic / allin)
-    var params = secPricing
+    // Filter pricing op subtype, split per scope
+    var allParams = secPricing
       .filter(function(pr) { return pr.subtype === st.key; })
       .sort(function(a, b) { return (a.sort_order || 0) - (b.sort_order || 0); });
+    var basicRows = allParams.filter(function(pr) { return pr.formule_scope === 'basic'; });
+    var allinRows = allParams.filter(function(pr) { return pr.formule_scope === 'allin'; });
 
     html += '<div class="wp-subtype-block" data-partner="' + partner.id + '" data-subtype="' + st.key + '" style="margin-bottom:' + (stIdx === WP_SUBTYPES.length - 1 ? '0' : '28px') + ';padding:16px 18px;border:1px solid var(--rule);border-radius:10px;background:#fafbfc">';
 
-    // Header: subtype label + actief-badge
+    // Header: subtype label + actief-badge + (indien allin-capable) gekozen formule chip
     html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">';
-    html += '<div style="display:flex;align-items:center;gap:10px">';
+    html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
     html += '<span style="font-size:13px;font-weight:700;color:var(--navy)">' + esc(st.label) + '</span>';
     html += '<span class="wp-actief-badge" data-partner="' + partner.id + '" data-subtype="' + st.key + '" style="padding:2px 8px;font-size:10px;font-weight:700;border-radius:10px;letter-spacing:0.3px;text-transform:uppercase;background:' + (actief ? color + '18' : 'var(--light)') + ';color:' + (actief ? color : 'var(--grey)') + '">' + (actief ? 'Actief' : 'Inactief') + '</span>';
+    if (st.supportsAllin && actief) {
+      var chipColor = chosenFormule === 'allin' ? '#7C3AED' : '#0891B2';
+      html += '<span class="wp-chosen-formule-chip" data-partner="' + partner.id + '" data-subtype="' + st.key + '" style="padding:2px 10px;font-size:10px;font-weight:700;border-radius:10px;letter-spacing:0.4px;text-transform:uppercase;background:' + chipColor + '15;color:' + chipColor + '">Aanbod: ' + chosenFormule + '</span>';
+    }
     html += '</div>';
     html += '</div>';
 
-    // Config-rij (editbaar in edit-mode — inputs hebben .wp-config-input class + data-attrs voor save)
-    html += '<div class="wp-config-row" style="display:grid;grid-template-columns:auto auto auto 1fr;gap:14px;align-items:center;padding:10px 12px;margin-bottom:14px;background:#fff;border:1px solid var(--rule);border-radius:8px">';
+    // Config-rij: actief-toggle + (indien allin-capable) formule-keuze
+    html += '<div class="wp-config-row" style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:12px 14px;margin-bottom:14px;background:#fff;border:1px solid var(--rule);border-radius:8px">';
 
     // Actief toggle
     html += '<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);cursor:pointer">';
     html += '<input type="checkbox" class="wp-config-actief" data-partner="' + partner.id + '" data-subtype="' + st.key + '" data-cfg-id="' + (cfg.id || '') + '"' + (actief ? ' checked' : '') + ' disabled style="width:16px;height:16px;cursor:pointer;accent-color:' + color + '">';
-    html += '<span>Sector aanbieden</span></label>';
+    html += '<span style="font-weight:600">Sector aanbieden</span></label>';
 
-    // Formule (alleen lucht_lucht)
+    // Formule-keuze (alleen lucht_lucht): exclusieve radio's
     if (st.supportsAllin) {
-      html += '<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy)">';
-      html += '<span style="color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.3px">Formule</span>';
-      html += '<select class="wp-config-formule" data-partner="' + partner.id + '" data-subtype="' + st.key + '" disabled onchange="onWpFormuleChange(this)" style="padding:5px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px;font-family:inherit;background:#fff">';
-      html += '<option value="basic"' + (formule === 'basic' ? ' selected' : '') + '>BASIC</option>';
-      html += '<option value="allin"' + (formule === 'allin' ? ' selected' : '') + '>ALL-IN</option>';
-      html += '</select></label>';
-
-      // ALL-IN multiplier (alleen actief als formule=allin)
-      html += '<label class="wp-mult-wrap" data-partner="' + partner.id + '" data-subtype="' + st.key + '" style="display:' + (formule === 'allin' ? 'flex' : 'none') + ';align-items:center;gap:8px;font-size:12px;color:var(--navy)">';
-      html += '<span style="color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.3px">ALL-IN ×</span>';
-      html += '<input type="number" step="0.01" min="1" max="3" class="wp-config-mult" data-partner="' + partner.id + '" data-subtype="' + st.key + '" value="' + mult.toFixed(3) + '" disabled style="width:80px;padding:5px 10px;border:1px solid var(--rule);border-radius:6px;font-size:12px;font-family:inherit;font-variant-numeric:tabular-nums;text-align:right;background:#fff">';
-      html += '</label>';
-    } else {
-      html += '<div></div><div></div>'; // fillers voor grid-alignment
+      html += '<div style="display:flex;align-items:center;gap:12px;padding-left:18px;border-left:1px solid var(--rule)">';
+      html += '<span style="font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Partner biedt aan</span>';
+      html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--navy);cursor:pointer">';
+      html += '<input type="radio" class="wp-config-formule" data-partner="' + partner.id + '" data-subtype="' + st.key + '" name="wp-formule-' + partner.id + '-' + st.key + '" value="basic"' + (chosenFormule === 'basic' ? ' checked' : '') + ' disabled onchange="onWpFormuleChange(this)" style="cursor:pointer;accent-color:#0891B2">';
+      html += '<span style="font-weight:600">BASIC</span></label>';
+      html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--navy);cursor:pointer">';
+      html += '<input type="radio" class="wp-config-formule" data-partner="' + partner.id + '" data-subtype="' + st.key + '" name="wp-formule-' + partner.id + '-' + st.key + '" value="allin"' + (chosenFormule === 'allin' ? ' checked' : '') + ' disabled onchange="onWpFormuleChange(this)" style="cursor:pointer;accent-color:#7C3AED">';
+      html += '<span style="font-weight:600">ALL-IN</span></label>';
+      html += '</div>';
     }
 
-    html += '<div style="text-align:right;font-size:11px;color:var(--grey)">' + params.length + ' parameter' + (params.length === 1 ? '' : 's') + '</div>';
+    html += '<div style="flex:1"></div>';
+    html += '<div style="font-size:11px;color:var(--grey)">' + allParams.length + ' parameter' + (allParams.length === 1 ? '' : 's') + '</div>';
     html += '</div>'; // end config-row
 
-    // Parameter-tabel
-    if (params.length === 0) {
-      html += '<div style="padding:20px;text-align:center;font-size:12px;color:var(--grey);background:#fff;border-radius:8px;border:1px dashed var(--rule)">Geen parameters geconfigureerd voor dit type.</div>';
-    } else {
-      html += '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px">';
-      html += '<thead><tr style="background:var(--light)">';
-      html += '<th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;border-radius:8px 0 0 0">Parameter</th>';
-      html += '<th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px">Scope</th>';
-      html += '<th style="text-align:right;padding:10px 14px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px">Flancco forfait</th>';
-      html += '<th style="text-align:right;padding:10px 14px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px">Partnerprijs</th>';
-      html += '<th style="text-align:right;padding:10px 14px;font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;letter-spacing:0.5px;border-radius:0 8px 0 0">Eindklant incl.</th>';
-      html += '</tr></thead><tbody>';
-
-      params.forEach(function(pr, ri) {
-        var flanccoF = parseFloat(pr.flancco_forfait) || 0;
-        // Partnerprijs WP = flancco × (1 + marge) × (multiplier indien ALL-IN scope)
-        // Maar planFee wordt alleen op "basispakket"-regel getoond in calculator; in Prijsbeheer tonen we tarief per parameter zonder planFee (planFee is vast, niet per parameter)
-        var wpMult = (pr.formule_scope === 'allin' || (formule === 'allin' && pr.formule_scope === 'beide' && st.supportsAllin)) ? mult : 1;
-        var partnerPrice = flanccoF * (1 + marge) * wpMult;
-        var clientPrice = Math.round(partnerPrice * 1.21);
-        var stripe = ri % 2 === 0 ? 'background:var(--white)' : 'background:#fafbfc';
-        var lastRow = ri === params.length - 1;
-        var inputBaseStyle = 'width:90px;text-align:right;padding:6px 10px;border:1.5px solid transparent;border-radius:6px;font-size:13px;font-weight:600;background:transparent;font-family:inherit';
-
-        // Scope-badge kleur
-        var scopeLabel = pr.formule_scope || 'beide';
-        var scopeColor = scopeLabel === 'allin' ? '#7C3AED' : scopeLabel === 'basic' ? '#0891B2' : 'var(--grey)';
-
-        html += '<tr style="' + stripe + ';transition:background 0.15s" onmouseenter="this.style.background=\'' + color + '08\'" onmouseleave="this.style.background=\'' + (ri % 2 === 0 ? 'var(--white)' : '#fafbfc') + '\'">';
-        html += '<td style="padding:10px 14px;font-weight:600;color:var(--navy);' + (lastRow ? 'border-radius:0 0 0 8px' : '') + '">' + esc(pr.label) + '</td>';
-        html += '<td style="padding:10px 14px;font-size:11px"><span style="padding:2px 8px;border-radius:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;background:' + scopeColor + '15;color:' + scopeColor + '">' + scopeLabel + '</span></td>';
-        // Flancco-forfait (canonical, source of truth)
-        html += '<td style="text-align:right;padding:10px 14px"><input class="pricing-input pricing-input-flancco" type="number" step="0.01" min="0" value="' + flanccoF.toFixed(2) + '" data-id="' + pr.id + '" data-marge="' + marge + '" data-plan="0" data-wp-mult="' + wpMult + '" onchange="cascadeFromFlanccoWp(this)" readonly style="' + inputBaseStyle + ';color:var(--navy)"></td>';
-        // Partnerprijs — back-cascade naar flancco via multiplier
-        html += '<td style="text-align:right;padding:10px 14px"><input class="pricing-input-partner" type="number" step="0.01" min="0" value="' + partnerPrice.toFixed(2) + '" data-id="' + pr.id + '" data-marge="' + marge + '" data-plan="0" data-wp-mult="' + wpMult + '" onchange="cascadeFromPartnerWp(this)" readonly style="' + inputBaseStyle + ';color:var(--grey)"></td>';
-        // Eindklant incl. btw
-        html += '<td style="text-align:right;padding:10px 14px;' + (lastRow ? 'border-radius:0 0 8px 0' : '') + '"><input class="pricing-input-eindklant" type="number" step="1" min="0" value="' + clientPrice + '" data-id="' + pr.id + '" data-marge="' + marge + '" data-plan="0" data-wp-mult="' + wpMult + '" onchange="cascadeFromEindklantWp(this)" readonly style="' + inputBaseStyle + ';color:' + color + ';font-size:14px;font-weight:700"></td>';
-        html += '</tr>';
+    if (st.supportsAllin) {
+      // 2 tabs — beide onafhankelijk invulbaar. Actieve tab = gekozen formule (visueel gemarkeerd).
+      html += '<div class="wp-tabs" data-partner="' + partner.id + '" data-subtype="' + st.key + '" style="display:flex;gap:2px;margin-bottom:0;border-bottom:2px solid var(--rule)">';
+      ['basic', 'allin'].forEach(function(scopeKey) {
+        var isChosen = chosenFormule === scopeKey;
+        var tabColor = scopeKey === 'allin' ? '#7C3AED' : '#0891B2';
+        html += '<button type="button" class="wp-tab-btn' + (isChosen ? ' active' : '') + '" data-partner="' + partner.id + '" data-subtype="' + st.key + '" data-tab="' + scopeKey + '" onclick="onWpTabClick(this)" style="padding:10px 18px;font-size:12px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;border:none;background:' + (isChosen ? tabColor + '10' : 'transparent') + ';color:' + (isChosen ? tabColor : 'var(--grey)') + ';border-bottom:2px solid ' + (isChosen ? tabColor : 'transparent') + ';margin-bottom:-2px;cursor:pointer;font-family:inherit;transition:all 0.15s;border-radius:6px 6px 0 0">' + scopeKey.toUpperCase() + ' prijzen' + (isChosen ? ' · gekozen' : '') + '</button>';
       });
-      html += '</tbody></table>';
+      html += '</div>';
+
+      // Tab-panels
+      html += '<div class="wp-tab-panel" data-partner="' + partner.id + '" data-subtype="' + st.key + '" data-tab="basic" style="display:' + (chosenFormule === 'basic' ? 'block' : 'none') + ';padding-top:14px">';
+      html += _wpRenderScopeTable(basicRows, color, marge, chosenFormule === 'basic', 'basic');
+      html += '</div>';
+
+      html += '<div class="wp-tab-panel" data-partner="' + partner.id + '" data-subtype="' + st.key + '" data-tab="allin" style="display:' + (chosenFormule === 'allin' ? 'block' : 'none') + ';padding-top:14px">';
+      html += _wpRenderScopeTable(allinRows, color, marge, chosenFormule === 'allin', 'allin');
+      html += '</div>';
+    } else {
+      // Geen formule-keuze — enkel basic staffel direct tonen
+      html += '<div style="padding-top:4px">' + _wpRenderScopeTable(basicRows, color, marge, true, 'basic') + '</div>';
     }
 
     html += '</div>'; // end subtype-block
@@ -8555,50 +8576,60 @@ function renderWarmtepompPricingPanel(partner, secPricing, color, marge, plan) {
   return html;
 }
 
-// Cascade-handlers die rekening houden met WP ALL-IN-multiplier
-// Canonical blijft flancco_forfait; partnerPrice = flancco × (1+marge) × wpMult ; clientPrice = round(partner × 1.21)
-function _wpCascadeUpdate(row, flanccoVal, marge, wpMult) {
-  var partnerPrice = flanccoVal * (1 + marge) * wpMult;
-  var clientPrice = Math.round(partnerPrice * 1.21);
-  row.flancco.value = flanccoVal.toFixed(2);
-  row.partner.value = partnerPrice.toFixed(2);
-  row.eindkl.value = clientPrice;
-}
-function cascadeFromFlanccoWp(input) {
-  var row = _pricingRowInputs(input);
-  var marge = parseFloat(input.dataset.marge) || 0;
-  var mult = parseFloat(input.dataset.wpMult) || 1;
-  var v = parseFloat(input.value); if (isNaN(v) || v < 0) v = 0;
-  _wpCascadeUpdate(row, v, marge, mult);
-}
-function cascadeFromPartnerWp(input) {
-  var row = _pricingRowInputs(input);
-  var marge = parseFloat(input.dataset.marge) || 0;
-  var mult = parseFloat(input.dataset.wpMult) || 1;
-  var partnerPrice = parseFloat(input.value); if (isNaN(partnerPrice) || partnerPrice < 0) partnerPrice = 0;
-  var flanccoVal = partnerPrice / ((1 + marge) * mult);
-  if (flanccoVal < 0) flanccoVal = 0;
-  _wpCascadeUpdate(row, flanccoVal, marge, mult);
-}
-function cascadeFromEindklantWp(input) {
-  var row = _pricingRowInputs(input);
-  var marge = parseFloat(input.dataset.marge) || 0;
-  var mult = parseFloat(input.dataset.wpMult) || 1;
-  var clientPrice = parseFloat(input.value); if (isNaN(clientPrice) || clientPrice < 0) clientPrice = 0;
-  var partnerPrice = clientPrice / 1.21;
-  var flanccoVal = partnerPrice / ((1 + marge) * mult);
-  if (flanccoVal < 0) flanccoVal = 0;
-  _wpCascadeUpdate(row, flanccoVal, marge, mult);
+// Tab-navigatie: wisselt zichtbare tabel binnen een subtype-block zonder state te veranderen.
+function onWpTabClick(btn) {
+  var partnerId = btn.dataset.partner;
+  var subtype = btn.dataset.subtype;
+  var targetTab = btn.dataset.tab;
+  var block = btn.closest('.wp-subtype-block');
+  if (!block) return;
+
+  // Tab-knop stylings updaten
+  block.querySelectorAll('.wp-tab-btn').forEach(function(b) {
+    var isTarget = b.dataset.tab === targetTab;
+    var tabColor = b.dataset.tab === 'allin' ? '#7C3AED' : '#0891B2';
+    // Gekozen-formule state behouden: kijk naar bijbehorende radio
+    var chosenEl = block.querySelector('.wp-config-formule[value="' + b.dataset.tab + '"]');
+    var isChosen = chosenEl && chosenEl.checked;
+    b.classList.toggle('active', isTarget);
+    b.style.background = isTarget ? (tabColor + '10') : 'transparent';
+    b.style.color = isTarget ? tabColor : 'var(--grey)';
+    b.style.borderBottom = '2px solid ' + (isTarget ? tabColor : 'transparent');
+    b.textContent = b.dataset.tab.toUpperCase() + ' prijzen' + (isChosen ? ' · gekozen' : '');
+  });
+
+  // Panelen switchen
+  block.querySelectorAll('.wp-tab-panel').forEach(function(p) {
+    p.style.display = p.dataset.tab === targetTab ? 'block' : 'none';
+  });
 }
 
-// Toggle ALL-IN-multiplier input visibility wanneer formule wisselt
-function onWpFormuleChange(selectEl) {
-  var partnerId = selectEl.dataset.partner;
-  var subtype = selectEl.dataset.subtype;
-  var scope = selectEl.closest('.pricing-sec-panel');
-  if (!scope) return;
-  var multWrap = scope.querySelector('.wp-mult-wrap[data-partner="' + partnerId + '"][data-subtype="' + subtype + '"]');
-  if (multWrap) multWrap.style.display = selectEl.value === 'allin' ? 'flex' : 'none';
+// Formule-keuze radio: update chip + tab-labels direct; de DB-write gebeurt bij save.
+function onWpFormuleChange(radioEl) {
+  var partnerId = radioEl.dataset.partner;
+  var subtype = radioEl.dataset.subtype;
+  var newFormule = radioEl.value;
+  var block = radioEl.closest('.wp-subtype-block');
+  if (!block) return;
+
+  // Chip updaten
+  var chip = block.querySelector('.wp-chosen-formule-chip');
+  if (chip) {
+    var chipColor = newFormule === 'allin' ? '#7C3AED' : '#0891B2';
+    chip.style.background = chipColor + '15';
+    chip.style.color = chipColor;
+    chip.textContent = 'Aanbod: ' + newFormule;
+  }
+
+  // Tab-knoppen labels ("· gekozen") updaten
+  block.querySelectorAll('.wp-tab-btn').forEach(function(b) {
+    var isChosen = b.dataset.tab === newFormule;
+    b.textContent = b.dataset.tab.toUpperCase() + ' prijzen' + (isChosen ? ' · gekozen' : '');
+  });
+
+  // Automatisch naar het gekozen tab-paneel switchen (zodat admin de gekozen staffel ziet)
+  var targetBtn = block.querySelector('.wp-tab-btn[data-tab="' + newFormule + '"]');
+  if (targetBtn) onWpTabClick(targetBtn);
 }
 
 async function saveWarmtepompPricing(partnerId, btn) {
@@ -8663,20 +8694,26 @@ async function saveWarmtepompPricing(partnerId, btn) {
     }
   }
 
-  // 2) Per subtype: actief + formule + allin_multiplier → upsert
+  // 2) Per subtype: actief + gekozen formule → upsert in partner_warmtepomp_config
+  //    NB: formule is nu een radio-groep (exclusieve keuze basic XOR allin);
+  //    allin_multiplier is obsoleet — elke pricing-rij draagt haar eigen absolute prijs.
   for (var j = 0; j < WP_SUBTYPES.length; j++) {
     var st = WP_SUBTYPES[j];
     var actiefEl = scope.querySelector('.wp-config-actief[data-subtype="' + st.key + '"]');
     if (!actiefEl) continue;
-    var formuleEl = scope.querySelector('.wp-config-formule[data-subtype="' + st.key + '"]');
-    var multEl = scope.querySelector('.wp-config-mult[data-subtype="' + st.key + '"]');
+
+    var formuleVal = 'basic';
+    if (st.supportsAllin) {
+      var checkedRadio = scope.querySelector('.wp-config-formule[data-subtype="' + st.key + '"]:checked');
+      if (checkedRadio) formuleVal = checkedRadio.value;
+    }
 
     var payload = {
       partner_id: partnerId,
       type: st.key,
       actief: !!actiefEl.checked,
-      formule: formuleEl ? formuleEl.value : 'basic',
-      allin_multiplier: multEl ? Math.max(1, parseFloat(multEl.value) || 1.65) : 1.000
+      formule: formuleVal,
+      allin_multiplier: 1.000 // legacy kolom; waarde niet meer gebruikt in runtime-berekening
     };
     // Upsert via onConflict partner_id+type
     var upRes = await sb.from('partner_warmtepomp_config').upsert(payload, { onConflict: 'partner_id,type' });
@@ -8695,7 +8732,7 @@ async function saveWarmtepompPricing(partnerId, btn) {
     x.style.background = 'transparent';
     x.style.border = '1.5px solid transparent';
   });
-  scope.querySelectorAll('.wp-config-actief, .wp-config-formule, .wp-config-mult').forEach(function(x) { x.disabled = true; });
+  scope.querySelectorAll('.wp-config-actief, .wp-config-formule').forEach(function(x) { x.disabled = true; });
 
   btn.style.display = 'none';
   var editBtn = scope.querySelector('.btn-edit-pricing');
