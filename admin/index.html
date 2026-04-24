@@ -6605,14 +6605,18 @@ function renderAdminSettings() {
     var pSectors = allPartnerSectors[p.id] || [];
     var activeSectors = pSectors.filter(function(s) { return s.actief; }).map(function(s) { return s.sector; });
 
-    var sectorToggles = allSectorsList.map(function(sec) {
-      var active = activeSectors.indexOf(sec) !== -1;
-      var color = allSectorColors[sec];
-      return '<label style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid ' + (active ? color : 'var(--rule)') + ';background:' + (active ? color + '15' : 'transparent') + ';color:' + (active ? color : 'var(--grey)') + ';transition:all 0.2s" onclick="toggleAdminSector(\'' + p.id + '\',\'' + sec + '\',this)">' +
-        '<input type="checkbox" ' + (active ? 'checked' : '') + ' style="display:none">' +
-        allSectorLabels[sec] +
-        '</label>';
-    }).join(' ');
+    // Partnerbeheer toont sectoren READ-ONLY. Activatie + pricing-configuratie gebeurt
+    // centraal in Prijsbeheer (single source of truth). Dit voorkomt dat admin per ongeluk
+    // een sector activeert zonder de pricing-consequenties te zien.
+    var sectorIndicators = activeSectors.length === 0
+      ? '<span style="font-size:13px;color:var(--grey);font-style:italic">Geen sectoren actief</span>'
+      : activeSectors.map(function(sec) {
+          var color = allSectorColors[sec] || '#6B7280';
+          var secLabel = allSectorLabels[sec] || sec;
+          return '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid ' + color + ';background:' + color + '15;color:' + color + '">' +
+            '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0"></span>' + secLabel +
+            '</span>';
+        }).join(' ');
 
     // Editable fields
     var html = '<div style="border:1px solid var(--rule);border-radius:var(--radius);margin-bottom:16px;overflow:hidden">';
@@ -6635,9 +6639,17 @@ function renderAdminSettings() {
     // Detail panel
     html += '<div id="adm-detail-' + p.id + '" style="display:none;padding:20px;border-top:1px solid var(--rule);background:#fafafa">';
 
-    // Sectoren
-    html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Actieve sectoren</label>';
-    html += '<div style="display:flex;gap:6px;flex-wrap:wrap">' + sectorToggles + '</div></div>';
+    // Sectoren — read-only overzicht met deep-link naar Prijsbeheer
+    html += '<div style="margin-bottom:20px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px">';
+    html += '<label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px">Actieve sectoren</label>';
+    html += '<button type="button" onclick="event.stopPropagation();gotoPricingForPartner(\'' + p.id + '\')" title="Open deze partner in Prijsbeheer" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--navy);background:transparent;border:none;padding:0;cursor:pointer;font-family:inherit" onmouseenter="this.style.textDecoration=\'underline\'" onmouseleave="this.style.textDecoration=\'none\'">';
+    html += 'Beheer in Prijsbeheer';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>';
+    html += '</button>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' + sectorIndicators + '</div>';
+    html += '</div>';
 
     // Bedrijfsgegevens
     html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Bedrijfsgegevens</label>';
@@ -7381,10 +7393,10 @@ async function finishTour() {
   }
 }
 
-// Pure business-helper voor sector-activatie. UI-agnostic — wordt gebruikt vanuit zowel
-// Partnerbeheer (toggleAdminSector) als Prijsbeheer (togglePricingSector). Houdt DB-state,
-// auto-seeds warmtepomp_config + pricing-template en updatet in-memory caches. UI-feedback
-// (toasts, styling) blijft de verantwoordelijkheid van de caller.
+// Pure business-helper voor sector-activatie. UI-agnostic — wordt aangeroepen vanuit
+// Prijsbeheer (togglePricingSector) als enige UI-entry-point. Houdt DB-state, auto-seeds
+// warmtepomp_config + pricing-template, en updatet in-memory caches. UI-feedback (toasts,
+// styling) blijft de verantwoordelijkheid van de caller.
 async function setPartnerSectorActive(partnerId, sector, nowActive) {
   var result = { success: false, pricingSeeded: false, wpConfigSeeded: false, error: null };
 
@@ -7473,41 +7485,45 @@ async function setPartnerSectorActive(partnerId, sector, nowActive) {
   return result;
 }
 
-async function toggleAdminSector(partnerId, sector, label) {
-  var cb = label.querySelector('input[type="checkbox"]');
-  var nowActive = cb.checked;
-  var result = await setPartnerSectorActive(partnerId, sector, nowActive);
-
-  if (!result.success) {
-    if (typeof showToast === 'function') {
-      showToast('Sector kon niet worden bijgewerkt: ' + (result.error && result.error.message || 'onbekende fout'), 'error');
+// Deep-link vanaf Partnerbeheer naar Prijsbeheer: switcht de pagina, zet het partner-
+// filter op deze partner, expand het detail-panel en scrolt erheen. Admin kan zo één-
+// click overgaan van partner-identiteit/branding naar sector- en pricing-configuratie.
+function gotoPricingForPartner(partnerId) {
+  if (typeof showPage !== 'function') return;
+  showPage('pricing');
+  // Wacht op page-switch, dan filter + re-render, dan expand + scroll. Twee nested
+  // setTimeouts zodat elke stap de DOM-mutaties van de vorige kan waarnemen.
+  setTimeout(function() {
+    var psel = document.getElementById('pricing-filter-partner');
+    if (psel) {
+      // Populeer opties indien renderPricing nog niet eerder draaide.
+      if (psel.options.length <= 1) {
+        psel.innerHTML = '<option value="">Alle partners</option>' + (partners || []).map(function(p) {
+          return '<option value="' + p.id + '">' + esc(p.bedrijfsnaam || p.naam) + '</option>';
+        }).join('');
+      }
+      psel.value = partnerId;
     }
-    cb.checked = !nowActive;
-    return;
-  }
-
-  // UX-toast
-  if (nowActive && typeof showToast === 'function') {
-    var heeftPricing = (allPricing || []).some(function(pr) {
-      return pr.partner_id === partnerId && pr.sector === sector && pr.actief;
-    });
-    if (result.pricingSeeded) {
-      showToast('Sector toegevoegd met default pricing. Pas aan in Prijsbeheer indien nodig.', 'info');
-    } else if (!heeftPricing) {
-      showToast('Sector toegevoegd. Configureer pricing-staffels in Prijsbeheer om de calculator volledig te activeren.', 'info');
-    }
-  }
-
-  // Visuele feedback op het label.
-  var color = allSectorColors[sector];
-  label.style.borderColor = nowActive ? color : 'var(--rule)';
-  label.style.background = nowActive ? color + '15' : 'transparent';
-  label.style.color = nowActive ? color : 'var(--grey)';
+    if (typeof renderPricing === 'function') renderPricing();
+    setTimeout(function() {
+      var detail = document.getElementById('pricing-detail-' + partnerId);
+      var main = document.getElementById('pricing-row-' + partnerId);
+      if (detail) detail.removeAttribute('hidden');
+      if (main) {
+        main.classList.add('expanded');
+        try { main.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { /* oudere browsers: geen scroll */ }
+      }
+    }, 40);
+  }, 40);
 }
 
 // Sector-toggle vanuit Prijsbeheer. Hard-block op deactivering zolang er actieve
 // contracten hangen (data-integriteit). Re-rendert Prijsbeheer en houdt het detail-
 // panel van de betrokken partner open zodat admin de UI-refresh direct ziet.
+//
+// Dit is de ENIGE entry-point voor sector-activatie in de app. Partnerbeheer toont
+// sectoren enkel read-only met een deep-link hiernaartoe — zo blijft de pricing-impact
+// altijd zichtbaar tijdens configuratie.
 async function togglePricingSector(partnerId, sector, cb) {
   var nowActive = cb.checked;
 
