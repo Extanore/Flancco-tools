@@ -2106,6 +2106,23 @@ async function init() {
       allSupplements[s.sector].push(s);
     });
 
+    // Defensieve filter: een sector die actief staat maar waarvoor geen pricing-staffels
+    // zijn geconfigureerd zou tot een lege/verwarrende step 1 leiden. Filter hem weg en
+    // log voor admin-diagnose zodat de calculator niet stil blijft breken. Zonder deze
+    // guard krijgt de eindklant een lege sector-kaart of lege staffel-tabel.
+    var sectorsMissingPricing = partnerSectors.filter(function(s) {
+      return !allPricing[s] || allPricing[s].length === 0;
+    });
+    if (sectorsMissingPricing.length > 0) {
+      console.warn('[calculator] Sectoren actief zonder pricing-staffels — verborgen voor klant:', sectorsMissingPricing);
+      partnerSectors = partnerSectors.filter(function(s) { return sectorsMissingPricing.indexOf(s) === -1; });
+      sectorsMissingPricing.forEach(function(s) { delete partnerSectorConfig[s]; });
+    }
+    if (partnerSectors.length === 0) {
+      showError('De diensten voor deze partner zijn nog niet volledig geconfigureerd. Contacteer uw partner.');
+      return;
+    }
+
     // Apply branding
     applyBranding(partner);
 

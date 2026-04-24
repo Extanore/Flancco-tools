@@ -7190,6 +7190,38 @@ async function toggleAdminSector(partnerId, sector, label) {
     }
   }
 
+  // Auto-seed sub-configuratie bij FIRST-TIME activatie zodat de calculator de sector
+  // kan tonen ook zonder dat admin eerst via Prijsbeheer config invulde. Zonder deze seed
+  // filtert de calculator warmtepomp stil weg (partner_warmtepomp_config leeg → 0 actieve
+  // types → sector verdwijnt uit sector-grid).
+  if (nowActive && sector === 'warmtepomp') {
+    try {
+      var existingWp = await sb.from('partner_warmtepomp_config').select('type').eq('partner_id', partnerId);
+      if (!existingWp.error && (!existingWp.data || existingWp.data.length === 0)) {
+        await sb.from('partner_warmtepomp_config').insert([
+          { partner_id: partnerId, type: 'lucht_lucht', actief: true, formule: 'basic', allin_multiplier: 1.650 },
+          { partner_id: partnerId, type: 'lucht_water', actief: true, formule: 'basic', allin_multiplier: 1.000 }
+        ]);
+        // Reload in-memory cache zodat Prijsbeheer direct de nieuwe rijen toont.
+        var reloadWp = await sb.from('partner_warmtepomp_config').select('*');
+        allPartnerWpConfig = (reloadWp && reloadWp.data) ? reloadWp.data : allPartnerWpConfig;
+      }
+    } catch (e) {
+      console.warn('Auto-seed partner_warmtepomp_config mislukt (niet-blocking):', e);
+    }
+  }
+
+  // UX: na activatie herinner admin om pricing-staffels in te stellen. Bij deactivatie geen toast
+  // (actie is vanzelfsprekend). Bestaande sectoren met al-pricing tonen ook geen toast.
+  if (nowActive && typeof showToast === 'function') {
+    var heeftPricing = (allPricing || []).some(function(pr) {
+      return pr.partner_id === partnerId && pr.sector === sector && pr.actief;
+    });
+    if (!heeftPricing) {
+      showToast('Sector toegevoegd. Configureer pricing-staffels in Prijsbeheer om de calculator volledig te activeren.', 'info');
+    }
+  }
+
   // Update visual
   var color = allSectorColors[sector];
   label.style.borderColor = nowActive ? color : 'var(--rule)';
