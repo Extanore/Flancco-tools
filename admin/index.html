@@ -5660,9 +5660,11 @@ async function renderGebruikers() {
     if (emailsRes.data) emailsRes.data.forEach(function(u) { emailMap[u.id] = u.email; });
   } catch(e) { /* RPC may not exist yet */ }
 
-  // Group roles per tenant: Flancco (admin + partner-without-tenant) + per-partner
+  // Group roles per tenant: Flancco (admin + bediende + partner-without-tenant) + per-partner.
+  // 'bediende' is de default-rol die create-bediende aanmaakt voor Flancco-intern personeel
+  // — moet dus zichtbaar zijn in de Flancco-team-kaart, anders lijkt de aanmaak gefaald.
   var flanccoRoles = roles.filter(function(r) {
-    return r.role === 'admin' || (r.role === 'partner' && !r.partner_id);
+    return r.role === 'admin' || r.role === 'bediende' || (r.role === 'partner' && !r.partner_id);
   });
   var partnerGroups = {};
   (partners || []).forEach(function(p) {
@@ -5703,8 +5705,8 @@ async function renderGebruikers() {
       roles: flanccoRoles,
       emailMap: emailMap,
       currentUserId: currentUserId,
-      permKeys: ['manage_pricing', 'manage_partners', 'manage_users'],
-      permLabels: { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer' },
+      permKeys: ['manage_pricing', 'manage_partners', 'manage_users', 'verlof_beheer'],
+      permLabels: { manage_pricing: 'Prijsbeheer', manage_partners: 'Partnerbeheer', manage_users: 'Gebruikersbeheer', verlof_beheer: 'Verlofbeheer' },
       canManageUsers: canManageUsers,
       addContext: { role: 'admin', partnerId: null, partnerNaam: null }
     });
@@ -13312,6 +13314,11 @@ async function saveBediende() {
         auditLog('auth_users', _newUserId, 'aangemaakt', null,
           JSON.stringify({ email: email, voornaam: voornaam, naam: naam, role: createBody.role || null, partner_id: createBody.partner_id || null }));
       }
+      // Success-feedback — gebruiker verdient bevestiging dat aanmaak gelukt is.
+      var _createdLabel = [voornaam, naam].filter(Boolean).join(' ').trim() || email;
+      showToast('Gebruiker "' + _createdLabel + '" aangemaakt', 'success');
+    } else {
+      showToast('Gebruiker bijgewerkt', 'success');
     }
     closeBediendeModal();
     // Refresh techniekers data
