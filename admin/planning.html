@@ -4073,20 +4073,21 @@ function monthDayClick(dateStr) {
 // =============================================
 // SIDEBAR - IN TE PLANNEN
 // =============================================
-// Sector-gebaseerde tab-categorisatie (sector is de autoritatieve bron, niet opdracht_type).
-// Losse-tab = IC + klussen (per bedrijfsregel). Onderhoud-tab = alle overige sectors.
-// opdracht_type blijft bestaan als aparte dimensie (contract-binding) en wordt getoond via badge.
-var LOSSE_SECTORS = ['ic', 'klussen'];
-
-function isLosseSector(sector) {
-  return LOSSE_SECTORS.indexOf((sector || '').toLowerCase()) !== -1;
+// Tab-categorisatie op basis van opdracht_type (contract vs losse_opdracht).
+// - Losse-tab  = beurten met opdracht_type = 'losse_opdracht' (eenmalige klus, geen contract)
+// - Onderhoud-tab = beurten met opdracht_type = 'contract' (terugkerend contract-onderhoud)
+// Historisch viel Losse-tab samen met sectors IC/klussen; sinds losse opdrachten in elke
+// sector aangemaakt kunnen worden (bv. zonnepanelen-klus zonder contract) is opdracht_type
+// de autoritatieve bron. Sector blijft zichtbaar als badge/kleur op de kaart zelf.
+function isLosseOpdrachtBeurt(b) {
+  return !!(b && b.opdracht_type === 'losse_opdracht');
 }
 
 function renderSidebar() {
-  // Counts per tab op basis van sector — consistent met tab-filter.
+  // Counts per tab op basis van opdracht_type — consistent met tab-filter.
   var inTePlannen = getInTePlannen();
-  var onderhoudCount = inTePlannen.filter(function(b) { return !isLosseSector(b.sector); }).length;
-  var losseCount = inTePlannen.filter(function(b) { return isLosseSector(b.sector); }).length;
+  var onderhoudCount = inTePlannen.filter(function(b) { return !isLosseOpdrachtBeurt(b); }).length;
+  var losseCount = inTePlannen.filter(function(b) { return isLosseOpdrachtBeurt(b); }).length;
   var intCount = (allInterventies || []).filter(function(iv) { return iv.status === 'open'; }).length;
 
   var elOnderhoudCount = document.getElementById('sb-onderhoud-count');
@@ -4122,9 +4123,9 @@ function renderSidebar() {
       };
     });
   } else if (sidebarType === 'losse') {
-    items = inTePlannen.filter(function(b) { return isLosseSector(b.sector); });
+    items = inTePlannen.filter(function(b) { return isLosseOpdrachtBeurt(b); });
   } else {
-    items = inTePlannen.filter(function(b) { return !isLosseSector(b.sector); });
+    items = inTePlannen.filter(function(b) { return !isLosseOpdrachtBeurt(b); });
   }
 
   var sectorFilter = document.getElementById('sb-filter-sector').value;
@@ -4652,7 +4653,7 @@ function createNewFromMenu(action) {
   }
   // 'onderhoud' (= eenmalig onderhoudsbeurt) en 'losse' (= klus zonder onderhoudskarakter)
   // gebruiken beide de quickadd-modal met type='eenmalig' (= opdracht_type='losse_opdracht' in DB).
-  // Het onderscheid in de UI-tab gebeurt op sector (zie LOSSE_SECTORS).
+  // Het onderscheid in de UI-tab gebeurt op opdracht_type (zie isLosseOpdrachtBeurt).
   if (typeof openNieuweTaakModal === 'function') {
     openNieuweTaakModal({ type: 'eenmalig' });
   } else {
