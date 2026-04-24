@@ -644,8 +644,6 @@
   .sector-ventilatie .appt-sector { color: #7C3AED; }
   .sector-verwarming { border-left-color: #EF4444; background: linear-gradient(135deg, #FEE2E2 0%, var(--white) 100%); }
   .sector-verwarming .appt-sector { color: #EF4444; }
-  .sector-airco { border-left-color: #0891B2; background: linear-gradient(135deg, #ecfeff 0%, var(--white) 100%); }
-  .sector-airco .appt-sector { color: #0891B2; }
   .sector-ic { border-left-color: #059669; background: linear-gradient(135deg, #ecfdf5 0%, var(--white) 100%); }
   .sector-ic .appt-sector { color: #059669; }
   .sector-klussen { border-left-color: #D97706; background: linear-gradient(135deg, #fffbeb 0%, var(--white) 100%); }
@@ -1234,7 +1232,6 @@
             <option value="warmtepomp">Warmtepomp</option>
             <option value="ventilatie">Ventilatie</option>
             <option value="verwarming">Verwarming</option>
-            <option value="airco">Airco</option>
             <option value="ic">Industrial Cleaning</option>
             <option value="klussen">Klussen</option>
           </select>
@@ -1350,7 +1347,6 @@
           <option value="warmtepomp">Warmtepomp</option>
           <option value="ventilatie">Ventilatie</option>
           <option value="verwarming">Verwarming</option>
-          <option value="airco">Airco</option>
           <option value="ic">Industrial Cleaning</option>
           <option value="klussen">Klussen</option>
         </select>
@@ -1388,7 +1384,6 @@
         <option value="warmtepomp">Warmtepomp</option>
         <option value="ventilatie">Ventilatie</option>
         <option value="verwarming">Verwarming</option>
-        <option value="airco">Airco</option>
         <option value="ic">Industriële reiniging</option>
         <option value="klussen">Klussen</option>
       </select>
@@ -1638,7 +1633,6 @@
         <option value="warmtepomp">Warmtepomp</option>
         <option value="ventilatie">Ventilatie</option>
         <option value="verwarming">Verwarming</option>
-        <option value="airco">Airco</option>
         <option value="ic">Industrial Cleaning</option>
         <option value="klussen">Klussen</option>
       </select>
@@ -2171,8 +2165,6 @@ function getSectorGrootteVoorDuur(contract, sectorKey) {
     else if (wpType === 'bodem' || wpType === 'geothermie') resolvedSector = 'warmtepomp_geothermie_water';
     else resolvedSector = 'warmtepomp_lucht_water'; // neutrale default
     grootte = (cfg && cfg.binnenunits) || 1;
-  } else if (sectorKey === 'airco') {
-    grootte = (cfg && cfg.binnenunits) || 1;
   } else if (sectorKey === 'ventilatie') {
     grootte = (cfg && cfg.ventielen) || 1;
   } else if (sectorKey === 'verwarming') {
@@ -2282,7 +2274,6 @@ function getSectorColor(sector) {
     warmtepomp: '#DC2626',
     ventilatie: '#7C3AED',
     verwarming: '#EF4444',
-    airco: '#0891B2',
     ic: '#059669',
     klussen: '#D97706'
   };
@@ -2295,7 +2286,6 @@ function getSectorIcon(sector) {
     warmtepomp: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="12" rx="2"/><path d="M6 20v-4M18 20v-4"/><path d="M8 11h2M11 11h2M14 11h2"/></svg>',
     ventilatie: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>',
     verwarming: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
-    airco: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="20" y1="4" x2="4" y2="20"/><line x1="4" y1="4" x2="20" y2="20"/><circle cx="12" cy="12" r="2"/></svg>',
     ic: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
     klussen: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
   };
@@ -2308,7 +2298,6 @@ function getSectorLabel(sector) {
     warmtepomp: 'Warmtepomp',
     ventilatie: 'Ventilatie',
     verwarming: 'Verwarming',
-    airco: 'Airco',
     ic: 'Industriële reiniging',
     klussen: 'Klussen'
   };
@@ -2726,7 +2715,6 @@ async function checkAuth() {
     var sectors = [
       { key: 'zonnepanelen', label: 'Zonnepanelen' },
       { key: 'warmtepomp', label: 'Warmtepomp' },
-      { key: 'airco', label: 'Airco' },
       { key: 'ventilatie', label: 'Ventilatie' },
       { key: 'verwarming', label: 'Verwarming' },
       { key: 'ic', label: 'Industrial Cleaning' },
@@ -3627,7 +3615,6 @@ function getInstallationSummary(beurt) {
       var cfg = secData.configs[0];
       if (sector === 'zonnepanelen') return (cfg.pan || contract.aantal_panelen || 0) + ' panelen';
       if (sector === 'warmtepomp' && cfg.formule) return (cfg.binnenunits || 1) + ' binnenunit(s), ' + (cfg.formule === 'basic' ? 'basic' : 'all-in');
-      if (sector === 'airco') return (cfg.binnenunits || 1) + ' binnenunit(s)';
       if (sector === 'ventilatie') return cfg.systeem ? 'Systeem ' + cfg.systeem.toUpperCase() : '';
       if (sector === 'warmtepomp') return cfg.type || '';
       if (sector === 'verwarming') return cfg.keteltype ? cfg.keteltype + 'ketel' : '';
@@ -3661,7 +3648,7 @@ function getInstallatieDetail(beurt) {
       if (totalPanels) parts.push(totalPanels + ' panelen');
       if (orientations.length) parts.push('dakvlak ' + orientations.join(', '));
     }
-  } else if (sector === 'airco' || sector === 'warmtepomp') {
+  } else if (sector === 'warmtepomp') {
     if (inst.indoor_unit_count) parts.push(inst.indoor_unit_count + ' binnenunit(s)');
     if (inst.outdoor_unit_count) parts.push(inst.outdoor_unit_count + ' buitenunit');
   } else if (sector === 'ventilatie') {
@@ -8181,8 +8168,8 @@ function renderBeschikbaarheid() {
 // =============================================
 // WORKFLOW TABS (Rapportage, Afgewerkt, Interventies)
 // =============================================
-var sectorStrokeColors = { zonnepanelen:'#D97706', warmtepomp:'#DC2626', ventilatie:'#7C3AED', verwarming:'#EF4444', airco:'#0891B2', ic:'#059669', klussen:'#D97706' };
-var sectorLabelsMap2 = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', airco:'Airco', ic:'Industrial Cleaning', klussen:'Klussen' };
+var sectorStrokeColors = { zonnepanelen:'#D97706', warmtepomp:'#DC2626', ventilatie:'#7C3AED', verwarming:'#EF4444', ic:'#059669', klussen:'#D97706' };
+var sectorLabelsMap2 = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', ic:'Industrial Cleaning', klussen:'Klussen' };
 
 function updateWorkflowBadges() {
   // Rapportage-queue: enkel contract-beurten (losse opdrachten vereisen geen rapport)

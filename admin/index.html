@@ -1644,7 +1644,6 @@
               <option value="warmtepomp">Warmtepomp</option>
               <option value="ventilatie">Ventilatie</option>
               <option value="verwarming">Verwarming</option>
-              <option value="airco">Airco</option>
               <option value="ic">Industrial Cleaning</option>
               <option value="klussen">Klussen</option>
             </select>
@@ -2963,7 +2962,6 @@
               <option value="warmtepomp">Warmtepomp</option>
               <option value="ventilatie">Ventilatie</option>
               <option value="verwarming">Verwarming</option>
-              <option value="airco">Airco</option>
               <option value="ic">Industrial Cleaning</option>
               <option value="klussen">Klussen</option>
             </select>
@@ -3396,7 +3394,6 @@
           <option value="">Kies sector...</option>
           <option value="zonnepanelen">Zonnepanelen</option>
           <option value="warmtepomp">Warmtepomp</option>
-          <option value="airco">Airco</option>
           <option value="ventilatie">Ventilatie</option>
           <option value="verwarming">Verwarming</option>
           <option value="ic">Industrial Cleaning</option>
@@ -3430,8 +3427,8 @@
         <input id="inst-gutter" placeholder="bijv. 6m, lage goot">
       </div>
     </div>
-    <!-- AIRCO / WARMTEPOMP velden -->
-    <div id="inst-fields-airco" style="display:none">
+    <!-- WARMTEPOMP velden (lucht-lucht / lucht-water / geothermie) -->
+    <div id="inst-fields-warmtepomp" style="display:none">
       <div class="modal-row" style="margin-top:12px">
         <div class="modal-field"><label>Aantal binnenunits</label><input type="number" id="inst-indoor-count" min="0" value="0" onchange="updateUnitFields()"></div>
         <div class="modal-field"><label>Aantal buitenunits</label><input type="number" id="inst-outdoor-count" min="0" value="1"></div>
@@ -3560,7 +3557,6 @@
         <label class="tech-cb"><input type="checkbox" id="tech-sec-warmtepomp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M14 4v10.54a4 4 0 11-4 0V4a2 2 0 014 0z"/></svg> Warmtepomp</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-ventilatie"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A2E" stroke-width="2"><path d="M12 12m-9 0a9 9 0 1018 0 9 9 0 10-18 0"/><path d="M12 12l-3-8c-2 3-2 6 0 8M12 12l3 8c2-3 2-6 0-8M12 12l-8 3c3 2 6 2 8 0M12 12l8-3c-3-2-6-2-8 0"/></svg> Ventilatie</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-verwarming"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 2 8 0 2.5-2 5-5 6.5"/></svg> Verwarming</label>
-        <label class="tech-cb"><input type="checkbox" id="tech-sec-airco"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07M2 12h20"/></svg> Airco</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M14 12h4M12 9v6"/></svg> IC</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-klussen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Klussen</label>
       </div>
@@ -4223,8 +4219,8 @@ function loadSettings(p) {
 
   // Sector branding grid
   var sectorNamen = p.sector_namen || {};
-  var allSectors = ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'];
-  var sectorLabelsMap = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', airco:'Airco', ic:'Industrial Cleaning', klussen:'Klussen' };
+  var allSectors = ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'];
+  var sectorLabelsMap = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', ic:'Industrial Cleaning', klussen:'Klussen' };
   var grid = document.getElementById('sector-namen-grid');
   var defPrimair = p.kleur_primair || '#098979';
   var defDonker = p.kleur_donker || '#066b5e';
@@ -4290,7 +4286,7 @@ function renderPartnerWarmtepompConfigCard(partnerId) {
     return;
   }
   card.style.display = '';
-  var typeLabels = { lucht_lucht: 'Lucht-lucht (airconditioning)', lucht_water: 'Lucht-water (vloerverwarming / radiatoren)' };
+  var typeLabels = { lucht_lucht: 'Lucht-lucht (airco / reversibel)', lucht_water: 'Lucht-water (vloerverwarming / radiatoren)', geothermie: 'Geothermische warmtepomp (bodem-water)' };
   body.innerHTML = actieveRows.map(function(c) {
     var formuleTxt = c.type === 'lucht_lucht' ? (c.formule === 'allin' ? 'ALL-IN' : 'BASIC') : 'Standaard';
     var multTxt = (c.type === 'lucht_lucht' && c.formule === 'allin') ? ' &middot; multiplier &times;' + (parseFloat(c.allin_multiplier) || 1.65).toFixed(3).replace('.', ',') : '';
@@ -4311,7 +4307,7 @@ async function saveSettings() {
   var sectorNamen = {};
   var defPrimair = kleurPrimair;
   var defDonker = kleurDonker;
-  ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(s) {
+  ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'].forEach(function(s) {
     var naamEl = document.getElementById('sn-' + s);
     var kpEl = document.getElementById('sn-kp-' + s);
     var kdEl = document.getElementById('sn-kd-' + s);
@@ -4379,7 +4375,7 @@ async function saveSettings() {
 // =============================================
 // CHECKLIST TEMPLATE MANAGEMENT (Fase 6G)
 // =============================================
-var checklistSectors = ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'];
+var checklistSectors = ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'];
 var activeChecklistSector = 'zonnepanelen';
 var checklistTemplateData = {};
 
@@ -4506,7 +4502,6 @@ var duurSectors = [
   { key: 'warmtepomp_geothermie_water',  label: 'Warmtepomp geothermie-water',   metric: 'binnenunits' },
   { key: 'ventilatie',                   label: 'Ventilatie',                    metric: 'ventielen' },
   { key: 'verwarming',                   label: 'Verwarming',                    metric: 'toestellen' },
-  { key: 'airco',                        label: 'Airco',                         metric: 'splits' },
   { key: 'ic',                           label: 'Industrial Cleaning',           metric: 'eenheden' },
   { key: 'klussen',                      label: 'Klussen',                       metric: 'eenheden' }
 ];
@@ -6033,7 +6028,7 @@ function renderDashTodayWidget(beurten) {
     body.innerHTML = '<div class="dash-empty">Geen taken ' + (todayMode === 'morgen' ? 'morgen' : 'vandaag') + '.</div>';
     return;
   }
-  var sectorKleur = { zonnepanelen:'#F59E0B', warmtepomp:'#8B5CF6', ventilatie:'#3B82F6', verwarming:'#EF4444', ic:'#10B981', klussen:'#F97316', airco:'#06B6D4' };
+  var sectorKleur = { zonnepanelen:'#F59E0B', warmtepomp:'#8B5CF6', ventilatie:'#3B82F6', verwarming:'#EF4444', ic:'#10B981', klussen:'#F97316' };
   var byTech = {};
   beurten.forEach(function(b) {
     var tid = b.technieker_id || 'unassigned';
@@ -6598,9 +6593,9 @@ async function loadPartnerSectors() {
   });
 }
 
-var allSectorsList = ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'];
-var allSectorLabels = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', airco:'Airco', ic:'Industrial Cleaning', klussen:'Klussen' };
-var allSectorColors = { zonnepanelen:'#F59E0B', warmtepomp:'#3B82F6', ventilatie:'#8B5CF6', verwarming:'#EF4444', airco:'#06B6D4', ic:'#10B981', klussen:'#D97706' };
+var allSectorsList = ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'];
+var allSectorLabels = { zonnepanelen:'Zonnepanelen', warmtepomp:'Warmtepomp', ventilatie:'Ventilatie', verwarming:'Verwarming', ic:'Industrial Cleaning', klussen:'Klussen' };
+var allSectorColors = { zonnepanelen:'#F59E0B', warmtepomp:'#3B82F6', ventilatie:'#8B5CF6', verwarming:'#EF4444', ic:'#10B981', klussen:'#D97706' };
 
 function renderAdminSettings() {
   var container = document.getElementById('admin-partner-list');
@@ -7412,7 +7407,8 @@ async function toggleAdminSector(partnerId, sector, label) {
       if (!existingWp.error && (!existingWp.data || existingWp.data.length === 0)) {
         await sb.from('partner_warmtepomp_config').insert([
           { partner_id: partnerId, type: 'lucht_lucht', actief: true, formule: 'basic', allin_multiplier: 1.650 },
-          { partner_id: partnerId, type: 'lucht_water', actief: true, formule: 'basic', allin_multiplier: 1.000 }
+          { partner_id: partnerId, type: 'lucht_water', actief: true, formule: 'basic', allin_multiplier: 1.000 },
+          { partner_id: partnerId, type: 'geothermie',  actief: true, formule: 'basic', allin_multiplier: 1.000 }
         ]);
         // Reload in-memory cache zodat Prijsbeheer direct de nieuwe rijen toont.
         var reloadWp = await sb.from('partner_warmtepomp_config').select('*');
@@ -7910,7 +7906,7 @@ function renderPricing() {
   var filterSector = document.getElementById('pricing-filter-sector') ? document.getElementById('pricing-filter-sector').value : '';
   var sectorLabels = allSectorLabels;
   var sectorColors = allSectorColors;
-  var sectorIcons = { zonnepanelen:'M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h1M2 12h1m15.66 7.66l-.71-.71M4.05 4.05l-.71-.71', warmtepomp:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z', ventilatie:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z', verwarming:'M12 2c-5.33 4-8 8-8 12a8 8 0 0016 0c0-4-2.67-8-8-12z', airco:'M3 8h18M3 16h18M12 3v18', ic:'M3 6l3 12h12l3-12', klussen:'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z' };
+  var sectorIcons = { zonnepanelen:'M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h1M2 12h1m15.66 7.66l-.71-.71M4.05 4.05l-.71-.71', warmtepomp:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z', ventilatie:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z', verwarming:'M12 2c-5.33 4-8 8-8 12a8 8 0 0016 0c0-4-2.67-8-8-12z', ic:'M3 6l3 12h12l3-12', klussen:'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z' };
 
   var filteredPartners = filterPartner ? partners.filter(function(p) { return p.id === filterPartner; }) : partners;
   var grid = document.getElementById('pricing-grid');
@@ -8246,13 +8242,14 @@ async function savePricing(partnerId, btn) {
 
 // =============================================
 // WARMTEPOMP PRICING — parameter-model per subtype
-// Subtypes: lucht_lucht (basic/allin) + lucht_water (één formule)
+// Subtypes: lucht_lucht (airco/reversibel, basic/allin) + lucht_water (één formule) + geothermie
 // Panel rendert config-row (actief + formule + allin-multiplier) +
 // parameter-tabel (flancco/partner/eindklant) per subtype.
 // =============================================
 var WP_SUBTYPES = [
-  { key: 'lucht_lucht', label: 'Lucht-lucht (airconditioning)', supportsAllin: true },
-  { key: 'lucht_water', label: 'Lucht-water (vloerverwarming / radiatoren)', supportsAllin: false }
+  { key: 'lucht_lucht', label: 'Lucht-lucht (airco / reversibel)', supportsAllin: true },
+  { key: 'lucht_water', label: 'Lucht-water (vloerverwarming / radiatoren)', supportsAllin: false },
+  { key: 'geothermie',  label: 'Geothermische warmtepomp (bodem-water)', supportsAllin: false }
 ];
 
 function _wpConfigFor(partnerId, subtype) {
@@ -8425,6 +8422,42 @@ async function saveWarmtepompPricing(partnerId, btn) {
   if (!scope) return;
 
   var errCount = 0;
+
+  // 0) HARD-BLOCK: een subtype deactiveren mag alleen als er geen actieve contracten voor
+  //    dat partner+subtype bestaan. Data-integriteit boven UX-flexibiliteit: de admin moet
+  //    eerst de contracten verwijderen/archiveren vóór hij het subtype kan uitzetten.
+  var blocked = [];
+  for (var b = 0; b < WP_SUBTYPES.length; b++) {
+    var bst = WP_SUBTYPES[b];
+    var bEl = scope.querySelector('.wp-config-actief[data-subtype="' + bst.key + '"]');
+    if (!bEl) continue;
+    var nieuwActief = !!bEl.checked;
+    var huidig = (allPartnerWpConfig || []).find(function(c) {
+      return c.partner_id === partnerId && c.type === bst.key;
+    });
+    var wasActief = huidig ? !!huidig.actief : false;
+    if (wasActief && !nieuwActief) {
+      var telRes = await sb.from('contracten')
+        .select('id', { count: 'exact', head: true })
+        .eq('partner_id', partnerId)
+        .eq('sector', 'warmtepomp')
+        .eq('subtype', bst.key)
+        .eq('status', 'actief');
+      var tel = telRes.count || 0;
+      if (tel > 0) {
+        blocked.push({ label: bst.label, count: tel });
+        // Reset de checkbox visueel naar huidige DB-state zodat UI consistent blijft.
+        bEl.checked = true;
+      }
+    }
+  }
+  if (blocked.length > 0) {
+    var msg = blocked.map(function(b) {
+      return b.label + ' (' + b.count + ' actief contract' + (b.count === 1 ? '' : 'en') + ')';
+    }).join(', ');
+    showToast('Kan subtype(s) niet deactiveren: ' + msg + '. Verwijder of archiveer eerst de bijhorende contracten.', 'error');
+    return;
+  }
 
   // 1) Pricing rows — canonical = flancco_forfait
   var priceInputs = scope.querySelectorAll('.pricing-input-flancco');
@@ -11321,12 +11354,11 @@ var sectorSvgIcons = {
   warmtepomp: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="12" rx="2"/><path d="M6 20v-4M18 20v-4"/><path d="M8 11h2M11 11h2M14 11h2"/></svg>',
   ventilatie: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>',
   verwarming: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>',
-  airco: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>',
   ic: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   klussen: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
 };
-var sectorBgColors = { zonnepanelen:'#FEF9E7', warmtepomp:'#FEF2F2', ventilatie:'#F0F0FF', verwarming:'#FEE2E2', airco:'#ECFEFF', ic:'#ECFDF5', klussen:'#FFFBEB' };
-var sectorStrokeColors = { zonnepanelen:'#D97706', warmtepomp:'#DC2626', ventilatie:'#7C3AED', verwarming:'#EF4444', airco:'#0891B2', ic:'#059669', klussen:'#D97706' };
+var sectorBgColors = { zonnepanelen:'#FEF9E7', warmtepomp:'#FEF2F2', ventilatie:'#F0F0FF', verwarming:'#FEE2E2', ic:'#ECFDF5', klussen:'#FFFBEB' };
+var sectorStrokeColors = { zonnepanelen:'#D97706', warmtepomp:'#DC2626', ventilatie:'#7C3AED', verwarming:'#EF4444', ic:'#059669', klussen:'#D97706' };
 
 // Current dossier state
 var currentDossierClientId = null;
@@ -11563,7 +11595,7 @@ function renderDossierOverzicht(client, contracts) {
           var total = surfaces.reduce(function(s, r) { return s + (r.panel_count || 0); }, 0);
           summary = total + ' panelen' + (surfaces.length > 1 ? ' (' + surfaces.length + ' dakvlakken)' : '');
         } catch(e) {}
-      } else if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+      } else if (inst.installation_type === 'warmtepomp' && inst.indoor_unit_count) {
         summary = inst.indoor_unit_count + ' binnenunit(s)' + (inst.outdoor_unit_count ? ', ' + inst.outdoor_unit_count + ' buitenunit(s)' : '');
       } else if (inst.installation_type === 'ventilatie' && inst.ventilation_system_type) {
         summary = inst.ventilation_system_type === 'd_system' ? 'Systeem D (gebalanceerd)' : 'Systeem C (mechanisch)';
@@ -11608,7 +11640,7 @@ function renderDossierInstallaties(clientId) {
         var total = surfaces.reduce(function(s, r) { return s + (r.panel_count || 0); }, 0);
         summary = total + ' panelen' + (surfaces.length > 1 ? ' (' + surfaces.length + ' dakvlakken)' : '');
       } catch(e) {}
-    } else if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+    } else if (inst.installation_type === 'warmtepomp' && inst.indoor_unit_count) {
       summary = inst.indoor_unit_count + ' binnenunit(s)' + (inst.outdoor_unit_count ? ', ' + inst.outdoor_unit_count + ' buitenunit(s)' : '');
     } else if (inst.installation_type === 'ventilatie' && inst.ventilation_system_type) {
       summary = inst.ventilation_system_type === 'd_system' ? 'Systeem D (gebalanceerd)' : 'Systeem C (mechanisch)';
@@ -11766,7 +11798,7 @@ async function showRapportDetail(rapportId) {
 
   document.getElementById('rapport-detail-title').textContent = 'Rapport ' + (rapport.referentie || '');
 
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var snap = rapport.klant_snapshot || {};
 
   var html = '';
@@ -12236,7 +12268,7 @@ async function deleteKlantFromDossier(id, gdpr) {
 function toggleInstFields() {
   var type = document.getElementById('inst-type').value;
   document.getElementById('inst-fields-zon').style.display = type === 'zonnepanelen' ? 'block' : 'none';
-  document.getElementById('inst-fields-airco').style.display = (type === 'warmtepomp' || type === 'airco') ? 'block' : 'none';
+  document.getElementById('inst-fields-warmtepomp').style.display = type === 'warmtepomp' ? 'block' : 'none';
   document.getElementById('inst-fields-vent').style.display = type === 'ventilatie' ? 'block' : 'none';
   document.getElementById('inst-fields-verw').style.display = type === 'verwarming' ? 'block' : 'none';
   // Init roof surfaces if empty
@@ -12337,7 +12369,7 @@ async function openInstallatieModal(clientId, editIdOrData) {
       }
 
       // Restore indoor units
-      if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+      if (inst.installation_type === 'warmtepomp' && inst.indoor_unit_count) {
         updateUnitFields();
         var types = inst.indoor_unit_types ? (typeof inst.indoor_unit_types === 'string' ? JSON.parse(inst.indoor_unit_types) : inst.indoor_unit_types) : [];
         var locs2 = inst.indoor_unit_locations ? (typeof inst.indoor_unit_locations === 'string' ? JSON.parse(inst.indoor_unit_locations) : inst.indoor_unit_locations) : [];
@@ -12384,7 +12416,7 @@ async function saveInstallatie() {
     });
     payload.roof_surfaces = surfaces.length ? surfaces : null;
     payload.gutter_height = document.getElementById('inst-gutter').value.trim() || null;
-  } else if (type === 'warmtepomp' || type === 'airco') {
+  } else if (type === 'warmtepomp') {
     payload.indoor_unit_count = parseInt(document.getElementById('inst-indoor-count').value) || null;
     payload.outdoor_unit_count = parseInt(document.getElementById('inst-outdoor-count').value) || null;
     var unitTypes = []; var unitLocs = [];
@@ -13155,9 +13187,9 @@ function openTechModal(editData) {
   var currentVoertuig = editData ? allVoertuigen.find(function(v) { return v.technieker_id === editData.id; }) : null;
   voertuigSelect.value = currentVoertuig ? currentVoertuig.id : '';
 
-  // Sectoren — volledige enum incl. airco (DB CHECK: technieker_sectoren_sector_check)
+  // Sectoren — volledige enum (DB CHECK: technieker_sectoren_sector_check, airco geconsolideerd in warmtepomp)
   var secs = editData ? allTechSectoren.filter(function(s) { return s.technieker_id === editData.id; }) : [];
-  ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(sec) {
+  ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'].forEach(function(sec) {
     document.getElementById('tech-sec-' + sec).checked = secs.some(function(s) { return s.sector === sec; });
   });
 
@@ -13347,8 +13379,8 @@ async function saveTechnieker() {
   }
   if (FIELD_ROLES.indexOf(payload.rol) >= 0) {
     var secRows = [];
-    // Volledige enum incl. airco (DB CHECK: technieker_sectoren_sector_check)
-    ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(sec) {
+    // Volledige enum (DB CHECK: technieker_sectoren_sector_check, airco geconsolideerd in warmtepomp)
+    ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'].forEach(function(sec) {
       if (document.getElementById('tech-sec-' + sec).checked) {
         secRows.push({ technieker_id: techId, sector: sec });
       }
@@ -14783,7 +14815,7 @@ function renderRapportenPage() {
   }
   noEl.style.display = 'none';
 
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
 
   container.innerHTML = filtered.map(function(r) {
     var snap = r.klant_snapshot || {};
@@ -14806,7 +14838,7 @@ function renderRapportenPage() {
         var total = surfaces.reduce(function(s, x) { return s + (x.panel_count || 0); }, 0);
         if (total > 0) parts.push(total + ' panelen');
         surfaces.forEach(function(s) { if (s.orientation) parts.push('dakvlak ' + s.orientation); });
-      } else if ((inst.installation_type === 'warmtepomp' || inst.installation_type === 'airco') && inst.indoor_unit_count) {
+      } else if (inst.installation_type === 'warmtepomp' && inst.indoor_unit_count) {
         parts.push(inst.indoor_unit_count + ' binnenunit(s)');
       } else if (inst.installation_type === 'ventilatie' && inst.ventilation_system_type) {
         parts.push(inst.ventilation_system_type === 'd_system' ? 'Systeem D' : 'Systeem C');

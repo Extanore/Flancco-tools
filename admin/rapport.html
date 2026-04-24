@@ -199,7 +199,6 @@
   .sector-warmtepomp { background: #E74C3C20; color: #E74C3C; }
   .sector-ventilatie { background: #1A1A2E20; color: #1A1A2E; }
   .sector-verwarming { background: #6B728020; color: #6B7280; }
-  .sector-airco { background: #0891B220; color: #0891B2; }
   .sector-ic { background: #05966920; color: #059669; }
   .sector-klussen { background: #D9770620; color: #D97706; }
 
@@ -606,7 +605,7 @@ function buildInstallatieHtml(inst) {
     if (inst.gutter_height) addRow('Goothoogte', inst.gutter_height);
   }
 
-  if (type === 'warmtepomp' || type === 'airco') {
+  if (type === 'warmtepomp') {
     if (inst.indoor_unit_count) addRow('Binnenunits', inst.indoor_unit_count + '');
     var unitTypes = inst.indoor_unit_types || [];
     if (unitTypes.length > 0) addRow('Type binnenunits', unitTypes.join(', '));
@@ -623,7 +622,7 @@ function buildInstallatieHtml(inst) {
   if (type === 'verwarming' && inst.heating_type) addRow('Verwarmingstype', inst.heating_type);
 
   // Always show sector type as minimum info
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var typeLabel = sectorLabels[type] || type || '';
   if (!rows && !typeLabel) return '';
   if (!rows) rows = '<div class="rp-field" style="flex:0 0 50%"><div class="rp-field-label">Type</div><div class="rp-field-value">' + esc(typeLabel) + '</div></div>';
@@ -750,16 +749,6 @@ var CHECKLISTS = {
     { key: 'veiligheidsklep', label: 'Veiligheidsklep gecontroleerd', category: 'Controle' },
     { key: 'thermostaat', label: 'Thermostaat en regeling gecontroleerd', category: 'Controle' }
   ],
-  airco: [
-    { key: 'filter_reiniging', label: 'Filters gereinigd / vervangen', category: 'Onderhoud' },
-    { key: 'binnenunit', label: 'Binnenunit inspectie (warmtewisselaar, condensafvoer)', category: 'Onderhoud' },
-    { key: 'buitenunit', label: 'Buitenunit inspectie (lamellen, ventilator)', category: 'Onderhoud' },
-    { key: 'koudemiddel', label: 'Koudemiddeldruk gecontroleerd', category: 'Controle' },
-    { key: 'elektrisch', label: 'Elektrische aansluitingen gecontroleerd', category: 'Controle' },
-    { key: 'thermostaat', label: 'Thermostaat en afstandsbediening', category: 'Controle' },
-    { key: 'condensafvoer', label: 'Condensafvoer vrij, geen lekkage', category: 'Controle' },
-    { key: 'geluidscheck', label: 'Geluidscheck (trillingen, abnormale geluiden)', category: 'Controle' }
-  ],
   ic: [
     { key: 'oppervlakte', label: 'Oppervlakte gereinigd', category: 'Reiniging' },
     { key: 'apparatuur', label: 'Apparatuur gecontroleerd', category: 'Reiniging' },
@@ -809,13 +798,6 @@ var FOTO_CATEGORIES = {
     { key: 'ketel', label: 'Ketel / Brander' },
     { key: 'rookgasanalyse', label: 'Rookgasanalyse resultaat' },
     { key: 'onderdelen', label: 'Onderdelen / Filters' },
-    { key: 'bevindingen', label: 'Bevindingen / Schade' }
-  ],
-  airco: [
-    { key: 'binnenunit', label: 'Binnenunit(s)' },
-    { key: 'buitenunit', label: 'Buitenunit' },
-    { key: 'filters', label: 'Filters (voor / na)' },
-    { key: 'metingen', label: 'Metingen / Display' },
     { key: 'bevindingen', label: 'Bevindingen / Schade' }
   ],
   ic: [
@@ -930,7 +912,7 @@ async function loadRapportView(beurtId) {
   var brandTagline = 'Uw partner in onderhoud';
 
   var datumFormatted = (rapport.datum_onderhoud || '').split('-').reverse().join('/');
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen — Reiniging & controle', warmtepomp: 'Warmtepomp — Onderhoud & controle', ventilatie: 'Ventilatie — Onderhoud & controle', verwarming: 'Verwarming — Onderhoud & controle', airco: 'Airco — Onderhoud & controle', ic: 'Industrial Cleaning — Reiniging', klussen: 'Klussen — Uitvoering' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen — Reiniging & controle', warmtepomp: 'Warmtepomp — Onderhoud & controle', ventilatie: 'Ventilatie — Onderhoud & controle', verwarming: 'Verwarming — Onderhoud & controle', ic: 'Industrial Cleaning — Reiniging', klussen: 'Klussen — Uitvoering' };
   var sector = rapport.sector || beurt.sector;
 
   var logoHtml = '';
@@ -1065,7 +1047,7 @@ async function selectBeurt() {
   if (!currentBeurt) return;
   currentContract = currentBeurt.contracten;
 
-  var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabel = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var info = document.getElementById('beurt-info-box');
   // Q.9 — Business-referentie prominent tonen. ref_nummer (OND-YYYY-XXXX) wint van beurt-index.
   // Voor child-beurten van een multi-day interventie: gebruik parent interventies.volgnummer (INT-YYYY-XXXX).
@@ -1208,7 +1190,7 @@ function prevStep() { if (wizardStep > 0) { wizardStep--; renderStep(); window.s
 function initChecklist() {
   var sector = currentBeurt.sector;
   var items = activeChecklistItems.length > 0 ? activeChecklistItems : (CHECKLISTS[sector] || []);
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   document.getElementById('checklist-title').textContent = 'Checklist';
 
   // Group by category
@@ -1856,7 +1838,7 @@ async function renderSamenvatting() {
   var chk = getChecklistData();
   var sector = currentBeurt.sector;
   var items = activeChecklistItems.length > 0 ? activeChecklistItems : (CHECKLISTS[sector] || []);
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen — Reiniging & controle', warmtepomp: 'Warmtepomp — Onderhoud & controle', ventilatie: 'Ventilatie — Onderhoud & controle', verwarming: 'Verwarming — Onderhoud & controle', airco: 'Airco — Onderhoud & controle', ic: 'Industrial Cleaning — Reiniging', klussen: 'Klussen — Uitvoering' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen — Reiniging & controle', warmtepomp: 'Warmtepomp — Onderhoud & controle', ventilatie: 'Ventilatie — Onderhoud & controle', verwarming: 'Verwarming — Onderhoud & controle', ic: 'Industrial Cleaning — Reiniging', klussen: 'Klussen — Uitvoering' };
   var datum = currentBeurt.plan_datum || new Date().toISOString().split('T')[0];
   var datumFormatted = datum.split('-').reverse().join('/');
   var ref = 'FL-RAPP-' + datum.replace(/-/g,'').substring(0,8) + '-' + Math.floor(1000 + Math.random() * 9000);
@@ -2050,7 +2032,7 @@ async function saveRapport() {
         if (zd.dakvlakken) autoInst.roof_surfaces = zd.dakvlakken;
         if (zd.goothoogte) autoInst.gutter_height = zd.goothoogte;
       }
-      if ((currentBeurt.sector === 'warmtepomp' || currentBeurt.sector === 'airco') && sectorDetails[currentBeurt.sector]) {
+      if (currentBeurt.sector === 'warmtepomp' && sectorDetails[currentBeurt.sector]) {
         var sd = sectorDetails[currentBeurt.sector];
         if (sd.binnenunits) autoInst.indoor_unit_count = sd.binnenunits;
         if (sd.buitenunits) autoInst.outdoor_unit_count = sd.buitenunits;
@@ -2215,7 +2197,7 @@ async function buildPDF(doc) {
   doc.rect(margin, y - 2, contentW, 22, 'F');
   doc.setTextColor(headerColor.r, headerColor.g, headerColor.b);
   doc.setFontSize(10);
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', airco: 'Airco', ic: 'Industrial Cleaning', klussen: 'Klussen' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   doc.text('Sector: ' + (sectorLabels[currentBeurt.sector] || currentBeurt.sector), margin + 4, y + 5);
   doc.text('Datum: ' + (currentBeurt.plan_datum || '\u2014'), margin + 80, y + 5);
   doc.text('Contract: ' + (klant.contract_nummer || '\u2014'), margin + 4, y + 13);
@@ -2257,7 +2239,7 @@ async function buildPDF(doc) {
       }
       if (pdfInst.gutter_height) instRows.push('Goothoogte: ' + pdfInst.gutter_height);
     }
-    if ((type === 'warmtepomp' || type === 'airco')) {
+    if (type === 'warmtepomp') {
       if (pdfInst.indoor_unit_count) instRows.push('Binnenunits: ' + pdfInst.indoor_unit_count);
       if (pdfInst.indoor_unit_types && pdfInst.indoor_unit_types.length) instRows.push('Type: ' + pdfInst.indoor_unit_types.join(', '));
       if (pdfInst.indoor_unit_locations && pdfInst.indoor_unit_locations.length) instRows.push('Locaties: ' + pdfInst.indoor_unit_locations.join(', '));

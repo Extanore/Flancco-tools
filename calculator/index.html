@@ -728,12 +728,11 @@ function getSectorGrootteVoorDuur(sectorKey, cfg) {
     grootte = parseInt(cfg.pan, 10) || 1;
   } else if (sectorKey === 'warmtepomp') {
     var wpType = cfg.wp_type || cfg.type || cfg.subtype || '';
-    if (wpType === 'lucht_lucht' || cfg.formule) resolvedSector = 'warmtepomp_lucht_lucht';
+    if (wpType === 'lucht_lucht') resolvedSector = 'warmtepomp_lucht_lucht';
     else if (wpType === 'lucht_water' || wpType === 'hybride') resolvedSector = 'warmtepomp_lucht_water';
     else if (wpType === 'bodem' || wpType === 'geothermie') resolvedSector = 'warmtepomp_geothermie_water';
+    else if (cfg.formule) resolvedSector = 'warmtepomp_lucht_lucht'; // legacy: cfg.formule impliceert lucht_lucht (ALL-IN/BASIC)
     else resolvedSector = 'warmtepomp_lucht_water';
-    grootte = parseInt(cfg.binnenunits, 10) || 1;
-  } else if (sectorKey === 'airco') {
     grootte = parseInt(cfg.binnenunits, 10) || 1;
   } else if (sectorKey === 'ventilatie') {
     grootte = parseInt(cfg.ventielen, 10) || 1;
@@ -829,7 +828,7 @@ function buildContractHTMLShared(c, p) {
 
   var sectoren = c.sectoren || [];
   var pricing = c.pricing_breakdown || {};
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen', airco: 'Airco' };
+  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
   var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
   var duurTxt = c.contractduur === 'eenmalig' ? 'Eenmalige interventie' : (c.contractduur || 'n.v.t.');
   var today = c.datum_ondertekening ? new Date(c.datum_ondertekening).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -1305,8 +1304,9 @@ var SECTORS = {
   },
 
   // ────────── WARMTEPOMP (additief parameter-model) ──────────
-  // Twee subtypes: lucht_lucht (airco) en lucht_water (CV met buitenunit/ketel).
-  // Geothermie is bewust niet opgenomen: niet courant in onderhoudsmarkt.
+  // Drie subtypes: lucht_lucht (airco / reversibel), lucht_water (vloerverwarming / radiatoren)
+  // en geothermie (bodem-water). Elk subtype gebruikt zijn eigen parameter-pricing-rijen
+  // (kolom pricing.subtype) zodat admins per subtype het tarief kunnen instellen.
   // Prijs wordt bottom-up opgebouwd uit pricing-rijen met sector='warmtepomp'
   // en parameter_key in {basispakket, extra_binnenunit, derde_plus_binnenunit,
   // extra_buitenunit, moeilijk_bereikbaar, vierwegkanaal, extra_ketel,
@@ -1329,11 +1329,13 @@ var SECTORS = {
 
     // ── Helpers (private aan deze module) ──────────────────────
     _wpTypes: function() {
-      // Welke types biedt deze partner aan? Mapped naar UI-labels.
+      // Welke types biedt deze partner aan? Mapped naar UI-labels die de eindklant zonder
+      // technische voorkennis snapt. Volgorde: populairste eerst (lucht-lucht/airco).
       var cfg = (partnerSectorConfig.warmtepomp || {}).types || {};
       var out = [];
       if (cfg.lucht_lucht && cfg.lucht_lucht.actief) out.push({ key: 'lucht_lucht', label: 'Airconditioning (lucht-lucht)' });
-      if (cfg.lucht_water && cfg.lucht_water.actief) out.push({ key: 'lucht_water', label: 'Vloerverwarming (lucht-water)' });
+      if (cfg.lucht_water && cfg.lucht_water.actief) out.push({ key: 'lucht_water', label: 'Vloerverwarming / radiatoren (lucht-water)' });
+      if (cfg.geothermie  && cfg.geothermie.actief)  out.push({ key: 'geothermie',  label: 'Geothermische warmtepomp (bodem-water)' });
       return out;
     },
     _wpTypeCfg: function(typeKey) {
@@ -1405,8 +1407,24 @@ var SECTORS = {
         '<div class="switch"><input type="checkbox" id="wp-lw-moeilijk" onchange="calculateAll()"><span class="slider"></span></div></label>' +
         '</div>';
 
+      // Geothermie inputs — zelfde parameter-set als lucht_water (buitenunit/ketel/glycol)
+      // maar met een dedicated id-prefix zodat inputs gescheiden blijven.
+      var formGEO = '<div id="wp-form-geothermie" class="wp-subform"' + (defaultType === 'geothermie' ? '' : ' style="display:none"') + '>' +
+        '<div class="field-row">' +
+        '<div class="field"><label>Aantal buitenunits</label><input type="number" id="wp-geo-buitenunits" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
+        '<div class="field"><label>Aantal ketels</label><input type="number" id="wp-geo-ketels" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
+        '</div>' +
+        '<label class="toggle-group" for="wp-geo-glycol"><div class="toggle-label">Glycol-vulling bodemcircuit<small>Bijvullen of vervangen van het bodemwisselaar-circuit</small></div>' +
+        '<div class="switch"><input type="checkbox" id="wp-geo-glycol" onchange="onWpGlycolToggle()"><span class="slider"></span></div></label>' +
+        '<div id="wp-geo-glycol-liter" style="display:none;padding:8px 0 0 44px">' +
+        '<div class="field"><label>Aantal liter</label><input type="number" id="wp-geo-glycol-n" min="1" max="50" value="5" oninput="calculateAll()"></div>' +
+        '</div>' +
+        '<label class="toggle-group" for="wp-geo-moeilijk"><div class="toggle-label">Moeilijk bereikbaar<small>Boorput moeilijk toegankelijk, ketelruimte krap, etc.</small></div>' +
+        '<div class="switch"><input type="checkbox" id="wp-geo-moeilijk" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+        '</div>';
+
       return '<div class="card"><div class="card-title">Uw warmtepompsysteem</div>' + typeField + '</div>' +
-        '<div class="card"><div class="card-title">Configuratie</div>' + formLL + formLW + '</div>';
+        '<div class="card"><div class="card-title">Configuratie</div>' + formLL + formLW + formGEO + '</div>';
     },
 
     readInputs: function() {
@@ -1433,7 +1451,21 @@ var SECTORS = {
           vierweg_aantal: (formule === 'allin' && vierwegOn) ? Math.max(1, parseInt((document.getElementById('wp-ll-vierweg-n') || {}).value) || 1) : 0
         };
       }
-      // lucht_water
+      if (typeKey === 'geothermie') {
+        var glycolOnG = !!(document.getElementById('wp-geo-glycol') || {}).checked;
+        var glLiterElG = document.getElementById('wp-geo-glycol-liter');
+        if (glLiterElG) glLiterElG.style.display = glycolOnG ? 'block' : 'none';
+        return {
+          subtype: 'geothermie',
+          formule: 'basic',
+          allin_multiplier: 1.0,
+          buitenunits: Math.max(1, parseInt((document.getElementById('wp-geo-buitenunits') || {}).value) || 1),
+          ketels: Math.max(1, parseInt((document.getElementById('wp-geo-ketels') || {}).value) || 1),
+          glycol_liter: glycolOnG ? Math.max(1, parseInt((document.getElementById('wp-geo-glycol-n') || {}).value) || 0) : 0,
+          moeilijk: !!(document.getElementById('wp-geo-moeilijk') || {}).checked
+        };
+      }
+      // lucht_water (default)
       var glycolOn = !!(document.getElementById('wp-lw-glycol') || {}).checked;
       var glLiterEl = document.getElementById('wp-lw-glycol-liter');
       if (glLiterEl) glLiterEl.style.display = glycolOn ? 'block' : 'none';
@@ -1511,19 +1543,24 @@ var SECTORS = {
         };
       }
 
-      // lucht_water
-      var b = P(pricing, 'lucht_water', 'basispakket');
-      add('Basispakket (buitenunit + mengpomp + ketel + magneetfilter)', b);
+      // lucht_water OF geothermie — zelfde additieve structuur, andere subtype-key voor pricing
+      // lookup. Basispakket-label verschilt per subtype voor heldere contract-communicatie.
+      var subKey = (sub === 'geothermie') ? 'geothermie' : 'lucht_water';
+      var basisLabel = (sub === 'geothermie')
+        ? 'Basispakket (bodemcircuit + mengpomp + warmtewisselaar + magneetfilter)'
+        : 'Basispakket (buitenunit + mengpomp + ketel + magneetfilter)';
+      var b = P(pricing, subKey, 'basispakket');
+      add(basisLabel, b);
 
       var extraB = Math.max(0, inputs.buitenunits - 1);
-      if (extraB > 0) add(extraB + ' \u00D7 extra buitenunit', extraB * P(pricing, 'lucht_water', 'extra_buitenunit'));
+      if (extraB > 0) add(extraB + ' \u00D7 extra buitenunit', extraB * P(pricing, subKey, 'extra_buitenunit'));
 
       var extraK = Math.max(0, inputs.ketels - 1);
-      if (extraK > 0) add(extraK + ' \u00D7 extra ketel', extraK * P(pricing, 'lucht_water', 'extra_ketel'));
+      if (extraK > 0) add(extraK + ' \u00D7 extra ketel', extraK * P(pricing, subKey, 'extra_ketel'));
 
-      if (inputs.glycol_liter > 0) add(inputs.glycol_liter + ' liter glycol-vulling', inputs.glycol_liter * P(pricing, 'lucht_water', 'glycol_vulling'));
+      if (inputs.glycol_liter > 0) add(inputs.glycol_liter + ' liter glycol-vulling', inputs.glycol_liter * P(pricing, subKey, 'glycol_vulling'));
 
-      if (inputs.moeilijk) add('Moeilijk bereikbaar', P(pricing, 'lucht_water', 'moeilijk_bereikbaar'));
+      if (inputs.moeilijk) add('Moeilijk bereikbaar', P(pricing, subKey, 'moeilijk_bereikbaar'));
 
       var subtotalExcl2 = subtotalFlancco * (1 + marge) + planFee;
       var displayLines2 = lines.map(function(l, idx) {
@@ -1566,7 +1603,9 @@ var SECTORS = {
         return '<tr><td>' + esc(pr.label) + '</td><td>' + fmt(bedrag) + unitTxt + '</td></tr>';
       }).join('');
 
-      var typeLabel = typeKey === 'lucht_lucht' ? 'Lucht-lucht (airco)' : 'Lucht-water';
+      var typeLabel = typeKey === 'lucht_lucht' ? 'Lucht-lucht (airco)'
+        : typeKey === 'geothermie' ? 'Geothermie (bodem-water)'
+        : 'Lucht-water';
       var formuleLabel = (typeKey === 'lucht_lucht') ? (formule === 'allin' ? ' \u2014 ALL-IN (\u00D7' + (typeCfg.allin_multiplier || 1.65).toFixed(2).replace('.', ',') + ')' : ' \u2014 BASIC') : '';
       return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Warmtepomp ' + typeLabel + formuleLabel + '</div>' +
         '<table class="staffel-table"><thead><tr><th>Parameter</th><th>Tarief incl. btw</th></tr></thead>' +
@@ -1590,6 +1629,9 @@ var SECTORS = {
         var formuleTxt = inputs.formule === 'allin' ? 'ALL-IN' : 'BASIC';
         return inputs.binnenunits + ' binnenunit(s) airconditioning &mdash; ' + formuleTxt;
       }
+      if (inputs.subtype === 'geothermie') {
+        return inputs.buitenunits + ' buitenunit(s) + ' + inputs.ketels + ' ketel(s) &mdash; geothermie';
+      }
       return inputs.buitenunits + ' buitenunit(s) + ' + inputs.ketels + ' ketel(s) &mdash; lucht-water';
     },
 
@@ -1599,6 +1641,13 @@ var SECTORS = {
         return '<li>het periodiek onderhoud van het airconditioningsysteem (lucht-lucht, ' + formuleTxt + '-formule);</li>' +
           '<li>reiniging van binnen- en buitenunit(s), filters en warmtewisselaar;</li>' +
           (inputs.formule === 'allin' ? '<li>desinfectie, elektrische controle en vierwegkanaal-onderhoud waar van toepassing;</li>' : '') +
+          '<li>een digitaal interventierapport na elke beurt.</li>';
+      }
+      if (inputs.subtype === 'geothermie') {
+        return '<li>het periodiek onderhoud van de geothermische warmtepomp (bodem-water);</li>' +
+          '<li>controle en reiniging van buitenunit, circulatiepomp, warmtewisselaar en magneetfilter;</li>' +
+          '<li>controle van het bodemcircuit (druk, glycol-concentratie, debiet);</li>' +
+          (inputs.glycol_liter > 0 ? '<li>bijvulling van het glycol-circuit (' + inputs.glycol_liter + ' liter);</li>' : '') +
           '<li>een digitaal interventierapport na elke beurt.</li>';
       }
       return '<li>het periodiek onderhoud van het lucht-waterwarmtepompsysteem;</li>' +
@@ -1618,6 +1667,15 @@ var SECTORS = {
         if (inputs.moeilijk) html += '<div class="data-row"><span class="data-label">Moeilijk bereikbaar</span><span class="data-value">Ja</span></div>';
         if (inputs.formule === 'allin' && inputs.vierweg_aantal > 0) html += '<div class="data-row"><span class="data-label">Vierwegkanaal-units</span><span class="data-value">' + inputs.vierweg_aantal + '</span></div>';
         return html;
+      }
+      if (inputs.subtype === 'geothermie') {
+        var htmlG = '<h2>Installatiegegevens &mdash; Warmtepomp</h2>' +
+          '<div class="data-row"><span class="data-label">Type</span><span class="data-value">Geothermische warmtepomp (bodem-water)</span></div>' +
+          '<div class="data-row"><span class="data-label">Aantal buitenunits</span><span class="data-value">' + inputs.buitenunits + '</span></div>' +
+          '<div class="data-row"><span class="data-label">Aantal ketels</span><span class="data-value">' + inputs.ketels + '</span></div>';
+        if (inputs.glycol_liter > 0) htmlG += '<div class="data-row"><span class="data-label">Glycol-vulling</span><span class="data-value">' + inputs.glycol_liter + ' liter</span></div>';
+        if (inputs.moeilijk) htmlG += '<div class="data-row"><span class="data-label">Moeilijk bereikbaar</span><span class="data-value">Ja</span></div>';
+        return htmlG;
       }
       var html2 = '<h2>Installatiegegevens &mdash; Warmtepomp</h2>' +
         '<div class="data-row"><span class="data-label">Type</span><span class="data-value">Vloerverwarming (lucht-water)</span></div>' +
@@ -1641,7 +1699,9 @@ var SECTORS = {
         var cp = (parseFloat(pr.flancco_forfait) || 0) * (1 + marge) * btwMult;
         return '<tr><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
       }).join('');
-      var typeLabel = inputs.subtype === 'lucht_lucht' ? 'lucht-lucht ' + (formule === 'allin' ? 'ALL-IN' : 'BASIC') : 'lucht-water';
+      var typeLabel = inputs.subtype === 'lucht_lucht' ? 'lucht-lucht ' + (formule === 'allin' ? 'ALL-IN' : 'BASIC')
+        : inputs.subtype === 'geothermie' ? 'geothermie (bodem-water)'
+        : 'lucht-water';
       return '<table class="pricing-table"><tr><th>Parameter (' + typeLabel + ')</th><th>Tarief incl. btw</th></tr>' + rows + '</table>';
     },
 
@@ -2048,6 +2108,15 @@ async function init() {
 
   var slug = params.get('partner');
   var sectorParam = params.get('sector'); // optional: pre-select specific sector
+  var subtypeParam = params.get('subtype'); // optional: pre-select warmtepomp-subtype
+
+  // Legacy: airco is geconsolideerd in warmtepomp + subtype lucht_lucht. Oude campagne-URL's,
+  // QR-codes en partner-embedcodes met ?sector=airco blijven werken doordat we ze hier
+  // transparent omleiden naar de nieuwe structuur.
+  if (sectorParam === 'airco') {
+    sectorParam = 'warmtepomp';
+    if (!subtypeParam) subtypeParam = 'lucht_lucht';
+  }
 
   if (!slug) { showError('Geen partner opgegeven in de URL.'); return; }
 
@@ -3678,11 +3747,20 @@ async function submitContract() {
     }
 
     // Build main payload (uses primary sector for backward-compatible fields)
+    // Voor warmtepomp bewaren we ook het subtype (lucht_lucht / lucht_water / geothermie) zodat
+    // de admin per subtype kan rapporteren, filteren en de hard-block op subtype-deactivatie
+    // correct kan tellen.
+    var primarySector = selectedSectors[0];
+    var primarySubtype = null;
+    if (primarySector === 'warmtepomp' && sectorResults.warmtepomp && sectorResults.warmtepomp.inputs) {
+      primarySubtype = sectorResults.warmtepomp.inputs.subtype || null;
+    }
     var payload = {
       id: contractId,
       partner_id: partner.id,
       client_id: clientId,
-      sector: selectedSectors[0], // primary sector
+      sector: primarySector,
+      subtype: primarySubtype,
       klant_naam: document.getElementById('klant-naam').value,
       klant_adres: document.getElementById('klant-straat').value + ' ' + document.getElementById('klant-huisnr').value,
       klant_postcode: document.getElementById('klant-postcode').value,
@@ -3814,7 +3892,7 @@ async function submitContract() {
           if (sec === 'zonnepanelen') {
             instPayload.roof_surfaces = [{ panel_count: secInputs.pan || 0, roof_type: secInputs.daktype || null, orientation: null }];
             instPayload.gutter_height = secInputs.hoog ? '> 7,5 m' : '< 7,5 m';
-          } else if (sec === 'warmtepomp' || sec === 'airco') {
+          } else if (sec === 'warmtepomp') {
             instPayload.indoor_unit_count = secInputs.binnenunits || 1;
             instPayload.outdoor_unit_count = secInputs.buitenunits || 1;
           } else if (sec === 'ventilatie') {
@@ -3994,8 +4072,8 @@ function downloadContract() {
       var cfg = {};
       if (sec === 'zonnepanelen') {
         cfg.pan = inputs.pan; cfg.daktype = inputs.daktype; cfg.hoog = inputs.hoog;
-      } else if (sec === 'warmtepomp' || sec === 'airco') {
-        cfg.binnenunits = inputs.binnenunits; cfg.formule = inputs.formule;
+      } else if (sec === 'warmtepomp') {
+        cfg.binnenunits = inputs.binnenunits; cfg.formule = inputs.formule; cfg.subtype = inputs.subtype;
       } else if (sec === 'ventilatie') {
         cfg.systeem = inputs.systeem; cfg.ventielen = inputs.ventielen;
       } else if (sec === 'verwarming') {
