@@ -3348,6 +3348,7 @@
         <label class="tech-cb"><input type="checkbox" id="tech-sec-warmtepomp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M14 4v10.54a4 4 0 11-4 0V4a2 2 0 014 0z"/></svg> Warmtepomp</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-ventilatie"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A2E" stroke-width="2"><path d="M12 12m-9 0a9 9 0 1018 0 9 9 0 10-18 0"/><path d="M12 12l-3-8c-2 3-2 6 0 8M12 12l3 8c2-3 2-6 0-8M12 12l-8 3c3 2 6 2 8 0M12 12l8-3c-3-2-6-2-8 0"/></svg> Ventilatie</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-verwarming"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 2 8 0 2.5-2 5-5 6.5"/></svg> Verwarming</label>
+        <label class="tech-cb"><input type="checkbox" id="tech-sec-airco"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07M2 12h20"/></svg> Airco</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M14 12h4M12 9v6"/></svg> IC</label>
         <label class="tech-cb"><input type="checkbox" id="tech-sec-klussen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Klussen</label>
       </div>
@@ -8300,15 +8301,45 @@ function renderSupplementenSection(partnerId, sector, sectorColor) {
   return html;
 }
 
+// Enum-waarden voor supplementen.type (DB CHECK: supplementen_type_check).
+// Volgorde: logisch gegroepeerd (vaste fees → conditionele meerprijzen → sector-specifiek).
+var SUPPLEMENT_TYPES = [
+  { value: 'transport',            label: 'Transport' },
+  { value: 'annulatie',            label: 'Annulatie' },
+  { value: 'planning',             label: 'Planning' },
+  { value: 'rapport',              label: 'Rapport' },
+  { value: 'vervuiling',           label: 'Vervuiling' },
+  { value: 'hoogtewerker',         label: 'Hoogtewerker' },
+  { value: 'extra_binnenunit',     label: 'Extra binnenunit' },
+  { value: 'extra_buitenunit',     label: 'Extra buitenunit' },
+  { value: 'moeilijk_bereikbaar',  label: 'Moeilijk bereikbaar' },
+  { value: 'vierwegkanaal',        label: 'Vierwegkanaal' },
+  { value: 'extra_ventiel',        label: 'Extra ventiel' },
+  { value: 'kanaalreiniging',      label: 'Kanaalreiniging' },
+  { value: 'ketelonderhoud',       label: 'Ketelonderhoud' },
+  { value: 'rookgasanalyse',       label: 'Rookgasanalyse' }
+];
+function _supplementTypeOptionsHTML(selected) {
+  var sel = selected || '';
+  var out = '<option value="">— Kies type —</option>';
+  for (var i = 0; i < SUPPLEMENT_TYPES.length; i++) {
+    var t = SUPPLEMENT_TYPES[i];
+    out += '<option value="' + t.value + '"' + (t.value === sel ? ' selected' : '') + '>' + esc(t.label) + '</option>';
+  }
+  return out;
+}
+
 function supplementRowHTML(s, editMode) {
   var isNew = !s.id;
   var readonly = !editMode && !isNew;
   var inputBase = 'padding:6px 10px;border:1.5px solid ' + (readonly ? 'transparent' : 'var(--rule)') + ';border-radius:6px;font-size:12px;font-family:inherit;background:' + (readonly ? 'transparent' : '#fff') + ';width:100%;color:var(--navy)';
+  var selectBase = inputBase + (readonly ? ';appearance:none;-webkit-appearance:none;pointer-events:none' : '');
   var roAttr = readonly ? ' readonly' : '';
+  var selDisabled = readonly ? ' disabled' : '';
   var cbDisabled = readonly ? ' disabled' : '';
   var actionDisplay = readonly ? 'display:none' : '';
   return '<tr data-id="' + (s.id || '') + '"' + (isNew ? ' data-new="1"' : '') + (s.actief === false ? ' style="opacity:0.55"' : '') + '>' +
-    '<td style="padding:6px 10px"><input type="text" data-fld="type" value="' + esc(s.type || '') + '" placeholder="bv. transport"' + roAttr + ' style="' + inputBase + '"></td>' +
+    '<td style="padding:6px 10px"><select data-fld="type"' + selDisabled + ' style="' + selectBase + '">' + _supplementTypeOptionsHTML(s.type) + '</select></td>' +
     '<td style="padding:6px 10px"><input type="text" data-fld="omschrijving" value="' + esc(s.omschrijving || '') + '" placeholder="Korte omschrijving"' + roAttr + ' style="' + inputBase + '"></td>' +
     '<td style="padding:6px 10px;text-align:right"><input type="number" step="0.01" min="0" data-fld="bedrag" value="' + (parseFloat(s.bedrag) || 0).toFixed(2) + '"' + roAttr + ' style="' + inputBase + ';text-align:right;width:90px"></td>' +
     '<td style="padding:6px 10px"><input type="text" data-fld="eenheid" value="' + esc(s.eenheid || '') + '" placeholder="per stuk / per km"' + roAttr + ' style="' + inputBase + '"></td>' +
@@ -8335,6 +8366,24 @@ function _setSuppSectionEditMode(section, editMode) {
       inp.setAttribute('readonly', 'readonly');
       inp.style.background = 'transparent';
       inp.style.border = '1.5px solid transparent';
+    }
+  });
+  // Selects (type) — select ondersteunt geen readonly, dus disabled + pointer-events
+  section.querySelectorAll('select[data-fld="type"]').forEach(function(sel) {
+    if (editMode) {
+      sel.removeAttribute('disabled');
+      sel.style.background = '#fff';
+      sel.style.border = '1.5px solid var(--rule)';
+      sel.style.pointerEvents = '';
+      sel.style.appearance = '';
+      sel.style.webkitAppearance = '';
+    } else {
+      sel.setAttribute('disabled', 'disabled');
+      sel.style.background = 'transparent';
+      sel.style.border = '1.5px solid transparent';
+      sel.style.pointerEvents = 'none';
+      sel.style.appearance = 'none';
+      sel.style.webkitAppearance = 'none';
     }
   });
   section.querySelectorAll('input[type="checkbox"][data-fld="actief"]').forEach(function(cb) {
@@ -12862,9 +12911,9 @@ function openTechModal(editData) {
   var currentVoertuig = editData ? allVoertuigen.find(function(v) { return v.technieker_id === editData.id; }) : null;
   voertuigSelect.value = currentVoertuig ? currentVoertuig.id : '';
 
-  // Sectoren
+  // Sectoren — volledige enum incl. airco (DB CHECK: technieker_sectoren_sector_check)
   var secs = editData ? allTechSectoren.filter(function(s) { return s.technieker_id === editData.id; }) : [];
-  ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'].forEach(function(sec) {
+  ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(sec) {
     document.getElementById('tech-sec-' + sec).checked = secs.some(function(s) { return s.sector === sec; });
   });
 
@@ -13054,7 +13103,8 @@ async function saveTechnieker() {
   }
   if (FIELD_ROLES.indexOf(payload.rol) >= 0) {
     var secRows = [];
-    ['zonnepanelen','warmtepomp','ventilatie','verwarming','ic','klussen'].forEach(function(sec) {
+    // Volledige enum incl. airco (DB CHECK: technieker_sectoren_sector_check)
+    ['zonnepanelen','warmtepomp','ventilatie','verwarming','airco','ic','klussen'].forEach(function(sec) {
       if (document.getElementById('tech-sec-' + sec).checked) {
         secRows.push({ technieker_id: techId, sector: sec });
       }
