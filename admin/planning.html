@@ -62,6 +62,9 @@
     --bg-hover: #F3F4F6;
     --transition-fast: 0.15s ease;
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    /* Form-control hoogte-token — bron van waarheid voor input/select/pill/segment
+       binnen modals, zodat alles op één baselijn staat. */
+    --control-h: 40px;
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: #1f2937; }
 
@@ -917,6 +920,12 @@
   .modal-field input, .modal-field select, .modal-field textarea {
     width: 100%; padding: 8px 12px; border: 1.5px solid var(--rule); border-radius: 8px;
     font-size: 13px; font-family: inherit; transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  /* Enkel-regel inputs/selects in modals op de gedeelde --control-h baseline */
+  .modal-field input:not([type="checkbox"]):not([type="radio"]),
+  .modal-field select {
+    height: var(--control-h);
   }
   .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus {
     outline: none; border-color: var(--navy);
@@ -931,7 +940,7 @@
      ============================================= */
   .pill-toggle {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 9px 14px; height: 40px; box-sizing: border-box;
+    padding: 9px 14px; height: var(--control-h); box-sizing: border-box;
     border: 1.5px solid var(--rule); border-radius: 8px;
     background: #fff; cursor: pointer; user-select: none;
     white-space: nowrap; transition: all 0.15s ease;
@@ -962,9 +971,41 @@
   /* Hele-dag pill-display (vervangt Uren+Min wanneer hele-dag actief) */
   .hele-dag-display {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 10px 14px; height: 40px; box-sizing: border-box;
+    padding: 10px 14px; height: var(--control-h); box-sizing: border-box;
     background: var(--navy); color: #fff; border-radius: 8px;
     font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap;
+  }
+
+  /* =============================================
+     SEGMENTED CONTROL — keuze tussen 2..N mutually exclusive opties
+     Gebruikt voor weekend-modus (Geen/Za/Zo/Beide) zodat één compact
+     element de vier staten toont in plaats van meerdere pills.
+     ============================================= */
+  .segmented-control {
+    display: inline-flex; align-items: stretch;
+    height: var(--control-h); box-sizing: border-box;
+    border: 1.5px solid var(--rule); border-radius: 8px;
+    background: #fff; overflow: hidden; user-select: none;
+    transition: border-color 0.15s ease;
+  }
+  .segmented-control:hover { border-color: var(--navy); }
+  .segmented-control .seg-btn {
+    appearance: none; -webkit-appearance: none;
+    background: transparent; border: 0; cursor: pointer;
+    padding: 0 14px; min-width: 44px;
+    font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1;
+    color: var(--navy);
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+    border-right: 1px solid var(--rule);
+  }
+  .segmented-control .seg-btn:last-child { border-right: 0; }
+  .segmented-control .seg-btn:hover:not(.is-active) { background: var(--light); }
+  .segmented-control .seg-btn.is-active {
+    background: var(--navy); color: #fff; font-weight: 600;
+  }
+  .segmented-control .seg-btn:focus-visible {
+    outline: 2px solid var(--navy); outline-offset: 2px;
   }
 
   /* =============================================
@@ -1926,17 +1967,24 @@
       </label>
     </div>
 
-    <!-- Conditionele eind-datum + weekend-toggle, enkel zichtbaar als multi-dag aan -->
+    <!-- Conditionele eind-datum + weekend-modus, enkel zichtbaar als multi-dag aan.
+         Weekend-modus is een segmented control (Geen/Za/Zo/Beide) ipv losse toggles,
+         zodat één compact element alle vier de staten toont. -->
     <div class="modal-row" id="edit-beurt-eind-row" style="display:none;align-items:flex-end">
       <div class="modal-field" id="edit-beurt-eind-wrap" style="flex:1">
         <label>Eind-datum</label>
         <input type="date" id="edit-beurt-eind-datum">
         <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">De beurt verschijnt op elke dag van start tot einde.</small>
       </div>
-      <label class="pill-toggle" id="edit-beurt-include-weekend-wrap" style="flex:0 0 auto;align-self:flex-end;margin-bottom:17px">
-        <input type="checkbox" id="edit-beurt-include-weekend" onchange="editBeurtWeekendChanged()">
-        <span class="pill-toggle-label">Inclusief weekend</span>
-      </label>
+      <div class="modal-field" id="edit-beurt-weekend-wrap" style="flex:0 0 auto;align-self:flex-end;margin-bottom:0">
+        <label>Weekend</label>
+        <div class="segmented-control" id="edit-beurt-weekend-seg" role="radiogroup" aria-label="Weekend-modus">
+          <button type="button" class="seg-btn is-active" data-weekend="geen"  role="radio" aria-checked="true"  onclick="setWeekendMode('geen')">Geen</button>
+          <button type="button" class="seg-btn"           data-weekend="za"    role="radio" aria-checked="false" onclick="setWeekendMode('za')">Za</button>
+          <button type="button" class="seg-btn"           data-weekend="zo"    role="radio" aria-checked="false" onclick="setWeekendMode('zo')">Zo</button>
+          <button type="button" class="seg-btn"           data-weekend="beide" role="radio" aria-checked="false" onclick="setWeekendMode('beide')">Beide</button>
+        </div>
+      </div>
     </div>
 
     <div class="modal-field">
@@ -2271,20 +2319,51 @@ function isSameDay(a, b) {
 }
 
 /**
+ * Weekend-modus helpers. weekend_mode is een enum met 4 waarden:
+ *   'geen'  = werkdagen only (ma-vr)
+ *   'za'    = werkdagen + zaterdag
+ *   'zo'    = werkdagen + zondag
+ *   'beide' = alle 7 dagen
+ * Backward-compat: boolean includeWeekend → mapt naar 'beide' (true) of 'geen' (false).
+ */
+function normalizeWeekendMode(mode) {
+  if (mode === true) return 'beide';
+  if (mode === false) return 'geen';
+  if (mode === 'geen' || mode === 'za' || mode === 'zo' || mode === 'beide') return mode;
+  return 'geen';
+}
+function includeZaterdag(mode) {
+  var m = normalizeWeekendMode(mode);
+  return m === 'za' || m === 'beide';
+}
+function includeZondag(mode) {
+  var m = normalizeWeekendMode(mode);
+  return m === 'zo' || m === 'beide';
+}
+// Legacy helper — 'geen' komt overeen met oude skip_weekend=true
+function skipWeekendFromMode(mode) {
+  return normalizeWeekendMode(mode) === 'geen';
+}
+
+/**
  * Q.7 — Berekent een reeks opeenvolgende werkdagen vanaf een startdatum.
- * Als includeWeekend=false (default-gedrag voor industrieel onderhoud): za/zo worden overgeslagen.
+ * Accepteert weekend_mode enum ('geen'/'za'/'zo'/'beide') of legacy boolean includeWeekend.
  * Returnt een Array van Date-objecten (lengte = aantalDagen).
  */
-function berekenWerkDagen(startDatum, aantalDagen, includeWeekend) {
+function berekenWerkDagen(startDatum, aantalDagen, weekendMode) {
+  var mode = normalizeWeekendMode(weekendMode);
+  var wantZa = includeZaterdag(mode);
+  var wantZo = includeZondag(mode);
   var dagen = [];
   var current = (startDatum instanceof Date) ? new Date(startDatum) : new Date(startDatum + 'T00:00:00');
   var safetyCounter = 0;
   // Safety-counter voorkomt infinite loop bij pathologische input (max ~1 jaar vooruit).
   while (dagen.length < aantalDagen && safetyCounter < 365) {
     var dow = current.getDay(); // 0=zo, 6=za
-    if (includeWeekend || (dow !== 0 && dow !== 6)) {
-      dagen.push(new Date(current));
-    }
+    var isZa = (dow === 6);
+    var isZo = (dow === 0);
+    var allow = (!isZa && !isZo) || (isZa && wantZa) || (isZo && wantZo);
+    if (allow) dagen.push(new Date(current));
     current.setDate(current.getDate() + 1);
     safetyCounter++;
   }
@@ -2508,16 +2587,26 @@ function hasVerlopenCertificeringen(techId) {
 
 // Fix #6 Multi-dag helpers: range-check i.p.v. exact-match op plan_datum.
 // Een beurt spant [plan_datum, eind_datum]. Als eind_datum NULL is → eendaags.
-// Q.7: als skip_weekend===true, dan vallen zaterdag + zondag buiten de reeks.
+// Weekend-filtering: leidt weekend_mode af (fallback via legacy skip_weekend) en
+// verbergt zaterdag/zondag volgens de gekozen modus.
+function getBeurtWeekendMode(beurt) {
+  if (!beurt) return 'geen';
+  if (beurt.weekend_mode) return normalizeWeekendMode(beurt.weekend_mode);
+  // Legacy fallback: skip_weekend boolean → 'geen' of 'beide'
+  if (beurt.skip_weekend === false) return 'beide';
+  return 'geen';
+}
 function isBeurtOnDay(beurt, dateISO) {
   if (!beurt || !beurt.plan_datum || !dateISO) return false;
   var einde = beurt.eind_datum || beurt.plan_datum;
   if (!(dateISO >= beurt.plan_datum && dateISO <= einde)) return false;
-  if (beurt.skip_weekend) {
+  var mode = getBeurtWeekendMode(beurt);
+  if (mode !== 'beide') {
     var dt = parseDate(dateISO);
     if (dt) {
       var dow = dt.getDay();
-      if (dow === 0 || dow === 6) return false;
+      if (dow === 6 && !includeZaterdag(mode)) return false;
+      if (dow === 0 && !includeZondag(mode)) return false;
     }
   }
   return true;
@@ -6227,11 +6316,16 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
       multiCb.checked = false;
       eindInput.value = '';
     }
-    // Q.7: include-weekend toggle pre-fill — default uit (skip_weekend=true is default-gedrag)
-    var incWknd = document.getElementById('edit-beurt-include-weekend');
-    if (incWknd) incWknd.checked = !!(beurt.eind_datum && beurt.skip_weekend === false);
+    // Weekend-modus pre-fill — default 'geen' (werkdagen only).
+    // Leest uit beurt.weekend_mode (nieuwe kolom), met backward-compat fallback op skip_weekend boolean.
+    var initialMode = 'geen';
+    if (beurt.weekend_mode) {
+      initialMode = normalizeWeekendMode(beurt.weekend_mode);
+    } else if (beurt.eind_datum && beurt.skip_weekend === false) {
+      initialMode = 'beide';
+    }
     editBeurtMultiDagChanged();
-    editBeurtWeekendChanged();
+    setWeekendMode(initialMode);
   }
 
   // Set notities
@@ -6379,11 +6473,8 @@ function editBeurtMultiDagChanged() {
   } else {
     eindRow.style.display = 'none';
     eindInput.value = '';
-    // Weekend-toggle ook uit + active-class wissen als wrapper verdwijnt
-    var weekendCb = document.getElementById('edit-beurt-include-weekend');
-    var weekendToggle = document.getElementById('edit-beurt-include-weekend-wrap');
-    if (weekendCb) weekendCb.checked = false;
-    if (weekendToggle) weekendToggle.classList.remove('is-active');
+    // Weekend-modus terug naar default ('geen') als multi-dag wordt uitgezet
+    setWeekendMode('geen');
   }
 }
 
@@ -6519,10 +6610,29 @@ function editBeurtHeleDagChanged() {
  * Zet .is-active class zodat de pill navy oplicht bij selectie — consistent
  * met de andere pill-toggles in dezelfde modal.
  */
-function editBeurtWeekendChanged() {
-  var cb = document.getElementById('edit-beurt-include-weekend');
-  var wrap = document.getElementById('edit-beurt-include-weekend-wrap');
-  if (cb && wrap) wrap.classList.toggle('is-active', cb.checked);
+/**
+ * Zet de weekend-modus op de segmented control + syncht aria-state.
+ * mode ∈ {'geen','za','zo','beide'}. Non-valide waarden vallen terug op 'geen'.
+ */
+function setWeekendMode(mode) {
+  var normalized = normalizeWeekendMode(mode);
+  var seg = document.getElementById('edit-beurt-weekend-seg');
+  if (!seg) return;
+  var buttons = seg.querySelectorAll('.seg-btn');
+  for (var i = 0; i < buttons.length; i++) {
+    var b = buttons[i];
+    var isActive = (b.dataset.weekend === normalized);
+    b.classList.toggle('is-active', isActive);
+    b.setAttribute('aria-checked', isActive ? 'true' : 'false');
+  }
+  seg.dataset.mode = normalized;
+}
+
+/** Leest de huidige weekend-modus uit de segmented control. */
+function getWeekendMode() {
+  var seg = document.getElementById('edit-beurt-weekend-seg');
+  if (!seg) return 'geen';
+  return normalizeWeekendMode(seg.dataset.mode || 'geen');
 }
 
 function getProvincie(postcode) {
@@ -7092,11 +7202,12 @@ async function saveEditBeurt() {
   });
 
   // Fix #6: Multi-dag planning — eind-datum (NULL = eendaags)
+  // Weekend-modus wordt enkel betekenisvol bij een multi-dag reeks. Eendaagse beurt
+  // krijgt altijd 'geen' zodat de DB-waarde consistent blijft met het UI-gedrag.
   var multiCb = document.getElementById('edit-beurt-meerdere-dagen');
   var eindInputEl = document.getElementById('edit-beurt-eind-datum');
-  var includeWeekendCb = document.getElementById('edit-beurt-include-weekend');
   var eindDatum = null;
-  var skipWeekend = false;
+  var weekendMode = 'geen';
   if (multiCb && multiCb.checked && eindInputEl && eindInputEl.value) {
     eindDatum = eindInputEl.value;
     if (eindDatum < datum) {
@@ -7104,14 +7215,15 @@ async function saveEditBeurt() {
       return;
     }
     if (eindDatum === datum) eindDatum = null; // gelijke dag = eendaags
-    // Q.7: skip weekend tenzij expliciet aangevinkt
-    skipWeekend = eindDatum ? !(includeWeekendCb && includeWeekendCb.checked) : false;
+    if (eindDatum) weekendMode = getWeekendMode();
   }
+  var skipWeekend = skipWeekendFromMode(weekendMode);
 
   var updateData = {
     technieker_id: techId,
     plan_datum: datum,
     eind_datum: eindDatum,
+    weekend_mode: weekendMode,
     skip_weekend: skipWeekend,
     start_tijd: startTijd,
     duur_minuten: duur,
@@ -7154,6 +7266,7 @@ async function saveEditBeurt() {
   beurt.technieker_id = techId;
   beurt.plan_datum = datum;
   beurt.eind_datum = eindDatum;
+  beurt.weekend_mode = weekendMode;
   beurt.skip_weekend = skipWeekend;
   beurt.start_tijd = startTijd;
   beurt.duur_minuten = duur;
