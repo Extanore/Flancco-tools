@@ -1905,7 +1905,7 @@
       <div class="footer-right">
         <button type="button" class="btn btn-ghost" onclick="closeEditBeurtModal()">Annuleren</button>
         <div class="btn-split" id="edit-beurt-save-split">
-          <button type="button" class="btn btn-primary btn-split-main" onclick="saveEditBeurt()">Opslaan</button>
+          <button type="button" id="edit-beurt-main-btn" class="btn btn-primary btn-split-main" onclick="editBeurtMainAction()">Opslaan</button>
           <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer acties" onclick="toggleSplitMenu(this, event)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
@@ -1913,6 +1913,10 @@
             <button type="button" id="edit-beurt-uitgevoerd-btn" class="btn-split-menu-item" role="menuitem" onclick="markUitgevoerdFromModal(); closeAllSplitMenus()">
               <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></span>
               <span class="bsi-label">Markeer als uitgevoerd<small>Bevestig uren en sluit de beurt af</small></span>
+            </button>
+            <button type="button" id="edit-beurt-save-only-btn" class="btn-split-menu-item" role="menuitem" onclick="saveEditBeurt(); closeAllSplitMenus()">
+              <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span>
+              <span class="bsi-label">Enkel wijzigingen opslaan<small>Laat status 'ingepland' ongewijzigd</small></span>
             </button>
             <button type="button" id="edit-beurt-reopen-btn" class="btn-split-menu-item" role="menuitem" onclick="reopenBeurtFromModal(); closeAllSplitMenus()">
               <span class="bsi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg></span>
@@ -6198,10 +6202,34 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   // - Verwijderen: altijd, behalve voor nieuwe beurten die nog niet in DB staan
   var isUitgevoerd = (beurt.status === 'uitgevoerd' || beurt.status === 'afgewerkt');
   var isIngepland  = (beurt.status === 'ingepland');
+
+  // Primary-actie-swap voor "overdue" beurten (ingepland + plan_datum in het verleden).
+  // Rationale: bij een beurt die gisteren stond, is de natuurlijke vervolgstap "Markeer
+  // als uitgevoerd" — niet "Opslaan" van field-edits. We promoveren dus die actie naar
+  // de hoofdknop en stoppen de save-flow in het dropdown-menu.
+  var todayIso = new Date().toISOString().slice(0, 10);
+  var beurtDateIso = (dropDate || beurt.plan_datum || '');
+  var isOverdue = isIngepland && !isNew && beurtDateIso && beurtDateIso < todayIso;
+
+  var mainActionBtn = document.getElementById('edit-beurt-main-btn');
+  if (mainActionBtn) {
+    // Sla de huidige primary-actie op als data-attribute zodat editBeurtMainAction() weet
+    // welke functie te dispatchen — dit houdt onclick-string in HTML constant en vermijdt
+    // inline-closure-bugs bij herhaalde open/close van de modal.
+    mainActionBtn.dataset.action = isOverdue ? 'mark-uitgevoerd' : 'save';
+    mainActionBtn.textContent = isOverdue ? 'Markeer als uitgevoerd' : 'Opslaan';
+  }
+
   var unplanBtn = document.getElementById('edit-beurt-unplan-btn');
   if (unplanBtn) unplanBtn.style.display = isIngepland ? '' : 'none';
   var uitgevoerdBtn = document.getElementById('edit-beurt-uitgevoerd-btn');
-  if (uitgevoerdBtn) uitgevoerdBtn.style.display = isIngepland ? '' : 'none';
+  // Verberg "Markeer als uitgevoerd" uit menu als het al primary is (overdue-case)
+  if (uitgevoerdBtn) uitgevoerdBtn.style.display = (isIngepland && !isOverdue) ? '' : 'none';
+  var saveOnlyBtn = document.getElementById('edit-beurt-save-only-btn');
+  // "Enkel wijzigingen opslaan" is de tegenhanger van de primary-swap: enkel tonen
+  // als primary = "Markeer als uitgevoerd", zodat de planner nog een ontsnapping heeft
+  // om louter de datum/technieker aan te passen zonder status-transitie te triggeren.
+  if (saveOnlyBtn) saveOnlyBtn.style.display = isOverdue ? '' : 'none';
   var reopenBtn = document.getElementById('edit-beurt-reopen-btn');
   if (reopenBtn) reopenBtn.style.display = isUitgevoerd ? '' : 'none';
   var deleteBtn = document.getElementById('edit-beurt-delete-btn');
@@ -6227,10 +6255,11 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
         mainBtn.style.borderRightWidth = '';
       }
     }
-    // Verberg separator als er enkel "Uitplannen" overblijft (want dan staat hij bovenaan)
+    // Verberg separator als er geen items boven OF geen items onder zijn
     var sep = split.querySelector('.btn-split-menu-sep');
     if (sep) {
       var anyAbove = (uitgevoerdBtn && uitgevoerdBtn.style.display !== 'none') ||
+                     (saveOnlyBtn   && saveOnlyBtn.style.display   !== 'none') ||
                      (reopenBtn     && reopenBtn.style.display     !== 'none');
       var anyBelow = (unplanBtn     && unplanBtn.style.display     !== 'none');
       sep.style.display = (anyAbove && anyBelow) ? '' : 'none';
@@ -6506,6 +6535,22 @@ async function markUitgevoerdFromModal() {
   if (!beurt) return;
   closeEditBeurtModal();
   openUrenBevestigenModal(beurt);
+}
+
+/**
+ * Dispatcher voor de primary-actie-knop in de edit-beurt modal.
+ * De modal swapt bij "overdue" beurten (ingepland + plan_datum in verleden) de
+ * primary-actie van 'Opslaan' naar 'Markeer als uitgevoerd'. De actie staat als
+ * data-action op de knop en wordt hier vertaald naar de juiste handler.
+ */
+function editBeurtMainAction() {
+  var btn = document.getElementById('edit-beurt-main-btn');
+  var action = (btn && btn.dataset.action) || 'save';
+  if (action === 'mark-uitgevoerd') {
+    markUitgevoerdFromModal();
+  } else {
+    saveEditBeurt();
+  }
 }
 
 /**
