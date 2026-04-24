@@ -7419,13 +7419,61 @@ async function toggleAdminSector(partnerId, sector, label) {
     }
   }
 
+  // Auto-seed pricing-staffels vanuit Flancco Direct-template zodat een nieuwe partner
+  // meteen een werkende calculator-link heeft. Zonder deze seed filtert calculator de
+  // sector stil weg (pricing leeg → showError "Diensten nog niet volledig geconfigureerd").
+  // Werkt voor elke sector. Admin kan nadien finetunen in Prijsbeheer. Niet-blocking.
+  var pricingWasSeeded = false;
+  if (nowActive) {
+    try {
+      var templatePartner = (partners || []).find(function(p) { return p.slug === 'flancco'; });
+      if (templatePartner && templatePartner.id !== partnerId) {
+        var existingPr = await sb.from('pricing').select('id').eq('partner_id', partnerId).eq('sector', sector).limit(1);
+        if (!existingPr.error && (!existingPr.data || existingPr.data.length === 0)) {
+          var templatePr = await sb.from('pricing')
+            .select('staffel_min, staffel_max, label, flancco_forfait, actief, sector, subtype, parameter_key, formule_scope, sort_order')
+            .eq('partner_id', templatePartner.id)
+            .eq('sector', sector);
+          if (!templatePr.error && templatePr.data && templatePr.data.length > 0) {
+            var rows = templatePr.data.map(function(r) {
+              return {
+                partner_id: partnerId,
+                staffel_min: r.staffel_min,
+                staffel_max: r.staffel_max,
+                label: r.label,
+                flancco_forfait: r.flancco_forfait,
+                actief: r.actief,
+                sector: r.sector,
+                subtype: r.subtype,
+                parameter_key: r.parameter_key,
+                formule_scope: r.formule_scope,
+                sort_order: r.sort_order
+              };
+            });
+            var insertPr = await sb.from('pricing').insert(rows);
+            if (!insertPr.error) {
+              pricingWasSeeded = true;
+              // Reload in-memory cache zodat Prijsbeheer direct de nieuwe rijen toont.
+              var reloadPr = await sb.from('pricing').select('*');
+              if (reloadPr && reloadPr.data) allPricing = reloadPr.data;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Auto-seed pricing-staffels mislukt (niet-blocking):', e);
+    }
+  }
+
   // UX: na activatie herinner admin om pricing-staffels in te stellen. Bij deactivatie geen toast
   // (actie is vanzelfsprekend). Bestaande sectoren met al-pricing tonen ook geen toast.
   if (nowActive && typeof showToast === 'function') {
     var heeftPricing = (allPricing || []).some(function(pr) {
       return pr.partner_id === partnerId && pr.sector === sector && pr.actief;
     });
-    if (!heeftPricing) {
+    if (pricingWasSeeded) {
+      showToast('Sector toegevoegd met default pricing. Pas aan in Prijsbeheer indien nodig.', 'info');
+    } else if (!heeftPricing) {
       showToast('Sector toegevoegd. Configureer pricing-staffels in Prijsbeheer om de calculator volledig te activeren.', 'info');
     }
   }
