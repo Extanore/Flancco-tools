@@ -2855,10 +2855,14 @@ async function checkAuth() {
 
   currentUser = session.user;
   var roleQ = await sb.from('user_roles').select('*').eq('user_id', currentUser.id).single();
-  if (roleQ.error || !roleQ.data || roleQ.data.role !== 'admin') {
+  // Planning is toegankelijk voor admin + bediende (admin-light). Andere rollen
+  // (partner/technieker) worden teruggestuurd naar het dashboard.
+  var allowedRoles = ['admin', 'bediende'];
+  if (roleQ.error || !roleQ.data || allowedRoles.indexOf(roleQ.data.role) === -1) {
     window.location.href = './';
     return;
   }
+  window.userRole = roleQ.data.role;
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   await loadPlanningData();
