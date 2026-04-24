@@ -888,6 +888,12 @@
     border-radius: 8px; transition: background 0.15s; font-weight: 500;
   }
   .ctx-menu .ctx-item:hover { background: var(--light); }
+  /* Overdue-accent: "Markeer als uitgevoerd" krijgt primary-emphasis als de
+     beurt in het verleden ligt (signaal dat dit de verwachte actie is). */
+  .ctx-menu .ctx-item.is-primary {
+    background: rgba(26,26,46,0.06); font-weight: 700;
+  }
+  .ctx-menu .ctx-item.is-primary:hover { background: rgba(26,26,46,0.12); }
   .ctx-menu .ctx-item.danger { color: var(--red); }
   .ctx-menu .ctx-item svg { width: 16px; height: 16px; flex-shrink: 0; }
 
@@ -916,6 +922,50 @@
     outline: none; border-color: var(--navy);
   }
   /* .modal-buttons base — gedefinieerd in DESIGN-SYSTEEM BUTTONS block hieronder */
+
+  /* =============================================
+     PILL-TOGGLE — gestandaardiseerde checkbox-in-pill-vorm
+     Gebruikt voor booleaanse opties waarbij de visuele staat (aan/uit) sterker
+     telt dan het native checkbox-icoon (bv. "Hele dag", "Inclusief weekend",
+     "Over meerdere dagen"). Consistent met .modal-field-hoogte (40px totaal).
+     ============================================= */
+  .pill-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 14px; height: 40px; box-sizing: border-box;
+    border: 1.5px solid var(--rule); border-radius: 8px;
+    background: #fff; cursor: pointer; user-select: none;
+    white-space: nowrap; transition: all 0.15s ease;
+  }
+  .pill-toggle:hover { border-color: var(--navy); }
+  .pill-toggle input[type="checkbox"] {
+    width: 15px; height: 15px; padding: 0; margin: 0; flex-shrink: 0;
+    border: 1px solid var(--rule); accent-color: var(--navy); cursor: pointer;
+  }
+  .pill-toggle-label {
+    font-size: 13px; font-weight: 500; color: var(--navy); line-height: 1;
+  }
+  /* Actief: navy fill + witte tekst (JS zet .is-active class) */
+  .pill-toggle.is-active { background: var(--navy); border-color: var(--navy); }
+  .pill-toggle.is-active .pill-toggle-label { color: #fff; }
+  .pill-toggle.is-active input[type="checkbox"] { accent-color: #fff; }
+
+  /* Duur-groep: Uren + Min inputs compact naast elkaar, met één gedeeld label */
+  .duur-inputs {
+    display: flex; gap: 8px; align-items: flex-end;
+  }
+  .duur-inputs .modal-field { margin-bottom: 0; flex: 0 0 88px; }
+  .duur-row {
+    display: flex; align-items: flex-end; gap: 12px; margin-bottom: 12px;
+  }
+  .duur-row .duur-fields { flex: 1; min-width: 0; }
+  .duur-row .pill-toggle { flex-shrink: 0; }
+  /* Hele-dag pill-display (vervangt Uren+Min wanneer hele-dag actief) */
+  .hele-dag-display {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 14px; height: 40px; box-sizing: border-box;
+    background: var(--navy); color: #fff; border-radius: 8px;
+    font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap;
+  }
 
   /* =============================================
      DESIGN-SYSTEEM BUTTONS — bron van waarheid (consistent met admin/index.html)
@@ -1828,6 +1878,7 @@
       <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">Automatisch ingevuld vanuit locatie of klant. Kan per taak aangepast worden.</small>
     </div>
 
+    <!-- Planning-blok: datum + starttijd + duur + multi-dag-optie in één coherente groep -->
     <div class="modal-row">
       <div class="modal-field" style="flex:1">
         <label>Datum</label>
@@ -1839,41 +1890,52 @@
       </div>
     </div>
 
-    <!-- Fix #6: Multi-dag planning -->
-    <div class="modal-row" id="edit-beurt-multi-row" style="align-items:flex-end;gap:12px">
-      <label id="edit-beurt-multi-toggle" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
-        <input type="checkbox" id="edit-beurt-meerdere-dagen" onchange="editBeurtMultiDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
-        <span style="font-size:13px;font-weight:500;color:var(--navy)">Over meerdere dagen</span>
+    <!-- Duur-rij: uren + min inputs + "Hele dag"-pill rechts. Bij hele-dag-actief
+         wordt de inputs-groep vervangen door een navy pill-display. -->
+    <div class="modal-field" id="edit-beurt-duur-rij">
+      <label>Duur</label>
+      <div class="duur-row">
+        <div class="duur-fields" id="edit-beurt-duur-fields">
+          <div class="duur-inputs">
+            <div class="modal-field" id="edit-beurt-duur-uren-wrap">
+              <input type="number" id="edit-beurt-duur-uren" min="0" max="12" value="1" onchange="syncDuurLabel()" aria-label="Uren" placeholder="uu">
+            </div>
+            <div class="modal-field" id="edit-beurt-duur-min-wrap">
+              <select id="edit-beurt-duur-min" onchange="syncDuurLabel()" aria-label="Minuten">
+                <option value="0">00 min</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="hele-dag-display" id="edit-beurt-hele-dag-badge" style="display:none">7u 36min</div>
+        <label class="pill-toggle" id="edit-beurt-hele-dag-toggle">
+          <input type="checkbox" id="edit-beurt-hele-dag" onchange="editBeurtHeleDagChanged()">
+          <span class="pill-toggle-label">Hele dag (7,6u)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Multi-dag toggle (eigen rij, prominent genoeg als top-level optie) -->
+    <div class="modal-field" id="edit-beurt-multi-row" style="margin-bottom:12px">
+      <label class="pill-toggle" id="edit-beurt-multi-toggle">
+        <input type="checkbox" id="edit-beurt-meerdere-dagen" onchange="editBeurtMultiDagChanged()">
+        <span class="pill-toggle-label">Over meerdere dagen</span>
       </label>
-      <div class="modal-field" id="edit-beurt-eind-wrap" style="flex:1;display:none">
+    </div>
+
+    <!-- Conditionele eind-datum + weekend-toggle, enkel zichtbaar als multi-dag aan -->
+    <div class="modal-row" id="edit-beurt-eind-row" style="display:none;align-items:flex-end">
+      <div class="modal-field" id="edit-beurt-eind-wrap" style="flex:1">
         <label>Eind-datum</label>
         <input type="date" id="edit-beurt-eind-datum">
         <small style="display:block;margin-top:4px;font-size:11px;color:var(--grey)">De beurt verschijnt op elke dag van start tot einde.</small>
       </div>
-      <label id="edit-beurt-include-weekend-wrap" style="display:none;flex:0 0 auto;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap;align-self:flex-end">
-        <input type="checkbox" id="edit-beurt-include-weekend" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
-        <span style="font-size:13px;font-weight:500;color:var(--navy)">Inclusief weekend (za + zo)</span>
-      </label>
-    </div>
-
-    <div class="modal-row" id="edit-beurt-duur-rij" style="align-items:flex-end;gap:12px">
-      <div class="modal-field" id="edit-beurt-duur-uren-wrap" style="flex:0 0 96px;min-width:0">
-        <label>Uren</label>
-        <input type="number" id="edit-beurt-duur-uren" min="0" max="12" value="1" onchange="syncDuurLabel()">
-      </div>
-      <div class="modal-field" id="edit-beurt-duur-min-wrap" style="flex:0 0 96px;min-width:0">
-        <label>Min.</label>
-        <select id="edit-beurt-duur-min" onchange="syncDuurLabel()">
-          <option value="0">00</option>
-          <option value="15">15</option>
-          <option value="30">30</option>
-          <option value="45">45</option>
-        </select>
-      </div>
-      <div id="edit-beurt-hele-dag-badge" style="display:none;flex:0 0 auto;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
-      <label id="edit-beurt-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
-        <input type="checkbox" id="edit-beurt-hele-dag" onchange="editBeurtHeleDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
-        <span style="font-size:13px;font-weight:500;color:var(--navy)">Hele dag (7,6u)</span>
+      <label class="pill-toggle" id="edit-beurt-include-weekend-wrap" style="flex:0 0 auto;align-self:flex-end;margin-bottom:17px">
+        <input type="checkbox" id="edit-beurt-include-weekend" onchange="editBeurtWeekendChanged()">
+        <span class="pill-toggle-label">Inclusief weekend</span>
       </label>
     </div>
 
@@ -5712,6 +5774,12 @@ function onCardContext(e, beurtId) {
   var isUitgevoerd = status === 'uitgevoerd' || status === 'afgewerkt';
   var isGeannuleerd = status === 'geannuleerd';
 
+  // Overdue-detectie: ingeplande beurt waarvan plan_datum in het verleden ligt.
+  // Consistent met edit-beurt-modal-logica: dit markeert "Markeer als uitgevoerd"
+  // als de dominante/primaire actie in het menu.
+  var todayIso = new Date().toISOString().slice(0, 10);
+  var isOverdue = isIngepland && beurt && beurt.plan_datum && beurt.plan_datum < todayIso;
+
   // Tonen/verbergen per item
   function setShown(id, shown) {
     var el = document.getElementById(id);
@@ -5725,6 +5793,10 @@ function onCardContext(e, beurtId) {
   // Separator verbergen als er geen items boven/onder staan
   var hasTopItems = isIngepland || isUitgevoerd || isGeannuleerd;
   setShown('ctx-sep-1', hasTopItems && !isGeannuleerd);
+
+  // Primary-emphasis op "Markeer als uitgevoerd" bij overdue beurten
+  var markDoneItem = document.getElementById('ctx-mark-done');
+  if (markDoneItem) markDoneItem.classList.toggle('is-primary', isOverdue);
 
   menu.style.display = 'block';
   menu.style.left = e.clientX + 'px';
@@ -6159,6 +6231,7 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
     var incWknd = document.getElementById('edit-beurt-include-weekend');
     if (incWknd) incWknd.checked = !!(beurt.eind_datum && beurt.skip_weekend === false);
     editBeurtMultiDagChanged();
+    editBeurtWeekendChanged();
   }
 
   // Set notities
@@ -6283,15 +6356,17 @@ function closeEditBeurtModal() {
  */
 function editBeurtMultiDagChanged() {
   var cb = document.getElementById('edit-beurt-meerdere-dagen');
-  var wrap = document.getElementById('edit-beurt-eind-wrap');
+  var eindRow = document.getElementById('edit-beurt-eind-row');
+  var multiToggle = document.getElementById('edit-beurt-multi-toggle');
   var eindInput = document.getElementById('edit-beurt-eind-datum');
   var startInput = document.getElementById('edit-beurt-datum');
-  var weekendWrap = document.getElementById('edit-beurt-include-weekend-wrap');
-  if (!cb || !wrap || !eindInput) return;
+  if (!cb || !eindRow || !eindInput) return;
+
+  // Visuele active-state op de pill-toggle (navy fill)
+  if (multiToggle) multiToggle.classList.toggle('is-active', cb.checked);
 
   if (cb.checked) {
-    wrap.style.display = 'block';
-    if (weekendWrap) weekendWrap.style.display = 'inline-flex';
+    eindRow.style.display = 'flex';
     if (!eindInput.value && startInput && startInput.value) {
       // Pre-fill op start + 1 dag
       var d = new Date(startInput.value);
@@ -6302,9 +6377,13 @@ function editBeurtMultiDagChanged() {
       eindInput.min = startInput.value;
     }
   } else {
-    wrap.style.display = 'none';
-    if (weekendWrap) weekendWrap.style.display = 'none';
+    eindRow.style.display = 'none';
     eindInput.value = '';
+    // Weekend-toggle ook uit + active-class wissen als wrapper verdwijnt
+    var weekendCb = document.getElementById('edit-beurt-include-weekend');
+    var weekendToggle = document.getElementById('edit-beurt-include-weekend-wrap');
+    if (weekendCb) weekendCb.checked = false;
+    if (weekendToggle) weekendToggle.classList.remove('is-active');
   }
 }
 
@@ -6422,26 +6501,28 @@ function editBeurtHeleDagChanged() {
   var checked = cb.checked;
 
   var startWrap = document.getElementById('edit-beurt-start-wrap');
-  var urenWrap = document.getElementById('edit-beurt-duur-uren-wrap');
-  var minWrap = document.getElementById('edit-beurt-duur-min-wrap');
+  var duurFields = document.getElementById('edit-beurt-duur-fields');
   var badge = document.getElementById('edit-beurt-hele-dag-badge');
   var toggle = document.getElementById('edit-beurt-hele-dag-toggle');
 
+  // Starttijd verbergen bij hele-dag (irrelevant als 'elke dag start → einde')
   if (startWrap) startWrap.style.display = checked ? 'none' : '';
-  if (urenWrap) urenWrap.style.display = checked ? 'none' : '';
-  if (minWrap) minWrap.style.display = checked ? 'none' : '';
+  // Duur-inputs groep vervangen door navy pill-display
+  if (duurFields) duurFields.style.display = checked ? 'none' : '';
   if (badge) badge.style.display = checked ? 'inline-flex' : 'none';
-  if (toggle) {
-    if (checked) {
-      toggle.style.background = 'var(--navy)';
-      toggle.style.borderColor = 'var(--navy)';
-      toggle.querySelector('span').style.color = '#fff';
-    } else {
-      toggle.style.background = '#fff';
-      toggle.style.borderColor = 'var(--rule)';
-      toggle.querySelector('span').style.color = 'var(--navy)';
-    }
-  }
+  // Pill-toggle krijgt actieve styling via CSS class (consistent met andere pills)
+  if (toggle) toggle.classList.toggle('is-active', checked);
+}
+
+/**
+ * Centrale handler voor de "Inclusief weekend" pill-toggle.
+ * Zet .is-active class zodat de pill navy oplicht bij selectie — consistent
+ * met de andere pill-toggles in dezelfde modal.
+ */
+function editBeurtWeekendChanged() {
+  var cb = document.getElementById('edit-beurt-include-weekend');
+  var wrap = document.getElementById('edit-beurt-include-weekend-wrap');
+  if (cb && wrap) wrap.classList.toggle('is-active', cb.checked);
 }
 
 function getProvincie(postcode) {
