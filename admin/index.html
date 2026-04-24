@@ -1011,7 +1011,7 @@
 
   /* ============= Verlofbeheer — tabbed layout ============= */
   .verlof-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; gap:16px; flex-wrap:wrap; }
-  .verlof-title { font-size:28px; font-weight:700; color:var(--navy); margin:0; }
+  .verlof-title { font-size:22px; font-weight:700; color:var(--navy); margin:0; letter-spacing:-0.01em; line-height:1.2; }
   .verlof-subtitle { color:var(--grey); font-size:13px; margin:4px 0 0; }
   .verlof-tabs { display:inline-flex; gap:2px; background:#F3F4F6; padding:4px; border-radius:10px; margin-bottom:20px; }
   .v-tab { background:transparent; border:none; padding:8px 16px; font-size:13px; font-weight:600; color:var(--grey); border-radius:7px; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
@@ -1511,23 +1511,38 @@
     <!-- CONTRACTEN PAGE -->
     <div class="page" id="page-contracten">
       <div class="card">
-        <div class="card-header" style="display:flex;align-items:center;gap:12px;">
-          <span class="card-title" id="contracten-title" style="margin-right:auto;">Alle klantcontracten</span>
-          <select id="filter-partner" class="admin-only" onchange="loadContracten()" style="padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
-            <option value="">Alle partners</option>
-          </select>
-          <button type="button" class="btn btn-ghost" onclick="exportContractenCSV()" style="margin:0;font-size:12px" title="Download contracten als CSV (respecteert huidige filter)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exporteer CSV
-          </button>
-          <button type="button" class="btn btn-primary" onclick="window.location.href='contracten-wizard.html'" style="margin:0;font-size:12px">+ Nieuw contract</button>
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title" id="contracten-title">Alle klantcontracten</h2>
+            <p class="dv-subtitle">Overzicht van lopende en eenmalige onderhoudscontracten per partner en klant</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" onclick="exportContractenCSV()" title="Download contracten als CSV (respecteert huidige filter)">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporteer CSV
+            </button>
+            <button type="button" class="btn btn-primary" onclick="window.location.href='contracten-wizard.html'">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nieuw contract
+            </button>
+          </div>
         </div>
-        <div class="contracten-tabs" style="display:flex;gap:6px;padding:0 16px 12px;border-bottom:1px solid var(--rule)">
-          <button type="button" class="c-tab active" data-ctab="lopend" onclick="switchContractTab('lopend')">
-            Lopend <span class="c-tab-count" id="c-tab-lopend-count">0</span>
-          </button>
-          <button type="button" class="c-tab" data-ctab="eenmalig" onclick="switchContractTab('eenmalig')">
-            Eenmalig <span class="c-tab-count" id="c-tab-eenmalig-count">0</span>
-          </button>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-left">
+            <div class="contracten-tabs" style="display:flex;gap:6px">
+              <button type="button" class="c-tab active" data-ctab="lopend" onclick="switchContractTab('lopend')">
+                Lopend <span class="c-tab-count" id="c-tab-lopend-count">0</span>
+              </button>
+              <button type="button" class="c-tab" data-ctab="eenmalig" onclick="switchContractTab('eenmalig')">
+                Eenmalig <span class="c-tab-count" id="c-tab-eenmalig-count">0</span>
+              </button>
+            </div>
+          </div>
+          <div class="dv-toolbar-right">
+            <select id="filter-partner" class="dv-select admin-only" onchange="loadContracten()">
+              <option value="">Alle partners</option>
+            </select>
+          </div>
         </div>
         <table>
           <thead><tr><th>Klant</th><th class="admin-only">Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
@@ -1999,10 +2014,18 @@
     <!-- AUDIT LOG PAGE (admin only) -->
     <div class="page admin-only" id="page-auditlog">
       <div class="card">
-        <div class="card-header">
-          <span class="card-title">Audit-log</span>
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Audit-log</h2>
+            <p class="dv-subtitle">Historisch overzicht van business-kritieke mutaties — compliance, incidentonderzoek en verdediging bij klachten of betwistingen</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" onclick="exportAuditCsv()" title="Download gefilterde audit-rijen als CSV">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporteer CSV
+            </button>
+          </div>
         </div>
-        <p style="font-size:13px;color:var(--grey);margin:0 0 16px">Volledig historisch overzicht van business-kritieke mutaties in het platform. Gebruikt voor compliance, incidentonderzoek en verdediging bij klachten of betwistingen.</p>
 
         <!-- Filters -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;padding:14px;background:var(--light);border-radius:8px">
@@ -2048,13 +2071,9 @@
           </div>
         </div>
 
-        <!-- Totaal + Export -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap">
+        <!-- Totaal (CSV-export bevindt zich in card-header) -->
+        <div style="margin-bottom:12px">
           <div id="audit-count" style="font-size:12px;color:var(--grey)">&nbsp;</div>
-          <button class="btn btn-ghost" type="button" onclick="exportAuditCsv()" style="display:flex;align-items:center;gap:6px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            CSV-export
-          </button>
         </div>
 
         <!-- Tabel -->
@@ -2154,11 +2173,22 @@
       <!-- Techniekers tab -->
       <div class="p-tab-pane active" id="ptab-techniekers">
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-            <div style="display:flex;gap:12px;align-items:center">
-              <input type="text" id="tech-search" placeholder="Zoek technieker..." oninput="renderTechniekers()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:220px">
+          <div class="dv-header">
+            <div class="dv-header-left">
+              <h2 class="dv-title">Techniekers</h2>
+              <p class="dv-subtitle">Flancco-techniekers actief op klanten-sites, inclusief sectoren en contracturen</p>
             </div>
-            <button class="btn btn-primary" onclick="openTechModal()">+ Nieuwe technieker</button>
+            <div class="dv-header-actions">
+              <button type="button" class="btn btn-primary" onclick="openTechModal()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nieuwe technieker
+              </button>
+            </div>
+          </div>
+          <div class="dv-toolbar">
+            <div class="dv-toolbar-left">
+              <input type="text" id="tech-search" placeholder="Zoek op naam, functie, email..." oninput="renderTechniekers()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:260px">
+            </div>
           </div>
           <table class="expandable-table">
             <thead>
@@ -2181,11 +2211,22 @@
       <!-- Bedienden tab -->
       <div class="p-tab-pane" id="ptab-bedienden" style="display:none">
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-            <div style="display:flex;gap:12px;align-items:center">
-              <input type="text" id="bed-search" placeholder="Zoek bediende..." oninput="renderBedienden()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:220px">
+          <div class="dv-header">
+            <div class="dv-header-left">
+              <h2 class="dv-title">Bedienden</h2>
+              <p class="dv-subtitle">Interne medewerkers met toegang tot het platform — beheer rollen, startdatum en contactgegevens</p>
             </div>
-            <button class="btn btn-primary" onclick="openBediendeModal()">+ Nieuwe bediende</button>
+            <div class="dv-header-actions">
+              <button type="button" class="btn btn-primary" onclick="openBediendeModal()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nieuwe bediende
+              </button>
+            </div>
+          </div>
+          <div class="dv-toolbar">
+            <div class="dv-toolbar-left">
+              <input type="text" id="bed-search" placeholder="Zoek op naam, functie, email..." oninput="renderBedienden()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:260px">
+            </div>
           </div>
           <table class="expandable-table">
             <thead>
@@ -2617,17 +2658,30 @@
 
     <div class="page admin-only" id="page-wagenpark">
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-          <div style="display:flex;gap:12px;align-items:center">
-            <input type="text" id="wagen-search" placeholder="Zoek merk, model, nummerplaat..." oninput="renderWagenpark()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:280px">
-            <select id="wagen-status-filter" onchange="renderWagenpark()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Wagenpark</h2>
+            <p class="dv-subtitle">Alle bedrijfsvoertuigen met keuring, verzekering, KM-stand en toegewezen technieker</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-primary" onclick="openWagenModal()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nieuw voertuig
+            </button>
+          </div>
+        </div>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-left">
+            <input type="text" id="wagen-search" placeholder="Zoek op merk, model, nummerplaat..." oninput="renderWagenpark()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:280px">
+          </div>
+          <div class="dv-toolbar-right">
+            <select id="wagen-status-filter" class="dv-select" onchange="renderWagenpark()">
               <option value="">Alle statussen</option>
               <option value="actief">Actief</option>
               <option value="in_onderhoud">In onderhoud</option>
               <option value="uit_dienst">Uit dienst</option>
             </select>
           </div>
-          <button class="btn btn-primary" onclick="openWagenModal()">+ Nieuw voertuig</button>
         </div>
         <table class="expandable-table">
           <thead>
