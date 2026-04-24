@@ -2005,6 +2005,23 @@
       <textarea id="edit-beurt-notities" rows="2" placeholder="Optioneel..."></textarea>
     </div>
 
+    <!-- Geplande dagen: multi-dag beurten tonen hier alle ingeplande dagen met per-dag
+         tech/start/duur. Enkel zichtbaar bij > 1 dag. Laat toe om een dag te
+         verwijderen of een extra dag toe te voegen zonder de hele reeks te wijzigen. -->
+    <div class="modal-field" id="edit-beurt-dagen-sectie" style="display:none">
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span>Geplande dagen</span>
+        <button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="openExtraDagPrompt()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Extra dag toevoegen
+        </button>
+      </label>
+      <div id="edit-beurt-dagen-lijst" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
+      <small style="display:block;margin-top:6px;font-size:11px;color:var(--grey)">
+        Klik een dag aan om te bewerken. Wijzigingen aan de hoofdvelden hierboven gelden voor de geselecteerde dag.
+      </small>
+    </div>
+
     <div class="modal-buttons">
       <div class="footer-left">
         <button id="edit-beurt-delete-btn" type="button" class="btn btn-danger-ghost" onclick="deleteBeurtFromModal()">
@@ -2596,8 +2613,20 @@ function getBeurtWeekendMode(beurt) {
   if (beurt.skip_weekend === false) return 'beide';
   return 'geen';
 }
+/**
+ * Of deze beurt op de opgegeven datum gepland staat.
+ * Nieuwe logica: check of er een dag-record bestaat voor (beurt_id, datum).
+ * Fallback op legacy plan_datum/eind_datum range voor backward-compat wanneer
+ * de dag-records nog niet gemaakt zijn (bv. net na contract-seed vóór inplanning).
+ */
 function isBeurtOnDay(beurt, dateISO) {
-  if (!beurt || !beurt.plan_datum || !dateISO) return false;
+  if (!beurt || !dateISO) return false;
+  // Primary: dag-records
+  if (getDagForBeurtOnDate(beurt.id, dateISO)) return true;
+  // Fallback: legacy range op parent
+  if (!beurt.plan_datum) return false;
+  // Alleen fallback gebruiken als er echt géén dag-records zijn voor deze beurt
+  if ((window._planningDagenByBeurt || {})[beurt.id]) return false;
   var einde = beurt.eind_datum || beurt.plan_datum;
   if (!(dateISO >= beurt.plan_datum && dateISO <= einde)) return false;
   var mode = getBeurtWeekendMode(beurt);
@@ -2612,11 +2641,19 @@ function isBeurtOnDay(beurt, dateISO) {
   return true;
 }
 
-// Bepaalt voor een multi-dag beurt welke dag in de reeks `dateISO` is (1-based).
-// Returns { dayIndex, totalDays, isMultiDay } — isMultiDay=false voor eendaags.
+/**
+ * Multi-dag info voor deze beurt op dateISO.
+ * Primary: geteld uit dag-records. Fallback: legacy plan_datum/eind_datum range.
+ * Returns { dayIndex, totalDays, isMultiDay } (1-based).
+ */
 function getBeurtDayInfo(beurt, dateISO) {
   var noInfo = { dayIndex: 1, totalDays: 1, isMultiDay: false };
-  if (!beurt || !beurt.plan_datum) return noInfo;
+  if (!beurt) return noInfo;
+  // Primary: dag-records
+  var fromDagen = getDagInfoFromDagen(beurt.id, dateISO);
+  if (fromDagen) return fromDagen;
+  // Fallback: legacy range
+  if (!beurt.plan_datum) return noInfo;
   var einde = beurt.eind_datum || beurt.plan_datum;
   if (einde === beurt.plan_datum) return noInfo;
   var start = parseDate(beurt.plan_datum);
@@ -2629,12 +2666,46 @@ function getBeurtDayInfo(beurt, dateISO) {
   return { dayIndex: dayIndex, totalDays: totalDays, isMultiDay: true };
 }
 
+/**
+ * Geeft effectieve velden voor een beurt op een specifieke datum — dag-record
+ * wint over parent. Gebruikt voor kalender-render (start_tijd, duur, technieker
+ * kunnen per dag verschillen).
+ */
+function getBeurtFieldsOnDate(beurt, dateISO) {
+  var dag = beurt && beurt.id ? getDagForBeurtOnDate(beurt.id, dateISO) : null;
+  if (dag) {
+    return {
+      start_tijd: dag.start_tijd || (beurt && beurt.start_tijd) || null,
+      duur_minuten: dag.duur_minuten != null ? dag.duur_minuten : (beurt && beurt.duur_minuten) || null,
+      technieker_id: dag.technieker_id || (beurt && beurt.technieker_id) || null,
+      extra_technieker_ids: (dag.extra_technieker_ids && dag.extra_technieker_ids.length) ? dag.extra_technieker_ids : ((beurt && beurt.extra_technieker_ids) || []),
+      _dagRecord: dag
+    };
+  }
+  return {
+    start_tijd: (beurt && beurt.start_tijd) || null,
+    duur_minuten: (beurt && beurt.duur_minuten) || null,
+    technieker_id: (beurt && beurt.technieker_id) || null,
+    extra_technieker_ids: (beurt && beurt.extra_technieker_ids) || [],
+    _dagRecord: null
+  };
+}
+
 function getBeurtenForTechDay(techId, date) {
   var ds = formatDateISO(date);
   return allBeurten.filter(function(b) {
-    if (b.technieker_id !== techId) return false;
     if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
-    return isBeurtOnDay(b, ds);
+    if (!isBeurtOnDay(b, ds)) return false;
+    // Technieker-match op dag-niveau (dag-record wint over parent)
+    var fields = getBeurtFieldsOnDate(b, ds);
+    if (fields.technieker_id === techId) return true;
+    if (fields.extra_technieker_ids && fields.extra_technieker_ids.indexOf(techId) !== -1) return true;
+    // Legacy fallback: parent-velden als er géén dag-record is
+    if (!fields._dagRecord) {
+      if (b.technieker_id === techId) return true;
+      if (b.extra_technieker_ids && b.extra_technieker_ids.indexOf(techId) !== -1) return true;
+    }
+    return false;
   });
 }
 
@@ -3151,7 +3222,11 @@ async function loadPlanningData() {
     sb.from('client_locations').select('id, client_id, label, street, house_number, postal_code, city, country, is_primary, po_number'),
     sb.from('beurt_uren_registraties').select('*').then(function(r) { return r; }, function() { return { data: [] }; }),
     sb.from('technieker_certificeringen').select('id, technieker_id, type, vervaldatum').then(function(r) { return r; }, function() { return { data: [] }; }),
-    sb.from('app_settings').select('key, value').in('key', ['planning_lead_days']).then(function(r) { return r; }, function() { return { data: [] }; })
+    sb.from('app_settings').select('key, value').in('key', ['planning_lead_days']).then(function(r) { return r; }, function() { return { data: [] }; }),
+    // Planning-dagen (per-dag instantie van een opdracht). Eén onderhoudsbeurt kan
+    // N dagen hebben met elk eigen datum + techs + duur. Fallback op lege array
+    // zodat legacy DB (zonder tabel) de pagina niet blokkeert.
+    sb.from('beurt_planning_dagen').select('*').then(function(r) { return r; }, function() { return { data: [] }; })
   ]);
 
   allBeurten = results[0].data || [];
@@ -3177,7 +3252,72 @@ async function loadPlanningData() {
   window._appSettings = {};
   settingsRows.forEach(function(r) { window._appSettings[r.key] = r.value; });
 
+  // Per-dag planning-records. Ieder record representeert één dag × tech-samenstelling.
+  // Parent onderhoudsbeurten.plan_datum/eind_datum/technieker_id zijn gecachte
+  // samenvattingen die door een DB-trigger bijgewerkt worden wanneer dagen wijzigen.
+  window.allPlanningDagen = (results[16] && results[16].data) || [];
+  _rebuildPlanningDagenIndex();
+
   populateFilterDropdowns();
+}
+
+// =============================================
+// PLANNING-DAGEN HELPERS
+// =============================================
+// Index beurt_id → sorted [dag-records] voor O(1) lookup.
+window._planningDagenByBeurt = {};
+
+function _rebuildPlanningDagenIndex() {
+  var idx = {};
+  var dagen = window.allPlanningDagen || [];
+  for (var i = 0; i < dagen.length; i++) {
+    var d = dagen[i];
+    if (!idx[d.beurt_id]) idx[d.beurt_id] = [];
+    idx[d.beurt_id].push(d);
+  }
+  Object.keys(idx).forEach(function(bid) {
+    idx[bid].sort(function(a, b) { return (a.datum || '').localeCompare(b.datum || ''); });
+  });
+  window._planningDagenByBeurt = idx;
+}
+
+/**
+ * Geeft alle dag-records voor een beurt, gesorteerd op datum.
+ */
+function getDagenForBeurt(beurtId) {
+  return window._planningDagenByBeurt[beurtId] || [];
+}
+
+/**
+ * Geeft het dag-record voor een beurt op een specifieke datum (ISO string).
+ */
+function getDagForBeurtOnDate(beurtId, dateISO) {
+  var arr = getDagenForBeurt(beurtId);
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].datum === dateISO) return arr[i];
+  }
+  return null;
+}
+
+/**
+ * Geeft "Dag X/Y" info voor een beurt op een gegeven datum — op basis van
+ * daadwerkelijke dag-records (niet meer via plan_datum/eind_datum range).
+ * Returnt { dayIndex, totalDays, isMultiDay } of null als datum niet gepland is.
+ */
+function getDagInfoFromDagen(beurtId, dateISO) {
+  var arr = getDagenForBeurt(beurtId);
+  if (!arr.length) return null;
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].datum === dateISO) {
+      return {
+        dayIndex: i + 1,
+        totalDays: arr.length,
+        isMultiDay: arr.length > 1,
+        dagRecord: arr[i]
+      };
+    }
+  }
+  return null;
 }
 
 /**
@@ -3622,18 +3762,21 @@ function renderWeekView() {
     html += '<tr>';
 
     // C3 + Fix #6: Uren naast technieker-naam — tel alle ingepland/uitgevoerd/afgewerkt.
-    // Voor multi-dag beurten: duur_minuten telt per dag in de range die binnen deze week valt.
+    // Per-dag tech-samenstelling + duur worden gelezen uit dag-records (getBeurtFieldsOnDate);
+    // legacy-fallback op parent-velden als er nog geen dag-record is.
     var weekMin = 0;
     allBeurten.forEach(function(b) {
-      var isPrimary = b.technieker_id === tech.id;
-      var isExtra = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
-      if (!isPrimary && !isExtra) return;
       if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return;
-      var minPerDag = getEffectieveMinutenForBeurt(b, tech.id);
       for (var wd = 0; wd < 7; wd++) {
-        if (isBeurtOnDay(b, formatDateISO(dates[wd]))) {
-          weekMin += minPerDag;
-        }
+        var dISO = formatDateISO(dates[wd]);
+        if (!isBeurtOnDay(b, dISO)) continue;
+        var f = getBeurtFieldsOnDate(b, dISO);
+        var isPri = f.technieker_id === tech.id;
+        var isExt = f.extra_technieker_ids && f.extra_technieker_ids.indexOf(tech.id) !== -1;
+        if (!isPri && !isExt) continue;
+        // Per-dag duur uit dag-record; fallback op parent-duur / 1 (legacy eendaags).
+        var minPerDag = f.duur_minuten != null ? f.duur_minuten : (getEffectieveMinutenForBeurt(b, tech.id) || 0);
+        weekMin += minPerDag;
       }
     });
     var geplandUren = weekMin / 60;
@@ -3671,14 +3814,18 @@ function renderWeekView() {
           '<span class="absent-label" style="color:' + afwInfo.kleur + '">' + esc(afwInfo.type_naam) + halveLbl + '</span></td>';
       } else {
         var dayISO = formatDateISO(dates[d]);
-        var beurten = getBeurtenForTechDay(tech.id, dates[d]).filter(passesFilters);
+        // Primaire + extra beurten voor deze tech op deze dag worden samen
+        // opgehaald via getBeurtenForTechDay (leest tech-samenstelling per dag).
+        // We splitsen ze hierna op: primair = hoofdkaart, extra = ghost-kaart.
+        var allForTech = getBeurtenForTechDay(tech.id, dates[d]).filter(passesFilters);
+        var beurten = [];
+        var ghostBeurten = [];
+        allForTech.forEach(function(b) {
+          var f = getBeurtFieldsOnDate(b, dayISO);
+          if (f.technieker_id === tech.id) beurten.push(b);
+          else ghostBeurten.push(b);
+        });
         beurten.sort(function(a, b) { return (a.start_tijd || '99:99').localeCompare(b.start_tijd || '99:99'); });
-        // Fix #6: ghost-beurten voor duo — nu ook range-based voor multi-dag beurten
-        var ghostBeurten = allBeurten.filter(function(b) {
-          if (!b.extra_technieker_ids || b.extra_technieker_ids.indexOf(tech.id) === -1) return false;
-          if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
-          return isBeurtOnDay(b, dayISO);
-        }).filter(passesFilters);
         ghostBeurten.sort(function(a, b) { return (a.start_tijd || '99:99').localeCompare(b.start_tijd || '99:99'); });
 
         html += '<td class="' + (isToday ? 'today-col' : '') + weekendCls + '" ' +
@@ -3700,18 +3847,20 @@ function renderWeekView() {
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
           var dayInfo = getBeurtDayInfo(b, dayISO);
-          html += renderApptCard(b, info, dayInfo);
+          html += renderApptCard(b, info, dayInfo, dayISO);
         });
         // Duo-beurten: toon als volwaardige kaart met duo-indicator (+ multi-dag badge)
         ghostBeurten.forEach(function(b) {
           var info = getClientInfo(b);
-          var hoofdTech = allTechniekers.find(function(t) { return t.id === b.technieker_id; });
+          // Effectieve velden op deze dag: dag-record wint over parent
+          var ghostFields = getBeurtFieldsOnDate(b, dayISO);
+          var hoofdTech = allTechniekers.find(function(t) { return t.id === ghostFields.technieker_id; });
           var hoofdNaam = hoofdTech ? (hoofdTech.voornaam + ' ' + hoofdTech.naam) : '';
           var ghostDayInfo = getBeurtDayInfo(b, dayISO);
           var ghostIsFirst = ghostDayInfo.dayIndex === 1;
           var ghostIsLast = ghostDayInfo.dayIndex === ghostDayInfo.totalDays;
-          var dStartTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
-          var dEndTime = dStartTime && b.duur_minuten ? calcEndTime(dStartTime, b.duur_minuten) : '';
+          var dStartTime = ghostFields.start_tijd ? ghostFields.start_tijd.substring(0, 5) : '';
+          var dEndTime = dStartTime && ghostFields.duur_minuten ? calcEndTime(dStartTime, ghostFields.duur_minuten) : '';
           var dTimeStr;
           if (ghostDayInfo.isMultiDay) {
             if (ghostIsFirst && dStartTime) dTimeStr = 'Start ' + dStartTime;
@@ -3720,7 +3869,7 @@ function renderWeekView() {
           } else {
             dTimeStr = b.hele_dag ? 'Hele dag' : (dStartTime ? (dStartTime + (dEndTime ? '-' + dEndTime : '')) : '');
           }
-          var dDuurStr = (b.hele_dag || ghostDayInfo.isMultiDay) ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
+          var dDuurStr = (b.hele_dag || ghostDayInfo.isMultiDay) ? '' : (ghostFields.duur_minuten ? formatDuration(ghostFields.duur_minuten) : '');
           var ghostMultiBadge = ghostDayInfo.isMultiDay ?
             '<span class="appt-multidag-badge" title="Meerdaagse opdracht">Dag ' + ghostDayInfo.dayIndex + '/' + ghostDayInfo.totalDays + '</span>' : '';
           var ghostMultiClass = ghostDayInfo.isMultiDay ? ' is-multidag' : '';
@@ -3890,16 +4039,22 @@ function beurtRefHtml(b) {
   return ref ? '<span class="ref-chip">' + esc(ref) + '</span>' : '';
 }
 
-function renderApptCard(b, info, dayInfo) {
+function renderApptCard(b, info, dayInfo, dateISO) {
   // Fix #6: dayInfo = { dayIndex, totalDays, isMultiDay } voor multi-dag beurten; default eendaags.
   dayInfo = dayInfo || { dayIndex: 1, totalDays: 1, isMultiDay: false };
   var isFirstDay = dayInfo.dayIndex === 1;
   var isLastDay  = dayInfo.dayIndex === dayInfo.totalDays;
 
+  // Effectieve velden op deze dag: dag-record wint over parent (multi-tech-per-dag support)
+  var fields = dateISO ? getBeurtFieldsOnDate(b, dateISO) : {
+    start_tijd: b.start_tijd, duur_minuten: b.duur_minuten,
+    technieker_id: b.technieker_id, extra_technieker_ids: b.extra_technieker_ids || []
+  };
+
   var extraHtml = '';
-  if (b.extra_technieker_ids && b.extra_technieker_ids.length > 0) {
+  if (fields.extra_technieker_ids && fields.extra_technieker_ids.length > 0) {
     var extraNames = [];
-    b.extra_technieker_ids.forEach(function(tid) {
+    fields.extra_technieker_ids.forEach(function(tid) {
       var et = allTechniekers.find(function(t) { return t.id === tid; });
       if (et) extraNames.push(et.voornaam + ' ' + et.naam);
     });
@@ -3907,8 +4062,8 @@ function renderApptCard(b, info, dayInfo) {
       extraHtml = '<div class="appt-extra-label">+ ' + esc(extraNames.join(', ')) + '</div>';
     }
   }
-  var startTime = b.start_tijd ? b.start_tijd.substring(0, 5) : '';
-  var endTime = startTime && b.duur_minuten ? calcEndTime(startTime, b.duur_minuten) : '';
+  var startTime = fields.start_tijd ? fields.start_tijd.substring(0, 5) : '';
+  var endTime = startTime && fields.duur_minuten ? calcEndTime(startTime, fields.duur_minuten) : '';
   // Multi-dag: starttijd toont alleen op dag 1, eindtijd alleen op laatste dag; tussendagen = 'Hele dag'
   var timeStr;
   if (dayInfo.isMultiDay) {
@@ -3918,7 +4073,7 @@ function renderApptCard(b, info, dayInfo) {
   } else {
     timeStr = b.hele_dag ? 'Hele dag' : (startTime ? (startTime + (endTime ? '-' + endTime : '')) : '');
   }
-  var duurStr = (b.hele_dag || dayInfo.isMultiDay) ? '' : (b.duur_minuten ? formatDuration(b.duur_minuten) : '');
+  var duurStr = (b.hele_dag || dayInfo.isMultiDay) ? '' : (fields.duur_minuten ? formatDuration(fields.duur_minuten) : '');
   var installStr = getInstallationSummary(b);
 
   var losseBadge = (info && info.isLosseOpdracht) ?
@@ -4002,18 +4157,20 @@ function renderDayView() {
       } else {
         // Find beurten that start at this time slot (incl. duo-beurten)
         // Fix #6: voor multi-dag beurten toont enkel dag 1 op start_tijd-slot; tussendagen + laatste dag = eerste slot van de dag (08:00)
+        // Per-dag tech + starttijd: dag-record wint over parent (getBeurtFieldsOnDate).
         var beurten = allBeurten.filter(function(b) {
-          var isPri = b.technieker_id === tech.id;
-          var isExt = b.extra_technieker_ids && b.extra_technieker_ids.indexOf(tech.id) !== -1;
-          if (!isPri && !isExt) return false;
           if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
           if (!isBeurtOnDay(b, dateStr)) return false;
+          var f = getBeurtFieldsOnDate(b, dateStr);
+          var isPri = f.technieker_id === tech.id;
+          var isExt = f.extra_technieker_ids && f.extra_technieker_ids.indexOf(tech.id) !== -1;
+          if (!isPri && !isExt) return false;
           var dInfo = getBeurtDayInfo(b, dateStr);
           if (dInfo.isMultiDay && dInfo.dayIndex > 1) {
             // Tussendagen + laatste dag: toon in eerste slot (08:00) ongeacht start_tijd
             return slot === '08:00';
           }
-          return b.start_tijd && b.start_tijd.substring(0,5) === slot;
+          return f.start_tijd && f.start_tijd.substring(0,5) === slot;
         }).filter(passesFilters);
 
         html += '<td ondragover="onDragOver(event)" ondrop="onDropDay(event, \'' + tech.id + '\', \'' + dateStr + '\', \'' + slot + '\')" ' +
@@ -4021,7 +4178,7 @@ function renderDayView() {
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
           var dayInfo = getBeurtDayInfo(b, dateStr);
-          html += renderApptCard(b, info, dayInfo);
+          html += renderApptCard(b, info, dayInfo, dateStr);
         });
         html += '</td>';
       }
@@ -5272,6 +5429,20 @@ async function savePlanInterventie() {
   if (bRes.error) { await infoDialog(formatBeurtInsertError(bRes.error, 'Fout bij aanmaken beurt'), 'Opslaan mislukt'); return; }
   var newBeurtId = bRes.data[0].id;
 
+  // Dag-record voor de interventie (eendaags)
+  try {
+    await sb.from('beurt_planning_dagen').upsert({
+      beurt_id: newBeurtId,
+      datum: datum,
+      start_tijd: start || null,
+      duur_minuten: duur || 60,
+      technieker_id: techId,
+      extra_technieker_ids: []
+    }, { onConflict: 'beurt_id,datum' });
+  } catch (e) {
+    console.warn('[beurt_planning_dagen] interventie dag-record faalde:', e);
+  }
+
   // 2. Koppel interventie aan beurt + update status/plan_datum
   var ivRes = await sb.from('interventies').update({
     onderhoudsbeurt_id: newBeurtId,
@@ -5671,6 +5842,22 @@ async function _saveNieuweInterventieInner(action) {
         }
         if (!firstBeurtId) firstBeurtId = bRes.data.id;
 
+        // Dag-record voor deze interventie-dag (1 per beurt, eendaags)
+        try {
+          await sb.from('beurt_planning_dagen').upsert({
+            beurt_id: bRes.data.id,
+            datum: datumISO,
+            start_tijd: null,
+            duur_minuten: 456,
+            technieker_id: row.primaryTechId,
+            extra_technieker_ids: (row.extraTechIds || []).filter(function(tid) {
+              return tid && tid !== row.primaryTechId;
+            })
+          }, { onConflict: 'beurt_id,datum' });
+        } catch (e) {
+          console.warn('[beurt_planning_dagen] multi-day interventie dag ' + (di + 1) + ' faalde:', e);
+        }
+
         // Insert per-(dag, tech) rijen in interventie_technieker_dag
         var itdRows = [];
         itdRows.push({
@@ -5727,6 +5914,21 @@ async function _saveNieuweInterventieInner(action) {
         bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select().single();
       }
       if (bRes.error) { await infoDialog(formatBeurtInsertError(bRes.error, 'Fout bij aanmaken beurt'), 'Opslaan mislukt'); return; }
+
+      // Dag-record voor single-day interventie
+      try {
+        await sb.from('beurt_planning_dagen').upsert({
+          beurt_id: bRes.data.id,
+          datum: planDatum,
+          start_tijd: planStart || null,
+          duur_minuten: duur || 60,
+          technieker_id: planTech,
+          extra_technieker_ids: []
+        }, { onConflict: 'beurt_id,datum' });
+      } catch (e) {
+        console.warn('[beurt_planning_dagen] single-day interventie faalde:', e);
+      }
+
       // Koppel interventie aan beurt
       await sb.from('interventies').update({ onderhoudsbeurt_id: bRes.data.id }).eq('id', newIv.id);
     }
@@ -5873,6 +6075,32 @@ async function planBeurt(beurtId, techId, planDatum, startTijd) {
     return;
   }
 
+  // Dag-record upsert voor drag-drop inplanning.
+  // Parent-duur/extra-techs worden overgenomen van het huidige beurt-record.
+  try {
+    var dagPayload = {
+      beurt_id: beurtId,
+      datum: planDatum,
+      start_tijd: startTijd || null,
+      duur_minuten: beurt.duur_minuten || 60,
+      technieker_id: techId,
+      extra_technieker_ids: beurt.extra_technieker_ids || []
+    };
+    var dagRes = await sb.from('beurt_planning_dagen')
+      .upsert(dagPayload, { onConflict: 'beurt_id,datum' });
+    if (dagRes.error) {
+      console.warn('[beurt_planning_dagen] planBeurt upsert faalde:', dagRes.error);
+    } else {
+      // Update lokale cache
+      window.allPlanningDagen = (window.allPlanningDagen || [])
+        .filter(function(r) { return !(r.beurt_id === beurtId && r.datum === planDatum); })
+        .concat([dagPayload]);
+      if (typeof _rebuildPlanningDagenIndex === 'function') _rebuildPlanningDagenIndex();
+    }
+  } catch (e) {
+    console.warn('[beurt_planning_dagen] planBeurt error:', e);
+  }
+
   // Update local state
   beurt.technieker_id = techId;
   beurt.plan_datum = planDatum;
@@ -5900,6 +6128,20 @@ async function unplanBeurt(beurtId) {
   if (result.error) {
     showToast('Fout: ' + result.error.message, 'error');
     return;
+  }
+
+  // Alle dag-records voor deze beurt verwijderen bij uitplannen.
+  try {
+    var delRes = await sb.from('beurt_planning_dagen').delete().eq('beurt_id', beurtId);
+    if (delRes.error) {
+      console.warn('[beurt_planning_dagen] unplanBeurt delete faalde:', delRes.error);
+    } else {
+      window.allPlanningDagen = (window.allPlanningDagen || [])
+        .filter(function(r) { return r.beurt_id !== beurtId; });
+      if (typeof _rebuildPlanningDagenIndex === 'function') _rebuildPlanningDagenIndex();
+    }
+  } catch (e) {
+    console.warn('[beurt_planning_dagen] unplanBeurt error:', e);
   }
 
   beurt.technieker_id = null;
@@ -6336,12 +6578,24 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   var datumVal = dropDate || beurt.plan_datum || new Date().toISOString().split('T')[0];
   document.getElementById('edit-beurt-datum').value = datumVal;
 
-  // Set time
-  var timeVal = dropTime || (beurt.start_tijd ? beurt.start_tijd.substring(0,5) : '08:00');
+  // Per-dag override: bij multi-dag-beurten is parent.duur_minuten de SOM van alle dagen
+  // en parent.start_tijd de MIN — onbruikbaar als per-dag-input. We lezen dus het
+  // dag-record voor datumVal wanneer beschikbaar. Valt terug op parent voor legacy
+  // beurten zonder dag-records (pre-migratie) of nieuwe beurten.
+  var dagForModal = (typeof getDagForBeurtOnDate === 'function')
+    ? getDagForBeurtOnDate(beurtId, datumVal) : null;
+
+  // Set time (uit dag-record indien beschikbaar, anders parent)
+  var timeSource = (dagForModal && dagForModal.start_tijd)
+    ? dagForModal.start_tijd
+    : beurt.start_tijd;
+  var timeVal = dropTime || (timeSource ? timeSource.substring(0,5) : '08:00');
   document.getElementById('edit-beurt-start').value = timeVal;
 
-  // Set duration
-  var totalMin = beurt.duur_minuten || 60;
+  // Set duration (uit dag-record indien beschikbaar, anders parent)
+  var totalMin = (dagForModal && dagForModal.duur_minuten != null)
+    ? dagForModal.duur_minuten
+    : (beurt.duur_minuten || 60);
   document.getElementById('edit-beurt-duur-uren').value = Math.floor(totalMin / 60);
   document.getElementById('edit-beurt-duur-min').value = (totalMin % 60) - ((totalMin % 60) % 15);
 
@@ -6397,12 +6651,16 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   document.getElementById('edit-beurt-notities').value = beurt.notities || '';
 
   // Populate technieker dropdown (bedienden krijgen geen beurten)
+  // Per-dag override: als dag-record bestaat, gebruik dan die primaire technieker ipv parent
+  var primaryTechForModal = (dagForModal && dagForModal.technieker_id)
+    ? dagForModal.technieker_id
+    : beurt.technieker_id;
   var techSel = document.getElementById('edit-beurt-technieker');
   techSel.innerHTML = '<option value="">— Kies technieker —</option>';
   allTechniekers.forEach(function(t) {
     if (!t.actief) return;
     if (isBediende(t)) return;
-    var selected = (dropTechId && t.id === dropTechId) || (!dropTechId && beurt.technieker_id === t.id);
+    var selected = (dropTechId && t.id === dropTechId) || (!dropTechId && primaryTechForModal === t.id);
     techSel.innerHTML += '<option value="' + t.id + '"' + (selected ? ' selected' : '') + '>' +
       esc(t.voornaam + ' ' + t.naam) + '</option>';
   });
@@ -6412,9 +6670,12 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   document.getElementById('edit-beurt-extra-techs').innerHTML = '';
   updateExtraTechDropdown();
 
-  // Pre-populate existing extra techniekers as chips
-  if (beurt.extra_technieker_ids && beurt.extra_technieker_ids.length) {
-    beurt.extra_technieker_ids.forEach(function(etId) {
+  // Pre-populate existing extra techniekers as chips (per-dag indien beschikbaar)
+  var extraIdsForModal = (dagForModal && dagForModal.extra_technieker_ids && dagForModal.extra_technieker_ids.length)
+    ? dagForModal.extra_technieker_ids
+    : (beurt.extra_technieker_ids || []);
+  if (extraIdsForModal && extraIdsForModal.length) {
+    extraIdsForModal.forEach(function(etId) {
       var tech = allTechniekers.find(function(t) { return t.id === etId; });
       if (!tech) return;
       var container = document.getElementById('edit-beurt-extra-techs');
@@ -6425,6 +6686,11 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
         ' <span onclick="removeExtraTechnieker(this)" style="cursor:pointer;color:var(--red)">&times;</span>';
       container.appendChild(chip);
     });
+  }
+
+  // Render "Geplande dagen" lijstje (bij multi-dag beurten of bij beurt met > 1 dag-records)
+  if (typeof renderEditBeurtDagenLijst === 'function') {
+    renderEditBeurtDagenLijst(beurtId, datumVal);
   }
 
   // Status-afhankelijke menu-items in de Opslaan-split-button:
@@ -6647,6 +6913,208 @@ function editBeurtLocatieChanged() {
   if (client && client.po_number) poInput.value = client.po_number;
 }
 
+// =============================================
+// GEPLANDE DAGEN (edit-beurt modal)
+// =============================================
+// Laat multi-dag-beurten zien als aparte dag-rijen met per-dag tech/start/duur,
+// zodat planner per dag kan wisselen van technieker en extra dagen kan toevoegen.
+// Gebruikt window._planningDagenByBeurt als bron (zie load-path).
+
+/**
+ * Render de "Geplande dagen" lijst in de edit-modal.
+ * - Verbergt de sectie als er ≤1 dag-record bestaat voor deze beurt.
+ * - Markeert de huidig-geselecteerde dag (datum die in het hoofdveld staat).
+ */
+function renderEditBeurtDagenLijst(beurtId, selectedDateISO) {
+  var sectie = document.getElementById('edit-beurt-dagen-sectie');
+  var lijst = document.getElementById('edit-beurt-dagen-lijst');
+  if (!sectie || !lijst) return;
+
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
+
+  // Enkel tonen bij echte multi-dag situatie (>1 dag); eendaags heeft geen toegevoegde waarde.
+  if (!dagen || dagen.length <= 1) {
+    sectie.style.display = 'none';
+    lijst.innerHTML = '';
+    return;
+  }
+
+  sectie.style.display = '';
+  lijst.innerHTML = dagen.map(function(d) {
+    var isSelected = (d.datum === selectedDateISO);
+    var tech = (allTechniekers || []).find(function(t) { return t.id === d.technieker_id; });
+    var techNaam = tech ? (tech.voornaam + ' ' + tech.naam) : '— geen —';
+    var extraCount = (d.extra_technieker_ids && d.extra_technieker_ids.length) || 0;
+    var extrasHtml = extraCount > 0
+      ? '<span style="color:var(--grey);font-size:11px;margin-left:6px">+ ' + extraCount + ' extra</span>'
+      : '';
+    var startHtml = d.start_tijd
+      ? ('<span style="color:var(--grey);font-size:12px">' + esc(d.start_tijd.substring(0,5)) + '</span>')
+      : '<span style="color:var(--grey);font-size:12px">hele dag</span>';
+    var duurMin = d.duur_minuten || 0;
+    var uren = Math.floor(duurMin / 60);
+    var min = duurMin % 60;
+    var duurHtml = uren + 'u' + (min > 0 ? ' ' + min + 'm' : '');
+    var datumLabel = esc(formatDate(parseDate(d.datum)));
+
+    var bgStyle = isSelected
+      ? 'background:rgba(26,26,46,0.06);border:1.5px solid var(--navy)'
+      : 'background:var(--light);border:1px solid transparent';
+
+    return '<div class="dag-rij" data-datum="' + esc(d.datum) + '" ' +
+      'style="display:grid;grid-template-columns:110px 1fr auto auto auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;cursor:pointer;' + bgStyle + '" ' +
+      'onclick="selectDagInEditor(\'' + esc(beurtId) + '\', \'' + esc(d.datum) + '\')">' +
+      '<span style="font-size:12px;font-weight:600;color:var(--navy)">' + datumLabel + '</span>' +
+      '<span style="font-size:12px">' + esc(techNaam) + extrasHtml + '</span>' +
+      startHtml +
+      '<span style="font-size:12px;color:var(--grey)">' + duurHtml + '</span>' +
+      '<button type="button" class="btn-icon-danger" title="Dag verwijderen" ' +
+      'onclick="event.stopPropagation(); deleteDagFromBeurt(\'' + esc(beurtId) + '\', \'' + esc(d.datum) + '\')" ' +
+      'style="background:none;border:none;color:var(--red);cursor:pointer;padding:2px 4px;border-radius:4px">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>' +
+      '</button>' +
+      '</div>';
+  }).join('');
+}
+
+/**
+ * Selecteer een andere dag uit de lijst — herlaadt de hoofdvelden van de modal
+ * met de per-dag waarden van die datum. Gebruiker kan daarna velden wijzigen
+ * en Opslaan → saveEditBeurt past enkel die dag aan.
+ */
+function selectDagInEditor(beurtId, datumISO) {
+  var beurt = (allBeurten || []).find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+  // Open de modal opnieuw met de nieuwe dag als focus — hergebruikt alle init-logica
+  // zonder ghost-state. dropTechId=null, dropTime=null zodat per-dag waarden winnen.
+  openEditBeurtModal(beurtId, null, datumISO, null);
+}
+
+/**
+ * Verwijder één dag uit de reeks (via confirm). De sync-trigger updatet parent's
+ * plan_datum/eind_datum/duur automatisch. Als het de enige dag was, blijft parent
+ * achter met plan_datum=null → beurt komt terug in backlog.
+ */
+async function deleteDagFromBeurt(beurtId, datumISO) {
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
+  if (!dagen || dagen.length === 0) return;
+  if (dagen.length === 1) {
+    showToast('Dit is de laatste dag — gebruik "Uitplannen" om de beurt uit het schema te halen.', 'error');
+    return;
+  }
+  var bevestig = confirm('Dag ' + formatDate(parseDate(datumISO)) + ' verwijderen uit deze reeks?');
+  if (!bevestig) return;
+
+  var res = await sb.from('beurt_planning_dagen')
+    .delete()
+    .eq('beurt_id', beurtId)
+    .eq('datum', datumISO);
+  if (res.error) {
+    showToast('Fout: ' + res.error.message, 'error');
+    return;
+  }
+
+  // Lokale cache bijwerken
+  window.allPlanningDagen = (window.allPlanningDagen || [])
+    .filter(function(r) { return !(r.beurt_id === beurtId && r.datum === datumISO); });
+  if (typeof _rebuildPlanningDagenIndex === 'function') _rebuildPlanningDagenIndex();
+
+  // Herlaad parent-beurt uit DB zodat we de door de trigger bijgewerkte plan_datum/eind_datum/duur krijgen
+  var fresh = await sb.from('onderhoudsbeurten').select('*').eq('id', beurtId).single();
+  if (!fresh.error && fresh.data) {
+    var idx = (allBeurten || []).findIndex(function(b) { return b.id === beurtId; });
+    if (idx >= 0) allBeurten[idx] = fresh.data;
+  }
+
+  showToast('Dag verwijderd');
+
+  // Herrender lijst + hoofdvelden; kies de eerste overgebleven dag als focus
+  var resterend = (window._planningDagenByBeurt[beurtId] || []);
+  if (resterend.length) {
+    openEditBeurtModal(beurtId, null, resterend[0].datum, null);
+  } else {
+    closeEditBeurtModal();
+  }
+  renderView();
+  renderSidebar();
+}
+
+/**
+ * Extra dag toevoegen aan een bestaande beurt. Toont een prompt voor de datum
+ * en gebruikt de hoofdtechnieker/starttijd/duur van de huidige modal als default.
+ * Technieker kan nadien per-dag gewijzigd worden door de dag te selecteren.
+ */
+async function openExtraDagPrompt() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var beurt = (allBeurten || []).find(function(b) { return b.id === beurtId; });
+  if (!beurt) return;
+
+  // Default: dag na de laatst ingeplande dag
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
+  var laatsteISO = dagen.length ? dagen[dagen.length - 1].datum : (beurt.plan_datum || formatDateISO(new Date()));
+  var laatste = parseDate(laatsteISO);
+  laatste.setDate(laatste.getDate() + 1);
+  // Skip weekend als weekend-modus 'geen' is op parent
+  while ((laatste.getDay() === 0 || laatste.getDay() === 6)) {
+    laatste.setDate(laatste.getDate() + 1);
+  }
+  var defaultDatum = formatDateISO(laatste);
+
+  var nieuweDatum = prompt('Datum voor extra dag (YYYY-MM-DD):', defaultDatum);
+  if (!nieuweDatum) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nieuweDatum)) {
+    showToast('Ongeldige datum (gebruik formaat YYYY-MM-DD)', 'error');
+    return;
+  }
+  if (getDagForBeurtOnDate(beurtId, nieuweDatum)) {
+    showToast('Er bestaat al een dag-record voor deze datum', 'error');
+    return;
+  }
+
+  // Lees huidige modal-waarden als defaults
+  var techId = document.getElementById('edit-beurt-technieker').value;
+  var startTijd = document.getElementById('edit-beurt-start').value;
+  var uren = parseInt(document.getElementById('edit-beurt-duur-uren').value) || 0;
+  var min = parseInt(document.getElementById('edit-beurt-duur-min').value) || 0;
+  var duur = uren * 60 + min;
+  if (duur <= 0) duur = 60;
+
+  if (!techId) {
+    showToast('Kies eerst een hoofdtechnieker voor de modal', 'error');
+    return;
+  }
+
+  var insPayload = {
+    beurt_id: beurtId,
+    datum: nieuweDatum,
+    start_tijd: startTijd || null,
+    duur_minuten: duur,
+    technieker_id: techId,
+    extra_technieker_ids: []
+  };
+  var res = await sb.from('beurt_planning_dagen').upsert(insPayload, { onConflict: 'beurt_id,datum' });
+  if (res.error) {
+    showToast('Fout: ' + res.error.message, 'error');
+    return;
+  }
+
+  // Lokale cache bijwerken
+  window.allPlanningDagen = (window.allPlanningDagen || []).concat([insPayload]);
+  if (typeof _rebuildPlanningDagenIndex === 'function') _rebuildPlanningDagenIndex();
+
+  // Herlaad parent-beurt uit DB zodat trigger-output (uitgebreide plan_datum/eind_datum) klopt
+  var fresh = await sb.from('onderhoudsbeurten').select('*').eq('id', beurtId).single();
+  if (!fresh.error && fresh.data) {
+    var idx = (allBeurten || []).findIndex(function(b) { return b.id === beurtId; });
+    if (idx >= 0) allBeurten[idx] = fresh.data;
+  }
+
+  showToast('Extra dag toegevoegd');
+  openEditBeurtModal(beurtId, null, nieuweDatum, null);
+  renderView();
+  renderSidebar();
+}
+
 /**
  * Toggle hele-dag-state: verbergt uren/min/starttijd en toont 7u36min badge.
  * Toggle-pill krijgt navy-filled stijl als actief.
@@ -6775,6 +7243,17 @@ async function unplanFromModal() {
     start_tijd: null, updated_at: new Date().toISOString()
   }).eq('id', beurtId);
   if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+
+  // Bij uitplannen: alle dag-records wissen zodat beurt echt terugkomt naar backlog
+  try {
+    await sb.from('beurt_planning_dagen').delete().eq('beurt_id', beurtId);
+    window.allPlanningDagen = (window.allPlanningDagen || [])
+      .filter(function(r) { return r.beurt_id !== beurtId; });
+    if (typeof _rebuildPlanningDagenIndex === 'function') _rebuildPlanningDagenIndex();
+  } catch (e) {
+    console.warn('[beurt_planning_dagen] unplanFromModal delete faalde:', e);
+  }
+
   beurt.status = 'in_te_plannen';
   beurt.technieker_id = null;
   beurt.plan_datum = null;
@@ -7324,6 +7803,113 @@ async function saveEditBeurt() {
   if (result.error) {
     showToast('Fout: ' + result.error.message, 'error');
     return;
+  }
+
+  // ============================================================
+  // PLANNING-DAGEN SYNC — schrijft dag-records als bron-van-waarheid
+  // voor per-dag velden (start/duur/tech). Parent krijgt automatisch
+  // MIN/MAX/SUM terug via AFTER-trigger trg_bpd_sync_parent.
+  // ============================================================
+  try {
+    var oldPlanDatum = beurt.plan_datum || null;
+    var oldEindDatum = beurt.eind_datum || null;
+
+    // Helper: dag-reeks genereren respecterend weekend-modus
+    function _genDagen(startISO, endISO, wkMode) {
+      var out = [];
+      var cur = parseDate(startISO);
+      var end = endISO ? parseDate(endISO) : parseDate(startISO);
+      if (!cur || !end) return out;
+      while (cur <= end) {
+        var dow = cur.getDay(); // 0=zo, 6=za
+        var include = true;
+        if (dow === 0 || dow === 6) {
+          if (wkMode === 'geen') include = false;
+          else if (wkMode === 'za' && dow !== 6) include = false;
+          else if (wkMode === 'zo' && dow !== 0) include = false;
+          // 'beide' → altijd include
+        }
+        if (include) out.push(formatDateISO(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return out;
+    }
+
+    var newRange = _genDagen(datum, eindDatum, weekendMode);
+    if (newRange.length === 0) newRange = [datum];
+
+    // Bestaande dag-records ophalen (live uit DB om concurrent edits te respecteren)
+    var existingRes = await sb.from('beurt_planning_dagen')
+      .select('datum')
+      .eq('beurt_id', beurtId);
+    var existingDagen = (existingRes.data || []).map(function(r) { return r.datum; });
+    var existingSet = {};
+    existingDagen.forEach(function(d) { existingSet[d] = true; });
+    var newSet = {};
+    newRange.forEach(function(d) { newSet[d] = true; });
+
+    // 1. Upsert het "primaire" dag-record (de dag die in de modal bewerkt is)
+    var primaryPayload = {
+      beurt_id: beurtId,
+      datum: datum,
+      start_tijd: startTijd || null,
+      duur_minuten: duur,
+      technieker_id: techId,
+      extra_technieker_ids: extraIds || []
+    };
+    var upRes = await sb.from('beurt_planning_dagen')
+      .upsert(primaryPayload, { onConflict: 'beurt_id,datum' });
+    if (upRes.error) throw upRes.error;
+
+    // 2. Dag-records die niet meer in nieuwe range zitten → verwijderen
+    //    (bv. multi-dag → eendaags, of eind-datum ingekort)
+    var toDelete = existingDagen.filter(function(d) { return !newSet[d]; });
+    for (var di = 0; di < toDelete.length; di++) {
+      var delRes = await sb.from('beurt_planning_dagen')
+        .delete()
+        .eq('beurt_id', beurtId)
+        .eq('datum', toDelete[di]);
+      if (delRes.error) throw delRes.error;
+    }
+
+    // 3. Ontbrekende dagen in nieuwe range → invullen met primaire velden als defaults
+    //    (elke ontbrekende dag krijgt dezelfde tech/starttijd; duur gelijk verdeeld
+    //    over ALLE dagen zodat totaal overeenkomt met vorige duur × aantal dagen)
+    var missing = newRange.filter(function(d) { return !existingSet[d] && d !== datum; });
+    if (missing.length > 0) {
+      // Bij multi-dag: splits parent-duur over alle nieuwe dagen (inclusief primaire)
+      // zodat elke dag een redelijke defaultduur heeft.
+      var perDagDuur = duur;
+      var inserts = missing.map(function(d) {
+        return {
+          beurt_id: beurtId,
+          datum: d,
+          start_tijd: startTijd || null,
+          duur_minuten: perDagDuur,
+          technieker_id: techId,
+          extra_technieker_ids: extraIds || []
+        };
+      });
+      var insRes = await sb.from('beurt_planning_dagen').insert(inserts);
+      if (insRes.error) throw insRes.error;
+    }
+
+    // Refresh lokale cache van dag-records (herlaad enkel voor deze beurt)
+    var refreshRes = await sb.from('beurt_planning_dagen')
+      .select('*')
+      .eq('beurt_id', beurtId);
+    if (!refreshRes.error && refreshRes.data) {
+      // Vervang records voor deze beurt in globale cache
+      window.allPlanningDagen = (window.allPlanningDagen || [])
+        .filter(function(r) { return r.beurt_id !== beurtId; })
+        .concat(refreshRes.data);
+      if (typeof _rebuildPlanningDagenIndex === 'function') _rebuildPlanningDagenIndex();
+    }
+  } catch (e) {
+    // Non-fatale fallback: parent is al geüpdatet, maar dag-records sync is mislukt.
+    // Waarschuw in console zodat we het kunnen detecteren, maar blokkeer de UX niet.
+    console.warn('[beurt_planning_dagen] sync faalde:', e);
+    showToast('Beurt opgeslagen (dag-planning kon niet gesynchroniseerd worden)', 'info');
   }
 
   // Update local state
@@ -8265,6 +8851,28 @@ async function saveQuickAdd(action) {
     res = await sb.from('onderhoudsbeurten').insert([retryPayload]).select();
   }
   if (res.error) { await infoDialog(formatBeurtInsertError(res.error, 'Fout'), 'Opslaan mislukt'); return; }
+
+  // Dag-record initialiseren bij ingeplande beurten.
+  // Parent.plan_datum/start_tijd/duur/tech zijn al correct via de insert hierboven;
+  // de dag-trigger zal op zijn beurt parent's eind_datum NULL zetten voor eendaags.
+  // Quick-add is altijd eendaags (geen multi-dag UI hier) → 1 dag-record volstaat.
+  if (status === 'ingepland' && datum && techId) {
+    var newBeurtId = res.data[0].id;
+    var dagPayload = {
+      beurt_id: newBeurtId,
+      datum: datum,
+      start_tijd: startTijd || null,
+      duur_minuten: duur,
+      technieker_id: techId,
+      extra_technieker_ids: extraIds || []
+    };
+    var dagRes = await sb.from('beurt_planning_dagen')
+      .upsert(dagPayload, { onConflict: 'beurt_id,datum' });
+    if (dagRes.error) {
+      console.warn('[beurt_planning_dagen] insert faalde bij quick-add:', dagRes.error);
+      // Niet-fataal: parent-beurt is wel aangemaakt, planning-render valt terug op parent.
+    }
+  }
 
   await auditLog('onderhoudsbeurten', res.data[0].id, 'aangemaakt', null, status + ' via quick-add' + (isLosse ? ' (losse opdracht)' : ''));
   var msgPrefix = newClientActive ? 'Klant aangemaakt + ' : '';
