@@ -13289,6 +13289,7 @@ async function saveBediende() {
       if (_bedDiff.changed) {
         auditLog('techniekers', bedId, 'gewijzigd', JSON.stringify(_bedDiff.oud), JSON.stringify(_bedDiff.nieuw));
       }
+      showToast('Gebruiker bijgewerkt', 'success');
     } else {
       // Lock-overrides van openBediendeModal-caller doorgeven aan edge function v3.
       // Zonder overrides leidt de edge function role/partner_id af van de caller-auth.
@@ -13317,8 +13318,6 @@ async function saveBediende() {
       // Success-feedback — gebruiker verdient bevestiging dat aanmaak gelukt is.
       var _createdLabel = [voornaam, naam].filter(Boolean).join(' ').trim() || email;
       showToast('Gebruiker "' + _createdLabel + '" aangemaakt', 'success');
-    } else {
-      showToast('Gebruiker bijgewerkt', 'success');
     }
     closeBediendeModal();
     // Refresh techniekers data
