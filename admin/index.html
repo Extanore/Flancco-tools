@@ -2582,8 +2582,10 @@
             </select>
             <select id="ew-filter-subreden" class="ew-select" onchange="renderEWCalendarGrid()">
               <option value="">Alle sub-redenen</option>
-              <option value="gebrek_werk">Gebrek aan werk</option>
-              <option value="seizoen">Seizoensschommeling</option>
+              <option value="gebrek_aan_werk">Gebrek aan werk</option>
+              <option value="seizoensschommeling">Seizoensschommeling</option>
+              <option value="weersomstandigheden">Weersomstandigheden</option>
+              <option value="technische_stoornis">Technische stoornis</option>
               <option value="overige">Overige</option>
             </select>
             <select id="ew-filter-dimona" class="ew-select" onchange="renderEWCalendarGrid()">
@@ -2638,8 +2640,10 @@
         <div class="modal-field">
           <label>Sub-reden *</label>
           <div class="ew-radio-group">
-            <label class="ew-radio-label"><input type="radio" name="ew-sub-reden" value="gebrek_werk" checked> Gebrek aan werk</label>
-            <label class="ew-radio-label"><input type="radio" name="ew-sub-reden" value="seizoen"> Seizoensschommeling</label>
+            <label class="ew-radio-label"><input type="radio" name="ew-sub-reden" value="gebrek_aan_werk" checked> Gebrek aan werk</label>
+            <label class="ew-radio-label"><input type="radio" name="ew-sub-reden" value="seizoensschommeling"> Seizoensschommeling</label>
+            <label class="ew-radio-label"><input type="radio" name="ew-sub-reden" value="weersomstandigheden"> Weersomstandigheden</label>
+            <label class="ew-radio-label"><input type="radio" name="ew-sub-reden" value="technische_stoornis"> Technische stoornis</label>
             <label class="ew-radio-label"><input type="radio" name="ew-sub-reden" value="overige"> Overige</label>
           </div>
         </div>
@@ -3624,6 +3628,17 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // Economische werkloosheid (EW) — verlof_type UUID. Gebruikt door uren-kolom, dashboard-tegel en CSV-export.
 const EW_VERLOF_TYPE_ID = 'd5d9687d-d480-4ec1-b3c8-94bb26114e95';
+// Sub-reden-labels: DB-enum (CHECK constraint) → leesbare NL-label. Aligned met
+// technieker_afwezigheden_ew_sub_reden_check (gebrek_aan_werk, seizoensschommeling,
+// weersomstandigheden, technische_stoornis, overige).
+const EW_SUB_REDEN_LABELS = {
+  gebrek_aan_werk: 'Gebrek aan werk',
+  seizoensschommeling: 'Seizoensschommeling',
+  weersomstandigheden: 'Weersomstandigheden',
+  technische_stoornis: 'Technische stoornis',
+  overige: 'Overige'
+};
+function ewSubRedenLabel(key) { return (key && EW_SUB_REDEN_LABELS[key]) || ''; }
 
 // =============================================
 // PLATFORM URLs — hostname-autodetect voor dual-mode (legacy GitHub Pages + Cloudflare Pages)
@@ -17305,9 +17320,7 @@ function renderEWCalendarGrid() {
           // Tooltip samenstellen
           var parts = regs.map(function(r) {
             var label = r.halve_dag === 'vm' ? 'VM' : (r.halve_dag === 'nm' ? 'NM' : 'Hele dag');
-            var sub = r.ew_sub_reden === 'gebrek_werk' ? 'Gebrek aan werk'
-                    : r.ew_sub_reden === 'seizoen' ? 'Seizoensschommeling'
-                    : r.ew_sub_reden === 'overige' ? 'Overige' : '';
+            var sub = ewSubRedenLabel(r.ew_sub_reden);
             var dimona = r.dimona_gemeld === true ? 'Dimona: gemeld' : 'Dimona: nog te melden';
             var opm = r.opmerking ? ' | ' + r.opmerking : '';
             return label + ' — ' + sub + ' | ' + dimona + opm;
@@ -17362,7 +17375,7 @@ function openEWRegisterModal(techId, dateIso) {
   var radios = document.getElementsByName('ew-halve-dag');
   for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === '');
   var subs = document.getElementsByName('ew-sub-reden');
-  for (var j = 0; j < subs.length; j++) subs[j].checked = (subs[j].value === 'gebrek_werk');
+  for (var j = 0; j < subs.length; j++) subs[j].checked = (subs[j].value === 'gebrek_aan_werk');
   document.getElementById('ew-sector').value = '';
   document.getElementById('ew-dimona-gemeld').checked = false;
   document.getElementById('ew-opmerking').value = '';
@@ -17537,9 +17550,7 @@ function openEWDetailModal(regId) {
   var modal = document.getElementById('ew-modal-detail');
   document.getElementById('ew-detail-id').value = regId;
   var tech = (allTechniekers || []).find(function(x) { return x.id === reg.technieker_id; });
-  var sub = reg.ew_sub_reden === 'gebrek_werk' ? 'Gebrek aan werk'
-          : reg.ew_sub_reden === 'seizoen' ? 'Seizoensschommeling'
-          : reg.ew_sub_reden === 'overige' ? 'Overige' : '—';
+  var sub = ewSubRedenLabel(reg.ew_sub_reden) || '—';
   var dagdeel = reg.halve_dag === 'vm' ? 'Voormiddag'
               : reg.halve_dag === 'nm' ? 'Namiddag' : 'Volledige dag';
   var body = document.getElementById('ew-detail-body');
