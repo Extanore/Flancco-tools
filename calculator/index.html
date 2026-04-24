@@ -1390,10 +1390,10 @@ var SECTORS = {
         '<div class="field"><label>Aantal binnenunits</label><input type="number" id="wp-ll-binnenunits" min="1" max="10" value="1" oninput="calculateAll()"></div>' +
         '<div class="field"><label>Aantal buitenunits</label><input type="number" id="wp-ll-buitenunits" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
         '</div>' +
-        '<label class="toggle-group" for="wp-ll-vierweg" id="wp-ll-vierweg-row" style="display:none"><div class="toggle-label">Vierwegkanaal-onderhoud<small>Reiniging vierwegklep en kanaalstructuur (alleen bij ALL-IN)</small></div>' +
+        '<label class="toggle-group" for="wp-ll-vierweg" id="wp-ll-vierweg-row" style="display:none"><div class="toggle-label">Vierwegkanaal-units (cassette)<small>Meerprijs per binnenunit \u2014 alleen van toepassing op cassette-modellen bij ALL-IN</small></div>' +
         '<div class="switch"><input type="checkbox" id="wp-ll-vierweg" onchange="onWpVierwegToggle()"><span class="slider"></span></div></label>' +
         '<div id="wp-ll-vierweg-aantal" style="display:none;padding:8px 0 0 44px">' +
-        '<div class="field"><label>Aantal vierwegkanaal-units</label><input type="number" id="wp-ll-vierweg-n" min="1" max="10" value="1" oninput="calculateAll()"></div>' +
+        '<div class="field"><label>Hoeveel van uw binnenunits zijn vierwegkanaal?</label><input type="number" id="wp-ll-vierweg-n" min="1" max="10" value="1" oninput="onWpVierwegNumberInput()"></div>' +
         '</div>' +
         '<label class="toggle-group" for="wp-ll-moeilijk"><div class="toggle-label">Moeilijk bereikbare units<small>Op hoogte, in technische ruimte, etc.</small></div>' +
         '<div class="switch"><input type="checkbox" id="wp-ll-moeilijk" onchange="calculateAll()"><span class="slider"></span></div></label>' +
@@ -1448,13 +1448,31 @@ var SECTORS = {
         var vierwegOn = !!(document.getElementById('wp-ll-vierweg') || {}).checked;
         var vrAantalEl = document.getElementById('wp-ll-vierweg-aantal');
         if (vrAantalEl) vrAantalEl.style.display = (formule === 'allin' && vierwegOn) ? 'block' : 'none';
+
+        var binnenunits = Math.max(1, parseInt((document.getElementById('wp-ll-binnenunits') || {}).value) || 1);
+
+        // Vierwegkanaal is een meerprijs bovenop het binnenunit-onderhoud. Aantal kan nooit
+        // groter zijn dan het totaal aantal binnenunits — we cappen zodat we geen onrealistische
+        // configuraties prijsen. De <input max="..."> wordt ook dynamisch bijgewerkt.
+        var vierwegRaw = parseInt((document.getElementById('wp-ll-vierweg-n') || {}).value) || 1;
+        var vierwegAantal = (formule === 'allin' && vierwegOn)
+          ? Math.max(0, Math.min(binnenunits, vierwegRaw))
+          : 0;
+        var vrInputEl = document.getElementById('wp-ll-vierweg-n');
+        if (vrInputEl) {
+          vrInputEl.max = String(binnenunits);
+          if (vierwegOn && formule === 'allin' && parseInt(vrInputEl.value) > binnenunits) {
+            vrInputEl.value = binnenunits;
+          }
+        }
+
         return {
           subtype: 'lucht_lucht',
           formule: formule, // 'basic' of 'allin' — bepaalt welke staffel _param raadpleegt
-          binnenunits: Math.max(1, parseInt((document.getElementById('wp-ll-binnenunits') || {}).value) || 1),
+          binnenunits: binnenunits,
           buitenunits: Math.max(1, parseInt((document.getElementById('wp-ll-buitenunits') || {}).value) || 1),
           moeilijk: !!(document.getElementById('wp-ll-moeilijk') || {}).checked,
-          vierweg_aantal: (formule === 'allin' && vierwegOn) ? Math.max(1, parseInt((document.getElementById('wp-ll-vierweg-n') || {}).value) || 1) : 0
+          vierweg_aantal: vierwegAantal
         };
       }
       if (typeKey === 'geothermie') {
@@ -1519,7 +1537,8 @@ var SECTORS = {
         if (inputs.moeilijk) add('Moeilijk bereikbare units', P(pricing, 'lucht_lucht', 'moeilijk_bereikbaar', f));
 
         if (f === 'allin' && inputs.vierweg_aantal > 0) {
-          add(inputs.vierweg_aantal + ' \u00D7 vierwegkanaal-onderhoud', inputs.vierweg_aantal * P(pricing, 'lucht_lucht', 'vierwegkanaal', f));
+          // Meerprijs: bovenop het standaard binnenunit-onderhoud (basispakket + extra_binnenunit).
+          add('Meerprijs vierwegkanaal (' + inputs.vierweg_aantal + ' \u00D7 cassette-binnenunit)', inputs.vierweg_aantal * P(pricing, 'lucht_lucht', 'vierwegkanaal', f));
         }
 
         // Geen multiplier meer — elke regel draagt haar eigen absolute prijs (uit de gekozen staffel).
@@ -1601,7 +1620,8 @@ var SECTORS = {
       var rows = params.map(function(pr) {
         var bedrag = (parseFloat(pr.flancco_forfait) || 0) * (1 + marge) * btwMult;
         var unitTxt = (pr.parameter_key === 'glycol_vulling') ? ' / liter' :
-                      (pr.parameter_key === 'extra_buitenunit' || pr.parameter_key === 'extra_ketel' || pr.parameter_key === 'derde_plus_binnenunit' || pr.parameter_key === 'vierwegkanaal') ? ' / stuk' : '';
+                      (pr.parameter_key === 'vierwegkanaal') ? ' / binnenunit (meerprijs)' :
+                      (pr.parameter_key === 'extra_buitenunit' || pr.parameter_key === 'extra_ketel' || pr.parameter_key === 'derde_plus_binnenunit') ? ' / stuk' : '';
         return '<tr><td>' + esc(pr.label) + '</td><td>' + fmt(bedrag) + unitTxt + '</td></tr>';
       }).join('');
 
@@ -1667,7 +1687,7 @@ var SECTORS = {
           '<div class="data-row"><span class="data-label">Aantal binnenunits</span><span class="data-value">' + inputs.binnenunits + '</span></div>' +
           '<div class="data-row"><span class="data-label">Aantal buitenunits</span><span class="data-value">' + inputs.buitenunits + '</span></div>';
         if (inputs.moeilijk) html += '<div class="data-row"><span class="data-label">Moeilijk bereikbaar</span><span class="data-value">Ja</span></div>';
-        if (inputs.formule === 'allin' && inputs.vierweg_aantal > 0) html += '<div class="data-row"><span class="data-label">Vierwegkanaal-units</span><span class="data-value">' + inputs.vierweg_aantal + '</span></div>';
+        if (inputs.formule === 'allin' && inputs.vierweg_aantal > 0) html += '<div class="data-row"><span class="data-label">Waarvan vierwegkanaal (cassette)</span><span class="data-value">' + inputs.vierweg_aantal + ' van ' + inputs.binnenunits + ' binnenunit' + (inputs.binnenunits === 1 ? '' : 's') + '</span></div>';
         return html;
       }
       if (inputs.subtype === 'geothermie') {
@@ -2087,6 +2107,20 @@ function onWpVierwegToggle() {
   var cb = document.getElementById('wp-ll-vierweg');
   var wrap = document.getElementById('wp-ll-vierweg-aantal');
   if (wrap) wrap.style.display = (cb && cb.checked) ? 'block' : 'none';
+  calculateAll();
+}
+
+// Vierwegkanaal-aantal mag nooit > aantal binnenunits zijn (surplus-logica).
+function onWpVierwegNumberInput() {
+  var binnenEl = document.getElementById('wp-ll-binnenunits');
+  var vrEl = document.getElementById('wp-ll-vierweg-n');
+  if (binnenEl && vrEl) {
+    var max = Math.max(1, parseInt(binnenEl.value) || 1);
+    var val = parseInt(vrEl.value) || 1;
+    if (val > max) vrEl.value = max;
+    if (val < 1) vrEl.value = 1;
+    vrEl.max = String(max);
+  }
   calculateAll();
 }
 
