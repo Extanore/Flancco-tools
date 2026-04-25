@@ -46,6 +46,17 @@
       subtitle: 'Vul hieronder uw installatiegegevens in en ontdek direct uw persoonlijke prijs.',
       ctaNext: 'Ga verder naar overeenkomst \u2192',
       ctaHint: 'Vul uw gegevens in en bekijk direct uw persoonlijke overeenkomst',
+      postcode: {
+        title: 'Postcode van de werken',
+        subtitle: 'Voer de postcode in van het adres waar de werken zullen worden uitgevoerd. Op basis hiervan bepalen we uw verzendkosten en het toepasselijke BTW-tarief.',
+        label: 'Postcode',
+        placeholder: 'Bijv. 9000',
+        helperBE: 'Belgische postcode \u2014 alle BTW-tarieven beschikbaar.',
+        helperFallback: 'Buitenlandse of ongeldige postcode \u2014 standaard 21% BTW van toepassing.',
+        gemeenteLabel: 'Gemeente',
+        gemeenteAuto: 'Automatisch ingevuld op basis van postcode.',
+        gemeenteChoose: 'Selecteer de juiste gemeente:'
+      },
       cards: {
         afstand: 'Afstand',
         afstandLabel: 'Afstand tot uw woning',
@@ -55,6 +66,7 @@
         btw21sub: 'Standaardtarief',
         btw6: '6% BTW',
         btw6sub: 'Renovatie \u2014 woning ouder dan 10 jaar (enkel Belgi\u00eb)',
+        btw6disabled: 'Enkel beschikbaar voor Belgische postcodes',
         freq: 'Frequentie',
         freqJaarlijks: 'Jaarlijks',
         freqJaarlijksSub: '1 onderhoudsbeurt per jaar',
@@ -75,12 +87,14 @@
         btwNote6: 'Alle bedragen incl. 6% btw'
       },
       btw6: {
-        title: 'Verklaring op eer \u2014 verlaagd btw-tarief (6%)',
-        intro: 'Om in aanmerking te komen voor het verlaagd btw-tarief van 6% moet de woning waar de werken uitgevoerd worden voldoen aan de volgende voorwaarden:',
+        title: 'Verklaring op eer \u2014 verlaagd btw-tarief van 6%',
+        intro: 'Volgens KB nr. 20 (rubriek XXXVIII en XXXI van tabel A) kan het verlaagd btw-tarief van 6% enkel worden toegepast wanneer de woning aan beide onderstaande voorwaarden voldoet. Vink beide verklaringen aan om het tarief van 6% te bevestigen.',
         cond1: 'De woning is ouder dan 10 jaar (eerste ingebruikname meer dan 10 jaar geleden)',
         cond2: 'De woning wordt hoofdzakelijk als priv\u00e9woning gebruikt',
         cond3: 'De werken worden rechtstreeks aan de eindverbruiker gefactureerd',
-        check: 'Ik verklaar op eer dat het gebouw waar de werken uitgevoerd worden langer dan 10 jaar in gebruik is als priv\u00e9woning en dat ik de eindverbruiker ben. Ik neem kennis dat bij onjuiste verklaring het verschil in btw (15%) verhaald kan worden.'
+        checkPrive: 'Ik verklaar op eer dat het gebouw waar de werken worden uitgevoerd uitsluitend of hoofdzakelijk wordt gebruikt als priv\u00e9woning, en dat ik de eindverbruiker ben aan wie deze werken rechtstreeks worden gefactureerd.',
+        checkOuderdom: 'Ik verklaar op eer dat de eerste ingebruikname van het gebouw minstens tien jaar voorafgaat aan het eerste tijdstip waarop deze btw opeisbaar wordt.',
+        disclaimer: 'Bij een onjuiste verklaring kan het verschil in btw (15%), evenals eventuele verwijlinteresten en boetes, integraal op u worden verhaald (KB nr. 20 \u2014 art. 1quater).'
       }
     },
     step2: {
@@ -212,6 +226,19 @@
       invalidPostcode: 'Ongeldige postcode',
       invalidPhone: 'Ongeldig telefoonnummer',
       tooManySubmits: 'U heeft te vaak verzonden. Probeer over een uur opnieuw.'
+    },
+    validation: {
+      required: 'Dit veld is verplicht.',
+      invalidEmail: 'Vul een geldig e-mailadres in (bv. naam@voorbeeld.be).',
+      invalidPhone: 'Vul een geldig Belgisch telefoonnummer in (bv. +32 4XX XX XX XX).',
+      invalidPostcode: 'Vul een geldige postcode in (4 cijfers, bv. 9000).',
+      invalidName: 'Vul minstens uw voornaam en familienaam in.',
+      postcodeNotFound: 'Postcode niet gevonden in onze referentielijst \u2014 controleer de invoer.',
+      remainingFieldsOne: 'Nog 1 verplicht veld in te vullen voor u verder kan.',
+      remainingFieldsMany: 'Nog {count} verplichte velden in te vullen voor u verder kan.',
+      okReady: 'Alle gegevens zijn correct ingevuld.',
+      btw6NeedsBoth: 'Vink beide verklaringen aan of kies voor 21% BTW.',
+      btw6Reverted: 'BTW automatisch teruggezet naar 21% omdat niet aan de voorwaarden werd voldaan.'
     }
   });
 })();
