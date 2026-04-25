@@ -17,3 +17,24 @@
 
 # --- Legacy GitHub Pages compat: oude /Flancco-tools/* paden wegpoetsen
 /Flancco-tools/*                             /:splat                             301
+
+# =============================================================
+# Partner redirects → gedeelde calculator met partner-slug
+# =============================================================
+# Vervangt de oude client-side <meta http-equiv="refresh"> stub-pagina's in
+# /novectra/index.html en /cwsolar/index.html. Server-side 301 levert:
+#   - 0 RTT extra (geen HTML te renderen)
+#   - correcte 301-status voor SEO
+#   - geen "U wordt doorverwezen..."-flash
+#
+# Belangrijk: de oude /novectra/index.html + /cwsolar/index.html files staan
+# in .assetsignore zodat ze niet naar de edge ge-upload worden — anders zou
+# Workers Assets ze altijd vóór deze rules serveren.
+
+# Partner: Novectra
+/novectra                                    /calculator/?partner=novectra       301
+/novectra/*                                  /calculator/?partner=novectra       301
+
+# Partner: CW Solar
+/cwsolar                                     /calculator/?partner=cwsolar        301
+/cwsolar/*                                   /calculator/?partner=cwsolar        301

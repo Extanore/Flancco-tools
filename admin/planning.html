@@ -206,6 +206,32 @@
     box-shadow: var(--shadow-sm); border: 1px solid var(--rule); transition: all 0.2s var(--ease);
   }
   .beschikbaar-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  /* Slot A3 — Certificaat-vervalt badge op beschikbaar-card. Rode rand bij verlopen
+     of <30d, oranje rand bij <90d. Tooltip toont aantal dagen tot eerste vervaldatum. */
+  .beschikbaar-card.cert-status-verlopen,
+  .beschikbaar-card.cert-status-urgent {
+    border-color: #DC2626;
+    box-shadow: 0 0 0 1px rgba(220,38,38,0.18), var(--shadow-sm);
+  }
+  .beschikbaar-card.cert-status-binnenkort {
+    border-color: #F59E0B;
+    box-shadow: 0 0 0 1px rgba(245,158,11,0.18), var(--shadow-sm);
+  }
+  .cert-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+    margin-left: 6px; vertical-align: middle;
+    cursor: help;
+  }
+  .cert-badge.cert-badge-verlopen,
+  .cert-badge.cert-badge-urgent {
+    background: #FEE2E2; color: #991B1B; border: 1px solid rgba(220,38,38,0.25);
+  }
+  .cert-badge.cert-badge-binnenkort {
+    background: #FEF3C7; color: #92400E; border: 1px solid rgba(245,158,11,0.3);
+  }
+  .cert-badge svg { width: 11px; height: 11px; flex-shrink: 0; }
   .beschikbaar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .beschikbaar-naam { font-size: 15px; font-weight: 700; color: var(--navy); }
   .beschikbaar-badge {
@@ -236,7 +262,12 @@
   }
   .planning-main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
-  /* FILTERS TOPBAR (horizontaal, sticky) */
+  /* FILTERS TOPBAR (horizontaal, sticky)
+     Slot N: sticky + opake achtergrond + z-index zodat scroll-content nooit
+     visueel doorlekt boven de filterbar. Werkt ook als parent (.planning-layout)
+     overflow: hidden gebruikt — sticky is dan no-op (filterbar is sowieso altijd
+     zichtbaar door layout) maar fungeert als defensieve hardening voor toekomstige
+     layout-wijzigingen. */
   .filters-topbar {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 20px;
@@ -245,9 +276,22 @@
     flex-shrink: 0;
     min-height: 48px;
     flex-wrap: nowrap;
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 1px 3px rgba(26,26,46,0.05);
   }
+  /* Slot A1: pill-groep tighter geclusterd zodat Partner|Sector|Regio|Technieker
+     visueel als één samenhangend filterblok lezen. Save/Reset-buttons krijgen iets
+     meer ademruimte via dedicated margin om optisch onderscheid te maken tussen
+     filters (pills) en acties (ghost buttons). */
   .filters-topbar-group {
-    display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;
+    display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  }
+  .filters-topbar-group > .filter-chip-save,
+  .filters-topbar-group > .filter-chip-reset {
+    margin-left: 6px;
+  }
+  .filters-topbar-group > .filter-chip-save + .filter-chip-reset {
+    margin-left: 0;
   }
   .filters-topbar-spacer { flex: 1; min-width: 12px; }
 
@@ -401,10 +445,16 @@
 
   /* WEEK VIEW */
   .week-grid { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  /* Slot N: header-rij van week-grid is de "technieker-balk".
+     z-index 30 (hoger dan appt-cards op hover z-5) + opake achtergrond + box-shadow
+     zorgen dat scroll-content NOOIT visueel boven de balk uitkomt. */
   .week-grid th {
     padding: 12px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--grey); border-bottom: 2px solid var(--rule); background: var(--white);
-    position: sticky; top: 0; z-index: 10; text-align: center; font-weight: 700;
+    color: var(--grey); border-bottom: 2px solid var(--rule);
+    background: var(--white);
+    position: sticky; top: 0; z-index: 30;
+    text-align: center; font-weight: 700;
+    box-shadow: 0 2px 4px rgba(26,26,46,0.04);
   }
   .week-grid th:first-child { text-align: left; width: 160px; min-width: 160px; color: var(--navy); }
   .week-grid th.today-col { background: linear-gradient(180deg, #F5F3FF 0%, #EDE9FE 100%); color: #7C3AED; border-bottom-color: #7C3AED; }
@@ -807,9 +857,13 @@
   /* DAY VIEW */
   .day-grid-wrap { overflow-x: auto; }
   .day-grid { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 600px; }
+  /* Slot N: day-view header sticky met identieke z-index/shadow als week-grid voor consistentie. */
   .day-grid th { padding: 10px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--grey); border-bottom: 2px solid var(--rule); background: var(--white);
-    position: sticky; top: 0; z-index: 10; text-align: center; font-weight: 700; }
+    color: var(--grey); border-bottom: 2px solid var(--rule);
+    background: var(--white);
+    position: sticky; top: 0; z-index: 30;
+    text-align: center; font-weight: 700;
+    box-shadow: 0 2px 4px rgba(26,26,46,0.04); }
   .day-grid th:first-child { text-align: left; width: 60px; min-width: 60px; }
   .day-grid td { padding: 3px 4px; border: 1px solid #f0f1f3; vertical-align: top;
     min-height: 30px; height: 40px; background: var(--white); transition: background 0.15s; }
@@ -819,9 +873,13 @@
 
   /* MONTH VIEW */
   .month-grid { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  /* Slot N: month-view header was niet sticky — nu wel, met dezelfde stacking als week/day. */
   .month-grid th { padding: 10px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--grey); border-bottom: 2px solid var(--rule); background: var(--white);
-    text-align: center; font-weight: 700; }
+    color: var(--grey); border-bottom: 2px solid var(--rule);
+    background: var(--white);
+    position: sticky; top: 0; z-index: 30;
+    text-align: center; font-weight: 700;
+    box-shadow: 0 2px 4px rgba(26,26,46,0.04); }
   .month-grid td { padding: 8px; border: 1px solid #f0f1f3; vertical-align: top;
     min-height: 80px; height: 96px; background: var(--white); cursor: pointer;
     transition: all 0.15s; border-radius: 2px; }
@@ -2600,6 +2658,57 @@ function getVerlopenCertificeringen(techId) {
 }
 function hasVerlopenCertificeringen(techId) {
   return getVerlopenCertificeringen(techId).length > 0;
+}
+
+/**
+ * Slot A3 — Certificaat-vervalt-badge helpers.
+ * Geeft de meest dringende vervalstatus per technieker terug:
+ *   - 'verlopen'   : minimum 1 cert is reeds verlopen (vervaldatum < vandaag)
+ *   - 'urgent'     : minimum 1 cert vervalt binnen 30 dagen (rode badge)
+ *   - 'binnenkort' : minimum 1 cert vervalt binnen 90 dagen (oranje badge)
+ *   - null         : alles OK
+ *
+ * Gebruikt op beschikbaar-card + (later) technieker-overzicht. Pure visuele warning,
+ * geen email-alert en geen blokkering — admin beslist zelf wat te doen.
+ *
+ * @param {string} techId — technieker UUID
+ * @returns {('verlopen'|'urgent'|'binnenkort'|null)}
+ */
+function getCertExpiryStatus(techId) {
+  if (!techId || !Array.isArray(allTechCertificeringen)) return null;
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+  var in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+  var status = null;
+  for (var i = 0; i < allTechCertificeringen.length; i++) {
+    var c = allTechCertificeringen[i];
+    if (!c || c.technieker_id !== techId || !c.vervaldatum) continue;
+    var vd = new Date(c.vervaldatum); vd.setHours(0, 0, 0, 0);
+    if (vd < today) return 'verlopen'; // most-urgent: short-circuit
+    if (vd < in30 && status !== 'urgent') status = 'urgent';
+    else if (vd < in90 && !status) status = 'binnenkort';
+  }
+  return status;
+}
+
+/**
+ * Slot A3 — Geeft het aantal dagen tot de eerstvolgende vervaldatum
+ * (negatief als al verlopen). Voor tooltip-tekst op badges.
+ * @param {string} techId
+ * @returns {number|null} — dagen tot earliest vervaldatum of null als geen certs
+ */
+function getCertEarliestExpiryDays(techId) {
+  if (!techId || !Array.isArray(allTechCertificeringen)) return null;
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var earliest = null;
+  for (var i = 0; i < allTechCertificeringen.length; i++) {
+    var c = allTechCertificeringen[i];
+    if (!c || c.technieker_id !== techId || !c.vervaldatum) continue;
+    var vd = new Date(c.vervaldatum); vd.setHours(0, 0, 0, 0);
+    var diff = Math.round((vd - today) / 86400000);
+    if (earliest === null || diff < earliest) earliest = diff;
+  }
+  return earliest;
 }
 
 // Fix #6 Multi-dag helpers: range-check i.p.v. exact-match op plan_datum.
@@ -8947,9 +9056,31 @@ function renderBeschikbaarheid() {
       }
     }
 
-    html += '<div class="beschikbaar-card">';
+    // Slot A3 — Cert-vervaldatum status (verlopen/<30d/<90d)
+    var certStatus = getCertExpiryStatus(tech.id);
+    var certClass = certStatus ? ' cert-status-' + certStatus : '';
+    var certBadgeHtml = '';
+    if (certStatus) {
+      var earliestDays = getCertEarliestExpiryDays(tech.id);
+      var badgeLabel, badgeIcon, badgeTooltip;
+      if (certStatus === 'verlopen') {
+        badgeLabel = 'Verlopen';
+        badgeTooltip = earliestDays !== null ? ('Certificaat ' + Math.abs(earliestDays) + 'd verlopen') : 'Certificaat verlopen';
+      } else if (certStatus === 'urgent') {
+        badgeLabel = '<' + (earliestDays !== null ? earliestDays : 30) + 'd';
+        badgeTooltip = 'Certificaat vervalt binnen ' + (earliestDays !== null ? earliestDays : 30) + ' dagen';
+      } else {
+        badgeLabel = '<' + (earliestDays !== null ? earliestDays : 90) + 'd';
+        badgeTooltip = 'Certificaat vervalt binnen ' + (earliestDays !== null ? earliestDays : 90) + ' dagen';
+      }
+      // Lucide alert-triangle icoon — consistent met cert-warn-icon op appt-card
+      badgeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+      certBadgeHtml = '<span class="cert-badge cert-badge-' + certStatus + '" title="' + esc(badgeTooltip) + '" aria-label="' + esc(badgeTooltip) + '">' + badgeIcon + esc(badgeLabel) + '</span>';
+    }
+
+    html += '<div class="beschikbaar-card' + certClass + '">';
     html += '<div class="beschikbaar-header">' +
-      '<span class="beschikbaar-naam">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</span>' +
+      '<span class="beschikbaar-naam">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + certBadgeHtml + '</span>' +
       '<span class="beschikbaar-badge" style="' + badgeStyle + '">' + esc(badgeText) + '</span>' +
       '</div>';
 
