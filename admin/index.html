@@ -1021,15 +1021,24 @@
   .verlof-type-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
 
   /* ============= Verlofbeheer — tabbed layout ============= */
-  .verlof-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; gap:16px; flex-wrap:wrap; }
-  .verlof-title { font-size:22px; font-weight:700; color:var(--navy); margin:0; letter-spacing:-0.01em; line-height:1.2; }
-  .verlof-subtitle { color:var(--grey); font-size:13px; margin:4px 0 0; }
+  /* Slot L — .verlof-header/.verlof-title/.verlof-subtitle vervangen door
+     shared .dv-header op page-verlof-ew. Class blijft alleen via id="verlof-subtitle"
+     als sub-titel-element binnen de shared header. */
   .verlof-tabs { display:inline-flex; gap:2px; background:#F3F4F6; padding:4px; border-radius:10px; margin-bottom:20px; }
   .v-tab { background:transparent; border:none; padding:8px 16px; font-size:13px; font-weight:600; color:var(--grey); border-radius:7px; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
   .v-tab:hover { color:var(--navy); }
   .v-tab.active { background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
   .v-tab-badge { background:var(--red); color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; min-width:18px; text-align:center; }
   .v-tab-pane { }
+
+  /* Slot L — Top-level Verlof / EW tabs (boven de Verlof-sub-tabs) */
+  .vle-page-header { margin-bottom:18px; }
+  .vle-tabs { display:flex; gap:0; border-bottom:1.5px solid var(--rule); margin-bottom:22px; flex-wrap:wrap; }
+  .vle-tab-btn { background:transparent; border:none; padding:12px 22px; font-size:14px; font-weight:600; color:var(--grey); cursor:pointer; transition:color .15s, border-color .15s; position:relative; border-bottom:2.5px solid transparent; margin-bottom:-1.5px; font-family:inherit; letter-spacing:-0.005em; }
+  .vle-tab-btn:hover { color:var(--navy); }
+  .vle-tab-btn.active { color:var(--navy); border-bottom-color:var(--red); }
+  .vle-tab-pane { display:none; }
+  .vle-tab-pane.active { display:block; }
 
   /* Personeel-pagina + Verlof top-toggle (zelfde stijl als v-tabs) */
   .personeel-tabs, .verlof-type-toggle {
@@ -1049,19 +1058,8 @@
   .p-tab.active .p-tab-count { background:var(--navy); color:#fff; }
   .p-tab-pane { }
 
-  .v-overzicht-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:14px; }
-  .v-person-card { background:#fff; border:1px solid var(--rule); border-radius:10px; padding:18px 20px; transition:box-shadow .2s, border-color .2s; }
-  .v-person-card:hover { border-color:var(--navy); box-shadow:0 2px 8px rgba(0,0,0,0.04); }
-  .v-person-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; }
-  .v-person-name { font-size:16px; font-weight:700; color:var(--navy); }
-  .v-role-pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border:1px solid var(--rule); border-radius:20px; font-size:11px; color:var(--grey); font-weight:600; white-space:nowrap; }
-  .v-role-pill svg { width:12px; height:12px; }
-  .v-saldo-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
-  .v-saldo-label { font-size:13px; color:var(--grey); }
-  .v-saldo-value { font-size:18px; font-weight:700; color:var(--navy); font-variant-numeric:tabular-nums; }
-  .v-progressbar { height:4px; background:#E5E7EB; border-radius:2px; overflow:hidden; margin-bottom:10px; }
-  .v-progressbar-fill { height:100%; background:var(--navy); border-radius:2px; transition:width .3s; }
-  .v-person-meta { display:flex; justify-content:space-between; font-size:12px; color:var(--grey); }
+  /* Slot L — .v-overzicht-grid + bijbehorende person-card classes verwijderd
+     samen met de Overzicht-sub-tab. */
 
   .v-sub-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
   .verlof-saldo-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; }
@@ -1087,20 +1085,24 @@
   .v-mini-saldo[data-over="true"] .ms-val { color:var(--red); }
 
   .v-kalender-toolbar { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
-  .v-kal-legend { display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--grey); }
+  .v-kal-legend { display:flex; gap:18px; padding:12px 0 16px; font-size:12px; color:var(--grey); flex-wrap:wrap; }
   .v-kal-legend-item { display:inline-flex; align-items:center; gap:6px; }
-  .v-kal-legend-swatch { width:12px; height:12px; border-radius:3px; }
-  .v-kalender-wrap { overflow-x:auto; }
-  .v-kal-table { border-collapse:separate; border-spacing:1px; font-size:11px; }
-  .v-kal-table th { padding:4px 6px; font-weight:600; color:var(--grey); text-align:center; font-size:10px; background:transparent; }
-  .v-kal-table th.v-kal-tech-header { text-align:left; min-width:120px; padding-left:8px; }
-  .v-kal-table td.v-kal-tech { font-weight:600; color:var(--navy); padding:2px 8px; white-space:nowrap; font-size:12px; background:#FAFAFB; border-radius:4px 0 0 4px; }
-  .v-kal-cell { width:14px; height:20px; background:#F3F4F6; border-radius:2px; position:relative; }
-  .v-kal-cell.weekend { background:#EAECF0; }
-  .v-kal-cell.feestdag { background:#D1D5DB; }
+  .v-kal-legend-swatch { display:inline-block; width:16px; height:16px; border-radius:3px; border:1px solid var(--rule); }
+
+  /* Slot L — Verlof-kalender restyle naar EW-rooster: sticky header + sticky tech-kolom */
+  .v-kalender-wrap { overflow-x:auto; border:1px solid var(--rule); border-radius:10px; background:#fff; }
+  .v-kal-table { border-collapse:separate; border-spacing:0; min-width:100%; font-size:11px; }
+  .v-kal-table thead th { position:sticky; top:0; background:#F9FAFB; z-index:2; padding:6px 4px; font-size:10px; font-weight:600; color:var(--grey); text-align:center; border-bottom:1px solid var(--rule); white-space:nowrap; }
+  .v-kal-table thead th.v-kal-tech-header { text-align:left; padding-left:14px; min-width:180px; position:sticky; left:0; z-index:3; background:#F9FAFB; }
+  .v-kal-table tbody td { border-bottom:1px solid var(--rule); padding:0; height:28px; }
+  .v-kal-table tbody td.v-kal-tech { padding:6px 14px; font-size:13px; color:var(--navy); font-weight:500; position:sticky; left:0; background:#fff; z-index:1; border-right:1px solid var(--rule); min-width:180px; white-space:nowrap; }
+  .v-kal-table tbody tr:nth-child(even) td.v-kal-tech { background:#FAFAFB; }
+  .v-kal-cell { width:16px; min-width:16px; background:#fff; position:relative; border-right:1px solid #F3F4F6; }
+  .v-kal-cell.weekend { background:#F3F4F6; }
+  .v-kal-cell.feestdag { background:#EFF6FF; }
   .v-kal-cell.verlof { background:var(--verlof-bg, var(--navy)); }
-  .v-kal-cell[title]:hover { outline:2px solid var(--navy); cursor:default; z-index:2; }
-  .v-kal-month-sep { width:3px; }
+  .v-kal-cell[title]:hover { outline:2px solid var(--navy); outline-offset:-2px; cursor:default; z-index:2; }
+  .v-kal-month-sep { width:2px; background:#E5E7EB; border-right:0; }
 
   .v-empty { text-align:center; padding:60px 20px; color:var(--grey); font-size:14px; }
   .v-empty svg { width:48px; height:48px; stroke:#D1D5DB; margin-bottom:12px; }
@@ -1123,20 +1125,10 @@
   /* ======================================= */
   /* EW — Economische werkloosheid           */
   /* ======================================= */
-  .ew-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
-  .ew-header-left { display:flex; flex-direction:column; gap:4px; }
-  .ew-title { font-size:22px; font-weight:700; color:var(--navy); margin:0; letter-spacing:-0.01em; line-height:1.2; }
-  .ew-subtitle { font-size:13px; color:var(--grey); margin:0; line-height:1.4; }
-  .ew-header-actions { display:flex; gap:10px; align-items:center; }
-  .ew-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 0; margin-bottom:4px; border-bottom:1px solid var(--rule); flex-wrap:wrap; }
-  .ew-month-nav { display:flex; align-items:center; gap:6px; }
-  .ew-nav-btn { background:transparent; border:1.5px solid var(--rule); border-radius:8px; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--navy); transition:background 0.15s, border-color 0.15s; }
-  .ew-nav-btn:hover { background:#F3F4F6; border-color:var(--navy); }
-  .ew-month-label { background:transparent; border:none; font-size:15px; font-weight:700; color:var(--navy); cursor:pointer; min-width:180px; padding:6px 14px; border-radius:8px; text-transform:capitalize; transition:background 0.15s; }
-  .ew-month-label:hover { background:#F3F4F6; }
-  .ew-filters { display:flex; gap:8px; flex-wrap:wrap; }
-  .ew-select { padding:8px 12px; border:1.5px solid var(--rule); border-radius:8px; font-size:13px; background:#fff; color:var(--navy); cursor:pointer; }
-  .ew-select:focus { outline:none; border-color:var(--navy); }
+  /* Slot L — .ew-header / .ew-toolbar / .ew-month-nav / .ew-nav-btn / .ew-month-label /
+     .ew-filters / .ew-select zijn vervangen door .dv-* equivalenten in de Verlof / EW
+     pagina. Hieronder blijven alleen de EW-specifieke styling-blokken (legend, grid,
+     swatches, modal). */
 
   .ew-legend { display:flex; gap:18px; padding:12px 0 16px; font-size:12px; color:var(--grey); flex-wrap:wrap; }
   .ew-legend-item { display:inline-flex; align-items:center; gap:6px; }
@@ -1185,9 +1177,9 @@
   .ew-warn-box li { margin:2px 0; }
 
   @media (max-width:900px) {
-    .ew-header { flex-direction:column; align-items:stretch; }
-    .ew-toolbar { flex-direction:column; align-items:stretch; }
-    .ew-filters { justify-content:flex-start; }
+    .dv-header { flex-direction:column; align-items:stretch; }
+    .dv-toolbar { flex-direction:column; align-items:stretch; }
+    .dv-toolbar-right { margin-left:0; justify-content:flex-start; }
   }
 
   /* =========================================================================
@@ -1355,10 +1347,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       <span>Bouwdrogers</span>
     </a>
-    <a class="nav-item admin-only perm-verlof-beheer" onclick="showPage('ew')" data-page="ew">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="16 3 16 8 21 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
-      <span>Economische werkloosheid</span>
-    </a>
     <!-- Slot K — feestdagen + sluitingsperiodes (admin-only beheer) -->
     <a class="nav-item admin-only" onclick="showPage('feestdagen')" data-page="feestdagen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9.5" y1="14.5" x2="14.5" y2="19.5"/><line x1="14.5" y1="14.5" x2="9.5" y2="19.5"/></svg>
@@ -1371,9 +1359,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Personeel</span>
     </a>
-    <a class="nav-item admin-only perm-verlof-beheer" onclick="showPage('verlof')" data-page="verlof">
+    <a class="nav-item admin-only perm-verlof-beheer" onclick="showPage('verlof-ew')" data-page="verlof-ew">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
-      <span>Verlof</span>
+      <span>Verlof / EW</span>
     </a>
     <a class="nav-item admin-only perm-verlof-beheer" onclick="showPage('uren')" data-page="uren">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -2560,130 +2548,217 @@
       </div>
     </div>
 
-    <div class="page admin-only perm-verlof-beheer" id="page-verlof">
-      <!-- Header -->
-      <div class="verlof-header">
-        <div>
-          <h1 class="verlof-title">Verlofbeheer</h1>
-          <p class="verlof-subtitle" id="verlof-subtitle">0 personeelsleden · 0 aanvragen</p>
+    <div class="page admin-only perm-verlof-beheer" id="page-verlof-ew">
+      <!-- Shared card-header voor de hele Verlof / EW-pagina -->
+      <div class="dv-header vle-page-header">
+        <div class="dv-header-left">
+          <h1 class="dv-title">Verlof / EW</h1>
+          <p class="dv-subtitle" id="verlof-subtitle">Beheer verlof-aanvragen, saldi en economische werkloosheid</p>
         </div>
-        <button class="btn btn-primary" onclick="openVerlofModal(null)">+ Nieuwe aanvraag</button>
-      </div>
-
-      <!-- Type-toggle: Techniekers | Bedienden -->
-      <div class="verlof-type-toggle" role="tablist">
-        <button class="vt-btn active" data-vtype="technieker" onclick="switchVerlofType('technieker')">Techniekers <span class="p-tab-count" id="vt-tech-count">0</span></button>
-        <button class="vt-btn" data-vtype="bediende" onclick="switchVerlofType('bediende')">Bedienden <span class="p-tab-count" id="vt-bed-count">0</span></button>
-      </div>
-
-      <!-- Tabs -->
-      <div class="verlof-tabs" role="tablist">
-        <button class="v-tab active" data-vtab="overzicht" onclick="switchVerlofTab('overzicht')">Overzicht</button>
-        <button class="v-tab" data-vtab="kalender" onclick="switchVerlofTab('kalender')">Kalender</button>
-        <button class="v-tab" data-vtab="aanvragen" onclick="switchVerlofTab('aanvragen')">Aanvragen <span class="v-tab-badge" id="v-tab-aanvragen-count" style="display:none"></span></button>
-        <button class="v-tab" data-vtab="saldo" onclick="switchVerlofTab('saldo')">Saldo</button>
-        <button class="v-tab" data-vtab="personeel" onclick="switchVerlofTab('personeel')">Personeel</button>
-      </div>
-
-      <!-- Tab panes -->
-      <div class="v-tab-pane active" id="vtab-overzicht">
-        <div class="v-overzicht-grid" id="v-overzicht-grid"></div>
-      </div>
-
-      <div class="v-tab-pane" id="vtab-kalender" style="display:none">
-        <div class="card">
-          <div class="dv-header">
-            <div class="dv-header-left">
-              <h2 class="dv-title">Verlofkalender</h2>
-              <p class="dv-subtitle">Jaaroverzicht van alle goedgekeurde en aangevraagde verlofperiodes per technieker</p>
-            </div>
-          </div>
-          <div class="dv-toolbar">
-            <div class="dv-toolbar-left">
-              <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Jaar</label>
-              <select id="v-kal-jaar" class="dv-select" onchange="renderVerlofKalender()" style="width:110px"></select>
-            </div>
-          </div>
-          <div class="dv-legend" id="v-kal-legend"></div>
-          <div class="v-kalender-wrap" id="v-kalender-wrap"></div>
+        <div class="dv-header-actions" id="vle-header-actions">
+          <button class="btn btn-primary" onclick="openVerlofModal(null)">+ Nieuwe aanvraag</button>
         </div>
       </div>
 
-      <div class="v-tab-pane" id="vtab-aanvragen" style="display:none">
-        <div class="card">
-          <div class="dv-header">
-            <div class="dv-header-left">
-              <h2 class="dv-title">Verlofaanvragen</h2>
-              <p class="dv-subtitle">Overzicht van alle aangevraagde, goedgekeurde en geweigerde verlofperiodes</p>
-            </div>
-          </div>
-          <div class="dv-toolbar">
-            <div class="dv-toolbar-left"></div>
-            <div class="dv-toolbar-right">
-              <select id="verlof-filter-tech" class="dv-select" onchange="renderVerlofAanvragen()" style="min-width:180px">
-                <option value="">Alle techniekers</option>
-              </select>
-              <select id="verlof-filter-type" class="dv-select" onchange="renderVerlofAanvragen()">
-                <option value="">Alle types</option>
-              </select>
-              <select id="verlof-filter-status" class="dv-select" onchange="renderVerlofAanvragen()">
-                <option value="">Alle statussen</option>
-                <option value="aangevraagd">Aangevraagd</option>
-                <option value="goedgekeurd">Goedgekeurd</option>
-                <option value="geweigerd">Geweigerd</option>
-              </select>
-              <select id="verlof-filter-jaar" class="dv-select" onchange="renderVerlofAanvragen()" style="width:100px"></select>
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Technieker</th>
-                <th>Type</th>
-                <th>Periode</th>
-                <th>Dagen</th>
-                <th>Reden</th>
-                <th>Status</th>
-                <th style="width:90px;text-align:right">Acties</th>
-              </tr>
-            </thead>
-            <tbody id="verlof-tbody"></tbody>
-          </table>
-          <div id="verlof-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen verlof-records gevonden voor deze filters.</div>
-        </div>
+      <!-- Top-level tabs: Verlof | EW -->
+      <div class="vle-tabs" role="tablist">
+        <button class="vle-tab-btn active" data-vle-tab="verlof" onclick="switchVerlofEwTab('verlof')">Verlof</button>
+        <button class="vle-tab-btn" data-vle-tab="ew" onclick="switchVerlofEwTab('ew')">EW</button>
       </div>
 
-      <div class="v-tab-pane" id="vtab-saldo" style="display:none">
+      <!-- VERLOF-pane -->
+      <div class="vle-tab-pane vle-pane-verlof active">
+        <!-- Type-toggle: Techniekers | Bedienden -->
+        <div class="verlof-type-toggle" role="tablist">
+          <button class="vt-btn active" data-vtype="technieker" onclick="switchVerlofType('technieker')">Techniekers <span class="p-tab-count" id="vt-tech-count">0</span></button>
+          <button class="vt-btn" data-vtype="bediende" onclick="switchVerlofType('bediende')">Bedienden <span class="p-tab-count" id="vt-bed-count">0</span></button>
+        </div>
+
+        <!-- Sub-tabs (Overzicht is verwijderd in Slot L) -->
+        <div class="verlof-tabs" role="tablist">
+          <button class="v-tab active" data-vtab="kalender" onclick="switchVerlofTab('kalender')">Kalender</button>
+          <button class="v-tab" data-vtab="aanvragen" onclick="switchVerlofTab('aanvragen')">Aanvragen <span class="v-tab-badge" id="v-tab-aanvragen-count" style="display:none"></span></button>
+          <button class="v-tab" data-vtab="saldo" onclick="switchVerlofTab('saldo')">Saldo</button>
+          <button class="v-tab" data-vtab="personeel" onclick="switchVerlofTab('personeel')">Personeel</button>
+        </div>
+
+        <!-- Sub-tab panes -->
+        <div class="v-tab-pane active" id="vtab-kalender">
+          <div class="card">
+            <div class="dv-header">
+              <div class="dv-header-left">
+                <h2 class="dv-title">Verlofkalender</h2>
+                <p class="dv-subtitle">Jaaroverzicht van alle goedgekeurde en aangevraagde verlofperiodes per technieker</p>
+              </div>
+            </div>
+            <div class="dv-toolbar">
+              <div class="dv-toolbar-left">
+                <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Jaar</label>
+                <select id="v-kal-jaar" class="dv-select" onchange="renderVerlofKalender()" style="width:110px"></select>
+              </div>
+            </div>
+            <div class="dv-legend" id="v-kal-legend"></div>
+            <div class="v-kalender-wrap" id="v-kalender-wrap"></div>
+          </div>
+        </div>
+
+        <div class="v-tab-pane" id="vtab-aanvragen" style="display:none">
+          <div class="card">
+            <div class="dv-header">
+              <div class="dv-header-left">
+                <h2 class="dv-title">Verlofaanvragen</h2>
+                <p class="dv-subtitle">Overzicht van alle aangevraagde, goedgekeurde en geweigerde verlofperiodes</p>
+              </div>
+            </div>
+            <div class="dv-toolbar">
+              <div class="dv-toolbar-left"></div>
+              <div class="dv-toolbar-right">
+                <select id="verlof-filter-tech" class="dv-select" onchange="renderVerlofAanvragen()" style="min-width:180px">
+                  <option value="">Alle techniekers</option>
+                </select>
+                <select id="verlof-filter-type" class="dv-select" onchange="renderVerlofAanvragen()">
+                  <option value="">Alle types</option>
+                </select>
+                <select id="verlof-filter-status" class="dv-select" onchange="renderVerlofAanvragen()">
+                  <option value="">Alle statussen</option>
+                  <option value="aangevraagd">Aangevraagd</option>
+                  <option value="goedgekeurd">Goedgekeurd</option>
+                  <option value="geweigerd">Geweigerd</option>
+                </select>
+                <select id="verlof-filter-jaar" class="dv-select" onchange="renderVerlofAanvragen()" style="width:100px"></select>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Technieker</th>
+                  <th>Type</th>
+                  <th>Periode</th>
+                  <th>Dagen</th>
+                  <th>Reden</th>
+                  <th>Status</th>
+                  <th style="width:90px;text-align:right">Acties</th>
+                </tr>
+              </thead>
+              <tbody id="verlof-tbody"></tbody>
+            </table>
+            <div id="verlof-empty" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Geen verlof-records gevonden voor deze filters.</div>
+          </div>
+        </div>
+
+        <div class="v-tab-pane" id="vtab-saldo" style="display:none">
+          <div class="card">
+            <div class="dv-header">
+              <div class="dv-header-left">
+                <h2 class="dv-title">Verlofsaldo</h2>
+                <p class="dv-subtitle">Openstaand saldo vakantiedagen en ADV per technieker — inclusief bulk-toekenning en feestdagen-import</p>
+              </div>
+              <div class="dv-header-actions">
+                <button class="btn btn-ghost" onclick="openBulkToekennenModal()" title="Ken saldo toe aan meerdere techniekers tegelijk">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  Bulk toekennen
+                </button>
+                <button class="btn btn-ghost" onclick="openFeestdagenBulk()" title="Importeer Belgische feestdagen voor dit jaar">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Feestdagen importeren
+                </button>
+              </div>
+            </div>
+            <div class="dv-toolbar">
+              <div class="dv-toolbar-left">
+                <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Jaar</label>
+                <select id="v-saldo-jaar" class="dv-select" onchange="renderVerlofSaldoTab()" style="width:110px"></select>
+              </div>
+            </div>
+            <div id="verlof-saldo-container"></div>
+          </div>
+        </div>
+
+        <div class="v-tab-pane" id="vtab-personeel" style="display:none">
+          <div class="card">
+            <div class="dv-header">
+              <div class="dv-header-left">
+                <h2 class="dv-title">Personeel</h2>
+                <p class="dv-subtitle">Per persoon: opgenomen verlof, openstaande aanvragen en saldi per type</p>
+              </div>
+            </div>
+            <div class="v-personeel-list" id="v-personeel-list"></div>
+          </div>
+        </div>
+      </div>
+      <!-- /Verlof-pane -->
+
+      <!-- EW-pane (verplaatste content uit voormalig page-ew) -->
+      <div class="vle-tab-pane vle-pane-ew">
         <div class="card">
           <div class="dv-header">
             <div class="dv-header-left">
-              <h2 class="dv-title">Verlofsaldo</h2>
-              <p class="dv-subtitle">Openstaand saldo vakantiedagen en ADV per technieker — inclusief bulk-toekenning en feestdagen-import</p>
+              <h2 class="dv-title">Economische werkloosheid</h2>
+              <p class="dv-subtitle">Registratie van EW-dagen voor Flancco-arbeiders</p>
             </div>
             <div class="dv-header-actions">
-              <button class="btn btn-ghost" onclick="openBulkToekennenModal()" title="Ken saldo toe aan meerdere techniekers tegelijk">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Bulk toekennen
+              <button class="btn btn-ghost" onclick="exportEWToCSV()" title="Exporteer lopende maand naar CSV">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
               </button>
-              <button class="btn btn-ghost" onclick="openFeestdagenBulk()" title="Importeer Belgische feestdagen voor dit jaar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Feestdagen importeren
+              <button class="btn btn-primary" onclick="openEWRegisterModal(null, null)">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                EW registreren
               </button>
             </div>
           </div>
+
           <div class="dv-toolbar">
             <div class="dv-toolbar-left">
-              <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Jaar</label>
-              <select id="v-saldo-jaar" class="dv-select" onchange="renderVerlofSaldoTab()" style="width:110px"></select>
+              <div class="dv-nav">
+                <button class="dv-nav-btn" onclick="ewNavigateMonth(-1)" aria-label="Vorige maand">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <button class="dv-nav-label" id="ew-month-label" onclick="ewOpenMonthPicker()" aria-label="Kies maand"></button>
+                <button class="dv-nav-btn" onclick="ewNavigateMonth(1)" aria-label="Volgende maand">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="dv-toolbar-right">
+              <select id="ew-filter-sector" class="dv-select" onchange="renderEWCalendarGrid()">
+                <option value="">Alle sectoren</option>
+                <option value="zonnepanelen">Zonnepanelen</option>
+                <option value="hvac">HVAC</option>
+                <option value="droogijs">Droogijs</option>
+                <option value="ventilatie">Ventilatie</option>
+                <option value="bouwdrogers">Bouwdrogers</option>
+              </select>
+              <select id="ew-filter-subreden" class="dv-select" onchange="renderEWCalendarGrid()">
+                <option value="">Alle sub-redenen</option>
+                <option value="gebrek_aan_werk">Gebrek aan werk</option>
+                <option value="seizoensschommeling">Seizoensschommeling</option>
+                <option value="weersomstandigheden">Weersomstandigheden</option>
+                <option value="technische_stoornis">Technische stoornis</option>
+                <option value="overige">Overige</option>
+              </select>
+              <select id="ew-filter-dimona" class="dv-select" onchange="renderEWCalendarGrid()">
+                <option value="">Alle Dimona-statussen</option>
+                <option value="nog_te_melden">Nog te melden</option>
+                <option value="gemeld">Gemeld</option>
+              </select>
             </div>
           </div>
-          <div id="verlof-saldo-container"></div>
+
+          <div class="ew-legend">
+            <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-none"></span>Geen EW</span>
+            <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-half"></span>Halve dag</span>
+            <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-full"></span>Volledige dag</span>
+            <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-nodimona"></span>Dimona nog te melden</span>
+            <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-holiday"></span>Feestdag</span>
+          </div>
+
+          <div id="ew-grid-wrapper" class="ew-grid-wrapper">
+            <div id="ew-grid-empty" class="ew-empty">Laden...</div>
+          </div>
         </div>
       </div>
-
-      <div class="v-tab-pane" id="vtab-personeel" style="display:none">
-        <div class="v-personeel-list" id="v-personeel-list"></div>
-      </div>
+      <!-- /EW-pane -->
     </div>
 
     <div class="page admin-only perm-verlof-beheer" id="page-uren">
@@ -2940,75 +3015,6 @@
           </thead>
           <tbody id="wagen-tbody"></tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- EW-PAGINA (admin + bediende met verlof_beheer) -->
-    <div class="page admin-only" id="page-ew">
-      <div class="card">
-        <div class="ew-header">
-          <div class="ew-header-left">
-            <h2 class="ew-title">Economische werkloosheid</h2>
-            <p class="ew-subtitle">Registratie van EW-dagen voor Flancco-arbeiders</p>
-          </div>
-          <div class="ew-header-actions">
-            <button class="btn btn-ghost" onclick="exportEWToCSV()" title="Exporteer lopende maand naar CSV">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export CSV
-            </button>
-            <button class="btn btn-primary" onclick="openEWRegisterModal(null, null)">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              EW registreren
-            </button>
-          </div>
-        </div>
-
-        <div class="ew-toolbar">
-          <div class="ew-month-nav">
-            <button class="ew-nav-btn" onclick="ewNavigateMonth(-1)" aria-label="Vorige maand">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <button class="ew-month-label" id="ew-month-label" onclick="ewOpenMonthPicker()" aria-label="Kies maand"></button>
-            <button class="ew-nav-btn" onclick="ewNavigateMonth(1)" aria-label="Volgende maand">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-          <div class="ew-filters">
-            <select id="ew-filter-sector" class="ew-select" onchange="renderEWCalendarGrid()">
-              <option value="">Alle sectoren</option>
-              <option value="zonnepanelen">Zonnepanelen</option>
-              <option value="hvac">HVAC</option>
-              <option value="droogijs">Droogijs</option>
-              <option value="ventilatie">Ventilatie</option>
-              <option value="bouwdrogers">Bouwdrogers</option>
-            </select>
-            <select id="ew-filter-subreden" class="ew-select" onchange="renderEWCalendarGrid()">
-              <option value="">Alle sub-redenen</option>
-              <option value="gebrek_aan_werk">Gebrek aan werk</option>
-              <option value="seizoensschommeling">Seizoensschommeling</option>
-              <option value="weersomstandigheden">Weersomstandigheden</option>
-              <option value="technische_stoornis">Technische stoornis</option>
-              <option value="overige">Overige</option>
-            </select>
-            <select id="ew-filter-dimona" class="ew-select" onchange="renderEWCalendarGrid()">
-              <option value="">Alle Dimona-statussen</option>
-              <option value="nog_te_melden">Nog te melden</option>
-              <option value="gemeld">Gemeld</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="ew-legend">
-          <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-none"></span>Geen EW</span>
-          <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-half"></span>Halve dag</span>
-          <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-full"></span>Volledige dag</span>
-          <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-nodimona"></span>Dimona nog te melden</span>
-          <span class="ew-legend-item"><span class="ew-legend-swatch ew-swatch-holiday"></span>Feestdag</span>
-        </div>
-
-        <div id="ew-grid-wrapper" class="ew-grid-wrapper">
-          <div id="ew-grid-empty" class="ew-empty">Laden...</div>
-        </div>
       </div>
     </div>
 
@@ -5643,15 +5649,14 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren', ew: 'Economische werkloosheid', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
-  if (name === 'verlof') renderVerlofPage();
+  if (name === 'verlof-ew') renderVerlofEwPage();
   if (name === 'uren') renderUrenPage();
   if (name === 'notificaties') { renderNotificatiesPage(); }
   if (name === 'bouwdrogers') renderBouwdrogers();
-  if (name === 'ew') renderEWPage();
   if (name === 'auditlog') { initAuditLogPage(); }
   if (name === 'marketing' && typeof renderMarketingPage === 'function') renderMarketingPage();
   if (name === 'instellingen' && userRole === 'partner' && typeof can === 'function' && can('manage_users') && typeof renderPartnerTeamList === 'function') renderPartnerTeamList();
@@ -6605,7 +6610,7 @@ function renderDashboard() {
        <div class="stat-card orange"><div class="stat-label">Openstaand</div><div class="stat-value" id="stat-openstaand">0</div><div class="stat-sub">in te plannen</div></div>
        <div class="stat-card red"><div class="stat-label">Interventies</div><div class="stat-value" id="stat-int-open">0</div><div class="stat-sub">open</div></div>
        <div class="stat-card green"><div class="stat-label">Deadlines 14d</div><div class="stat-value" id="stat-deadlines">0</div><div class="stat-sub">actie vereist</div></div>
-       <div class="stat-card admin-only ew-stat-card" id="stat-ew-card" role="button" tabindex="0" onclick="showPage && showPage('ew')" onkeypress="if(event.key==='Enter'||event.key===' '){showPage&&showPage('ew');}" title="Open EW-overzicht" style="cursor:pointer;position:relative">
+       <div class="stat-card admin-only ew-stat-card" id="stat-ew-card" role="button" tabindex="0" onclick="openVerlofEwOnTab && openVerlofEwOnTab('ew')" onkeypress="if(event.key==='Enter'||event.key===' '){openVerlofEwOnTab&&openVerlofEwOnTab('ew');}" title="Open EW-overzicht" style="cursor:pointer;position:relative">
          <div class="stat-label" style="display:flex;align-items:center;gap:6px">
            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#D97706"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
            <span>EW deze maand</span>
@@ -16427,10 +16432,12 @@ function switchVerlofType(type) {
   document.querySelectorAll('.vt-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.vtype === type);
   });
-  renderVerlofPage();
+  renderVerlofEwPage();
 }
 
+// Slot L — defensieve fallback: 'overzicht' bestaat niet meer, route naar 'kalender'.
 function switchVerlofTab(tab) {
+  if (tab === 'overzicht') tab = 'kalender';
   verlofTab = tab;
   document.querySelectorAll('.v-tab').forEach(function(b) { b.classList.toggle('active', b.dataset.vtab === tab); });
   document.querySelectorAll('.v-tab-pane').forEach(function(p) {
@@ -16442,14 +16449,62 @@ function switchVerlofTab(tab) {
 }
 
 function renderVerlofActiveTab() {
-  if (verlofTab === 'overzicht') renderVerlofOverzicht();
-  else if (verlofTab === 'kalender') renderVerlofKalender();
+  if (verlofTab === 'kalender') renderVerlofKalender();
   else if (verlofTab === 'aanvragen') renderVerlofAanvragen();
   else if (verlofTab === 'saldo') renderVerlofSaldoTab();
   else if (verlofTab === 'personeel') renderVerlofPersoneel();
 }
 
-function renderVerlofPage() {
+// Slot L — top-level tab-switch tussen Verlof en EW binnen page-verlof-ew.
+// Toont/verbergt de juiste pane, update active tab-button, dispatched render-call.
+var verlofEwActiveTab = 'verlof';
+function switchVerlofEwTab(tab) {
+  if (tab !== 'verlof' && tab !== 'ew') tab = 'verlof';
+  verlofEwActiveTab = tab;
+  document.querySelectorAll('.vle-tab-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.vleTab === tab);
+  });
+  document.querySelectorAll('.vle-tab-pane').forEach(function(p) {
+    var show = p.classList.contains('vle-pane-' + tab);
+    p.classList.toggle('active', show);
+  });
+  // Toon/verberg actie-knop in shared header (Nieuwe aanvraag heeft geen zin op EW-tab —
+  // EW heeft eigen sub-actieknoppen 'Export CSV' en 'EW registreren' in zijn eigen card-header).
+  var headerActions = document.getElementById('vle-header-actions');
+  if (headerActions) headerActions.style.display = (tab === 'verlof') ? '' : 'none';
+
+  if (tab === 'verlof') {
+    renderVerlofActiveTab();
+  } else {
+    if (typeof renderEWPage === 'function') renderEWPage();
+  }
+  // Slot 0 — track tab-switch (geen PII)
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Verlof EW Tab Switched', { tab: tab }); } catch (_) {}
+  }
+}
+
+// Helper voor externe entry-points (dashboard stat-card e.d.) om direct
+// op de EW-tab te landen na page-switch.
+function openVerlofEwOnTab(tab) {
+  if (typeof showPage !== 'function') return;
+  showPage('verlof-ew');
+  // Wacht 1 tick zodat showPage de pane heeft geactiveerd voor we tab switchen.
+  setTimeout(function() { switchVerlofEwTab(tab || 'verlof'); }, 0);
+}
+
+function renderVerlofEwPage() {
+  // Slot L — defensieve fallback: 'overzicht' bestaat niet meer.
+  if (verlofTab === 'overzicht') verlofTab = 'kalender';
+
+  // Zorg dat sub-tab-DOM in lijn is met state (showPage zelf doet dit niet).
+  document.querySelectorAll('.v-tab').forEach(function(b) { b.classList.toggle('active', b.dataset.vtab === verlofTab); });
+  document.querySelectorAll('.v-tab-pane').forEach(function(p) {
+    var show = p.id === ('vtab-' + verlofTab);
+    p.style.display = show ? '' : 'none';
+    p.classList.toggle('active', show);
+  });
+
   // Toggle-counts
   var techsTotaal = (allTechniekers || []).filter(function(t) { return t.actief !== false; });
   var techOnly = techsTotaal.filter(function(t) { return (t.type_personeel || 'technieker') !== 'bediende'; });
@@ -16457,13 +16512,10 @@ function renderVerlofPage() {
   var elVT = document.getElementById('vt-tech-count'); if (elVT) elVT.textContent = techOnly.length;
   var elVB = document.getElementById('vt-bed-count'); if (elVB) elVB.textContent = bedOnly.length;
 
-  // Header counts (per actieve type-filter)
+  // Header counts (per actieve type-filter) + badge
   var techs = getVerlofTechs();
   var techIds = techs.map(function(t) { return t.id; });
   var aanvragenAlle = allVerlof.filter(function(v) { return v.status === 'aangevraagd' && techIds.indexOf(v.technieker_id) !== -1; }).length;
-  var sub = document.getElementById('verlof-subtitle');
-  var label = (verlofType === 'bediende') ? 'bediende' : 'technieker';
-  if (sub) sub.textContent = techs.length + ' ' + label + (techs.length === 1 ? '' : 's') + ' · ' + aanvragenAlle + ' aanvraag' + (aanvragenAlle === 1 ? '' : 'en');
   var badge = document.getElementById('v-tab-aanvragen-count');
   if (badge) {
     if (aanvragenAlle > 0) { badge.textContent = aanvragenAlle; badge.style.display = ''; }
@@ -16489,64 +16541,15 @@ function renderVerlofPage() {
     if (el) el.innerHTML = jaren.map(function(j) { return '<option value="' + j + '"' + (j === huidigJaar ? ' selected' : '') + '>' + j + '</option>'; }).join('');
   });
 
-  renderVerlofActiveTab();
-}
-
-// ---- Tab: Overzicht (kaarten per persoon, headline = Vakantie saldo) ----
-function renderVerlofOverzicht() {
-  var grid = document.getElementById('v-overzicht-grid');
-  if (!grid) return;
-  var techs = getVerlofTechs();
-  var jaar = new Date().getFullYear();
-  // Kies "Vakantie" of eerste saldo-telbare type als headline
-  var headlineType = allVerlofTypes.find(function(vt) {
-    var n = (vt.naam || '').toLowerCase();
-    return vt.is_saldo_telbaar && (n.indexOf('vakantie') !== -1 || n.indexOf('wettelijk') !== -1);
-  }) || allVerlofTypes.find(function(vt) { return vt.is_saldo_telbaar; });
-
-  if (techs.length === 0) {
-    grid.innerHTML = '<div class="v-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>Geen personeelsleden actief.</p></div>';
-    return;
+  // Render actieve top-level pane (Verlof of EW). Default = Verlof.
+  if (verlofEwActiveTab === 'ew') {
+    if (typeof renderEWPage === 'function') renderEWPage();
+  } else {
+    renderVerlofActiveTab();
   }
-
-  grid.innerHTML = techs.map(function(t) {
-    var voornaam = (t.voornaam || techNaam(t.id).split(' ')[0] || '—');
-    var saldo = headlineType ? allVerlofSaldi.find(function(s) {
-      return s.technieker_id === t.id && s.verlof_type_id === headlineType.id && s.jaar === jaar;
-    }) : null;
-    var maxDagen = saldo ? parseFloat(saldo.saldo_dagen) : 0;
-    var opgenomen = 0, goedgekeurd = 0;
-    allVerlof.forEach(function(v) {
-      if (v.technieker_id !== t.id) return;
-      if (headlineType && v.verlof_type_id !== headlineType.id) return;
-      var vn = parseISO(v.van_datum).getFullYear();
-      if (vn !== jaar) return;
-      var dagen = countWerkdagen(v.van_datum, v.tot_datum, v.halve_dag);
-      if (v.status !== 'geweigerd') goedgekeurd += dagen;
-      if (v.status === 'goedgekeurd' || v.status === 'opgenomen' || !v.status) opgenomen += dagen;
-    });
-    var pct = maxDagen > 0 ? Math.min(100, (opgenomen / maxDagen) * 100) : 0;
-    var over = maxDagen > 0 && opgenomen > maxDagen;
-    var barColor = over ? 'var(--red)' : 'var(--navy)';
-    return '<div class="v-person-card" onclick="switchVerlofTab(\'personeel\'); setTimeout(function(){ expandPersoon(\'' + t.id + '\'); }, 20)" style="cursor:pointer">' +
-      '<div class="v-person-card-header">' +
-        '<div class="v-person-name">' + esc(voornaam) + '</div>' +
-        (t.type_personeel === 'bediende'
-          ? '<span class="v-role-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-3V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M9 7V5h6v2"/></svg>Bediende</span>'
-          : '<span class="v-role-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Technieker</span>') +
-      '</div>' +
-      '<div class="v-saldo-row">' +
-        '<span class="v-saldo-label">' + esc(headlineType ? headlineType.naam : 'Vakantiedagen') + '</span>' +
-        '<span class="v-saldo-value" style="color:' + barColor + '">' + opgenomen.toFixed(1).replace('.0','') + ' / ' + maxDagen.toFixed(1).replace('.0','') + '</span>' +
-      '</div>' +
-      '<div class="v-progressbar"><div class="v-progressbar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
-      '<div class="v-person-meta">' +
-        '<span>Opgenomen: ' + opgenomen.toFixed(1).replace('.0','') + ' d</span>' +
-        '<span>Totaal goedgekeurd: ' + goedgekeurd.toFixed(1).replace('.0','') + ' d</span>' +
-      '</div>' +
-    '</div>';
-  }).join('');
 }
+
+// Slot L — renderVerlofOverzicht is verwijderd: Overzicht-sub-tab vervalt.
 
 // ---- Tab: Aanvragen (tabel) ----
 function renderVerlofAanvragen() {
@@ -16602,7 +16605,7 @@ function renderVerlofAanvragen() {
 }
 
 // Backwards-compatible alias voor bestaande callers (bv. na modal-save)
-function renderVerlof() { renderVerlofPage(); }
+function renderVerlof() { renderVerlofEwPage(); }
 
 function formatBE(iso) {
   if (!iso) return '—';
@@ -16882,7 +16885,6 @@ async function saveBulkToekennen() {
 
   closeBulkToekennenModal();
   renderVerlofSaldoTab();
-  if (typeof renderVerlofOverzicht === 'function') renderVerlofOverzicht();
   if (typeof renderVerlofPersoneel === 'function') renderVerlofPersoneel();
 
   if (errors > 0) {
@@ -16964,10 +16966,7 @@ function togglePersoon(techId) {
   if (!row) return;
   row.classList.toggle('open');
 }
-function expandPersoon(techId) {
-  var row = document.getElementById('v-persoon-' + techId);
-  if (row) row.classList.add('open');
-}
+// Slot L — expandPersoon verwijderd (laatste caller was de Overzicht-card-onclick).
 
 // ---- Tab: Kalender (heatmap jaar × techs) ----
 function renderVerlofKalender() {
