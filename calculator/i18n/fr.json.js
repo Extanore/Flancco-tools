@@ -435,6 +435,28 @@
         deleteConfirmFd: 'Voulez-vous vraiment supprimer le jour f\u00e9ri\u00e9 {label} ({datum}) ?',
         deleteConfirmSp: 'Voulez-vous vraiment supprimer la p\u00e9riode de fermeture {label} ({datum}) ?'
       }
+    },
+    // Slot C — Portail partenaire : onglet Pipeline + actions (appel/e-mail/suivi)
+    partner: {
+      pipeline: {
+        tabPipeline: 'Pipeline',
+        tabAlle: 'Tous les contrats',
+        tabFollowUp: 'Suivi',
+        statusConcept: 'Brouillon',
+        statusGetekend: 'Sign\u00e9',
+        statusActief: 'Actif',
+        statusVerlopen: 'Expir\u00e9',
+        statusGeannuleerd: 'Annul\u00e9',
+        actionBelKlant: 'Appeler le client',
+        actionEmailKlant: 'Rappel par e-mail',
+        actionFollowUp: 'Marquer pour suivi',
+        actionUnFollowUp: 'Retirer du suivi',
+        toastFollowUpAdded: 'Marqu\u00e9 pour suivi',
+        toastFollowUpRemoved: 'Suivi retir\u00e9',
+        emptyFollowUp: 'Aucun suivi pour le moment.',
+        emailSubject: 'Rappel d\'entretien {klant}',
+        emailBody: 'Bonjour {klant}, un bref rappel concernant votre entretien. Cordialement,'
+      }
     }
   });
 })();

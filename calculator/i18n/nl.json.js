@@ -447,6 +447,28 @@
         deleteConfirmFd: 'Weet je zeker dat je de feestdag {label} ({datum}) wil verwijderen?',
         deleteConfirmSp: 'Weet je zeker dat je de sluitingsperiode {label} ({datum}) wil verwijderen?'
       }
+    },
+    // Slot C — Partner-portal pipeline-tab + acties (bel/email/follow-up)
+    partner: {
+      pipeline: {
+        tabPipeline: 'Pipeline',
+        tabAlle: 'Alle contracten',
+        tabFollowUp: 'Follow-up',
+        statusConcept: 'Concept',
+        statusGetekend: 'Getekend',
+        statusActief: 'Actief',
+        statusVerlopen: 'Verlopen',
+        statusGeannuleerd: 'Geannuleerd',
+        actionBelKlant: 'Bel klant',
+        actionEmailKlant: 'Herinner via email',
+        actionFollowUp: 'Markeer als follow-up',
+        actionUnFollowUp: 'Verwijder follow-up',
+        toastFollowUpAdded: 'Gemarkeerd voor follow-up',
+        toastFollowUpRemoved: 'Follow-up verwijderd',
+        emptyFollowUp: 'Geen follow-ups op dit moment.',
+        emailSubject: 'Herinnering onderhoud {klant}',
+        emailBody: 'Beste {klant}, een korte herinnering aan uw onderhoudsbeurt. Met vriendelijke groet,'
+      }
     }
   });
 })();

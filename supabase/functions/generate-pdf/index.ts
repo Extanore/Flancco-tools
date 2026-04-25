@@ -216,15 +216,14 @@ interface PartnerRow {
   bedrijfsnaam: string | null;
   naam: string | null;
   kleur_primair: string | null;
-  kleur_secundair: string | null;
+  kleur_donker: string | null;
   logo_url: string | null;
   adres: string | null;
   postcode: string | null;
   gemeente: string | null;
   email: string | null;
   telefoon: string | null;
-  contact_email: string | null;
-  contact_telefoon: string | null;
+  website: string | null;
   actief: boolean | null;
 }
 
@@ -236,7 +235,7 @@ async function loadPartnerBranding(
 
   const { data: row, error } = await sb
     .from("partners")
-    .select("slug, bedrijfsnaam, naam, kleur_primair, kleur_secundair, logo_url, adres, postcode, gemeente, email, telefoon, contact_email, contact_telefoon, actief")
+    .select("slug, bedrijfsnaam, naam, kleur_primair, kleur_donker, logo_url, adres, postcode, gemeente, email, telefoon, website, actief")
     .eq("slug", slug)
     .maybeSingle<PartnerRow>();
 
@@ -246,15 +245,18 @@ async function loadPartnerBranding(
     slug: row.slug,
     name: row.bedrijfsnaam || row.naam || DEFAULT_BRANDING.name,
     primaryColor: row.kleur_primair || DEFAULT_BRANDING.primaryColor,
-    secondaryColor: row.kleur_secundair || DEFAULT_BRANDING.secondaryColor,
+    // partners.kleur_donker holds the dark/accent variant — we surface it as
+    // secondaryColor so templates can use it for sub-bands and chips.
+    secondaryColor: row.kleur_donker || DEFAULT_BRANDING.secondaryColor,
     logoUrl: row.logo_url || "",
     logoBytes: null,
     logoMime: null,
     address: row.adres || "",
     postcode: row.postcode || "",
     gemeente: row.gemeente || "",
-    email: row.email || row.contact_email || "",
-    telefoon: row.telefoon || row.contact_telefoon || "",
+    email: row.email || "",
+    telefoon: row.telefoon || "",
+    website: row.website || "",
   };
 
   if (branding.logoUrl) {

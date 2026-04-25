@@ -36,7 +36,7 @@ export interface PartnerBranding {
   name: string;
   /** Hex string e.g. "#1A1A2E". */
   primaryColor: string;
-  /** Hex string e.g. "#E74C3C". */
+  /** Hex string e.g. "#E74C3C" — sourced from `partners.kleur_donker` for accent. */
   secondaryColor: string;
   /** Public URL to the partner logo. May be empty. */
   logoUrl: string;
@@ -49,6 +49,8 @@ export interface PartnerBranding {
   gemeente: string;
   email: string;
   telefoon: string;
+  /** Public website URL — used in footer of branded outputs. */
+  website: string;
 }
 
 export interface FontPack {
@@ -141,6 +143,7 @@ export const DEFAULT_BRANDING: PartnerBranding = {
   gemeente: "Lochristi",
   email: "info@flancco.be",
   telefoon: "",
+  website: "https://flancco-platform.be",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -266,7 +269,10 @@ export function sanitize(text: string | number | null | undefined): string {
   for (const [bad, good] of Object.entries(WIN_ANSI_REPLACEMENTS)) {
     if (s.includes(bad)) s = s.split(bad).join(good);
   }
-  // Strip any remaining char outside WinAnsi range (printable + BE/FR diacritics).
+  // Strip any char outside WinAnsi range (printable + BE/FR diacritics).
+  // Newlines are stripped here because pdf-lib's drawText cannot handle them;
+  // multi-line content must go through `wrapText`/`drawWrapped` which split
+  // on \n *before* calling sanitize line-by-line.
   return s.replace(/[^\x20-\x7E\u00A1-\u017F]/g, "");
 }
 
@@ -311,16 +317,25 @@ export function drawText(page: PDFPage, text: string, opts: DrawTextOptions): vo
 }
 
 /**
- * Wrap `text` to fit within maxWidth and return the produced lines.
+ * Wrap `text` to fit within maxWidth and return the produced lines. Splits on
+ * explicit newlines first (so paragraph breaks and bullet-lists survive),
+ * then sanitises and word-wraps each paragraph individually.
  */
 export function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const safe = sanitize(text);
-  if (!safe) return [];
+  if (text == null) return [];
+  const raw = String(text);
+  if (!raw) return [];
   const out: string[] = [];
-  for (const paragraph of safe.split(/\r?\n/)) {
+  for (const rawParagraph of raw.split(/\r?\n/)) {
+    const paragraph = sanitize(rawParagraph);
+    if (!paragraph) {
+      out.push("");
+      continue;
+    }
     const words = paragraph.split(/\s+/);
     let line = "";
     for (const word of words) {
+      if (!word) continue;
       const test = line ? line + " " + word : word;
       const width = font.widthOfTextAtSize(test, size);
       if (width > maxWidth && line) {
@@ -331,7 +346,6 @@ export function wrapText(text: string, font: PDFFont, size: number, maxWidth: nu
       }
     }
     if (line) out.push(line);
-    if (paragraph === "") out.push("");
   }
   return out;
 }

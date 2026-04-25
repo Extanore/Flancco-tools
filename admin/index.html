@@ -273,6 +273,49 @@
   .btn-action-red:hover { border-color: var(--red); color: var(--red); }
   .btn-action-danger:hover { border-color: var(--red); color: var(--red); background:#FEF2F2; }
 
+  /* =============================================
+     SLOT C — PARTNER PIPELINE BOARD
+     Kanban-style 5-kolommen layout (concept/getekend/actief/verlopen/geannuleerd)
+     met card-per-contract + hover-actions (bel/email/follow-up).
+     Read-only voor partner; eigen contracten via RLS.
+     ============================================= */
+  .c-pipeline-board { display:flex; gap:16px; overflow-x:auto; padding:16px 0 4px 0; min-height:400px; }
+  .c-pipeline-col { min-width:280px; flex:1; background:#F9FAFB; border-radius:8px; padding:12px; display:flex; flex-direction:column; max-height:70vh; }
+  .c-pipeline-col[data-status="concept"] { background:#F9FAFB; }
+  .c-pipeline-col[data-status="getekend"] { background:#EFF6FF; }
+  .c-pipeline-col[data-status="actief"] { background:#ECFDF5; }
+  .c-pipeline-col[data-status="verlopen"] { background:#FFFBEB; }
+  .c-pipeline-col[data-status="geannuleerd"] { background:#FEF2F2; }
+  .c-pipeline-col-header { display:flex; align-items:center; justify-content:space-between; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; font-weight:700; color:#6B7280; margin-bottom:10px; padding:0 4px; }
+  .c-pipeline-col[data-status="concept"] .c-pipeline-col-header { color:#4B5563; }
+  .c-pipeline-col[data-status="getekend"] .c-pipeline-col-header { color:#1E40AF; }
+  .c-pipeline-col[data-status="actief"] .c-pipeline-col-header { color:#065F46; }
+  .c-pipeline-col[data-status="verlopen"] .c-pipeline-col-header { color:#92400E; }
+  .c-pipeline-col[data-status="geannuleerd"] .c-pipeline-col-header { color:#991B1B; }
+  .c-pipeline-col-count { background:#FFFFFF; color:#374151; font-size:11px; padding:2px 8px; border-radius:9999px; font-weight:700; min-width:22px; text-align:center; border:1px solid var(--rule); }
+  .c-pipeline-col-body { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:2px; }
+  .c-pipeline-col-empty { font-size:12px; color:#9CA3AF; text-align:center; padding:16px 8px; font-style:italic; }
+  .c-pipeline-card { position:relative; background:#FFFFFF; border:1px solid var(--rule); border-radius:6px; padding:10px 12px; cursor:pointer; transition:box-shadow 0.15s ease, transform 0.15s ease; }
+  .c-pipeline-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.08); border-color:#D1D5DB; }
+  .c-pipeline-card-name { font-size:13px; font-weight:600; color:var(--navy); margin-bottom:4px; padding-right:24px; word-break:break-word; }
+  .c-pipeline-card-meta { font-size:11px; color:var(--grey); display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .c-pipeline-card-meta .badge { font-size:10px; padding:1px 6px; }
+  .c-pipeline-card-amount { font-size:11px; color:#374151; font-weight:600; margin-top:4px; }
+  .c-pipeline-card-actions { position:absolute; top:6px; right:6px; display:none; gap:2px; background:#fff; border-radius:4px; padding:2px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  .c-pipeline-card:hover .c-pipeline-card-actions,
+  .c-pipeline-card:focus-within .c-pipeline-card-actions { display:flex; }
+  .c-pipeline-action-btn { width:24px; height:24px; padding:0; border:none; background:transparent; border-radius:4px; cursor:pointer; color:#6B7280; display:inline-flex; align-items:center; justify-content:center; transition:background 0.15s, color 0.15s; }
+  .c-pipeline-action-btn:hover { background:#F3F4F6; color:var(--navy); }
+  .c-pipeline-action-btn[data-active="true"] { background:#FEE2E2; color:#DC2626; }
+  .c-pipeline-action-btn[data-active="true"]:hover { background:#FECACA; color:#B91C1C; }
+  .c-pipeline-followup-flag { position:absolute; top:8px; right:8px; width:14px; height:14px; color:#DC2626; pointer-events:none; }
+  .c-pipeline-card:hover .c-pipeline-followup-flag { opacity:0; }
+  .c-pipeline-empty-state { padding:32px 16px; text-align:center; color:var(--grey); font-size:13px; }
+  @media (max-width: 768px) {
+    .c-pipeline-board { padding:8px 0; gap:12px; }
+    .c-pipeline-col { min-width:240px; padding:10px; }
+  }
+
   /* USER CARDS — sectie R: card-per-tenant op Gebruikers-pagina */
   .user-card { background:#fff; border:1px solid var(--rule); border-radius:10px; padding:16px 20px; margin-bottom:16px; }
   .user-card-empty { border-style:dashed; background:#FAFBFC; }
@@ -1571,12 +1614,23 @@
         </div>
         <div class="dv-toolbar">
           <div class="dv-toolbar-left">
-            <div class="contracten-tabs" style="display:flex;gap:6px">
+            <div class="contracten-tabs admin-only" style="display:flex;gap:6px">
               <button type="button" class="c-tab active" data-ctab="lopend" onclick="switchContractTab('lopend')">
                 Lopend <span class="c-tab-count" id="c-tab-lopend-count">0</span>
               </button>
               <button type="button" class="c-tab" data-ctab="eenmalig" onclick="switchContractTab('eenmalig')">
                 Eenmalig <span class="c-tab-count" id="c-tab-eenmalig-count">0</span>
+              </button>
+            </div>
+            <div class="contracten-tabs partner-only" style="display:flex;gap:6px">
+              <button type="button" class="c-tab active" data-ctab="pipeline" onclick="switchContractTab('pipeline')">
+                Pipeline <span class="c-tab-count" id="c-tab-pipeline-count">0</span>
+              </button>
+              <button type="button" class="c-tab" data-ctab="alle" onclick="switchContractTab('alle')">
+                Alle contracten <span class="c-tab-count" id="c-tab-alle-count">0</span>
+              </button>
+              <button type="button" class="c-tab" data-ctab="followup" onclick="switchContractTab('followup')">
+                Follow-up <span class="c-tab-count" id="c-tab-followup-count">0</span>
               </button>
             </div>
           </div>
@@ -1586,11 +1640,19 @@
             </select>
           </div>
         </div>
-        <table>
-          <thead><tr><th>Klant</th><th class="admin-only">Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
-          <tbody id="all-contracts"></tbody>
-        </table>
-        <p id="no-all-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen contracten gevonden.</p>
+        <!-- Slot C1 — Partner pipeline kanban (alleen zichtbaar bij tab=pipeline) -->
+        <div id="pipeline-container" style="display:none">
+          <div class="c-pipeline-board" id="pipeline-board"></div>
+          <p id="no-pipeline" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Nog geen contracten in uw pipeline.</p>
+        </div>
+        <!-- Standaard tabel-weergave (admin: lopend/eenmalig; partner: alle/followup) -->
+        <div id="contracten-table-container">
+          <table>
+            <thead><tr><th>Klant</th><th class="admin-only">Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
+            <tbody id="all-contracts"></tbody>
+          </table>
+          <p id="no-all-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen contracten gevonden.</p>
+        </div>
       </div>
     </div>
 
@@ -8620,43 +8682,84 @@ function populateFilterDropdown() {
     partners.map(p => `<option value="${p.id}">${p.naam}</option>`).join('');
 }
 
+// Default tab depends on rol — admin/bediende: 'lopend'; partner: 'pipeline' (Slot C1).
+// Wordt door initialiseren-pad in renderContracten() bij first-call gecorrigeerd.
 var contractTab = 'lopend';
 function switchContractTab(tab) {
   contractTab = tab;
   document.querySelectorAll('.c-tab').forEach(function(b) {
     b.classList.toggle('active', b.dataset.ctab === tab);
   });
+  // Slot 0: track tab-switch (no PII).
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Pipeline Tab Switched', { tab: tab }); } catch (_) {}
+  }
   renderContracten();
 }
 
 function renderContracten() {
+  // Auto-corrigeer tab voor partner-rol bij eerste call (default was 'lopend' voor admin).
+  if (userRole === 'partner' && contractTab === 'lopend') {
+    contractTab = 'pipeline';
+    document.querySelectorAll('.c-tab').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.ctab === 'pipeline');
+    });
+  }
+
+  // Toggle pipeline-board vs tabel-container op basis van tab + rol.
+  var pipelineEl = document.getElementById('pipeline-container');
+  var tableEl = document.getElementById('contracten-table-container');
+  var isPipelineTab = (userRole === 'partner' && contractTab === 'pipeline');
+  if (pipelineEl) pipelineEl.style.display = isPipelineTab ? 'block' : 'none';
+  if (tableEl) tableEl.style.display = isPipelineTab ? 'none' : 'block';
+
+  // Pipeline-rendering — early return.
+  if (isPipelineTab) {
+    renderPipeline();
+    updateContractTabCounts();
+    return;
+  }
+
   let filtered = myContracten();
   if (userRole === 'admin') {
     const filter = document.getElementById('filter-partner').value;
     if (filter) filtered = filtered.filter(c => c.partner_id === filter);
   }
 
-  // Update tab counts (op volledige scope, voor filter-partner)
-  var allScope = myContracten();
-  var cntLopend = allScope.filter(function(c) { return !c.is_eenmalig; }).length;
-  var cntEenmalig = allScope.filter(function(c) { return c.is_eenmalig === true; }).length;
-  var elL = document.getElementById('c-tab-lopend-count');
-  var elE = document.getElementById('c-tab-eenmalig-count');
-  if (elL) elL.textContent = cntLopend;
-  if (elE) elE.textContent = cntEenmalig;
+  updateContractTabCounts();
 
   // Filter op tab
-  filtered = filtered.filter(function(c) {
-    return contractTab === 'eenmalig' ? c.is_eenmalig === true : !c.is_eenmalig;
-  });
+  if (userRole === 'partner') {
+    if (contractTab === 'followup') {
+      filtered = filtered.filter(function(c) { return c.follow_up_needed === true; });
+      // Sortering: meest recent gemarkeerd eerst.
+      filtered.sort(function(a, b) {
+        var ta = a.follow_up_set_at ? new Date(a.follow_up_set_at).getTime() : 0;
+        var tb = b.follow_up_set_at ? new Date(b.follow_up_set_at).getTime() : 0;
+        return tb - ta;
+      });
+    }
+    // 'alle'-tab: geen extra filter
+  } else {
+    // Admin/bediende: bestaande lopend/eenmalig filtering
+    filtered = filtered.filter(function(c) {
+      return contractTab === 'eenmalig' ? c.is_eenmalig === true : !c.is_eenmalig;
+    });
+  }
 
   const tbody = document.getElementById('all-contracts');
   const noEl = document.getElementById('no-all-contracts');
   if (filtered.length === 0) {
     tbody.innerHTML = '';
-    noEl.style.display = 'block';
+    if (noEl) {
+      noEl.style.display = 'block';
+      // Empty-state copy aanpassen voor follow-up tab.
+      noEl.textContent = (userRole === 'partner' && contractTab === 'followup')
+        ? 'Geen follow-ups op dit moment.'
+        : 'Geen contracten gevonden.';
+    }
   } else {
-    noEl.style.display = 'none';
+    if (noEl) noEl.style.display = 'none';
     tbody.innerHTML = filtered.map(c => {
       const partner = partners.find(p => p.id === c.partner_id);
       const dispStatus = computeStatus(c);
@@ -8684,7 +8787,315 @@ function renderContracten() {
   }
 }
 
+// Update alle tab-counts in één keer (admin: lopend/eenmalig; partner: pipeline/alle/followup).
+function updateContractTabCounts() {
+  var allScope = myContracten();
+  // Admin counts (kunnen ook bestaan voor partner zonder zichtbaar te zijn — geen kwaad)
+  var cntLopend = allScope.filter(function(c) { return !c.is_eenmalig; }).length;
+  var cntEenmalig = allScope.filter(function(c) { return c.is_eenmalig === true; }).length;
+  var elL = document.getElementById('c-tab-lopend-count');
+  var elE = document.getElementById('c-tab-eenmalig-count');
+  if (elL) elL.textContent = cntLopend;
+  if (elE) elE.textContent = cntEenmalig;
+  // Partner counts: pipeline = total, alle = total, followup = sum(follow_up_needed)
+  var cntPipeline = allScope.length;
+  var cntAlle = allScope.length;
+  var cntFollowUp = allScope.filter(function(c) { return c.follow_up_needed === true; }).length;
+  var elP = document.getElementById('c-tab-pipeline-count');
+  var elA = document.getElementById('c-tab-alle-count');
+  var elF = document.getElementById('c-tab-followup-count');
+  if (elP) elP.textContent = cntPipeline;
+  if (elA) elA.textContent = cntAlle;
+  if (elF) elF.textContent = cntFollowUp;
+}
+
 function loadContracten() { renderContracten(); }
+
+// =============================================
+// SLOT C1 — PARTNER PIPELINE BOARD
+// Kanban-style 5-kolommen layout (concept/getekend/actief/verlopen/geannuleerd).
+// Read-only via myContracten() → RLS scoped naar eigen partner_id.
+// =============================================
+var PIPELINE_STATUSES = ['concept', 'getekend', 'actief', 'verlopen', 'geannuleerd'];
+var PIPELINE_STATUS_LABELS = {
+  concept: 'Concept',
+  getekend: 'Getekend',
+  actief: 'Actief',
+  verlopen: 'Verlopen',
+  geannuleerd: 'Geannuleerd'
+};
+
+function renderPipeline() {
+  var board = document.getElementById('pipeline-board');
+  var noEl = document.getElementById('no-pipeline');
+  if (!board) return;
+
+  var contracts = myContracten();
+  if (!contracts || contracts.length === 0) {
+    board.innerHTML = '';
+    if (noEl) noEl.style.display = 'block';
+    return;
+  }
+  if (noEl) noEl.style.display = 'none';
+
+  // Groepeer per computed status.
+  var byStatus = {};
+  PIPELINE_STATUSES.forEach(function(s) { byStatus[s] = []; });
+  contracts.forEach(function(c) {
+    var st = computeStatus(c);
+    if (!byStatus[st]) byStatus[st] = [];
+    byStatus[st].push(c);
+  });
+  // Sortering: follow-ups eerst, dan op created_at desc.
+  Object.keys(byStatus).forEach(function(k) {
+    byStatus[k].sort(function(a, b) {
+      if (!!a.follow_up_needed !== !!b.follow_up_needed) return a.follow_up_needed ? -1 : 1;
+      var ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      var tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return tb - ta;
+    });
+  });
+
+  // Build kolommen via DOM-API (XSS-safe — geen innerHTML met klant-data).
+  board.innerHTML = '';
+  PIPELINE_STATUSES.forEach(function(status) {
+    var col = document.createElement('div');
+    col.className = 'c-pipeline-col';
+    col.setAttribute('data-status', status);
+
+    var header = document.createElement('div');
+    header.className = 'c-pipeline-col-header';
+    var label = document.createElement('span');
+    label.textContent = PIPELINE_STATUS_LABELS[status] || status;
+    var count = document.createElement('span');
+    count.className = 'c-pipeline-col-count';
+    count.textContent = String((byStatus[status] || []).length);
+    header.appendChild(label);
+    header.appendChild(count);
+    col.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'c-pipeline-col-body';
+    var items = byStatus[status] || [];
+    if (items.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'c-pipeline-col-empty';
+      empty.textContent = '—';
+      body.appendChild(empty);
+    } else {
+      items.forEach(function(c) {
+        body.appendChild(buildPipelineCard(c));
+      });
+    }
+    col.appendChild(body);
+    board.appendChild(col);
+  });
+}
+
+function buildPipelineCard(c) {
+  var card = document.createElement('div');
+  card.className = 'c-pipeline-card';
+  card.setAttribute('role', 'button');
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('data-contract-id', c.id);
+  card.addEventListener('click', function(ev) {
+    // Voorkom dubbele actie als click op action-knop kwam.
+    if (ev.target.closest('.c-pipeline-card-actions')) return;
+    pipeline_openCard(c.id);
+  });
+  card.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      pipeline_openCard(c.id);
+    }
+  });
+
+  // Naam (XSS-safe via textContent)
+  var nameEl = document.createElement('div');
+  nameEl.className = 'c-pipeline-card-name';
+  nameEl.textContent = c.klant_naam || '—';
+  card.appendChild(nameEl);
+
+  // Meta: panelen + frequentie + sector-badge
+  var meta = document.createElement('div');
+  meta.className = 'c-pipeline-card-meta';
+  var parts = [];
+  if (c.aantal_panelen) parts.push(c.aantal_panelen + ' pan.');
+  if (c.frequentie) parts.push(c.frequentie);
+  if (parts.length > 0) {
+    var metaText = document.createElement('span');
+    metaText.textContent = parts.join(' • ');
+    meta.appendChild(metaText);
+  }
+  // Sector-badge (eerste sector)
+  var firstSector = null;
+  if (c.sectoren && Array.isArray(c.sectoren) && c.sectoren.length > 0) {
+    firstSector = c.sectoren[0].sector || c.sectoren[0];
+  } else if (c.sector) {
+    firstSector = c.sector;
+  }
+  if (firstSector) {
+    var badgeWrap = document.createElement('span');
+    // sectorBadge() retourneert al statische, controlled HTML — geen klant-data.
+    badgeWrap.innerHTML = sectorBadge(firstSector);
+    meta.appendChild(badgeWrap);
+  }
+  card.appendChild(meta);
+
+  // Bedrag
+  if (c.totaal_incl_btw) {
+    var amt = document.createElement('div');
+    amt.className = 'c-pipeline-card-amount';
+    amt.textContent = '€ ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.', ',');
+    card.appendChild(amt);
+  }
+
+  // Follow-up vlag indicator (zichtbaar als geen hover).
+  if (c.follow_up_needed === true) {
+    var flag = document.createElement('span');
+    flag.className = 'c-pipeline-followup-flag';
+    flag.setAttribute('aria-label', 'Follow-up gemarkeerd');
+    flag.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M4 22V4a1 1 0 0 1 1-1h11l-1 4 1 4H6v11H4z"/></svg>';
+    card.appendChild(flag);
+  }
+
+  // Hover-acties: bel, email, follow-up toggle.
+  var actions = document.createElement('div');
+  actions.className = 'c-pipeline-card-actions';
+  actions.appendChild(_buildPipelineActionBtn('bel', c, 'Bel klant',
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>'));
+  actions.appendChild(_buildPipelineActionBtn('email', c, 'Herinner via email',
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>'));
+  actions.appendChild(_buildPipelineActionBtn('followup', c,
+    c.follow_up_needed ? 'Verwijder follow-up' : 'Markeer als follow-up',
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="' + (c.follow_up_needed ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 4 2 4H6v11"/></svg>',
+    !!c.follow_up_needed));
+  card.appendChild(actions);
+
+  return card;
+}
+
+function _buildPipelineActionBtn(action, contract, title, svgHtml, isActive) {
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'c-pipeline-action-btn';
+  btn.title = title;
+  btn.setAttribute('aria-label', title);
+  if (isActive) btn.setAttribute('data-active', 'true');
+  btn.innerHTML = svgHtml;
+  btn.addEventListener('click', function(ev) {
+    ev.stopPropagation();
+    if (action === 'bel') pipeline_belKlant(contract.id);
+    else if (action === 'email') pipeline_emailKlant(contract.id);
+    else if (action === 'followup') pipeline_toggleFollowUp(contract.id);
+  });
+  return btn;
+}
+
+// Card click → preview-modal (hergebruik bestaande functionaliteit).
+function pipeline_openCard(contractId) {
+  var c = allContracten.find(function(x) { return x.id === contractId; });
+  if (!c) return;
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Pipeline Card Clicked', { status: computeStatus(c) }); } catch (_) {}
+  }
+  if (typeof previewContract === 'function') {
+    previewContract(contractId);
+  }
+}
+
+function pipeline_belKlant(contractId) {
+  var c = allContracten.find(function(x) { return x.id === contractId; });
+  if (!c) return;
+  var tel = (c.klant_telefoon || '').trim();
+  if (!tel) {
+    showToast('Geen telefoonnummer geregistreerd voor deze klant.', 'info');
+    return;
+  }
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Pipeline Action Bel Klant'); } catch (_) {}
+  }
+  // Sanitize: alleen digits + voorloop-+
+  var safeTel = tel.replace(/[^\d+]/g, '');
+  if (!safeTel) {
+    showToast('Telefoonnummer niet geldig.', 'error');
+    return;
+  }
+  window.location.href = 'tel:' + safeTel;
+}
+
+function pipeline_emailKlant(contractId) {
+  var c = allContracten.find(function(x) { return x.id === contractId; });
+  if (!c) return;
+  var email = (c.klant_email || '').trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Geen geldig e-mailadres geregistreerd voor deze klant.', 'info');
+    return;
+  }
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Pipeline Action Email Klant'); } catch (_) {}
+  }
+  var klantNaam = (c.klant_naam || 'klant').replace(/\s+/g, ' ').trim();
+  // Lang-aware mailto template (NL/FR).
+  var subject, body;
+  if ((c.lang || 'nl').toLowerCase().indexOf('fr') === 0) {
+    subject = 'Rappel d\'entretien ' + klantNaam;
+    body = 'Bonjour ' + klantNaam + ',\n\nUn bref rappel concernant votre entretien.\n\nCordialement,';
+  } else {
+    subject = 'Herinnering onderhoud ' + klantNaam;
+    body = 'Beste ' + klantNaam + ',\n\nEen korte herinnering aan uw onderhoudsbeurt.\n\nMet vriendelijke groet,';
+  }
+  var url = 'mailto:' + encodeURIComponent(email)
+    + '?subject=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body);
+  window.location.href = url;
+}
+
+async function pipeline_toggleFollowUp(contractId) {
+  var c = allContracten.find(function(x) { return x.id === contractId; });
+  if (!c) return;
+  var newValue = !c.follow_up_needed;
+  var nowIso = new Date().toISOString();
+  var userId = currentUser ? currentUser.id : null;
+
+  var payload = {
+    follow_up_needed: newValue,
+    follow_up_set_at: newValue ? nowIso : null,
+    follow_up_set_by: newValue ? userId : null
+  };
+
+  // Optimistic update — patch lokaal, render direct, rollback bij error.
+  var prevSnapshot = {
+    follow_up_needed: c.follow_up_needed,
+    follow_up_set_at: c.follow_up_set_at,
+    follow_up_set_by: c.follow_up_set_by
+  };
+  c.follow_up_needed = payload.follow_up_needed;
+  c.follow_up_set_at = payload.follow_up_set_at;
+  c.follow_up_set_by = payload.follow_up_set_by;
+  renderContracten();
+
+  try {
+    var res = await sb.from('contracten').update(payload).eq('id', contractId);
+    if (res && res.error) throw res.error;
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Pipeline Action Follow Up Toggled', { new_value: newValue }); } catch (_) {}
+    }
+    showToast(newValue ? 'Gemarkeerd voor follow-up' : 'Follow-up verwijderd');
+    if (typeof auditLog === 'function') {
+      auditLog('contracten', contractId, 'follow_up_gewijzigd',
+        prevSnapshot.follow_up_needed ? 'true' : 'false',
+        newValue ? 'true' : 'false');
+    }
+  } catch (e) {
+    // Rollback bij fail.
+    c.follow_up_needed = prevSnapshot.follow_up_needed;
+    c.follow_up_set_at = prevSnapshot.follow_up_set_at;
+    c.follow_up_set_by = prevSnapshot.follow_up_set_by;
+    renderContracten();
+    showToast('Kon follow-up niet bijwerken: ' + (e && e.message ? e.message : 'onbekende fout'), 'error');
+  }
+}
 
 // =============================================
 // PRICING
