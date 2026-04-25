@@ -229,6 +229,106 @@
       okReady: 'Toutes les donn\u00e9es sont correctement remplies.',
       btw6NeedsBoth: 'Cochez les deux d\u00e9clarations ou choisissez la TVA \u00e0 21\u202f%.',
       btw6Reverted: 'TVA automatiquement repass\u00e9e \u00e0 21\u202f% car les conditions ne sont pas remplies.'
+    },
+    /* BASELINE — formele 'vous'-vorm (BE-FR), gemarkeerd voor native-FR review vóór go-live */
+    rapport: {
+      contract: {
+        tabLabel: 'Contrat',
+        tabSubtitle: 'P\u00e9rim\u00e8tre, coordonn\u00e9es client et accords compl\u00e9mentaires pour cette mission.',
+        scope: {
+          title: 'P\u00e9rim\u00e8tre de la mission',
+          aantalPanelen: 'Nombre de panneaux',
+          frequentie: 'Fr\u00e9quence',
+          contractduur: 'Dur\u00e9e du contrat',
+          btwTarief: 'Taux de TVA',
+          totaalInclBtw: 'Total TVAC',
+          totaalExclBtw: 'Total HTVA',
+          eenheidsprijsBeurt: 'Prix unitaire par passage',
+          notSet: 'Non renseign\u00e9',
+          btw6Verklaring: 'D\u00e9claration TVA 6\u202f% enregistr\u00e9e le {datum}',
+          btw6VerklaringMissing: 'D\u00e9claration TVA 6\u202f% manquante',
+          frequentieJaarlijks: 'Annuelle',
+          frequentieHalfjaarlijks: 'Semestrielle',
+          frequentieEenmalig: 'Unique',
+          duurEenmalig: 'Unique',
+          duurJaren: '{n} ans'
+        },
+        klantContact: {
+          title: 'Coordonn\u00e9es du client',
+          naam: 'Nom',
+          adres: 'Adresse',
+          postcode: 'Code postal',
+          gemeente: 'Commune',
+          email: 'E-mail',
+          telefoon: 'T\u00e9l\u00e9phone',
+          klantType: 'Type de client',
+          particulier: 'Particulier',
+          bedrijf: 'Entreprise',
+          bedrijfsnaam: 'D\u00e9nomination sociale',
+          btwNummer: 'Num\u00e9ro de TVA',
+          contactpersoon: 'Personne de contact',
+          btwGevalideerd: 'TVA v\u00e9rifi\u00e9e via VIES le {datum}'
+        },
+        instructies: {
+          title: 'Instructions sp\u00e9ciales pour le technicien',
+          subtitle: 'Sp\u00e9cificit\u00e9s que le technicien doit conna\u00eetre sur place (acc\u00e8s, code, chien, parking, personne de contact sur site, ...).',
+          placeholder: 'Ex.\u202fcl\u00e9 sous le pot de fleurs, chien pr\u00e9sent, parking dans l\'all\u00e9e \u2014 appelez le client 10 min avant l\'arriv\u00e9e.',
+          charCounter: '{n}/{max} caract\u00e8res',
+          save: 'Enregistrer les instructions',
+          saving: 'Enregistrement\u2026',
+          saved: 'Enregistr\u00e9',
+          saveSuccess: 'Instructions enregistr\u00e9es.',
+          saveError: '\u00c9chec de l\'enregistrement. R\u00e9essayez.',
+          tooLong: 'Maximum {max} caract\u00e8res atteint.'
+        },
+        handtekening: {
+          title: 'Accord du client sur le p\u00e9rim\u00e8tre',
+          subtitle: 'Optionnel \u2014 le client peut donner son accord sur place pour le p\u00e9rim\u00e8tre planifi\u00e9 avant le d\u00e9but des travaux.',
+          cta: 'Le client signe sur place',
+          modalTitle: 'Le client signe pour accord du p\u00e9rim\u00e8tre',
+          modalHint: 'Faites signer le client ci-dessous. En signant, le client confirme que les travaux planifi\u00e9s correspondent \u00e0 l\'accord.',
+          clear: 'Effacer',
+          confirm: 'Confirmer l\'accord',
+          cancel: 'Annuler',
+          signedAt: 'Accord sign\u00e9 le {datum}',
+          confirmClear: 'Effacer la signature d\'accord existante\u202f? Cette action est irr\u00e9versible.',
+          clearAction: 'Effacer & recommencer',
+          saveSuccess: 'Accord du p\u00e9rim\u00e8tre enregistr\u00e9.',
+          saveError: '\u00c9chec de l\'enregistrement de la signature. R\u00e9essayez.',
+          empty: 'Veuillez d\'abord signer avant de confirmer.'
+        },
+        emptyState: 'S\u00e9lectionnez d\'abord une intervention pour voir les donn\u00e9es du contrat.'
+      }
+    },
+    // Slot A4 — Export du planning de travail par jour (admin/planning.html)
+    // Strings refl\u00e9t\u00e9es dans la fallback wpeT() inline pour fonctionner
+    // sans runtime i18n charg\u00e9 dans l'admin.
+    planning: {
+      werkplanningExport: {
+        title: 'Exporter le planning de travail',
+        subtitle: '{tech} \u2014 {datum}',
+        metaCount: '{count} mission aujourd\u2019hui',
+        metaCountPlural: '{count} missions aujourd\u2019hui',
+        btnPdf: 'T\u00e9l\u00e9charger le PDF',
+        btnPdfSub: 'Document A4 avec toutes les missions du jour',
+        btnPdfLoading: 'G\u00e9n\u00e9ration du PDF\u2026',
+        btnWhatsapp: 'Envoyer via WhatsApp',
+        btnWhatsappSub: 'Ouvre WhatsApp avec un message pr\u00e9-rempli + lien PDF',
+        btnRetry: 'R\u00e9essayer',
+        close: 'Fermer',
+        successToast: 'Planning g\u00e9n\u00e9r\u00e9',
+        openInTab: 'Ouvrir le PDF dans un nouvel onglet',
+        errorTitle: 'Impossible de g\u00e9n\u00e9rer le planning',
+        errorTimeout: 'La g\u00e9n\u00e9ration du PDF a pris trop de temps. R\u00e9essayez ou contactez le support si le probl\u00e8me persiste.',
+        errorNetwork: 'Pas de connexion au service PDF. V\u00e9rifiez votre connexion et r\u00e9essayez.',
+        errorAuth: 'Session expir\u00e9e. Reconnectez-vous pour exporter le planning.',
+        errorRate: 'Trop d\u2019exports cons\u00e9cutifs. Patientez un instant.',
+        errorGeneric: 'Une erreur est survenue lors de la g\u00e9n\u00e9ration du PDF.',
+        errorMissingSession: 'Aucune session admin active \u2014 rechargez la page.',
+        errorNoBeurten: 'Aucune mission trouv\u00e9e pour ce technicien ce jour-l\u00e0.',
+        waMessageNl: 'Bonjour {voornaam}, voici votre planning de travail pour {datum}: {url}',
+        expiresHint: 'Lien valable 7 jours.'
+      }
     }
   });
 })();

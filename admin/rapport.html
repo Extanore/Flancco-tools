@@ -38,6 +38,10 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<!-- Slot S — i18n runtime + dictionaries (admin = NL default; FR keys aanwezig voor latere FR-admin) -->
+<script src="/calculator/i18n/i18n.js"></script>
+<script src="/calculator/i18n/nl.json.js"></script>
+<script src="/calculator/i18n/fr.json.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -287,6 +291,89 @@
     .uren-table { font-size: 11px; }
     .uren-table input, .uren-table select { font-size: 11px; }
   }
+
+  /* ─────────────────────────────────────────────────────────
+     Slot A2 — Top-tabs (Rapport / Contract)
+     ───────────────────────────────────────────────────────── */
+  .top-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--rule); background: var(--white); border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
+  .top-tab { flex: 0 0 auto; padding: 14px 22px; font-size: 13px; font-weight: 600; color: var(--grey); background: none; border: none; cursor: pointer; font-family: inherit; border-bottom: 3px solid transparent; transition: color 0.15s, border-color 0.15s; letter-spacing: 0.3px; text-transform: uppercase; }
+  .top-tab:hover { color: var(--navy); }
+  .top-tab.active { color: var(--navy); border-bottom-color: var(--navy); background: #f9fafb; }
+  .top-tab[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .top-tab-pane { display: none; }
+  .top-tab-pane.active { display: block; }
+
+  /* ─────────────────────────────────────────────────────────
+     Slot A2 — Contract-tab
+     ───────────────────────────────────────────────────────── */
+  .ct-section { margin-bottom: 18px; }
+  .ct-section .ct-section-title { font-size: 13px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--rule); display: flex; align-items: center; gap: 8px; }
+  .ct-section .ct-section-subtitle { font-size: 12px; color: var(--grey); margin-top: -8px; margin-bottom: 14px; line-height: 1.5; }
+  .ct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 24px; }
+  .ct-field { display: flex; flex-direction: column; gap: 4px; }
+  .ct-field-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--grey); font-weight: 600; }
+  .ct-field-value { font-size: 14px; color: #1f2937; font-weight: 500; word-break: break-word; }
+  .ct-field-value.empty { color: #9ca3af; font-style: italic; font-weight: 400; }
+  .ct-field-meta { font-size: 11px; color: var(--grey); margin-top: 2px; line-height: 1.45; }
+  .ct-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.2px; }
+  .ct-pill.ok { background: #DEF7EC; color: var(--green); }
+  .ct-pill.warn { background: #FDE8E8; color: var(--red); }
+  .ct-pill.neutral { background: var(--light); color: var(--grey); }
+
+  .ct-textarea-wrap { position: relative; }
+  .ct-textarea { width: 100%; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 110px; line-height: 1.5; background: white; transition: border-color 0.15s; }
+  .ct-textarea:focus { outline: none; border-color: var(--navy); }
+  .ct-textarea.over-limit { border-color: var(--red); }
+  .ct-char-counter { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px; color: var(--grey); }
+  .ct-char-counter.warn { color: var(--orange); }
+  .ct-char-counter.over { color: var(--red); font-weight: 600; }
+  .ct-instructies-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 10px; }
+  .ct-save-state { font-size: 12px; color: var(--grey); display: flex; align-items: center; gap: 6px; }
+  .ct-save-state.success { color: var(--green); font-weight: 500; }
+  .ct-save-state.error { color: var(--red); font-weight: 500; }
+  .ct-save-state.saving { color: var(--blue); }
+
+  .ct-sig-status { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; background: #f9fafb; border: 1px solid var(--rule); border-radius: 10px; flex-wrap: wrap; }
+  .ct-sig-status-info { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 200px; }
+  .ct-sig-status-icon { width: 38px; height: 38px; border-radius: 50%; background: var(--light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--grey); }
+  .ct-sig-status-icon.signed { background: #DEF7EC; color: var(--green); }
+  .ct-sig-status-text { display: flex; flex-direction: column; gap: 2px; }
+  .ct-sig-status-text strong { font-size: 13px; color: var(--navy); font-weight: 600; }
+  .ct-sig-status-text small { font-size: 11px; color: var(--grey); }
+  .ct-sig-preview { margin-top: 14px; padding: 14px; background: #fafbfc; border: 1px dashed var(--rule); border-radius: 10px; }
+  .ct-sig-preview img { max-width: 100%; max-height: 140px; display: block; margin: 0 auto; }
+  .ct-sig-preview-meta { text-align: center; margin-top: 8px; font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* Modal voor scope-handtekening (overlay + canvas) */
+  .ct-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; }
+  .ct-modal-overlay.visible { display: flex; }
+  .ct-modal { background: var(--white); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; }
+  .ct-modal-header { padding: 20px 24px 8px; border-bottom: 1px solid var(--rule); }
+  .ct-modal-header h3 { font-size: 15px; color: var(--navy); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .ct-modal-header p { font-size: 12px; color: var(--grey); margin: 0 0 12px; line-height: 1.5; }
+  .ct-modal-body { padding: 16px 24px; }
+  .ct-modal-canvas-wrap { border: 2px dashed var(--rule); border-radius: 10px; background: white; overflow: hidden; }
+  .ct-modal-canvas { display: block; width: 100%; height: 200px; cursor: crosshair; background: white; touch-action: none; }
+  .ct-modal-actions { padding: 14px 24px 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ct-modal-actions-left { display: flex; gap: 8px; }
+  .ct-modal-actions-right { display: flex; gap: 8px; }
+  .ct-modal-error { color: var(--red); font-size: 12px; margin-top: 6px; min-height: 16px; }
+
+  /* Toast (lokaal voor rapport-pagina) */
+  .ct-toast-stack { position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
+  .ct-toast { padding: 12px 16px; border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18); background: var(--navy); color: white; font-size: 13px; line-height: 1.4; display: flex; align-items: flex-start; gap: 10px; animation: ct-toast-in 0.18s ease-out; }
+  .ct-toast.success { background: var(--green); }
+  .ct-toast.error { background: var(--red); }
+  .ct-toast button { background: none; border: none; color: inherit; opacity: 0.7; cursor: pointer; padding: 0 0 0 8px; font-size: 16px; line-height: 1; }
+  .ct-toast button:hover { opacity: 1; }
+  @keyframes ct-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 600px) {
+    .top-tab { padding: 12px 14px; font-size: 12px; }
+    .ct-grid { grid-template-columns: 1fr; }
+    .ct-modal-actions { flex-direction: column-reverse; align-items: stretch; }
+    .ct-modal-actions-left, .ct-modal-actions-right { justify-content: space-between; }
+  }
 </style>
 </head>
 <body>
@@ -317,6 +404,14 @@
     </div>
 
     <div id="wizard" style="display:none">
+
+      <!-- Slot A2 — Top-tabs: Rapport (default) / Contract -->
+      <div class="top-tabs" role="tablist" aria-label="Rapport en contract">
+        <button type="button" class="top-tab active" id="tab-btn-rapport" role="tab" aria-selected="true" aria-controls="tab-pane-rapport" onclick="switchTopTab('rapport')">Rapport</button>
+        <button type="button" class="top-tab" id="tab-btn-contract" role="tab" aria-selected="false" aria-controls="tab-pane-contract" onclick="switchTopTab('contract')" data-i18n="rapport.contract.tabLabel">Contract</button>
+      </div>
+
+      <div class="top-tab-pane active" id="tab-pane-rapport" role="tabpanel" aria-labelledby="tab-btn-rapport">
       <div class="step-bar" id="step-bar"></div>
 
       <div class="step active" id="step-checklist">
@@ -463,9 +558,75 @@
           </div>
         </div>
       </div>
+      </div><!-- /tab-pane-rapport -->
+
+      <!-- Slot A2 — Contract-tab -->
+      <div class="top-tab-pane" id="tab-pane-contract" role="tabpanel" aria-labelledby="tab-btn-contract">
+        <!-- Scope-samenvatting -->
+        <div class="card ct-section" id="ct-scope-card">
+          <div class="ct-section-title" data-i18n="rapport.contract.scope.title">Scope van de opdracht</div>
+          <div class="ct-grid" id="ct-scope-grid"></div>
+        </div>
+
+        <!-- Klant- en contactgegevens -->
+        <div class="card ct-section" id="ct-klant-card">
+          <div class="ct-section-title" data-i18n="rapport.contract.klantContact.title">Klant- en contactgegevens</div>
+          <div class="ct-grid" id="ct-klant-grid"></div>
+        </div>
+
+        <!-- Speciale instructies -->
+        <div class="card ct-section">
+          <div class="ct-section-title" data-i18n="rapport.contract.instructies.title">Speciale instructies voor de technieker</div>
+          <div class="ct-section-subtitle" data-i18n="rapport.contract.instructies.subtitle">Bijzonderheden die de technieker ter plekke moet weten (toegang, code, hond, parkeren, contactpersoon op locatie, ...).</div>
+          <div class="ct-textarea-wrap">
+            <textarea id="ct-instructies" class="ct-textarea" maxlength="1000" oninput="ctInstructiesChanged()"></textarea>
+            <div class="ct-char-counter" id="ct-instructies-counter"><span id="ct-instructies-counter-text"></span></div>
+          </div>
+          <div class="ct-instructies-actions">
+            <span class="ct-save-state" id="ct-instructies-state" aria-live="polite"></span>
+            <button type="button" class="btn btn-primary" id="ct-instructies-save" onclick="saveContractInstructies()" data-i18n="rapport.contract.instructies.save">Instructies opslaan</button>
+          </div>
+        </div>
+
+        <!-- Scope-akkoord-handtekening -->
+        <div class="card ct-section">
+          <div class="ct-section-title" data-i18n="rapport.contract.handtekening.title">Akkoord scope door klant</div>
+          <div class="ct-section-subtitle" data-i18n="rapport.contract.handtekening.subtitle">Optioneel — klant kan ter plekke akkoord geven voor de geplande scope vóór start van de werken.</div>
+          <div id="ct-sig-status-wrap"></div>
+          <div id="ct-sig-preview-wrap"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Slot A2 — Modal voor scope-akkoord-handtekening -->
+<div class="ct-modal-overlay" id="ct-sig-modal" role="dialog" aria-modal="true" aria-labelledby="ct-sig-modal-title">
+  <div class="ct-modal">
+    <div class="ct-modal-header">
+      <h3 id="ct-sig-modal-title" data-i18n="rapport.contract.handtekening.modalTitle">Klant tekent voor akkoord scope</h3>
+      <p data-i18n="rapport.contract.handtekening.modalHint">Laat de klant hieronder tekenen. Door te tekenen bevestigt de klant dat de geplande werken overeenkomen met de afspraak.</p>
+    </div>
+    <div class="ct-modal-body">
+      <div class="ct-modal-canvas-wrap">
+        <canvas id="ct-sig-canvas" class="ct-modal-canvas"></canvas>
+      </div>
+      <div class="ct-modal-error" id="ct-sig-modal-error" aria-live="polite"></div>
+    </div>
+    <div class="ct-modal-actions">
+      <div class="ct-modal-actions-left">
+        <button type="button" class="btn btn-secondary" onclick="ctSigClear()" data-i18n="rapport.contract.handtekening.clear">Wissen</button>
+      </div>
+      <div class="ct-modal-actions-right">
+        <button type="button" class="btn btn-secondary" onclick="ctSigCloseModal()" data-i18n="rapport.contract.handtekening.cancel">Annuleren</button>
+        <button type="button" class="btn btn-success" id="ct-sig-confirm" onclick="ctSigConfirm()" data-i18n="rapport.contract.handtekening.confirm">Bevestig akkoord</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slot A2 — Toast stack (lokaal, geen externe lib) -->
+<div class="ct-toast-stack" id="ct-toast-stack" aria-live="polite" aria-atomic="false"></div>
 
 <script>
 var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
@@ -1047,7 +1208,14 @@ async function loadRapportView(beurtId) {
 // ═══════════════════════════════
 async function selectBeurt() {
   var id = document.getElementById('beurt-select').value;
-  if (!id) { document.getElementById('beurt-info-box').style.display = 'none'; document.getElementById('wizard').style.display = 'none'; document.getElementById('installatie-picker').style.display = 'none'; return; }
+  if (!id) {
+    document.getElementById('beurt-info-box').style.display = 'none';
+    document.getElementById('wizard').style.display = 'none';
+    document.getElementById('installatie-picker').style.display = 'none';
+    // Slot A2 — Contract-tab leegmaken zodat user niet stale data ziet bij reset
+    try { renderContractTabEmpty(); } catch(_){}
+    return;
+  }
 
   currentBeurt = window._beurten.find(function(b) { return b.id === id; });
   if (!currentBeurt) return;
@@ -1108,6 +1276,11 @@ async function selectBeurt() {
 
   // Pre-add one uren row
   addUrenRij();
+
+  // Slot A2 — Contract-tab populeren met scope/klant/instructies/handtekening.
+  // Async fire-and-forget: blokkeert het renderen van de Rapport-wizard niet
+  // en faalt veilig (toont empty-state + toast bij netwerkfout).
+  try { loadContractTab(); } catch(e) { try { console.warn('[contract-tab]', e); } catch(_){} }
 }
 
 // ═══════════════════════════════
@@ -2520,6 +2693,694 @@ async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
     });
   } catch(e) { console.warn('Audit log failed:', e); }
 }
+
+// ═══════════════════════════════
+// SLOT A2 — CONTRACT-TAB
+// ═══════════════════════════════
+//
+// State:
+//   _ct.contract            — kopie van het contract-record voor de geselecteerde beurt
+//   _ct.partnerSlug         — slug voor analytics-events (geen PII)
+//   _ct.contractIdHash      — SHA-256 van contract.id voor analytics (geen raw UUID)
+//   _ct.instructiesDirty    — true zodra textarea verschilt van DB-state
+//   _ct.sigCtx              — canvas-context voor scope-handtekening (lazy init)
+//   _ct.sigDrawing          — actief tekening-state
+//   _ct.sigHasInk           — minstens één stroke gezet
+//
+var INSTRUCTIES_MAX = 1000;
+var INSTRUCTIES_WARN = 900; // visuele waarschuwing vanaf hier
+
+var _ct = {
+  contract: null,
+  partnerSlug: '',
+  contractIdHash: '',
+  instructiesDirty: false,
+  instructiesSavedValue: '',
+  sigCtx: null,
+  sigDrawing: false,
+  sigLastX: 0,
+  sigLastY: 0,
+  sigHasInk: false,
+  sigBound: false
+};
+
+/**
+ * Veilig de t()-helper aanroepen — fallt terug op default-tekst als i18n
+ * (nog) niet geladen is. Voorkomt dat de pagina kapot gaat bij een race
+ * tijdens initialisatie.
+ *
+ * @param {string} key
+ * @param {object} [params]
+ * @param {string} [fallback]
+ * @returns {string}
+ */
+function ctT(key, params, fallback) {
+  if (typeof window.t === 'function') {
+    var v = window.t(key, params);
+    if (v !== key) return v;
+  }
+  return fallback != null ? fallback : key;
+}
+
+/**
+ * Switch tussen Rapport- en Contract-tab. Pure UI-toggle — geen netwerk-calls.
+ * Triggert wel het Slot 0-event bij eerste open van de Contract-tab per beurt.
+ */
+function switchTopTab(name) {
+  var tabs = ['rapport', 'contract'];
+  if (tabs.indexOf(name) === -1) return;
+  tabs.forEach(function(n) {
+    var btn = document.getElementById('tab-btn-' + n);
+    var pane = document.getElementById('tab-pane-' + n);
+    var on = (n === name);
+    if (btn) {
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    if (pane) pane.classList.toggle('active', on);
+  });
+  if (name === 'contract') {
+    try {
+      if (typeof window.flanccoTrack === 'function') {
+        window.flanccoTrack('Rapport Contract Tab Opened', {
+          contract_id_hash: _ct.contractIdHash,
+          partner_slug: _ct.partnerSlug
+        });
+      }
+    } catch(_){}
+  }
+}
+
+/**
+ * SHA-256 hash van een string. Asynchroon via SubtleCrypto. Return hex.
+ * Gebruikt om contract-id te hashen voor analytics zonder PII te lekken.
+ *
+ * @param {string} input
+ * @returns {Promise<string>} hex digest of '' bij fout
+ */
+async function ctSha256(input) {
+  try {
+    if (!window.crypto || !window.crypto.subtle || !input) return '';
+    var enc = new TextEncoder().encode(String(input));
+    var buf = await window.crypto.subtle.digest('SHA-256', enc);
+    var bytes = new Uint8Array(buf);
+    var hex = '';
+    for (var i = 0; i < bytes.length; i++) {
+      var h = bytes[i].toString(16);
+      hex += h.length === 1 ? '0' + h : h;
+    }
+    return hex;
+  } catch(_) { return ''; }
+}
+
+/**
+ * Format datum (ISO string of Date) naar dd/mm/yyyy. Lege/null input → ''.
+ */
+function ctFormatDate(d) {
+  if (!d) return '';
+  try {
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    var dd = String(dt.getDate()).padStart(2, '0');
+    var mm = String(dt.getMonth() + 1).padStart(2, '0');
+    return dd + '/' + mm + '/' + dt.getFullYear();
+  } catch(_) { return ''; }
+}
+
+/**
+ * Format datum + tijd dd/mm/yyyy HH:MM.
+ */
+function ctFormatDateTime(d) {
+  if (!d) return '';
+  try {
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    var datum = ctFormatDate(dt);
+    var hh = String(dt.getHours()).padStart(2, '0');
+    var mm = String(dt.getMinutes()).padStart(2, '0');
+    return datum + ' ' + hh + ':' + mm;
+  } catch(_) { return ''; }
+}
+
+/**
+ * Format euro-bedrag (number) naar 'EUR 1.234,56'. Null/undefined → ''.
+ */
+function ctFormatEuro(n) {
+  if (n == null || n === '' || isNaN(parseFloat(n))) return '';
+  try {
+    var nf = new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' });
+    return nf.format(parseFloat(n));
+  } catch(_) {
+    return '\u20AC ' + parseFloat(n).toFixed(2);
+  }
+}
+
+/**
+ * Lichtgewicht toast — geen externe lib, geen jQuery. Auto-dismiss 4s.
+ *
+ * @param {string} msg
+ * @param {'info'|'success'|'error'} [variant]
+ */
+function ctToast(msg, variant) {
+  if (!msg) return;
+  var stack = document.getElementById('ct-toast-stack');
+  if (!stack) { try { console.log('[toast]', msg); } catch(_){} return; }
+  var el = document.createElement('div');
+  el.className = 'ct-toast' + (variant ? ' ' + variant : '');
+  var span = document.createElement('span');
+  span.style.flex = '1';
+  span.textContent = msg;
+  el.appendChild(span);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Sluiten');
+  btn.textContent = '\u00d7';
+  btn.onclick = function() { if (el.parentNode) el.parentNode.removeChild(el); };
+  el.appendChild(btn);
+  stack.appendChild(el);
+  setTimeout(function() {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }, 4000);
+}
+
+/**
+ * Bouwt een ct-grid-veld (label + value). Gebruikt textContent — XSS-safe.
+ *
+ * @param {string} label
+ * @param {string|number|null|undefined} value
+ * @param {string} [emptyText] — fallback bij lege waarde
+ * @param {string} [meta] — optionele subtekst onder de waarde
+ */
+function ctFieldHtml(label, value, emptyText, meta) {
+  var div = document.createElement('div');
+  div.className = 'ct-field';
+
+  var lbl = document.createElement('div');
+  lbl.className = 'ct-field-label';
+  lbl.textContent = label || '';
+  div.appendChild(lbl);
+
+  var val = document.createElement('div');
+  val.className = 'ct-field-value';
+  var hasVal = value != null && String(value).trim() !== '';
+  if (hasVal) {
+    val.textContent = String(value);
+  } else {
+    val.classList.add('empty');
+    val.textContent = emptyText || ctT('rapport.contract.scope.notSet', null, 'Niet ingevuld');
+  }
+  div.appendChild(val);
+
+  if (meta) {
+    var m = document.createElement('div');
+    m.className = 'ct-field-meta';
+    m.textContent = meta;
+    div.appendChild(m);
+  }
+  return div;
+}
+
+/**
+ * Triggered vanuit selectBeurt() — laadt het volledige contract-record met
+ * alle Slot A2-velden en rendert de Contract-tab.
+ *
+ * Veilig om meerdere keren aan te roepen: reset state + UI bij elke load.
+ */
+async function loadContractTab() {
+  // Reset state altijd
+  _ct.contract = null;
+  _ct.instructiesDirty = false;
+  _ct.instructiesSavedValue = '';
+  _ct.sigHasInk = false;
+  _ct.sigCtx = null;
+  _ct.sigBound = false;
+
+  if (!currentContract || !currentContract.id) {
+    renderContractTabEmpty();
+    return;
+  }
+
+  try {
+    var res = await sb.from('contracten').select('*').eq('id', currentContract.id).single();
+    if (res.error || !res.data) throw res.error || new Error('contract_not_found');
+    _ct.contract = res.data;
+  } catch(e) {
+    console.warn('[contract-tab] load failed', e);
+    ctToast(ctT('common.errors.generic', null, 'Er is iets misgegaan. Probeer opnieuw.'), 'error');
+    renderContractTabEmpty();
+    return;
+  }
+
+  // Partner slug + contract-id-hash voor analytics
+  _ct.partnerSlug = (currentPartner && (currentPartner.slug || currentPartner.naam)) || '';
+  _ct.contractIdHash = await ctSha256(_ct.contract.id);
+
+  renderContractScope();
+  renderContractKlant();
+  renderContractInstructies();
+  renderContractScopeHandtekening();
+
+  // Re-apply i18n in case dictionary loaded after tab-render
+  try { if (window.flanccoI18n && window.flanccoI18n.applyI18n) window.flanccoI18n.applyI18n(); } catch(_){}
+}
+
+/**
+ * Lege staat: geen contract geselecteerd. Toont placeholder in alle secties.
+ */
+function renderContractTabEmpty() {
+  var emptyMsg = ctT('rapport.contract.emptyState', null, 'Selecteer eerst een onderhoudsbeurt om de contractgegevens te zien.');
+  var emptyHtml = '<div class="ct-field-value empty">' + esc(emptyMsg) + '</div>';
+  ['ct-scope-grid', 'ct-klant-grid'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = emptyHtml;
+  });
+  var instr = document.getElementById('ct-instructies');
+  if (instr) { instr.value = ''; instr.disabled = true; }
+  var btn = document.getElementById('ct-instructies-save');
+  if (btn) btn.disabled = true;
+  var counter = document.getElementById('ct-instructies-counter-text');
+  if (counter) counter.textContent = '';
+  var statusWrap = document.getElementById('ct-sig-status-wrap');
+  if (statusWrap) statusWrap.innerHTML = '';
+  var prevWrap = document.getElementById('ct-sig-preview-wrap');
+  if (prevWrap) prevWrap.innerHTML = '';
+}
+
+// ─── Render: Scope ───
+function renderContractScope() {
+  var c = _ct.contract;
+  var grid = document.getElementById('ct-scope-grid');
+  if (!grid || !c) return;
+  grid.innerHTML = '';
+
+  // Aantal panelen — alleen relevant voor sectoren waar dit gevuld is
+  if (c.aantal_panelen != null) {
+    grid.appendChild(ctFieldHtml(ctT('rapport.contract.scope.aantalPanelen', null, 'Aantal panelen'), c.aantal_panelen));
+  }
+
+  // Frequentie
+  var freqMap = {
+    jaarlijks: ctT('rapport.contract.scope.frequentieJaarlijks', null, 'Jaarlijks'),
+    halfjaarlijks: ctT('rapport.contract.scope.frequentieHalfjaarlijks', null, 'Halfjaarlijks'),
+    eenmalig: ctT('rapport.contract.scope.frequentieEenmalig', null, 'Eenmalig')
+  };
+  var freqLabel = freqMap[c.frequentie] || c.frequentie;
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.scope.frequentie', null, 'Frequentie'), freqLabel));
+
+  // Contractduur (string in DB, kan 'eenmalig' of '5' zijn)
+  var duur = c.contractduur;
+  var duurLabel = duur;
+  if (duur === 'eenmalig') {
+    duurLabel = ctT('rapport.contract.scope.duurEenmalig', null, 'Eenmalig');
+  } else if (duur && /^\d+$/.test(String(duur))) {
+    duurLabel = ctT('rapport.contract.scope.duurJaren', { n: duur }, duur + ' jaar');
+  }
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.scope.contractduur', null, 'Contractduur'), duurLabel));
+
+  // BTW-tarief + verklaring-trail (Slot O2)
+  var btwType = c.btw_type || '21';
+  var btwLabel = btwType === '21' ? '21%' : (btwType.indexOf('6') === 0 ? '6% (renovatie >10j)' : btwType + '%');
+  var btwMeta = '';
+  if (btwType === '6%' || (btwType + '').indexOf('6') === 0) {
+    if (c.verklaring_6btw_datum) {
+      btwMeta = ctT('rapport.contract.scope.btw6Verklaring', { datum: ctFormatDate(c.verklaring_6btw_datum) }, 'Verklaring 6% BTW geregistreerd op ' + ctFormatDate(c.verklaring_6btw_datum));
+    } else {
+      btwMeta = ctT('rapport.contract.scope.btw6VerklaringMissing', null, 'Verklaring 6% BTW ontbreekt');
+    }
+  }
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.scope.btwTarief', null, 'BTW-tarief'), btwLabel, undefined, btwMeta));
+
+  // Totaal incl. BTW
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.scope.totaalInclBtw', null, 'Totaal incl. BTW'), ctFormatEuro(c.totaal_incl_btw)));
+
+  // Totaal excl. BTW (afgeleid uit incl + btw_type)
+  var totaalExcl = null;
+  if (c.totaal_incl_btw != null) {
+    var rate = (btwType + '').indexOf('6') === 0 ? 1.06 : 1.21;
+    totaalExcl = parseFloat(c.totaal_incl_btw) / rate;
+  }
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.scope.totaalExclBtw', null, 'Totaal excl. BTW'), ctFormatEuro(totaalExcl)));
+
+  // Eenheidsprijs per beurt (forfait_bedrag — DB-naam)
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.scope.eenheidsprijsBeurt', null, 'Eenheidsprijs per beurt'), ctFormatEuro(c.forfait_bedrag)));
+}
+
+// ─── Render: Klant- en contactgegevens ───
+function renderContractKlant() {
+  var c = _ct.contract;
+  var grid = document.getElementById('ct-klant-grid');
+  if (!grid || !c) return;
+  grid.innerHTML = '';
+
+  // Klant-type pill (particulier/bedrijf — Slot O1)
+  var subtype = c.klant_subtype || 'particulier';
+  var subtypeLabel = subtype === 'bedrijf'
+    ? ctT('rapport.contract.klantContact.bedrijf', null, 'Bedrijf')
+    : ctT('rapport.contract.klantContact.particulier', null, 'Particulier');
+  var subtypeField = ctFieldHtml(ctT('rapport.contract.klantContact.klantType', null, 'Type klant'), '');
+  // Vervang value door pill
+  var valEl = subtypeField.querySelector('.ct-field-value');
+  valEl.innerHTML = '';
+  valEl.classList.remove('empty');
+  var pill = document.createElement('span');
+  pill.className = 'ct-pill ' + (subtype === 'bedrijf' ? 'ok' : 'neutral');
+  pill.textContent = subtypeLabel;
+  valEl.appendChild(pill);
+  grid.appendChild(subtypeField);
+
+  if (subtype === 'bedrijf') {
+    grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.bedrijfsnaam', null, 'Bedrijfsnaam'), c.bedrijfsnaam));
+
+    var btwMeta = '';
+    if (c.btw_nummer_validated && c.btw_validated_at) {
+      btwMeta = ctT('rapport.contract.klantContact.btwGevalideerd', { datum: ctFormatDate(c.btw_validated_at) }, 'BTW geverifieerd via VIES op ' + ctFormatDate(c.btw_validated_at));
+    }
+    grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.btwNummer', null, 'BTW-nummer'), c.klant_btw, undefined, btwMeta));
+    grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.contactpersoon', null, 'Contactpersoon'), c.klant_contact || c.klant_naam));
+  } else {
+    grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.naam', null, 'Naam'), c.klant_naam));
+  }
+
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.adres', null, 'Adres'), c.klant_adres));
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.postcode', null, 'Postcode'), c.klant_postcode));
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.gemeente', null, 'Gemeente'), c.klant_gemeente));
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.email', null, 'E-mail'), c.klant_email));
+  grid.appendChild(ctFieldHtml(ctT('rapport.contract.klantContact.telefoon', null, 'Telefoon'), c.klant_telefoon));
+}
+
+// ─── Render: Speciale instructies (textarea + char counter + save) ───
+function renderContractInstructies() {
+  var c = _ct.contract;
+  var ta = document.getElementById('ct-instructies');
+  var btn = document.getElementById('ct-instructies-save');
+  var state = document.getElementById('ct-instructies-state');
+  if (!ta || !c) return;
+  var initial = c.speciale_instructies_technieker || '';
+  ta.value = initial;
+  ta.disabled = false;
+  ta.placeholder = ctT('rapport.contract.instructies.placeholder', null, '');
+  _ct.instructiesSavedValue = initial;
+  _ct.instructiesDirty = false;
+  if (btn) { btn.disabled = true; btn.textContent = ctT('rapport.contract.instructies.save', null, 'Instructies opslaan'); }
+  if (state) { state.textContent = ''; state.className = 'ct-save-state'; }
+  updateInstructiesCounter();
+}
+
+function updateInstructiesCounter() {
+  var ta = document.getElementById('ct-instructies');
+  var counter = document.getElementById('ct-instructies-counter');
+  var counterText = document.getElementById('ct-instructies-counter-text');
+  if (!ta || !counter || !counterText) return;
+  var len = ta.value.length;
+  counterText.textContent = ctT('rapport.contract.instructies.charCounter', { n: len, max: INSTRUCTIES_MAX }, len + '/' + INSTRUCTIES_MAX + ' tekens');
+  counter.classList.remove('warn', 'over');
+  ta.classList.remove('over-limit');
+  if (len >= INSTRUCTIES_MAX) {
+    counter.classList.add('over');
+    ta.classList.add('over-limit');
+  } else if (len >= INSTRUCTIES_WARN) {
+    counter.classList.add('warn');
+  }
+}
+
+function ctInstructiesChanged() {
+  var ta = document.getElementById('ct-instructies');
+  var btn = document.getElementById('ct-instructies-save');
+  var state = document.getElementById('ct-instructies-state');
+  if (!ta) return;
+  // Hard-trim aan client-side max (defensief — maxlength dekt typing)
+  if (ta.value.length > INSTRUCTIES_MAX) {
+    ta.value = ta.value.slice(0, INSTRUCTIES_MAX);
+  }
+  _ct.instructiesDirty = (ta.value !== _ct.instructiesSavedValue);
+  if (btn) btn.disabled = !_ct.instructiesDirty;
+  if (state && state.classList.contains('success')) {
+    // Bij nieuwe wijziging wordt de "Opgeslagen"-pill terug naar neutraal
+    state.textContent = '';
+    state.className = 'ct-save-state';
+  }
+  updateInstructiesCounter();
+}
+
+async function saveContractInstructies() {
+  var ta = document.getElementById('ct-instructies');
+  var btn = document.getElementById('ct-instructies-save');
+  var state = document.getElementById('ct-instructies-state');
+  if (!ta || !_ct.contract) return;
+  var value = ta.value;
+  if (value.length > INSTRUCTIES_MAX) value = value.slice(0, INSTRUCTIES_MAX);
+  // Lege string = NULL voor cleanere DB-state
+  var payload = value.trim() === '' ? null : value;
+
+  if (btn) { btn.disabled = true; btn.textContent = ctT('rapport.contract.instructies.saving', null, 'Opslaan…'); }
+  if (state) { state.className = 'ct-save-state saving'; state.textContent = ctT('rapport.contract.instructies.saving', null, 'Opslaan…'); }
+
+  try {
+    var res = await sb.from('contracten').update({
+      speciale_instructies_technieker: payload,
+      updated_at: new Date().toISOString()
+    }).eq('id', _ct.contract.id);
+    if (res.error) throw res.error;
+
+    _ct.contract.speciale_instructies_technieker = payload;
+    _ct.instructiesSavedValue = value;
+    _ct.instructiesDirty = false;
+    if (state) { state.className = 'ct-save-state success'; state.textContent = ctT('rapport.contract.instructies.saved', null, 'Opgeslagen'); }
+    if (btn) { btn.textContent = ctT('rapport.contract.instructies.save', null, 'Instructies opslaan'); btn.disabled = true; }
+    ctToast(ctT('rapport.contract.instructies.saveSuccess', null, 'Instructies opgeslagen.'), 'success');
+
+    auditLog('contracten', _ct.contract.id, 'instructies_technieker_update', null, value.length + ' chars');
+
+    try {
+      if (typeof window.flanccoTrack === 'function') {
+        window.flanccoTrack('Rapport Instructies Saved', { length_chars: value.length });
+      }
+    } catch(_){}
+  } catch(e) {
+    console.warn('[contract-tab] save instructies failed', e);
+    if (state) { state.className = 'ct-save-state error'; state.textContent = ctT('rapport.contract.instructies.saveError', null, 'Opslaan mislukt.'); }
+    if (btn) { btn.textContent = ctT('rapport.contract.instructies.save', null, 'Instructies opslaan'); btn.disabled = false; }
+    ctToast(ctT('rapport.contract.instructies.saveError', null, 'Opslaan mislukt. Probeer opnieuw.'), 'error');
+  }
+}
+
+// ─── Render: Scope-akkoord-handtekening ───
+function renderContractScopeHandtekening() {
+  var c = _ct.contract;
+  var statusWrap = document.getElementById('ct-sig-status-wrap');
+  var prevWrap = document.getElementById('ct-sig-preview-wrap');
+  if (!statusWrap || !prevWrap || !c) return;
+
+  if (c.scope_akkoord_handtekening && c.scope_akkoord_handtekening_base64) {
+    // Getekend — toon read-only + clear-knop
+    var datumStr = ctFormatDateTime(c.scope_akkoord_handtekening_datum);
+    var signedLabel = ctT('rapport.contract.handtekening.signedAt', { datum: datumStr }, 'Akkoord getekend op ' + datumStr);
+    statusWrap.innerHTML =
+      '<div class="ct-sig-status">' +
+        '<div class="ct-sig-status-info">' +
+          '<div class="ct-sig-status-icon signed" aria-hidden="true">' +
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+          '</div>' +
+          '<div class="ct-sig-status-text">' +
+            '<strong>' + esc(signedLabel) + '</strong>' +
+          '</div>' +
+        '</div>' +
+        '<button type="button" class="btn btn-secondary" onclick="ctSigClearSaved()">' + esc(ctT('rapport.contract.handtekening.clearAction', null, 'Wis & opnieuw')) + '</button>' +
+      '</div>';
+
+    var img = document.createElement('img');
+    img.alt = signedLabel;
+    img.src = c.scope_akkoord_handtekening_base64;
+    var prev = document.createElement('div');
+    prev.className = 'ct-sig-preview';
+    prev.appendChild(img);
+    var meta = document.createElement('div');
+    meta.className = 'ct-sig-preview-meta';
+    meta.textContent = signedLabel;
+    prev.appendChild(meta);
+    prevWrap.innerHTML = '';
+    prevWrap.appendChild(prev);
+  } else {
+    // Niet getekend — toon CTA
+    statusWrap.innerHTML =
+      '<div class="ct-sig-status">' +
+        '<div class="ct-sig-status-info">' +
+          '<div class="ct-sig-status-icon" aria-hidden="true">' +
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>' +
+          '</div>' +
+          '<div class="ct-sig-status-text">' +
+            '<strong>' + esc(ctT('rapport.contract.handtekening.title', null, 'Akkoord scope door klant')) + '</strong>' +
+            '<small>' + esc(ctT('rapport.contract.handtekening.subtitle', null, '')) + '</small>' +
+          '</div>' +
+        '</div>' +
+        '<button type="button" class="btn btn-primary" onclick="ctSigOpenModal()">' + esc(ctT('rapport.contract.handtekening.cta', null, 'Klant tekent ter plekke')) + '</button>' +
+      '</div>';
+    prevWrap.innerHTML = '';
+  }
+}
+
+// ─── Modal: scope-handtekening canvas ───
+function ctSigOpenModal() {
+  if (!_ct.contract) return;
+  var modal = document.getElementById('ct-sig-modal');
+  if (!modal) return;
+  modal.classList.add('visible');
+  var err = document.getElementById('ct-sig-modal-error');
+  if (err) err.textContent = '';
+  setTimeout(initCtSigCanvas, 30);
+}
+
+function ctSigCloseModal() {
+  var modal = document.getElementById('ct-sig-modal');
+  if (modal) modal.classList.remove('visible');
+  ctSigClear();
+}
+
+function initCtSigCanvas() {
+  var canvas = document.getElementById('ct-sig-canvas');
+  if (!canvas) return;
+  // Resize op (her)opening — CSS-width kan veranderen na layout
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = Math.round(rect.width);
+  canvas.height = 200;
+  _ct.sigCtx = canvas.getContext('2d');
+  _ct.sigCtx.lineWidth = 2;
+  _ct.sigCtx.lineCap = 'round';
+  _ct.sigCtx.lineJoin = 'round';
+  _ct.sigCtx.strokeStyle = '#1A1A2E';
+  _ct.sigHasInk = false;
+
+  if (_ct.sigBound) return; // event-listeners 1x binden
+  _ct.sigBound = true;
+
+  function getPos(ev) {
+    var r = canvas.getBoundingClientRect();
+    if (ev.touches && ev.touches.length > 0) return { x: ev.touches[0].clientX - r.left, y: ev.touches[0].clientY - r.top };
+    return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+  }
+  function start(ev) { ev.preventDefault(); _ct.sigDrawing = true; var p = getPos(ev); _ct.sigLastX = p.x; _ct.sigLastY = p.y; }
+  function move(ev) {
+    if (!_ct.sigDrawing || !_ct.sigCtx) return;
+    ev.preventDefault();
+    var p = getPos(ev);
+    _ct.sigCtx.beginPath();
+    _ct.sigCtx.moveTo(_ct.sigLastX, _ct.sigLastY);
+    _ct.sigCtx.lineTo(p.x, p.y);
+    _ct.sigCtx.stroke();
+    _ct.sigLastX = p.x; _ct.sigLastY = p.y;
+    _ct.sigHasInk = true;
+  }
+  function end() { _ct.sigDrawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end);
+}
+
+function ctSigClear() {
+  var canvas = document.getElementById('ct-sig-canvas');
+  if (canvas && _ct.sigCtx) _ct.sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+  _ct.sigHasInk = false;
+  var err = document.getElementById('ct-sig-modal-error');
+  if (err) err.textContent = '';
+}
+
+async function ctSigConfirm() {
+  if (!_ct.contract) return;
+  var err = document.getElementById('ct-sig-modal-error');
+  var btn = document.getElementById('ct-sig-confirm');
+  var canvas = document.getElementById('ct-sig-canvas');
+  if (!canvas || !_ct.sigHasInk) {
+    if (err) err.textContent = ctT('rapport.contract.handtekening.empty', null, 'Teken eerst een handtekening voor u bevestigt.');
+    return;
+  }
+  var dataUrl = '';
+  try { dataUrl = canvas.toDataURL('image/png'); } catch(_) { dataUrl = ''; }
+  if (!dataUrl) {
+    if (err) err.textContent = ctT('rapport.contract.handtekening.saveError', null, 'Opslaan mislukt.');
+    return;
+  }
+  var nowIso = new Date().toISOString();
+
+  if (btn) { btn.disabled = true; btn.textContent = ctT('rapport.contract.instructies.saving', null, 'Opslaan…'); }
+
+  try {
+    var res = await sb.from('contracten').update({
+      scope_akkoord_handtekening: true,
+      scope_akkoord_handtekening_base64: dataUrl,
+      scope_akkoord_handtekening_datum: nowIso,
+      updated_at: nowIso
+    }).eq('id', _ct.contract.id);
+    if (res.error) throw res.error;
+
+    _ct.contract.scope_akkoord_handtekening = true;
+    _ct.contract.scope_akkoord_handtekening_base64 = dataUrl;
+    _ct.contract.scope_akkoord_handtekening_datum = nowIso;
+
+    ctSigCloseModal();
+    renderContractScopeHandtekening();
+    ctToast(ctT('rapport.contract.handtekening.saveSuccess', null, 'Akkoord scope opgeslagen.'), 'success');
+    auditLog('contracten', _ct.contract.id, 'scope_akkoord_handtekening_signed', null, nowIso);
+
+    try {
+      if (typeof window.flanccoTrack === 'function') {
+        window.flanccoTrack('Rapport Scope Handtekening Signed', { partner_slug: _ct.partnerSlug });
+      }
+    } catch(_){}
+  } catch(e) {
+    console.warn('[contract-tab] sig confirm failed', e);
+    if (err) err.textContent = ctT('rapport.contract.handtekening.saveError', null, 'Opslaan mislukt.');
+    ctToast(ctT('rapport.contract.handtekening.saveError', null, 'Opslaan mislukt. Probeer opnieuw.'), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = ctT('rapport.contract.handtekening.confirm', null, 'Bevestig akkoord'); }
+  }
+}
+
+async function ctSigClearSaved() {
+  if (!_ct.contract) return;
+  if (!confirm(ctT('rapport.contract.handtekening.confirmClear', null, 'Bestaande scope-akkoord-handtekening wissen?'))) return;
+  try {
+    var res = await sb.from('contracten').update({
+      scope_akkoord_handtekening: false,
+      scope_akkoord_handtekening_base64: null,
+      scope_akkoord_handtekening_datum: null,
+      updated_at: new Date().toISOString()
+    }).eq('id', _ct.contract.id);
+    if (res.error) throw res.error;
+    _ct.contract.scope_akkoord_handtekening = false;
+    _ct.contract.scope_akkoord_handtekening_base64 = null;
+    _ct.contract.scope_akkoord_handtekening_datum = null;
+    renderContractScopeHandtekening();
+    ctToast(ctT('rapport.contract.handtekening.clear', null, 'Wissen') + ' \u2713', 'success');
+    auditLog('contracten', _ct.contract.id, 'scope_akkoord_handtekening_cleared', 'true', 'false');
+    try {
+      if (typeof window.flanccoTrack === 'function') {
+        window.flanccoTrack('Rapport Scope Handtekening Cleared', { partner_slug: _ct.partnerSlug });
+      }
+    } catch(_){}
+  } catch(e) {
+    console.warn('[contract-tab] sig clear failed', e);
+    ctToast(ctT('rapport.contract.handtekening.saveError', null, 'Opslaan mislukt. Probeer opnieuw.'), 'error');
+  }
+}
+
+// Sluiten van modal via ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var modal = document.getElementById('ct-sig-modal');
+    if (modal && modal.classList.contains('visible')) ctSigCloseModal();
+  }
+});
+
+// Klik buiten modal sluit ook (UX)
+document.addEventListener('click', function(e) {
+  var modal = document.getElementById('ct-sig-modal');
+  if (modal && e.target === modal && modal.classList.contains('visible')) ctSigCloseModal();
+});
 
 init();
 </script>
