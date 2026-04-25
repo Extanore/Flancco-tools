@@ -597,6 +597,51 @@
     .form-grid-2 { grid-template-columns:1fr; }
   }
 
+  /* Slot I — Partner-team UI */
+  .ti-perm-grid { display:grid; grid-template-columns:1fr; gap:8px; }
+  .ti-perm-row {
+    display:flex; gap:12px; align-items:flex-start;
+    padding:10px 12px; border:1px solid var(--rule); border-radius:8px; background:#fff;
+    cursor:pointer; transition:border-color 0.15s, background 0.15s;
+  }
+  .ti-perm-row:hover { border-color:var(--navy); background:#FAFBFC; }
+  .ti-perm-row input[type="checkbox"] { margin-top:2px; flex-shrink:0; width:16px; height:16px; cursor:pointer; }
+  .ti-perm-row .ti-perm-text { min-width:0; flex:1; }
+  .ti-perm-row .ti-perm-label { font-size:13px; font-weight:600; color:var(--navy); display:block; }
+  .ti-perm-row .ti-perm-hint { font-size:11px; color:var(--grey); line-height:1.4; margin-top:2px; display:block; }
+
+  .pt-row {
+    display:flex; align-items:center; gap:14px;
+    padding:12px 14px; border:1px solid var(--rule); border-radius:10px; background:#fff;
+    margin-bottom:8px; transition:border-color 0.15s, box-shadow 0.15s;
+  }
+  .pt-row:hover { border-color:var(--navy); box-shadow:0 1px 3px rgba(26,26,46,0.05); }
+  .pt-avatar {
+    flex-shrink:0; width:36px; height:36px; border-radius:50%;
+    background:var(--navy); color:#fff; font-size:13px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; letter-spacing:0.5px;
+  }
+  .pt-meta { min-width:0; flex:1; }
+  .pt-name-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pt-name { font-size:13px; font-weight:600; color:var(--navy); }
+  .pt-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.4px;
+    padding:2px 8px; border-radius:4px;
+  }
+  .pt-badge-owner { background:rgba(231,76,60,0.12); color:#C0392B; }
+  .pt-badge-member { background:rgba(26,26,46,0.08); color:var(--navy); }
+  .pt-badge-self { background:rgba(59,130,246,0.12); color:#1D4ED8; }
+  .pt-email { font-size:12px; color:var(--grey); margin-top:2px; }
+  .pt-perms { font-size:11px; color:var(--grey); margin-top:4px; line-height:1.4; }
+  .pt-actions { display:flex; gap:6px; flex-shrink:0; }
+  .pt-empty {
+    padding:32px 20px; text-align:center;
+    background:var(--light); border:1px dashed var(--rule); border-radius:10px;
+  }
+  .pt-empty h4 { margin:0 0 6px; font-size:14px; color:var(--navy); font-weight:600; }
+  .pt-empty p { margin:0; font-size:12px; color:var(--grey); line-height:1.5; }
+
   /* Branding-flash guard: verberg sidebar + header tot partner-branding is toegepast.
      Admin + bediende + technieker krijgen direct 'branding-applied' na rol-detectie. */
   body.role-partner:not(.branding-applied) .sidebar,
@@ -1897,19 +1942,16 @@
         </div>
       </div>
 
-      <!-- Team — enkel zichtbaar voor partners met manage_users (tenant-scoped) -->
+      <!-- Team — enkel zichtbaar voor partners met manage_users (Slot I — rol-gebaseerd partner-team) -->
       <div class="card perm-users partner-only" id="set-team-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:16px;flex-wrap:wrap">
           <div style="min-width:0;flex:1">
-            <h3 style="margin:0;font-size:16px;color:var(--navy)">Team</h3>
-            <p style="margin:4px 0 0;font-size:12px;color:var(--grey);line-height:1.45">Beheer login-profielen voor jouw platform. Nieuwe teamleden krijgen automatisch toegang tot klanten, contracten en de calculator-link.</p>
+            <h3 style="margin:0;font-size:16px;color:var(--navy)">Teamleden</h3>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--grey);line-height:1.45">Beheer wie toegang heeft tot dit partner-portaal en welke rechten ze krijgen. Nieuwe teamleden krijgen onmiddellijk een login per e-mail.</p>
           </div>
-          <button type="button" class="btn btn-primary" onclick="openTeamLidModal()">+ Nieuw teamlid</button>
+          <button type="button" class="btn btn-primary" onclick="openTeamInviteModal()">+ Teamlid uitnodigen</button>
         </div>
         <div id="set-team-list"></div>
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end">
-          <a href="#" onclick="showPage('gebruikers');return false" style="font-size:12px;color:var(--navy);text-decoration:none;display:inline-flex;align-items:center;gap:4px">Permissies beheren <span aria-hidden="true">&rarr;</span></a>
-        </div>
       </div>
 
       <!-- Notificaties (O.4) — in-app + email voorkeuren per event-type -->
@@ -2757,6 +2799,115 @@
           </div>
           <div class="footer-right">
             <button class="btn btn-primary" id="bed-save-btn" onclick="saveBediende()">Opslaan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Slot I — Partner-team: invite-modal ===== -->
+    <div class="modal-overlay" id="modal-team-invite" style="display:none" onclick="if(event.target===this)closeTeamInviteModal()">
+      <div class="modal" style="max-width:640px;padding:28px 28px 0">
+        <div class="modal-header">
+          <div style="flex:1;min-width:0">
+            <h3 id="ti-modal-title">Nieuw teamlid uitnodigen</h3>
+            <small id="ti-modal-subtitle" style="display:block;color:var(--grey);font-size:12px;margin-top:2px"></small>
+          </div>
+          <button class="modal-close" type="button" aria-label="Sluiten" onclick="closeTeamInviteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label>Voornaam <span class="req">*</span></label>
+              <input id="ti-voornaam" autocomplete="given-name" maxlength="64">
+            </div>
+            <div class="form-field">
+              <label>Achternaam <span class="req">*</span></label>
+              <input id="ti-naam" autocomplete="family-name" maxlength="64">
+            </div>
+            <div class="form-field form-field-full">
+              <label>E-mailadres <span class="req">*</span></label>
+              <input id="ti-email" type="email" autocomplete="email" placeholder="naam@bedrijf.be" maxlength="120">
+            </div>
+            <div class="form-field form-field-full">
+              <label>Snel-instelling rechten</label>
+              <select id="ti-preset" onchange="applyTeamPermissionPreset(this.value)">
+                <option value="medewerker_basis">Medewerker basis (planning bekijken)</option>
+                <option value="medewerker_uitgebreid">Medewerker uitgebreid (planning + facturatie + rapporten)</option>
+                <option value="co_owner">Co-eigenaar (alle rechten incl. teambeheer)</option>
+                <option value="custom">Eigen selectie</option>
+              </select>
+            </div>
+            <div class="form-field form-field-full">
+              <label style="margin-bottom:8px">Rechten</label>
+              <div id="ti-perm-checks" class="ti-perm-grid"></div>
+            </div>
+            <div class="form-hint" id="ti-hint-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>De gebruiker krijgt een e-mail met een tijdelijk wachtwoord en kan onmiddellijk inloggen. Je kan de rechten later op elk moment aanpassen.</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="margin:24px -28px 0;padding:16px 28px">
+          <div class="footer-left">
+            <button class="btn btn-ghost" type="button" onclick="closeTeamInviteModal()">Annuleren</button>
+          </div>
+          <div class="footer-right">
+            <button class="btn btn-primary" id="ti-submit-btn" type="button" onclick="submitTeamInvite()">Uitnodiging versturen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Slot I — Partner-team: edit-permissions-modal ===== -->
+    <div class="modal-overlay" id="modal-team-edit" style="display:none" onclick="if(event.target===this)closeTeamEditModal()">
+      <div class="modal" style="max-width:560px;padding:28px 28px 0">
+        <div class="modal-header">
+          <div style="flex:1;min-width:0">
+            <h3 id="te-modal-title">Rechten aanpassen</h3>
+            <small id="te-modal-subtitle" style="display:block;color:var(--grey);font-size:12px;margin-top:2px"></small>
+          </div>
+          <button class="modal-close" type="button" aria-label="Sluiten" onclick="closeTeamEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field form-field-full">
+            <label style="margin-bottom:8px">Rechten</label>
+            <div id="te-perm-checks" class="ti-perm-grid"></div>
+          </div>
+          <div class="form-hint" id="te-hint-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>De gebruiker ziet de gewijzigde rechten zodra hij de pagina ververst.</span>
+          </div>
+        </div>
+        <div class="modal-footer" style="margin:24px -28px 0;padding:16px 28px">
+          <div class="footer-left">
+            <button class="btn btn-ghost" type="button" onclick="closeTeamEditModal()">Annuleren</button>
+          </div>
+          <div class="footer-right">
+            <button class="btn btn-primary" id="te-submit-btn" type="button" onclick="submitTeamPermsUpdate()">Opslaan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Slot I — Partner-team: remove-confirm-modal ===== -->
+    <div class="modal-overlay" id="modal-team-remove" style="display:none" onclick="if(event.target===this)closeTeamRemoveModal()">
+      <div class="modal" style="max-width:480px;padding:28px 28px 0">
+        <div class="modal-header">
+          <div style="flex:1;min-width:0">
+            <h3 id="tr-modal-title">Teamlid verwijderen?</h3>
+          </div>
+          <button class="modal-close" type="button" aria-label="Sluiten" onclick="closeTeamRemoveModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="tr-modal-body" style="font-size:13px;line-height:1.5;color:var(--ink);margin:0 0 8px"></p>
+          <p style="font-size:12px;color:var(--grey);margin:0">Deze actie verwijdert het login-account, de techniekers-rij en alle rolrechten. Geplande taken blijven bestaan maar worden losgekoppeld.</p>
+        </div>
+        <div class="modal-footer" style="margin:24px -28px 0;padding:16px 28px">
+          <div class="footer-left">
+            <button class="btn btn-ghost" type="button" onclick="closeTeamRemoveModal()">Annuleren</button>
+          </div>
+          <div class="footer-right">
+            <button class="btn btn-danger" id="tr-submit-btn" type="button" onclick="submitTeamRemove()">Definitief verwijderen</button>
           </div>
         </div>
       </div>
@@ -14676,55 +14827,520 @@ function renderPersoneelCounts() {
 }
 
 // =============================================
-// PARTNER TEAM — login-profielen beheer in Instellingen
-// (Tenant-scoped weergave van eigen team. Deelt modal+save+delete met Bedienden-flow,
-//  maar voor partners blijft de Bedienden-tab verborgen (.flancco-only).)
+// SLOT I — PARTNER TEAM (rol-gebaseerd)
+// -------------------------------------------------
+// Partner-eigenaars (role='partner', permissions.manage_users=true) beheren
+// hier hun eigen team. Server-side flow:
+//   * Uitnodigen  → POST /functions/v1/invite-partner-member
+//   * Verwijderen → POST /functions/v1/remove-partner-member
+//   * Permissies  → directe UPDATE op user_roles (RLS user_roles_partner_update
+//                   blokkeert self-promote en niet-witgelijste perm-keys)
 // =============================================
-function renderPartnerTeamList() {
+
+// Toegestane permission-keys in de partner-team-tak. Server-side spiegel staat
+// in invite-partner-member/index.ts (PERMISSION_WHITELIST).
+var TEAM_PERMISSION_KEYS = [
+  'planning_inzage',
+  'rapporten_inzage',
+  'facturatie_inzage',
+  'contracten_aanmaken',
+  'manage_users'
+];
+
+// Labels + hints voor de UI — synchroon met partner.team.perm.* in calculator/i18n.
+var TEAM_PERMISSION_LABELS = {
+  planning_inzage:    { label: 'Planning inzage',    hint: 'Mag de planning-kalender bekijken en eigen taken zien.' },
+  rapporten_inzage:   { label: 'Rapporten inzage',   hint: 'Mag uitvoerings- en service-rapporten openen.' },
+  facturatie_inzage:  { label: 'Facturatie inzage',  hint: 'Mag de facturatie-pagina openen en exports downloaden.' },
+  contracten_aanmaken:{ label: 'Contracten aanmaken',hint: 'Mag nieuwe contracten registreren via de calculator-link.' },
+  manage_users:       { label: 'Teambeheer',         hint: 'Mag collega\u2019s uitnodigen, rechten aanpassen en verwijderen.' }
+};
+
+// Presets — moeten exact aan de server-side WHITELIST voldoen (geen manage_partners/manage_pricing).
+var TEAM_PERMISSION_PRESETS = {
+  medewerker_basis:      { planning_inzage:true,  rapporten_inzage:false, facturatie_inzage:false, contracten_aanmaken:false, manage_users:false },
+  medewerker_uitgebreid: { planning_inzage:true,  rapporten_inzage:true,  facturatie_inzage:true,  contracten_aanmaken:true,  manage_users:false },
+  co_owner:              { planning_inzage:true,  rapporten_inzage:true,  facturatie_inzage:true,  contracten_aanmaken:true,  manage_users:true  }
+};
+
+// Cache van user_roles voor het partner-team (user_id → row). Wordt geladen via
+// loadPartnerTeamRoles() bij elke render om server-state te volgen.
+var partnerTeamRolesByUser = {};
+
+function ptInitials(voornaam, naam, email) {
+  var v = (voornaam || '').trim();
+  var n = (naam || '').trim();
+  if (v || n) return ((v[0] || '') + (n[0] || '')).toUpperCase() || '?';
+  var e = (email || '').trim();
+  return e ? e[0].toUpperCase() : '?';
+}
+
+function ptCountActivePerms(perms) {
+  if (!perms || typeof perms !== 'object') return 0;
+  var n = 0;
+  for (var i = 0; i < TEAM_PERMISSION_KEYS.length; i++) {
+    if (perms[TEAM_PERMISSION_KEYS[i]] === true) n++;
+  }
+  return n;
+}
+
+function ptPermsSummary(perms) {
+  var labels = [];
+  for (var i = 0; i < TEAM_PERMISSION_KEYS.length; i++) {
+    var k = TEAM_PERMISSION_KEYS[i];
+    if (perms && perms[k] === true) labels.push(TEAM_PERMISSION_LABELS[k].label);
+  }
+  if (labels.length === 0) return 'Geen extra rechten';
+  return labels.join(' / ');
+}
+
+async function loadPartnerTeamRoles() {
+  // Tenant-gescoped fetch — RLS user_roles_partner_select beperkt tot eigen partner_id.
+  if (!(userRole === 'partner' && userPartner)) { partnerTeamRolesByUser = {}; return; }
+  try {
+    var res = await sb.from('user_roles')
+      .select('id, user_id, role, partner_id, permissions')
+      .eq('partner_id', userPartner.id);
+    if (res.error) { console.warn('loadPartnerTeamRoles failed:', res.error.message); return; }
+    partnerTeamRolesByUser = {};
+    (res.data || []).forEach(function(r) {
+      if (r.user_id) partnerTeamRolesByUser[r.user_id] = r;
+    });
+  } catch (e) {
+    console.warn('loadPartnerTeamRoles exception:', e);
+  }
+}
+
+async function renderPartnerTeamList() {
   var container = document.getElementById('set-team-list');
   if (!container) return;
   if (!(userRole === 'partner' && userPartner)) { container.innerHTML = ''; return; }
 
+  // Server-state ophalen voor accurate role-badges + permission-summary.
+  await loadPartnerTeamRoles();
+
+  // Tenant-scoped weergave: elk teamlid is een techniekers-rij met type_personeel=bediende
+  // OF een user_roles-rij zonder bijbehorende techniekers-rij (edge case na wis-failure).
   var team = (allTechniekers || []).filter(function(t) {
-    return t.partner_id === userPartner.id && t.type_personeel === 'bediende';
-  }).sort(function(a, b) {
+    return t.partner_id === userPartner.id && t.type_personeel === 'bediende' && t.actief !== false;
+  });
+
+  // Sort: owners (manage_users=true) eerst, dan alfabetisch.
+  team.sort(function(a, b) {
+    var ra = a.user_id ? (partnerTeamRolesByUser[a.user_id] || {}) : {};
+    var rb = b.user_id ? (partnerTeamRolesByUser[b.user_id] || {}) : {};
+    var oa = !!(ra.permissions && ra.permissions.manage_users);
+    var ob = !!(rb.permissions && rb.permissions.manage_users);
+    if (oa !== ob) return oa ? -1 : 1;
     var na = ((a.voornaam || '') + ' ' + (a.naam || '')).toLowerCase();
     var nb = ((b.voornaam || '') + ' ' + (b.naam || '')).toLowerCase();
     return na.localeCompare(nb);
   });
 
   if (team.length === 0) {
-    container.innerHTML = '<div style="padding:20px 16px;background:var(--light);border:1px dashed var(--rule);border-radius:8px;text-align:center">' +
-      '<p style="margin:0;font-size:13px;color:var(--grey)">Nog geen teamleden. Klik op <strong>+ Nieuw teamlid</strong> om te starten.</p>' +
+    container.innerHTML = '<div class="pt-empty">' +
+      '<h4>Nog geen teamleden</h4>' +
+      '<p>Nodig je eerste collega uit om samen contracten en planning te beheren.</p>' +
       '</div>';
     return;
   }
 
+  var canEdit = !!(userPermissions && userPermissions.manage_users);
+  var meId = (currentUser && currentUser.id) || null;
+
   container.innerHTML = team.map(function(t) {
-    var fullName = ((t.voornaam || '') + ' ' + (t.naam || '')).trim() || '—';
-    var meta = [];
-    if (t.email) meta.push(esc(t.email));
-    if (t.telefoon) meta.push(esc(t.telefoon));
-    return '<div class="team-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;margin-bottom:6px;background:#fff">' +
-      '<div style="min-width:0;flex:1">' +
-        '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">' +
-          '<strong style="font-size:13px;color:var(--navy)">' + esc(fullName) + '</strong>' +
-          (t.functie ? '<span style="color:var(--grey);font-size:12px">' + esc(t.functie) + '</span>' : '') +
-        '</div>' +
-        (meta.length ? '<div style="font-size:11px;color:var(--grey);margin-top:2px">' + meta.join(' · ') + '</div>' : '') +
+    var fullName = ((t.voornaam || '') + ' ' + (t.naam || '')).trim() || (t.email || '—');
+    var role = t.user_id ? (partnerTeamRolesByUser[t.user_id] || null) : null;
+    var perms = (role && role.permissions) || {};
+    var isOwner = perms.manage_users === true;
+    var isSelf = !!(t.user_id && meId && t.user_id === meId);
+
+    var badges = '<span class="pt-badge ' + (isOwner ? 'pt-badge-owner' : 'pt-badge-member') + '">'
+      + (isOwner ? 'Beheerder' : 'Medewerker') + '</span>';
+    if (isSelf) badges += '<span class="pt-badge pt-badge-self">Jij</span>';
+
+    var permsLine = role
+      ? esc(ptPermsSummary(perms))
+      : '<em>Login-account ontbreekt — herlanceer uitnodiging</em>';
+
+    var actions = '';
+    if (canEdit) {
+      actions += '<button type="button" class="btn-action" onclick="openTeamEditModal(\'' + t.id + '\')" title="Rechten aanpassen" aria-label="Rechten aanpassen"' + (role ? '' : ' disabled') + '><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
+      if (!isSelf) {
+        actions += '<button type="button" class="btn-action btn-action-danger" onclick="openTeamRemoveModal(\'' + t.id + '\')" title="Verwijderen" aria-label="Verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>';
+      }
+    }
+
+    return '<div class="pt-row" data-team-id="' + esc(t.id) + '">' +
+      '<div class="pt-avatar" aria-hidden="true">' + esc(ptInitials(t.voornaam, t.naam, t.email)) + '</div>' +
+      '<div class="pt-meta">' +
+        '<div class="pt-name-row"><span class="pt-name">' + esc(fullName) + '</span>' + badges + '</div>' +
+        (t.email ? '<div class="pt-email">' + esc(t.email) + '</div>' : '') +
+        '<div class="pt-perms">' + permsLine + '</div>' +
       '</div>' +
-      '<div style="display:flex;gap:4px;flex-shrink:0">' +
-        '<button type="button" class="btn-action" onclick="openTeamLidModal(\'' + t.id + '\')" title="Bewerken" aria-label="Bewerken"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
-        '<button type="button" class="btn-action btn-action-danger" onclick="deleteTeamLid(\'' + t.id + '\', \'' + esc(fullName).replace(/'/g, "\\'") + '\')" title="Verwijderen" aria-label="Verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>' +
-      '</div>' +
+      (actions ? '<div class="pt-actions">' + actions + '</div>' : '') +
     '</div>';
   }).join('');
 }
 
+// ---- Invite-modal --------------------------------------------------------
+
+function buildPermCheckboxesHtml(prefix, checked) {
+  return TEAM_PERMISSION_KEYS.map(function(k) {
+    var meta = TEAM_PERMISSION_LABELS[k];
+    var id = prefix + '-' + k;
+    var isChecked = checked && checked[k] === true;
+    return '<label class="ti-perm-row" for="' + id + '">' +
+      '<input type="checkbox" id="' + id + '" data-perm-key="' + k + '"' + (isChecked ? ' checked' : '') + ' onchange="onTeamPermCheckboxChange(\'' + prefix + '\')">' +
+      '<span class="ti-perm-text">' +
+        '<span class="ti-perm-label">' + esc(meta.label) + '</span>' +
+        '<span class="ti-perm-hint">' + esc(meta.hint) + '</span>' +
+      '</span>' +
+    '</label>';
+  }).join('');
+}
+
+function readPermCheckboxes(prefix) {
+  var perms = {};
+  TEAM_PERMISSION_KEYS.forEach(function(k) {
+    var el = document.getElementById(prefix + '-' + k);
+    perms[k] = !!(el && el.checked);
+  });
+  return perms;
+}
+
+function onTeamPermCheckboxChange(prefix) {
+  // Switch preset-dropdown naar 'custom' zodra gebruiker zelf aanvinkt.
+  if (prefix === 'ti') {
+    var presetEl = document.getElementById('ti-preset');
+    if (presetEl) presetEl.value = 'custom';
+  }
+}
+
+function applyTeamPermissionPreset(preset) {
+  if (preset === 'custom') return;
+  var p = TEAM_PERMISSION_PRESETS[preset];
+  if (!p) return;
+  TEAM_PERMISSION_KEYS.forEach(function(k) {
+    var el = document.getElementById('ti-' + k);
+    if (el) el.checked = p[k] === true;
+  });
+}
+
+function openTeamInviteModal() {
+  if (!(userRole === 'partner' && userPartner)) { showToast('Geen rechten om teamleden uit te nodigen', 'error'); return; }
+  if (!(userPermissions && userPermissions.manage_users)) { showToast('Je hebt geen rechten om deze actie uit te voeren', 'error'); return; }
+
+  document.getElementById('ti-voornaam').value = '';
+  document.getElementById('ti-naam').value = '';
+  document.getElementById('ti-email').value = '';
+  document.getElementById('ti-preset').value = 'medewerker_basis';
+  var subtitle = document.getElementById('ti-modal-subtitle');
+  if (subtitle) subtitle.textContent = 'Nieuw teamlid voor ' + (userPartner.naam || '');
+
+  var holder = document.getElementById('ti-perm-checks');
+  holder.innerHTML = buildPermCheckboxesHtml('ti', TEAM_PERMISSION_PRESETS.medewerker_basis);
+
+  var btn = document.getElementById('ti-submit-btn');
+  btn.disabled = false;
+  btn.textContent = 'Uitnodiging versturen';
+
+  document.getElementById('modal-team-invite').style.display = 'flex';
+  setTimeout(function(){ var f = document.getElementById('ti-voornaam'); if (f) f.focus(); }, 50);
+}
+
+function closeTeamInviteModal() {
+  var el = document.getElementById('modal-team-invite');
+  if (el) el.style.display = 'none';
+}
+
+async function submitTeamInvite() {
+  if (!(userRole === 'partner' && userPartner)) { showToast('Geen rechten', 'error'); return; }
+
+  var voornaam = (document.getElementById('ti-voornaam').value || '').trim();
+  var naam     = (document.getElementById('ti-naam').value || '').trim();
+  var email    = (document.getElementById('ti-email').value || '').trim().toLowerCase();
+  var perms    = readPermCheckboxes('ti');
+
+  if (!voornaam || !naam) { showToast('Voornaam en achternaam zijn verplicht', 'error'); return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showToast('Geef een geldig e-mailadres', 'error'); return; }
+
+  var btn = document.getElementById('ti-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Bezig...';
+
+  try {
+    var session = (await sb.auth.getSession()).data.session;
+    if (!session || !session.access_token) {
+      showToast('Sessie verlopen — log opnieuw in', 'error');
+      btn.disabled = false; btn.textContent = 'Uitnodiging versturen'; return;
+    }
+
+    var res = await fetch(SUPA_URL + '/functions/v1/invite-partner-member', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SUPA_KEY
+      },
+      body: JSON.stringify({
+        email: email,
+        voornaam: voornaam,
+        naam: naam,
+        partner_id: userPartner.id,
+        permissions: perms,
+        lang: 'nl'
+      })
+    });
+    var result = await res.json().catch(function(){ return {}; });
+
+    if (!res.ok) {
+      var msg;
+      switch (result.step) {
+        case 'rate_limit':       msg = 'Te veel uitnodigingen kort na elkaar — probeer het later opnieuw'; break;
+        case 'exists_in_tenant': msg = 'Deze gebruiker maakt al deel uit van dit team'; break;
+        case 'exists_other_tenant': msg = 'Deze gebruiker bestaat al in een ander partner-team — contacteer de beheerder'; break;
+        case 'forbidden':        msg = 'Geen rechten om teamleden uit te nodigen voor deze partner'; break;
+        default: msg = result.error || ('Fout: HTTP ' + res.status);
+      }
+      showToast(msg, 'error');
+      btn.disabled = false; btn.textContent = 'Uitnodiging versturen';
+      return;
+    }
+
+    auditLog('user_roles', result.user_id || userPartner.id, 'partner_team_invite',
+      null, JSON.stringify({ email: email, partner_id: userPartner.id, permissions: perms }));
+
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Partner Team Member Invited', {
+        partner_slug: userPartner.slug || null,
+        preset: document.getElementById('ti-preset').value || 'custom',
+        is_owner: perms.manage_users === true
+      }); } catch (_) {}
+    }
+
+    showToast('Uitnodiging verstuurd naar ' + email, 'success');
+    closeTeamInviteModal();
+
+    // Refresh techniekers + role-cache.
+    var r = await sb.from('techniekers').select('*').order('created_at');
+    allTechniekers = r.data || [];
+    await renderPartnerTeamList();
+  } catch (err) {
+    console.error('submitTeamInvite exception:', err);
+    showToast('Fout: ' + (err.message || err), 'error');
+    btn.disabled = false; btn.textContent = 'Uitnodiging versturen';
+  }
+}
+
+// ---- Edit-permissions-modal ---------------------------------------------
+
+var teamEditCtx = null; // { teamRow, roleRow }
+
+function openTeamEditModal(teamRowId) {
+  if (!(userPermissions && userPermissions.manage_users)) { showToast('Geen rechten', 'error'); return; }
+  var t = (allTechniekers || []).find(function(x){ return x.id === teamRowId; });
+  if (!t || !t.user_id) { showToast('Teamlid niet gevonden of nog geen login-account', 'error'); return; }
+  var role = partnerTeamRolesByUser[t.user_id];
+  if (!role) { showToast('Rolprofiel niet gevonden', 'error'); return; }
+
+  teamEditCtx = { teamRow: t, roleRow: role };
+  var fullName = ((t.voornaam || '') + ' ' + (t.naam || '')).trim() || t.email || '';
+  document.getElementById('te-modal-title').textContent = 'Rechten aanpassen';
+  document.getElementById('te-modal-subtitle').textContent = fullName;
+
+  var perms = role.permissions || {};
+  document.getElementById('te-perm-checks').innerHTML = buildPermCheckboxesHtml('te', perms);
+
+  var btn = document.getElementById('te-submit-btn');
+  btn.disabled = false; btn.textContent = 'Opslaan';
+
+  document.getElementById('modal-team-edit').style.display = 'flex';
+}
+
+function closeTeamEditModal() {
+  var el = document.getElementById('modal-team-edit');
+  if (el) el.style.display = 'none';
+  teamEditCtx = null;
+}
+
+async function submitTeamPermsUpdate() {
+  if (!teamEditCtx) return;
+  var t    = teamEditCtx.teamRow;
+  var role = teamEditCtx.roleRow;
+  var oldPerms = role.permissions || {};
+  var newPerms = readPermCheckboxes('te');
+
+  // Defense-in-depth: blokkeer self-promote/demote in UI (RLS doet hetzelfde).
+  if (currentUser && t.user_id === currentUser.id && (oldPerms.manage_users === true) !== (newPerms.manage_users === true)) {
+    showToast('Je kan je eigen beheerders-rechten niet wijzigen — vraag een collega', 'error');
+    return;
+  }
+
+  // Bewaar bestaande non-team-keys (bv. manage_pricing voor admin-rijen).
+  // In de partner-tak zijn deze altijd false, maar we mergen veilig.
+  var merged = Object.assign({}, oldPerms);
+  TEAM_PERMISSION_KEYS.forEach(function(k){ merged[k] = newPerms[k] === true; });
+
+  var btn = document.getElementById('te-submit-btn');
+  btn.disabled = true; btn.textContent = 'Bezig...';
+
+  try {
+    var res = await sb.from('user_roles').update({ permissions: merged }).eq('id', role.id);
+    if (res.error) {
+      var em = res.error.message || '';
+      if (em.indexOf('row-level security') >= 0) {
+        showToast('RLS blokkeert deze wijziging — controleer of je nog beheerder bent', 'error');
+      } else {
+        showToast('Fout bij opslaan: ' + em, 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Opslaan';
+      return;
+    }
+
+    auditLog('user_roles', role.id, 'permission_wijziging',
+      JSON.stringify(oldPerms), JSON.stringify(merged));
+
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Partner Team Permissions Updated', {
+        partner_slug: (userPartner && userPartner.slug) || null,
+        is_owner_after: merged.manage_users === true
+      }); } catch (_) {}
+    }
+
+    showToast('Rechten bijgewerkt', 'success');
+    closeTeamEditModal();
+    await renderPartnerTeamList();
+  } catch (err) {
+    console.error('submitTeamPermsUpdate exception:', err);
+    showToast('Fout: ' + (err.message || err), 'error');
+    btn.disabled = false; btn.textContent = 'Opslaan';
+  }
+}
+
+// ---- Remove-modal -------------------------------------------------------
+
+var teamRemoveCtx = null; // { teamRow }
+
+function openTeamRemoveModal(teamRowId) {
+  if (!(userPermissions && userPermissions.manage_users)) { showToast('Geen rechten', 'error'); return; }
+  var t = (allTechniekers || []).find(function(x){ return x.id === teamRowId; });
+  if (!t) { showToast('Teamlid niet gevonden', 'error'); return; }
+  if (currentUser && t.user_id === currentUser.id) { showToast('Je kan jezelf niet verwijderen', 'error'); return; }
+
+  teamRemoveCtx = { teamRow: t };
+  var fullName = ((t.voornaam || '') + ' ' + (t.naam || '')).trim() || t.email || 'dit teamlid';
+  document.getElementById('tr-modal-title').textContent = 'Teamlid verwijderen?';
+  document.getElementById('tr-modal-body').textContent =
+    'Je staat op het punt om ' + fullName + ' te verwijderen uit dit partner-portaal. Deze actie kan niet ongedaan gemaakt worden.';
+
+  var btn = document.getElementById('tr-submit-btn');
+  btn.disabled = false; btn.textContent = 'Definitief verwijderen';
+
+  document.getElementById('modal-team-remove').style.display = 'flex';
+}
+
+function closeTeamRemoveModal() {
+  var el = document.getElementById('modal-team-remove');
+  if (el) el.style.display = 'none';
+  teamRemoveCtx = null;
+}
+
+async function submitTeamRemove() {
+  if (!teamRemoveCtx) return;
+  var t = teamRemoveCtx.teamRow;
+  if (!t.user_id) {
+    // Geen login-account — directe DB-cleanup van techniekers-rij volstaat.
+    var dres = await sb.from('techniekers').delete().eq('id', t.id);
+    if (dres.error) { showToast('Fout: ' + dres.error.message, 'error'); return; }
+    auditLog('techniekers', t.id, 'verwijderd',
+      JSON.stringify({ voornaam: t.voornaam, naam: t.naam, partner_id: t.partner_id || null, bron: 'partner_team_remove_no_user' }), null);
+    showToast('Teamlid verwijderd', 'success');
+    closeTeamRemoveModal();
+    var r = await sb.from('techniekers').select('*').order('created_at');
+    allTechniekers = r.data || [];
+    await renderPartnerTeamList();
+    return;
+  }
+
+  var btn = document.getElementById('tr-submit-btn');
+  btn.disabled = true; btn.textContent = 'Bezig...';
+
+  try {
+    var session = (await sb.auth.getSession()).data.session;
+    if (!session || !session.access_token) {
+      showToast('Sessie verlopen — log opnieuw in', 'error');
+      btn.disabled = false; btn.textContent = 'Definitief verwijderen';
+      return;
+    }
+
+    var res = await fetch(SUPA_URL + '/functions/v1/remove-partner-member', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SUPA_KEY
+      },
+      body: JSON.stringify({ user_id_to_remove: t.user_id, partner_id: t.partner_id })
+    });
+    var result = await res.json().catch(function(){ return {}; });
+
+    if (!res.ok) {
+      var msg;
+      switch (result.step) {
+        case 'self_delete':       msg = 'Je kan jezelf niet verwijderen'; break;
+        case 'last_owner':        msg = 'Kan laatste beheerder niet verwijderen — wijs eerst een andere collega aan als beheerder'; break;
+        case 'tenant_mismatch':   msg = 'Mag enkel eigen teamleden verwijderen'; break;
+        case 'target_not_found':  msg = 'Teamlid niet meer gevonden — lijst wordt ververst'; break;
+        default: msg = result.error || ('Fout: HTTP ' + res.status);
+      }
+      showToast(msg, 'error');
+      btn.disabled = false; btn.textContent = 'Definitief verwijderen';
+      // Voor target_not_found: ververs sowieso om UI synchroon te krijgen.
+      if (result.step === 'target_not_found') {
+        var rr = await sb.from('techniekers').select('*').order('created_at');
+        allTechniekers = rr.data || [];
+        await renderPartnerTeamList();
+        closeTeamRemoveModal();
+      }
+      return;
+    }
+
+    auditLog('user_roles', t.user_id, 'verwijderd',
+      JSON.stringify({ voornaam: t.voornaam, naam: t.naam, partner_id: t.partner_id, auth_deleted: !!result.auth_deleted }), null);
+
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Partner Team Member Removed', {
+        partner_slug: (userPartner && userPartner.slug) || null
+      }); } catch (_) {}
+    }
+
+    showToast('Teamlid verwijderd', 'success');
+    closeTeamRemoveModal();
+    var r2 = await sb.from('techniekers').select('*').order('created_at');
+    allTechniekers = r2.data || [];
+    await renderPartnerTeamList();
+  } catch (err) {
+    console.error('submitTeamRemove exception:', err);
+    showToast('Fout: ' + (err.message || err), 'error');
+    btn.disabled = false; btn.textContent = 'Definitief verwijderen';
+  }
+}
+
+// Backward-compat aliases — oudere call-sites elders in admin (Bedienden-pagina,
+// Personeel-tabel) blijven openBediendeModal/deleteBediende gebruiken; voor
+// partner-context delegeren we expliciet naar de nieuwe flow.
 function openTeamLidModal(teamLidId) {
-  // Hergebruik bestaande Bediende-modal + save-flow. Voor partners locken we role+
-  // partner_id zodat de UI duidelijk maakt voor wie het teamlid wordt aangemaakt;
-  // edge function `create-bediende` v3 valideert RLS dat caller eigenaar is.
+  if (userRole === 'partner' && userPartner && !teamLidId) {
+    openTeamInviteModal();
+    return;
+  }
+  // Bewerking van bestaand teamlid via partner-vlow → permissie-modal.
+  if (userRole === 'partner' && teamLidId) {
+    openTeamEditModal(teamLidId);
+    return;
+  }
+  // Fallback (admin-context vanuit Bedienden-tab) — bestaande generieke modal.
   var opts = {};
   if (userRole === 'partner' && userPartner) {
     opts.lockedRole = 'partner';
@@ -14734,10 +15350,15 @@ function openTeamLidModal(teamLidId) {
   openBediendeModal(teamLidId || null, opts);
 }
 
-async function deleteTeamLid(teamLidId, naam) {
-  await deleteBediende(teamLidId, naam);
-  // Refresh zowel de Personeel-tabel als het Team-lijstje in Instellingen
-  if (userRole === 'partner') renderPartnerTeamList();
+async function deleteTeamLid(teamLidId) {
+  if (userRole === 'partner') {
+    openTeamRemoveModal(teamLidId);
+    return;
+  }
+  // Admin-fallback — naam wordt opgehaald uit allTechniekers; deleteBediende vraagt zelf bevestiging.
+  var t = (allTechniekers || []).find(function(x){ return x.id === teamLidId; });
+  var fullName = t ? (((t.voornaam || '') + ' ' + (t.naam || '')).trim() || t.email || '') : '';
+  await deleteBediende(teamLidId, fullName);
 }
 
 // =============================================
