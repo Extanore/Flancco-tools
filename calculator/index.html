@@ -7,6 +7,12 @@
 <link rel="alternate icon" type="image/x-icon" href="/favicon-flancco.ico">
 <link rel="apple-touch-icon" href="/favicon-flancco.svg">
 <title>Onderhoudscalculator</title>
+<!-- Slot 0 — Plausible Analytics (privacy-first, cookieless, GDPR-compliant).
+     data-domain matches the Plausible site name. Defer load — never blocks rendering.
+     Fallback: if blocked by adblocker, window.flanccoTrack() degrades gracefully. -->
+<script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.manual.tagged-events.js"></script>
+<script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
+<script defer src="/shared/analytics.js"></script>
 <script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
 <script>
   (function(){
@@ -30,6 +36,13 @@
     });
   })();
 </script>
+<!-- Slot S — i18n runtime + dictionaries (NL/FR baseline).
+     Volgorde: helper eerst (registreert API), dan dictionaries (registreren zichzelf
+     via window.flanccoI18n.registerDict). Geen defer: synchroon zodat data-i18n
+     attributes direct na DOM-render correct gevuld zijn (geen flash van fallback). -->
+<script src="/calculator/i18n/i18n.js"></script>
+<script src="/calculator/i18n/nl.json.js"></script>
+<script src="/calculator/i18n/fr.json.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -445,21 +458,21 @@
   <!-- STEP 0: SECTOR SELECTION -->
   <div class="section" id="step-0">
     <div class="intro">
-      <h1>Welke diensten wenst u?</h1>
-      <p>Selecteer de diensten waarvoor u een offerte wenst. U kunt meerdere diensten combineren in &eacute;&eacute;n overeenkomst.</p>
+      <h1 data-i18n="step0.title">Welke diensten wenst u?</h1>
+      <p data-i18n="step0.subtitle">Selecteer de diensten waarvoor u een offerte wenst. U kunt meerdere diensten combineren in &eacute;&eacute;n overeenkomst.</p>
     </div>
     <div class="sector-grid" id="sector-grid"><!-- JS --></div>
     <div class="cta-section">
-      <button class="btn btn-block" id="btn-sector-next" onclick="proceedFromSectors()" disabled>Ga verder &rarr;</button>
-      <div class="cta-sub">Selecteer minstens &eacute;&eacute;n dienst om verder te gaan</div>
+      <button class="btn btn-block" id="btn-sector-next" onclick="proceedFromSectors()" disabled data-i18n="step0.cta">Ga verder &rarr;</button>
+      <div class="cta-sub" data-i18n="step0.ctaHint">Selecteer minstens &eacute;&eacute;n dienst om verder te gaan</div>
     </div>
   </div>
 
   <!-- STEP 1: CONFIGURATION -->
   <div class="section" id="step-1">
     <div class="intro" id="step1-intro">
-      <h1 id="step1-title">Configureer uw diensten</h1>
-      <p id="step1-sub">Vul hieronder uw installatiegegevens in en ontdek direct uw persoonlijke prijs.</p>
+      <h1 id="step1-title" data-i18n="step1.title">Configureer uw diensten</h1>
+      <p id="step1-sub" data-i18n="step1.subtitle">Vul hieronder uw installatiegegevens in en ontdek direct uw persoonlijke prijs.</p>
     </div>
 
     <!-- Partner intro text (optional) -->
@@ -482,31 +495,31 @@
     <!-- Shared fields (distance, BTW, freq, duur) -->
     <div id="shared-fields">
       <div class="card">
-        <div class="card-title">Afstand</div>
+        <div class="card-title" data-i18n="step1.cards.afstand">Afstand</div>
         <div class="field">
-          <label>Afstand tot uw woning <small>(in km)</small></label>
+          <label><span data-i18n="step1.cards.afstandLabel">Afstand tot uw woning</span> <small data-i18n="step1.cards.afstandUnit">(in km)</small></label>
           <input type="number" id="afstand" min="0" max="500" value="15" oninput="calculateAll()">
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">BTW-tarief</div>
+        <div class="card-title" data-i18n="step1.cards.btw">BTW-tarief</div>
         <div class="radio-group" id="btw-group">
-          <label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculateAll();toggleBtwAttest()"><div class="radio-text">21% BTW<small>Standaardtarief</small></div></label>
-          <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="calculateAll();toggleBtwAttest()"><div class="radio-text">6% BTW<small>Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small></div></label>
+          <label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculateAll();toggleBtwAttest()"><div class="radio-text"><span data-i18n="step1.cards.btw21">21% BTW</span><small data-i18n="step1.cards.btw21sub">Standaardtarief</small></div></label>
+          <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="calculateAll();toggleBtwAttest()"><div class="radio-text"><span data-i18n="step1.cards.btw6">6% BTW</span><small data-i18n="step1.cards.btw6sub">Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small></div></label>
         </div>
         <div id="btw6-verklaring" class="btw6-verklaring hidden">
           <div class="btw6-box">
-            <strong>Verklaring op eer — verlaagd btw-tarief (6%)</strong>
-            <p>Om in aanmerking te komen voor het verlaagd btw-tarief van 6% moet de woning waar de werken uitgevoerd worden voldoen aan de volgende voorwaarden:</p>
+            <strong data-i18n="step1.btw6.title">Verklaring op eer — verlaagd btw-tarief (6%)</strong>
+            <p data-i18n="step1.btw6.intro">Om in aanmerking te komen voor het verlaagd btw-tarief van 6% moet de woning waar de werken uitgevoerd worden voldoen aan de volgende voorwaarden:</p>
             <ul>
-              <li>De woning is <strong>ouder dan 10 jaar</strong> (eerste ingebruikname meer dan 10 jaar geleden)</li>
-              <li>De woning wordt <strong>hoofdzakelijk als priv&eacute;woning</strong> gebruikt</li>
-              <li>De werken worden rechtstreeks aan de <strong>eindverbruiker</strong> gefactureerd</li>
+              <li data-i18n="step1.btw6.cond1">De woning is ouder dan 10 jaar (eerste ingebruikname meer dan 10 jaar geleden)</li>
+              <li data-i18n="step1.btw6.cond2">De woning wordt hoofdzakelijk als priv&eacute;woning gebruikt</li>
+              <li data-i18n="step1.btw6.cond3">De werken worden rechtstreeks aan de eindverbruiker gefactureerd</li>
             </ul>
             <label class="check-row" style="margin-top:12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px">
               <input type="checkbox" id="btw6-check" style="margin-top:3px;flex-shrink:0">
-              <span>Ik verklaar op eer dat het gebouw waar de werken uitgevoerd worden langer dan 10 jaar in gebruik is als priv&eacute;woning en dat ik de eindverbruiker ben. Ik neem kennis dat bij onjuiste verklaring het verschil in btw (15%) verhaald kan worden.</span>
+              <span data-i18n="step1.btw6.check">Ik verklaar op eer dat het gebouw waar de werken uitgevoerd worden langer dan 10 jaar in gebruik is als priv&eacute;woning en dat ik de eindverbruiker ben. Ik neem kennis dat bij onjuiste verklaring het verschil in btw (15%) verhaald kan worden.</span>
             </label>
           </div>
         </div>
@@ -514,71 +527,71 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Frequentie</div>
+        <div class="card-title" data-i18n="step1.cards.freq">Frequentie</div>
         <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="freq" value="1" checked onchange="calculateAll()"><div class="radio-text">Jaarlijks<small>1 onderhoudsbeurt per jaar</small></div></label>
-          <label class="radio-option"><input type="radio" name="freq" value="2" onchange="calculateAll()"><div class="radio-text">Halfjaarlijks<small>2 onderhoudsbeurten per jaar</small></div></label>
+          <label class="radio-option"><input type="radio" name="freq" value="1" checked onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.freqJaarlijks">Jaarlijks</span><small data-i18n="step1.cards.freqJaarlijksSub">1 onderhoudsbeurt per jaar</small></div></label>
+          <label class="radio-option"><input type="radio" name="freq" value="2" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.freqHalfjaar">Halfjaarlijks</span><small data-i18n="step1.cards.freqHalfjaarSub">2 onderhoudsbeurten per jaar</small></div></label>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Contractduur</div>
+        <div class="card-title" data-i18n="step1.cards.duur">Contractduur</div>
         <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="duur" value="0" checked onchange="calculateAll()"><div class="radio-text">Eenmalige interventie<small>Standaardtarief, geen doorlopend contract</small></div></label>
-          <label class="radio-option"><input type="radio" name="duur" value="3" onchange="calculateAll()"><div class="radio-text">3 jaar<small>5% korting op alle tarieven</small></div></label>
-          <label class="radio-option"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text">5 jaar<small>5% korting op alle tarieven</small></div></label>
+          <label class="radio-option"><input type="radio" name="duur" value="0" checked onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duurEenmalig">Eenmalige interventie</span><small data-i18n="step1.cards.duurEenmaligSub">Standaardtarief, geen doorlopend contract</small></div></label>
+          <label class="radio-option"><input type="radio" name="duur" value="3" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duur3">3 jaar</span><small data-i18n="step1.cards.duurKortingSub">5% korting op alle tarieven</small></div></label>
+          <label class="radio-option"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duur5">5 jaar</span><small data-i18n="step1.cards.duurKortingSub">5% korting op alle tarieven</small></div></label>
         </div>
       </div>
     </div>
 
     <!-- RESULT CARD -->
     <div class="result-card" id="result-card">
-      <div class="result-title" id="result-title">Uw prijsindicatie per beurt</div>
+      <div class="result-title" id="result-title" data-i18n="step1.result.title">Uw prijsindicatie per beurt</div>
       <div class="result-lines" id="result-lines"></div>
       <hr class="result-divider">
       <div class="result-total">
-        <span class="result-total-label">Per beurt</span>
+        <span class="result-total-label" data-i18n="step1.result.perBeurt">Per beurt</span>
         <span class="result-total-amount" id="total"></span>
       </div>
       <div class="result-line hidden" id="line-jaar" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15)">
-        <span>Per jaar (2 beurten)</span><span id="val-jaar" style="font-size:18px"></span>
+        <span data-i18n="step1.result.perJaar">Per jaar (2 beurten)</span><span id="val-jaar" style="font-size:18px"></span>
       </div>
-      <div class="result-note" id="btw-note">Alle bedragen incl. 21% btw</div>
+      <div class="result-note" id="btw-note" data-i18n="step1.result.btwNote21">Alle bedragen incl. 21% btw</div>
     </div>
 
     <!-- STAFFEL TABLE (rendered per sector) -->
     <div id="staffel-container" style="margin-top:24px"></div>
 
     <div class="cta-section">
-      <button class="btn btn-block" onclick="goToStep(2)">Ga verder naar overeenkomst &rarr;</button>
-      <div class="cta-sub">Vul uw gegevens in en bekijk direct uw persoonlijke overeenkomst</div>
+      <button class="btn btn-block" onclick="goToStep(2)" data-i18n="step1.ctaNext">Ga verder naar overeenkomst &rarr;</button>
+      <div class="cta-sub" data-i18n="step1.ctaHint">Vul uw gegevens in en bekijk direct uw persoonlijke overeenkomst</div>
     </div>
   </div>
 
   <!-- STEP 2: CUSTOMER DATA -->
   <div class="section" id="step-2">
-    <div class="intro"><h1>Uw gegevens</h1><p>Vul hieronder uw gegevens in om uw persoonlijke overeenkomst op te stellen.</p></div>
+    <div class="intro"><h1 data-i18n="step2.title">Uw gegevens</h1><p data-i18n="step2.subtitle">Vul hieronder uw gegevens in om uw persoonlijke overeenkomst op te stellen.</p></div>
 
     <div class="card">
-      <div class="card-title">Persoonsgegevens</div>
-      <div class="field"><label>Naam / Bedrijfsnaam <small style="color:var(--red)">*</small></label><input type="text" id="klant-naam" placeholder="Bijv. Jan Janssen of Janssen B.V." required></div>
+      <div class="card-title" data-i18n="step2.personal">Persoonsgegevens</div>
+      <div class="field"><label><span data-i18n="step2.naam">Naam / Bedrijfsnaam</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-naam" data-i18n-attr="placeholder:step2.naamPh" placeholder="Bijv. Jan Janssen of Janssen B.V." required></div>
       <div class="field-row">
-        <div class="field" style="flex:3"><label>Straat <small style="color:var(--red)">*</small></label><input type="text" id="klant-straat" placeholder="Straatnaam" required></div>
-        <div class="field" style="flex:1"><label>Nr. <small style="color:var(--red)">*</small></label><input type="text" id="klant-huisnr" placeholder="12A" required></div>
+        <div class="field" style="flex:3"><label><span data-i18n="step2.straat">Straat</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-straat" data-i18n-attr="placeholder:step2.straatPh" placeholder="Straatnaam" required></div>
+        <div class="field" style="flex:1"><label><span data-i18n="step2.huisnr">Nr.</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-huisnr" data-i18n-attr="placeholder:step2.huisnrPh" placeholder="12A" required></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Postcode <small style="color:var(--red)">*</small></label><input type="text" id="klant-postcode" placeholder="9000" required oninput="checkPostcode()"></div>
-        <div class="field"><label>Gemeente <small style="color:var(--red)">*</small></label><input type="text" id="klant-gemeente" placeholder="Gent" required></div>
+        <div class="field"><label><span data-i18n="step2.postcode">Postcode</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-postcode" data-i18n-attr="placeholder:step2.postcodePh" placeholder="9000" required oninput="checkPostcode()"></div>
+        <div class="field"><label><span data-i18n="step2.gemeente">Gemeente</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-gemeente" data-i18n-attr="placeholder:step2.gemeentePh" placeholder="Gent" required></div>
       </div>
-      <div class="field"><label>BTW-nummer <small>(optioneel)</small></label><input type="text" id="klant-btw" placeholder="BE0123.456.789"></div>
+      <div class="field"><label><span data-i18n="step2.btwNr">BTW-nummer</span> <small>(<span data-i18n="common.optional">optioneel</span>)</small></label><input type="text" id="klant-btw" placeholder="BE0123.456.789"></div>
     </div>
 
     <div class="card">
-      <div class="card-title">Contactgegevens</div>
-      <div class="field"><label>Contactpersoon <small style="color:var(--red)">*</small></label><input type="text" id="klant-contact" placeholder="Naam contactpersoon" required></div>
+      <div class="card-title" data-i18n="step2.contact">Contactgegevens</div>
+      <div class="field"><label><span data-i18n="step2.contactPersoon">Contactpersoon</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-contact" data-i18n-attr="placeholder:step2.contactPersoonPh" placeholder="Naam contactpersoon" required></div>
       <div class="field-row">
-        <div class="field"><label>Telefoon <small style="color:var(--red)">*</small></label><input type="tel" id="klant-tel" placeholder="+32 4..." required></div>
-        <div class="field"><label>E-mail <small style="color:var(--red)">*</small></label><input type="email" id="klant-email" placeholder="jan@voorbeeld.be" required></div>
+        <div class="field"><label><span data-i18n="step2.tel">Telefoon</span> <small style="color:var(--red)">*</small></label><input type="tel" id="klant-tel" data-i18n-attr="placeholder:step2.telPh" placeholder="+32 4..." required></div>
+        <div class="field"><label><span data-i18n="step2.email">E-mail</span> <small style="color:var(--red)">*</small></label><input type="email" id="klant-email" data-i18n-attr="placeholder:step2.emailPh" placeholder="jan@voorbeeld.be" required></div>
       </div>
     </div>
 
@@ -596,30 +609,30 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-outline" onclick="goToStep(showStep0 ? 0 : 1)">&larr; Terug</button>
-      <button class="btn" onclick="goToSummary()">Bekijk samenvatting &rarr;</button>
+      <button class="btn btn-outline" onclick="goToStep(showStep0 ? 0 : 1)" data-i18n="step2.ctaBack">&larr; Terug</button>
+      <button class="btn" onclick="goToSummary()" data-i18n="step2.ctaNext">Bekijk samenvatting &rarr;</button>
     </div>
   </div>
 
   <!-- STEP 2B: SUMMARY -->
   <div class="section" id="step-2b">
-    <div class="intro"><h1>Uw offerte samengevat</h1><p>Controleer onderstaande gegevens voordat u doorgaat naar de overeenkomst.</p></div>
+    <div class="intro"><h1 data-i18n="step2b.title">Uw offerte samengevat</h1><p data-i18n="step2b.subtitle">Controleer onderstaande gegevens voordat u doorgaat naar de overeenkomst.</p></div>
     <div id="summary-container"></div>
     <div class="btn-row">
-      <button class="btn btn-outline" onclick="goToStep(2)">&larr; Aanpassen</button>
-      <button class="btn" onclick="generateContract()">Akkoord, ga naar overeenkomst &rarr;</button>
+      <button class="btn btn-outline" onclick="goToStep(2)" data-i18n="step2b.ctaBack">&larr; Aanpassen</button>
+      <button class="btn" onclick="generateContract()" data-i18n="step2b.ctaNext">Akkoord, ga naar overeenkomst &rarr;</button>
     </div>
   </div>
 
   <!-- STEP 3: CONTRACT -->
   <div class="section" id="step-3">
-    <div class="intro no-print"><h1>Uw overeenkomst</h1><p>Controleer onderstaande overeenkomst en onderteken digitaal.</p></div>
+    <div class="intro no-print"><h1 data-i18n="step3.title">Uw overeenkomst</h1><p data-i18n="step3.subtitle">Controleer onderstaande overeenkomst en onderteken digitaal.</p></div>
     <div class="contract" id="contract-body"></div>
     <div class="btn-row no-print" id="submit-row">
-      <button class="btn btn-outline" onclick="goToStep('2b')">&larr; Terug</button>
-      <button class="btn download-locked" id="btn-submit" onclick="submitContract()">&#10003; Onderteken &amp; verstuur</button>
+      <button class="btn btn-outline" onclick="goToStep('2b')" data-i18n="step3.ctaBack">&larr; Terug</button>
+      <button class="btn download-locked" id="btn-submit" onclick="submitContract()">&#10003; <span data-i18n="step3.ctaSubmit">Onderteken &amp; verstuur</span></button>
     </div>
-    <div class="cta-sub no-print" id="download-hint" style="text-align:center;margin-top:16px">Plaats uw handtekening en vink de akkoordverklaring aan om te versturen</div>
+    <div class="cta-sub no-print" id="download-hint" style="text-align:center;margin-top:16px" data-i18n="step3.submitHint">Plaats uw handtekening en vink de akkoordverklaring aan om te versturen</div>
 
     <!-- POST SUBMIT -->
     <div id="post-submit" style="display:none">
@@ -4187,6 +4200,130 @@ init();
 <footer style="padding:16px 20px 80px;text-align:center;font-size:11px;color:rgba(107,114,128,0.85);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
   &copy; FLANCCO BV &middot; BE 0466.111.526 &middot; <a href="/privacy/" style="color:inherit;text-decoration:underline">Privacyverklaring</a> &middot; <a href="/voorwaarden/" style="color:inherit;text-decoration:underline">Voorwaarden</a>
 </footer>
+
+<!-- Slot S — Language switcher (subtle pill in top-right) + Brussels prompt -->
+<style>
+  .lang-switch {
+    position: fixed; top: 14px; right: 14px;
+    display: inline-flex; gap: 0;
+    background: rgba(255,255,255,0.96); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 3px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    z-index: 90; font-family: inherit;
+    backdrop-filter: blur(6px);
+  }
+  .lang-switch button {
+    border: none; background: transparent;
+    padding: 5px 12px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--grey); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .lang-switch button:hover { color: var(--dark); }
+  .lang-switch button.active { background: var(--primary); color: var(--white); }
+  .lang-prompt-overlay {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .lang-prompt {
+    background: var(--white); border-radius: 16px; padding: 28px 24px;
+    max-width: 360px; width: 100%; text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  }
+  .lang-prompt h3 { font-size: 17px; margin: 0 0 6px; color: var(--black); }
+  .lang-prompt p { font-size: 13px; color: var(--grey); margin: 0 0 18px; line-height: 1.5; }
+  .lang-prompt .lang-prompt-actions { display: flex; gap: 8px; justify-content: center; }
+  .lang-prompt .lang-prompt-actions button {
+    flex: 1; padding: 11px 16px; border-radius: 10px; border: 1px solid var(--rule);
+    background: var(--white); font-weight: 700; font-size: 13px; cursor: pointer;
+    transition: all 0.18s;
+  }
+  .lang-prompt .lang-prompt-actions button:hover { border-color: var(--primary); color: var(--primary); }
+  @media print { .lang-switch, .lang-prompt-overlay { display: none !important; } }
+</style>
+<div class="lang-switch" id="lang-switch" role="group" aria-label="Taalkeuze">
+  <button type="button" data-lang="nl" aria-label="Nederlands">NL</button>
+  <button type="button" data-lang="fr" aria-label="Fran&ccedil;ais">FR</button>
+</div>
+<script>
+/**
+ * Slot S — UI-bootstrap voor i18n.
+ *  - Markeert de actieve knop in de switcher en wisselt taal bij klik.
+ *  - Wired postcode-veld → automatische FR-detectie voor Wallonië.
+ *  - Toont Brussel-prompt eenmalig bij Brussel-postcode (geen cookie).
+ */
+(function () {
+  if (!window.flanccoI18n) return;
+
+  function refreshSwitcher() {
+    var lang = window.flanccoI18n.getLang();
+    var btns = document.querySelectorAll('#lang-switch button');
+    for (var i = 0; i < btns.length; i++) {
+      var active = btns[i].getAttribute('data-lang') === lang;
+      btns[i].classList.toggle('active', active);
+      btns[i].setAttribute('aria-pressed', active ? 'true' : 'false');
+    }
+  }
+
+  function attachSwitcher() {
+    var btns = document.querySelectorAll('#lang-switch button');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function () {
+        var l = this.getAttribute('data-lang');
+        if (l) window.flanccoI18n.setLang(l);
+      });
+    }
+    window.flanccoI18n.onLangChange(refreshSwitcher);
+    refreshSwitcher();
+  }
+
+  function showBrusselsPrompt() {
+    if (document.getElementById('lang-prompt-overlay')) return;
+    var overlay = document.createElement('div');
+    overlay.className = 'lang-prompt-overlay';
+    overlay.id = 'lang-prompt-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="lang-prompt">' +
+        '<h3>' + window.t('languagePrompt.title') + '</h3>' +
+        '<p>' + window.t('languagePrompt.subtitle') + '</p>' +
+        '<div class="lang-prompt-actions">' +
+          '<button type="button" data-pick="nl">' + window.t('languagePrompt.nl') + '</button>' +
+          '<button type="button" data-pick="fr">' + window.t('languagePrompt.fr') + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.tagName === 'BUTTON' && t.getAttribute('data-pick')) {
+        window.flanccoI18n.setLang(t.getAttribute('data-pick'));
+        overlay.remove();
+      }
+    });
+  }
+
+  function attachPostcodeListener() {
+    var pc = document.getElementById('klant-postcode');
+    if (!pc) return;
+    pc.addEventListener('blur', function () {
+      window.flanccoI18n.setLangFromPostcode(this.value, showBrusselsPrompt);
+    });
+  }
+
+  function init() {
+    attachSwitcher();
+    attachPostcodeListener();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+})();
+</script>
 
 </body>
 </html>
