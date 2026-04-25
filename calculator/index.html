@@ -43,6 +43,8 @@
 <script src="/calculator/i18n/i18n.js"></script>
 <script src="/calculator/i18n/nl.json.js"></script>
 <script src="/calculator/i18n/fr.json.js"></script>
+<script src="/calculator/shared/validators.js"></script>
+<script src="/calculator/shared/postcode-lookup.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -313,7 +315,51 @@
   .btw6-box strong { color: #3D3209; }
   .btw6-box ul { margin: 8px 0 0; padding-left: 20px; }
   .btw6-box li { margin-bottom: 4px; }
+  .btw6-box .check-row { margin-top: 12px; cursor: pointer; display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid transparent; transition: background 0.15s, border-color 0.15s; }
+  .btw6-box .check-row:hover { background: rgba(0,0,0,0.03); }
+  .btw6-box .check-row input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+  .btw6-box .check-row.is-required-missing { border-color: var(--red); background: rgba(229,62,62,0.05); }
+  .btw6-box .verklaring-disclaimer { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #D9C285; font-size: 12px; color: #7A6520; line-height: 1.5; }
   .hidden { display: none !important; }
+
+  /* Slot O2 — postcode-card + validation states */
+  .pc-card-icon { width: 36px; height: 36px; background: var(--primary-bg); border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-right: 12px; }
+  .pc-card-icon svg { width: 20px; height: 20px; fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pc-card-header { display: flex; align-items: center; margin-bottom: 6px; }
+  .pc-card-header h2 { font-size: 18px; font-weight: 700; color: var(--black); margin: 0; }
+  .pc-card-sub { font-size: 13px; color: var(--grey); line-height: 1.55; margin: 0 0 18px 48px; }
+  .pc-input-row { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 16px; align-items: end; }
+  @media (max-width: 520px) { .pc-input-row { grid-template-columns: 1fr; } }
+  .pc-helper { font-size: 12px; color: var(--grey); margin-top: 6px; min-height: 16px; transition: color 0.15s; }
+  .pc-helper.is-be { color: var(--primary); }
+  .pc-helper.is-fallback { color: #B47A1A; }
+  .pc-helper.is-error { color: var(--red); }
+  .pc-deelgemeente-picker { margin-top: 10px; padding: 12px 14px; background: var(--light); border: 1px solid var(--rule); border-radius: 8px; }
+  .pc-deelgemeente-picker label { font-size: 12px; color: var(--grey); margin-bottom: 6px; display: block; }
+  .pc-deelgemeente-picker select { width: 100%; }
+
+  /* Field validation visual states */
+  .field { position: relative; }
+  .field input.is-valid { border-color: #1B9E77; box-shadow: 0 0 0 3px rgba(27,158,119,0.10); padding-right: 36px; }
+  .field input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,62,62,0.10); padding-right: 36px; }
+  .field-icon { position: absolute; right: 12px; top: 38px; width: 18px; height: 18px; pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+  .field-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .field-icon.is-shown { opacity: 1; }
+  .field-icon.is-valid svg { stroke: #1B9E77; }
+  .field-icon.is-invalid svg { stroke: var(--red); }
+  .field-hint { font-size: 12px; color: var(--red); margin-top: 5px; min-height: 0; max-height: 0; overflow: hidden; transition: max-height 0.18s, margin-top 0.18s; }
+  .field-hint.is-shown { max-height: 60px; margin-top: 5px; }
+
+  /* CTA progress hint (remaining required fields counter) */
+  .cta-progress { font-size: 12px; color: var(--grey); margin-top: 6px; text-align: center; min-height: 16px; }
+  .cta-progress.is-warning { color: #B47A1A; font-weight: 600; }
+  .cta-progress.is-ok { color: #1B9E77; font-weight: 600; }
+
+  /* Disabled-look for 6% radio when foreign postcode */
+  .radio-option.is-disabled { opacity: 0.55; cursor: not-allowed; }
+  .radio-option.is-disabled input[type="radio"] { pointer-events: none; }
+  .radio-option .radio-disabled-hint { display: none; font-size: 11px; color: var(--grey); margin-top: 2px; }
+  .radio-option.is-disabled .radio-disabled-hint { display: block; }
 
   /* POST SUBMIT */
   .post-submit { border-radius: var(--radius); padding: 40px 32px; text-align: center; }
@@ -510,6 +556,53 @@
       <p id="step1-sub" data-i18n="step1.subtitle">Vul hieronder uw installatiegegevens in en ontdek direct uw persoonlijke prijs.</p>
     </div>
 
+    <!--
+      Slot O2 — Postcode card (first thing in step 1)
+      ──────────────────────────────────────────────────
+      Bepaalt:
+        • Welke BTW-tarieven beschikbaar zijn (6% enkel BE)
+        • Taal-suggestie via Slot S (Brussels-prompt / FR-switch)
+        • Verzendkosten / afstand-default
+      Live-validatie + auto-fill van klant-gemeente o.b.v. be-postcodes.json.
+    -->
+    <div class="card" id="pc-card">
+      <div class="pc-card-header">
+        <span class="pc-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </span>
+        <h2 data-i18n="step1.postcode.title">Postcode van de werken</h2>
+      </div>
+      <p class="pc-card-sub" data-i18n="step1.postcode.subtitle">Voer de postcode in van het adres waar de werken zullen worden uitgevoerd. Op basis hiervan bepalen we uw verzendkosten en het toepasselijke BTW-tarief.</p>
+      <div class="pc-input-row">
+        <div class="field" id="pc-postcode-field">
+          <label for="pc-postcode"><span data-i18n="step1.postcode.label">Postcode</span> <small style="color:var(--red)">*</small></label>
+          <input
+            type="text"
+            id="pc-postcode"
+            inputmode="numeric"
+            autocomplete="postal-code"
+            maxlength="4"
+            data-i18n-attr="placeholder:step1.postcode.placeholder"
+            placeholder="Bijv. 9000"
+            aria-describedby="pc-postcode-helper pc-postcode-hint"
+            oninput="onPcPostcodeInput(event)"
+            onblur="onPcPostcodeBlur()">
+          <span class="field-icon" id="pc-postcode-icon" aria-hidden="true"></span>
+          <div class="field-hint" id="pc-postcode-hint" role="alert"></div>
+          <div class="pc-helper" id="pc-postcode-helper" aria-live="polite"></div>
+        </div>
+        <div class="field" id="pc-gemeente-field" style="display:none">
+          <label for="pc-gemeente"><span data-i18n="step1.postcode.gemeenteLabel">Gemeente</span></label>
+          <input type="text" id="pc-gemeente" data-i18n-attr="placeholder:step2.gemeentePh" placeholder="Gent" autocomplete="address-level2">
+          <div class="pc-helper" id="pc-gemeente-helper" data-i18n="step1.postcode.gemeenteAuto">Automatisch ingevuld op basis van postcode.</div>
+        </div>
+      </div>
+      <div class="pc-deelgemeente-picker" id="pc-deelgemeente-picker" style="display:none">
+        <label for="pc-deelgemeente-select" data-i18n="step1.postcode.gemeenteChoose">Selecteer de juiste gemeente:</label>
+        <select id="pc-deelgemeente-select" onchange="onPcDeelgemeenteChange()"></select>
+      </div>
+    </div>
+
     <!-- Partner intro text (optional) -->
     <div id="partner-intro" style="display:none" class="card">
       <p id="partner-intro-text" style="font-size:14px;color:var(--dark);line-height:1.7"></p>
@@ -541,21 +634,26 @@
         <div class="card-title" data-i18n="step1.cards.btw">BTW-tarief</div>
         <div class="radio-group" id="btw-group">
           <label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculateAll();toggleBtwAttest()"><div class="radio-text"><span data-i18n="step1.cards.btw21">21% BTW</span><small data-i18n="step1.cards.btw21sub">Standaardtarief</small></div></label>
-          <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="calculateAll();toggleBtwAttest()"><div class="radio-text"><span data-i18n="step1.cards.btw6">6% BTW</span><small data-i18n="step1.cards.btw6sub">Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small></div></label>
+          <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="onBtw6Selected();calculateAll();toggleBtwAttest()"><div class="radio-text"><span data-i18n="step1.cards.btw6">6% BTW</span><small data-i18n="step1.cards.btw6sub">Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small><small class="radio-disabled-hint" data-i18n="step1.cards.btw6disabled">Enkel beschikbaar voor Belgische postcodes</small></div></label>
         </div>
+        <!--
+          Slot O2 — Verklaring op eer (KB nr. 20 / AR n° 20)
+          Twee verplichte aparte checkboxen + wettelijke disclaimer.
+          Beide moeten aangevinkt zijn anders revert BTW automatisch naar 21%.
+        -->
         <div id="btw6-verklaring" class="btw6-verklaring hidden">
           <div class="btw6-box">
-            <strong data-i18n="step1.btw6.title">Verklaring op eer — verlaagd btw-tarief (6%)</strong>
-            <p data-i18n="step1.btw6.intro">Om in aanmerking te komen voor het verlaagd btw-tarief van 6% moet de woning waar de werken uitgevoerd worden voldoen aan de volgende voorwaarden:</p>
-            <ul>
-              <li data-i18n="step1.btw6.cond1">De woning is ouder dan 10 jaar (eerste ingebruikname meer dan 10 jaar geleden)</li>
-              <li data-i18n="step1.btw6.cond2">De woning wordt hoofdzakelijk als priv&eacute;woning gebruikt</li>
-              <li data-i18n="step1.btw6.cond3">De werken worden rechtstreeks aan de eindverbruiker gefactureerd</li>
-            </ul>
-            <label class="check-row" style="margin-top:12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px">
-              <input type="checkbox" id="btw6-check" style="margin-top:3px;flex-shrink:0">
-              <span data-i18n="step1.btw6.check">Ik verklaar op eer dat het gebouw waar de werken uitgevoerd worden langer dan 10 jaar in gebruik is als priv&eacute;woning en dat ik de eindverbruiker ben. Ik neem kennis dat bij onjuiste verklaring het verschil in btw (15%) verhaald kan worden.</span>
+            <strong data-i18n="step1.btw6.title">Verklaring op eer — verlaagd btw-tarief van 6%</strong>
+            <p data-i18n="step1.btw6.intro">Volgens KB nr. 20 (rubriek XXXVIII en XXXI van tabel A) kan het verlaagd btw-tarief van 6% enkel worden toegepast wanneer de woning aan beide onderstaande voorwaarden voldoet. Vink beide verklaringen aan om het tarief van 6% te bevestigen.</p>
+            <label class="check-row" id="btw6-check-prive-row">
+              <input type="checkbox" id="btw6-check-prive" onchange="onBtw6CheckChange()">
+              <span data-i18n="step1.btw6.checkPrive">Ik verklaar op eer dat het gebouw waar de werken worden uitgevoerd uitsluitend of hoofdzakelijk wordt gebruikt als priv&eacute;woning, en dat ik de eindverbruiker ben aan wie deze werken rechtstreeks worden gefactureerd.</span>
             </label>
+            <label class="check-row" id="btw6-check-ouderdom-row">
+              <input type="checkbox" id="btw6-check-ouderdom" onchange="onBtw6CheckChange()">
+              <span data-i18n="step1.btw6.checkOuderdom">Ik verklaar op eer dat de eerste ingebruikname van het gebouw minstens tien jaar voorafgaat aan het eerste tijdstip waarop deze btw opeisbaar wordt.</span>
+            </label>
+            <div class="verklaring-disclaimer" data-i18n="step1.btw6.disclaimer">Bij een onjuiste verklaring kan het verschil in btw (15%), evenals eventuele verwijlinteresten en boetes, integraal op u worden verhaald (KB nr. 20 — art. 1quater).</div>
           </div>
         </div>
 
@@ -653,14 +751,14 @@
         </div>
       </div>
 
-      <div class="field"><label><span id="klant-naam-label" data-i18n="step2.naam">Naam</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-naam" data-i18n-attr="placeholder:step2.naamPh" placeholder="Bijv. Jan Janssen" required></div>
+      <div class="field"><label><span id="klant-naam-label" data-i18n="step2.naam">Naam</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-naam" data-i18n-attr="placeholder:step2.naamPh" placeholder="Bijv. Jan Janssen" required autocomplete="name" onblur="validateField('klant-naam','fullName')" oninput="clearFieldError('klant-naam')"><span class="field-icon" id="klant-naam-icon" aria-hidden="true"></span><div class="field-hint" id="klant-naam-hint" role="alert"></div></div>
       <div class="field-row">
-        <div class="field" style="flex:3"><label><span data-i18n="step2.straat">Straat</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-straat" data-i18n-attr="placeholder:step2.straatPh" placeholder="Straatnaam" required></div>
-        <div class="field" style="flex:1"><label><span data-i18n="step2.huisnr">Nr.</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-huisnr" data-i18n-attr="placeholder:step2.huisnrPh" placeholder="12A" required></div>
+        <div class="field" style="flex:3"><label><span data-i18n="step2.straat">Straat</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-straat" data-i18n-attr="placeholder:step2.straatPh" placeholder="Straatnaam" required autocomplete="address-line1" onblur="validateField('klant-straat','nonEmpty')" oninput="clearFieldError('klant-straat')"><span class="field-icon" id="klant-straat-icon" aria-hidden="true"></span><div class="field-hint" id="klant-straat-hint" role="alert"></div></div>
+        <div class="field" style="flex:1"><label><span data-i18n="step2.huisnr">Nr.</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-huisnr" data-i18n-attr="placeholder:step2.huisnrPh" placeholder="12A" required onblur="validateField('klant-huisnr','nonEmpty')" oninput="clearFieldError('klant-huisnr')"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label><span data-i18n="step2.postcode">Postcode</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-postcode" data-i18n-attr="placeholder:step2.postcodePh" placeholder="9000" required oninput="checkPostcode()"></div>
-        <div class="field"><label><span data-i18n="step2.gemeente">Gemeente</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-gemeente" data-i18n-attr="placeholder:step2.gemeentePh" placeholder="Gent" required></div>
+        <div class="field"><label><span data-i18n="step2.postcode">Postcode</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-postcode" inputmode="numeric" autocomplete="postal-code" maxlength="4" data-i18n-attr="placeholder:step2.postcodePh" placeholder="9000" required oninput="onKlantPostcodeInput()" onblur="onKlantPostcodeBlur()"><span class="field-icon" id="klant-postcode-icon" aria-hidden="true"></span><div class="field-hint" id="klant-postcode-hint" role="alert"></div></div>
+        <div class="field"><label><span data-i18n="step2.gemeente">Gemeente</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-gemeente" data-i18n-attr="placeholder:step2.gemeentePh" placeholder="Gent" required autocomplete="address-level2"></div>
       </div>
       <!--
         Legacy klant-btw veld (Slot O1): blijft in DOM voor backward-compatibility
@@ -675,8 +773,8 @@
       <div class="card-title" data-i18n="step2.contact">Contactgegevens</div>
       <div class="field" id="contact-naam-field" style="display:none"><label><span data-i18n="klantType.contactpersoon">Contactpersoon</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-contact" data-i18n-attr="placeholder:klantType.contactpersoonPh" placeholder="Naam contactpersoon binnen het bedrijf"></div>
       <div class="field-row">
-        <div class="field"><label><span data-i18n="step2.tel">Telefoon</span> <small style="color:var(--red)">*</small></label><input type="tel" id="klant-tel" data-i18n-attr="placeholder:step2.telPh" placeholder="+32 4..." required></div>
-        <div class="field"><label><span data-i18n="step2.email">E-mail</span> <small style="color:var(--red)">*</small></label><input type="email" id="klant-email" data-i18n-attr="placeholder:step2.emailPh" placeholder="jan@voorbeeld.be" required></div>
+        <div class="field"><label><span data-i18n="step2.tel">Telefoon</span> <small style="color:var(--red)">*</small></label><input type="tel" id="klant-tel" data-i18n-attr="placeholder:step2.telPh" placeholder="+32 4..." required autocomplete="tel" inputmode="tel" onblur="onKlantTelBlur()" oninput="clearFieldError('klant-tel')"><span class="field-icon" id="klant-tel-icon" aria-hidden="true"></span><div class="field-hint" id="klant-tel-hint" role="alert"></div></div>
+        <div class="field"><label><span data-i18n="step2.email">E-mail</span> <small style="color:var(--red)">*</small></label><input type="email" id="klant-email" data-i18n-attr="placeholder:step2.emailPh" placeholder="jan@voorbeeld.be" required autocomplete="email" inputmode="email" onblur="validateField('klant-email','email')" oninput="clearFieldError('klant-email')"><span class="field-icon" id="klant-email-icon" aria-hidden="true"></span><div class="field-hint" id="klant-email-hint" role="alert"></div></div>
       </div>
     </div>
 
@@ -687,7 +785,7 @@
     <div class="card" id="privacy-card">
       <div class="accept-box" style="border-color:var(--rule);background:var(--light)">
         <label>
-          <input type="checkbox" id="privacy-check">
+          <input type="checkbox" id="privacy-check" onchange="refreshCtaProgress()">
           <div class="accept-text" style="font-size:12px;color:var(--grey)">Ik heb de <a href="#" id="privacy-link" target="_blank" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens.</div>
         </label>
       </div>
@@ -749,8 +847,9 @@
 
     <div class="btn-row">
       <button class="btn btn-outline" onclick="goToStep(showStep0 ? 0 : 1)" data-i18n="step2.ctaBack">&larr; Terug</button>
-      <button class="btn" onclick="goToSummary()" data-i18n="step2.ctaNext">Bekijk samenvatting &rarr;</button>
+      <button class="btn" id="btn-summary" onclick="goToSummary()" data-i18n="step2.ctaNext">Bekijk samenvatting &rarr;</button>
     </div>
+    <div class="cta-progress" id="cta-progress" aria-live="polite"></div>
   </div>
 
   <!-- STEP 2B: SUMMARY -->
@@ -3452,28 +3551,452 @@ function updateResultCard() {
 }
 
 // ═══════════════════════════════════════════
-// POSTCODE (6% BTW)
+// POSTCODE (Slot O2 — first thing in step 1)
+// ─────────────────────────────────────────
+// Single source of truth: pc-postcode (step 1) en klant-postcode (step 2)
+// blijven ge-mirrord. checkPostcode() blijft als kleine adapter bestaan
+// zodat bestaande call-sites (init, autoFill VIES) niet breken.
 // ═══════════════════════════════════════════
+
+var pcLastValidatedKey = null;       // dedupe — voorkomt dubbele lookups
+var pcMultiCandidates = [];          // cache laatste deelgemeenten voor select
+var pcLookupTimer = null;            // debounce input-side lookup
+var btw6RevertReason = null;         // 'no_check' | 'foreign_postcode' | null
+
+function getValidators() { return window.flanccoValidators || null; }
+
+function isBePostcode(pc) {
+  var v = (pc == null ? '' : String(pc)).trim();
+  return /^[1-9]\d{3}$/.test(v);
+}
+
+// Public adapter — bestaande sites bellen nog `checkPostcode()`.
 function checkPostcode() {
-  var pc = document.getElementById('klant-postcode').value.trim();
-  var isBE = /^[1-9]\d{3}$/.test(pc);
-  var opt = document.getElementById('btw6-option');
-  if (isBE) {
-    opt.style.display = 'flex';
-  } else {
-    opt.style.display = 'none';
-    var radio21 = document.querySelector('input[name="btw"][value="21"]');
-    if (radio21) radio21.checked = true;
-    calculateAll();
-    toggleBtwAttest();
+  // Prefer step-1 input; valt terug op step-2 input.
+  var pc1 = document.getElementById('pc-postcode');
+  var pc2 = document.getElementById('klant-postcode');
+  var src = (pc1 && pc1.value && pc1.value.trim()) ? pc1.value : (pc2 && pc2.value ? pc2.value : '');
+  applyPostcodeState(src.trim());
+}
+
+// Sync: kopieert geldige postcode + gemeente tussen step 1 ↔ step 2.
+function syncPostcodeBetweenSteps(pcStr, gemStr) {
+  var pc1 = document.getElementById('pc-postcode');
+  var pc2 = document.getElementById('klant-postcode');
+  var g1  = document.getElementById('pc-gemeente');
+  var g2  = document.getElementById('klant-gemeente');
+  if (pcStr != null) {
+    if (pc1 && pc1.value.trim() !== pcStr) pc1.value = pcStr;
+    if (pc2 && pc2.value.trim() !== pcStr) pc2.value = pcStr;
+  }
+  if (gemStr != null && gemStr.length) {
+    if (g1) g1.value = gemStr;
+    // Gemeente in step 2 enkel auto-vullen wanneer leeg, om user-edit te respecteren.
+    if (g2 && !g2.value.trim()) g2.value = gemStr;
   }
 }
 
+// Toon/verberg 6%-optie + btw6-verklaring + BTW-revert.
+function applyPostcodeState(pc) {
+  var opt = document.getElementById('btw6-option');
+  var isBE = isBePostcode(pc);
+  if (opt) {
+    if (isBE) { opt.style.display = 'flex'; opt.classList.remove('is-disabled'); }
+    else      { opt.style.display = 'none'; opt.classList.add('is-disabled'); }
+  }
+  if (!isBE) {
+    var checked = document.querySelector('input[name="btw"]:checked');
+    if (checked && checked.value === '6') {
+      var radio21 = document.querySelector('input[name="btw"][value="21"]');
+      if (radio21) radio21.checked = true;
+      btw6RevertReason = 'foreign_postcode';
+      try { window.flanccoTrack && window.flanccoTrack('Calculator BTW6 Reverted To 21', { reason: 'foreign_postcode' }); } catch (_) {}
+      try { calcToast(window.t ? window.t('validation.btw6Reverted') : 'BTW automatisch teruggezet naar 21%.', 'info'); } catch (_) {}
+    }
+    if (typeof toggleBtwAttest === 'function') toggleBtwAttest();
+    if (typeof calculateAll === 'function') calculateAll();
+  }
+}
+
+function setPcHelper(state, msgKey) {
+  var el = document.getElementById('pc-postcode-helper');
+  if (!el) return;
+  el.classList.remove('is-be', 'is-fallback', 'is-error');
+  if (state) el.classList.add('is-' + state);
+  el.textContent = msgKey ? (window.t ? window.t(msgKey) : msgKey) : '';
+}
+
+function setPcFieldState(state, hintKey) {
+  var input = document.getElementById('pc-postcode');
+  var icon  = document.getElementById('pc-postcode-icon');
+  var hint  = document.getElementById('pc-postcode-hint');
+  if (!input) return;
+  input.classList.remove('is-valid', 'is-invalid');
+  if (icon) { icon.classList.remove('is-shown', 'is-valid', 'is-invalid'); icon.innerHTML = ''; }
+  if (hint) { hint.classList.remove('is-shown'); hint.textContent = ''; }
+  if (state === 'valid') {
+    input.classList.add('is-valid');
+    if (icon) { icon.classList.add('is-shown', 'is-valid'); icon.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'; }
+  } else if (state === 'invalid') {
+    input.classList.add('is-invalid');
+    if (icon) { icon.classList.add('is-shown', 'is-invalid'); icon.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'; }
+    if (hint && hintKey) { hint.textContent = window.t ? window.t(hintKey) : hintKey; hint.classList.add('is-shown'); }
+  }
+}
+
+function showDeelgemeentePicker(candidates) {
+  var picker = document.getElementById('pc-deelgemeente-picker');
+  var sel    = document.getElementById('pc-deelgemeente-select');
+  if (!picker || !sel) return;
+  pcMultiCandidates = candidates || [];
+  sel.innerHTML = '';
+  pcMultiCandidates.forEach(function (name, i) {
+    var opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  picker.style.display = 'block';
+  if (pcMultiCandidates[0]) {
+    var g1 = document.getElementById('pc-gemeente'); if (g1) g1.value = pcMultiCandidates[0];
+    syncPostcodeBetweenSteps(null, pcMultiCandidates[0]);
+  }
+}
+
+function hideDeelgemeentePicker() {
+  var picker = document.getElementById('pc-deelgemeente-picker');
+  if (picker) picker.style.display = 'none';
+  pcMultiCandidates = [];
+}
+
+function showGemeenteField(visible) {
+  var f = document.getElementById('pc-gemeente-field');
+  if (f) f.style.display = visible ? '' : 'none';
+}
+
+function onPcDeelgemeenteChange() {
+  var sel = document.getElementById('pc-deelgemeente-select');
+  if (!sel) return;
+  var v = sel.value;
+  var g1 = document.getElementById('pc-gemeente'); if (g1) g1.value = v;
+  // Step 2 — alleen overschrijven als er nog niets staat (respect user edit).
+  var g2 = document.getElementById('klant-gemeente');
+  if (g2 && !g2.value.trim()) g2.value = v;
+}
+
+function onPcPostcodeInput(e) {
+  var v = (e && e.target ? e.target.value : '').replace(/[^\d]/g, '').substring(0, 4);
+  if (e && e.target && e.target.value !== v) e.target.value = v;
+  // Realtime: zodra 4 cijfers, lookup
+  if (v.length === 4) {
+    if (pcLookupTimer) clearTimeout(pcLookupTimer);
+    pcLookupTimer = setTimeout(function () { runPostcodeLookup(v); }, 250);
+  } else {
+    setPcFieldState(null);
+    setPcHelper(null);
+    showGemeenteField(false);
+    hideDeelgemeentePicker();
+    applyPostcodeState(v);
+  }
+  // Mirror partial value naar step 2
+  syncPostcodeBetweenSteps(v, null);
+}
+
+function onPcPostcodeBlur() {
+  var pc = (document.getElementById('pc-postcode') || {}).value || '';
+  pc = pc.trim().replace(/[^\d]/g, '').substring(0, 4);
+  if (!pc) { setPcFieldState(null); setPcHelper(null); return; }
+  runPostcodeLookup(pc);
+  // Trigger Slot S taal-detectie via central listener (zit op klant-postcode in step 2)
+  if (window.flanccoI18n && typeof window.flanccoI18n.setLangFromPostcode === 'function') {
+    var k2 = document.getElementById('klant-postcode'); if (k2) k2.value = pc;
+    var before = window.flanccoI18n.getLang();
+    window.flanccoI18n.setLangFromPostcode(pc, window.__showBrusselsPrompt || function () {});
+    var after = window.flanccoI18n.getLang();
+    if (before !== after && typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Language Switched', { source: 'postcode', lang: after }); } catch (_) {}
+    }
+  }
+}
+
+function runPostcodeLookup(pc) {
+  if (!pc || pc.length !== 4) return;
+  // BE-format check
+  if (!isBePostcode(pc)) {
+    setPcFieldState('invalid', 'validation.invalidPostcode');
+    setPcHelper('fallback', 'step1.postcode.helperFallback');
+    showGemeenteField(false);
+    hideDeelgemeentePicker();
+    applyPostcodeState(pc);
+    return;
+  }
+  // Dedupe — zelfde postcode niet 2× look-up'en
+  if (pcLastValidatedKey === pc) {
+    applyPostcodeState(pc);
+    return;
+  }
+  pcLastValidatedKey = pc;
+
+  if (!window.flanccoPostcodes || typeof window.flanccoPostcodes.lookup !== 'function') {
+    // Soft-fail: zonder lookup-data accepteren we het pc als geldig BE.
+    setPcFieldState('valid');
+    setPcHelper('be', 'step1.postcode.helperBE');
+    showGemeenteField(false);
+    hideDeelgemeentePicker();
+    applyPostcodeState(pc);
+    syncPostcodeBetweenSteps(pc, null);
+    return;
+  }
+
+  window.flanccoPostcodes.lookup(pc).then(function (res) {
+    setPcFieldState('valid');
+    setPcHelper('be', 'step1.postcode.helperBE');
+    applyPostcodeState(pc);
+    syncPostcodeBetweenSteps(pc, null);
+
+    if (!res || res.found === false) {
+      // Onbekende postcode — toon helper, geen blokkering (klant kan toch verder)
+      setPcFieldState('valid'); // BE-format ok
+      setPcHelper('be', 'step1.postcode.helperBE');
+      showGemeenteField(false);
+      hideDeelgemeentePicker();
+      return;
+    }
+    if (res.found === null) {
+      // Soft-fail (data niet geladen) — accepteer en ga verder
+      showGemeenteField(false);
+      hideDeelgemeentePicker();
+      return;
+    }
+    // Gevonden — auto-fill of multi-deelgemeente picker
+    var deel = res.deelgemeenten || [];
+    if (deel.length === 1) {
+      hideDeelgemeentePicker();
+      showGemeenteField(true);
+      var g1 = document.getElementById('pc-gemeente'); if (g1) g1.value = deel[0];
+      syncPostcodeBetweenSteps(pc, deel[0]);
+    } else if (deel.length > 1) {
+      showGemeenteField(true);
+      showDeelgemeentePicker(deel);
+      syncPostcodeBetweenSteps(pc, deel[0]);
+    } else {
+      showGemeenteField(false);
+      hideDeelgemeentePicker();
+    }
+
+    try { window.flanccoTrack && window.flanccoTrack('Calculator Postcode Filled', { country: 'BE', deelgemeenten: deel.length }); } catch (_) {}
+  }).catch(function () {
+    // Onverwachte fout — soft accept BE-format
+    setPcFieldState('valid');
+    setPcHelper('be', 'step1.postcode.helperBE');
+    applyPostcodeState(pc);
+  });
+}
+
+// ═══════════════════════════════════════════
+// STEP-2 POSTCODE (Slot O2 — mirrors step 1)
+// ═══════════════════════════════════════════
+function onKlantPostcodeInput() {
+  var el = document.getElementById('klant-postcode');
+  if (!el) return;
+  var v = el.value.replace(/[^\d]/g, '').substring(0, 4);
+  if (el.value !== v) el.value = v;
+  // Mirror naar step 1 + realtime apply
+  syncPostcodeBetweenSteps(v, null);
+  if (v.length === 4) {
+    if (pcLookupTimer) clearTimeout(pcLookupTimer);
+    pcLookupTimer = setTimeout(function () { runPostcodeLookup(v); }, 250);
+  } else {
+    applyPostcodeState(v);
+    setKlantPostcodeFieldState(null);
+  }
+  refreshCtaProgress();
+}
+
+function onKlantPostcodeBlur() {
+  var el = document.getElementById('klant-postcode');
+  if (!el) return;
+  var pc = el.value.trim().replace(/[^\d]/g, '').substring(0, 4);
+  if (!pc) { setKlantPostcodeFieldState(null); return; }
+  if (!isBePostcode(pc)) {
+    setKlantPostcodeFieldState('invalid', 'validation.invalidPostcode');
+    applyPostcodeState(pc);
+    return;
+  }
+  setKlantPostcodeFieldState('valid');
+  runPostcodeLookup(pc);
+}
+
+function setKlantPostcodeFieldState(state, hintKey) {
+  var input = document.getElementById('klant-postcode');
+  var icon  = document.getElementById('klant-postcode-icon');
+  var hint  = document.getElementById('klant-postcode-hint');
+  if (!input) return;
+  input.classList.remove('is-valid', 'is-invalid', 'field-error');
+  if (icon) { icon.classList.remove('is-shown', 'is-valid', 'is-invalid'); icon.innerHTML = ''; }
+  if (hint) { hint.classList.remove('is-shown'); hint.textContent = ''; }
+  if (state === 'valid') {
+    input.classList.add('is-valid');
+    if (icon) { icon.classList.add('is-shown', 'is-valid'); icon.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'; }
+  } else if (state === 'invalid') {
+    input.classList.add('is-invalid');
+    if (icon) { icon.classList.add('is-shown', 'is-invalid'); icon.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'; }
+    if (hint && hintKey) { hint.textContent = window.t ? window.t(hintKey) : hintKey; hint.classList.add('is-shown'); }
+  }
+}
+
+// ═══════════════════════════════════════════
+// 6% BTW — verklaring op eer (twee checkboxen)
+// ═══════════════════════════════════════════
+function onBtw6Selected() {
+  // Pure handler — toggleBtwAttest() doet visueel werk.
+  try { window.flanccoTrack && window.flanccoTrack('Calculator BTW6 Selected', {}); } catch (_) {}
+}
+
+function getBtw6Check() {
+  return {
+    prive: !!(document.getElementById('btw6-check-prive') && document.getElementById('btw6-check-prive').checked),
+    ouderdom: !!(document.getElementById('btw6-check-ouderdom') && document.getElementById('btw6-check-ouderdom').checked)
+  };
+}
+
+function bothBtw6Checked() {
+  var c = getBtw6Check();
+  return c.prive && c.ouderdom;
+}
+
+function onBtw6CheckChange() {
+  var rowP = document.getElementById('btw6-check-prive-row');
+  var rowO = document.getElementById('btw6-check-ouderdom-row');
+  if (rowP) rowP.classList.remove('is-required-missing');
+  if (rowO) rowO.classList.remove('is-required-missing');
+  refreshCtaProgress();
+}
+
 function toggleBtwAttest() {
-  var is6 = document.querySelector('input[name="btw"]:checked') && document.querySelector('input[name="btw"]:checked').value === '6';
+  var sel = document.querySelector('input[name="btw"]:checked');
+  var is6 = !!(sel && sel.value === '6');
   var box = document.getElementById('btw6-verklaring');
-  if (is6) { box.classList.remove('hidden'); }
-  else { box.classList.add('hidden'); document.getElementById('btw6-check').checked = false; }
+  if (!box) return;
+  if (is6) {
+    box.classList.remove('hidden');
+  } else {
+    box.classList.add('hidden');
+    var p = document.getElementById('btw6-check-prive'); if (p) p.checked = false;
+    var o = document.getElementById('btw6-check-ouderdom'); if (o) o.checked = false;
+    var rowP = document.getElementById('btw6-check-prive-row');
+    var rowO = document.getElementById('btw6-check-ouderdom-row');
+    if (rowP) rowP.classList.remove('is-required-missing');
+    if (rowO) rowO.classList.remove('is-required-missing');
+  }
+  refreshCtaProgress();
+}
+
+// ═══════════════════════════════════════════
+// REAL-TIME INLINE VALIDATION (Slot O2)
+// ═══════════════════════════════════════════
+function setFieldState(id, state, hintKey) {
+  var input = document.getElementById(id);
+  var icon  = document.getElementById(id + '-icon');
+  var hint  = document.getElementById(id + '-hint');
+  if (!input) return;
+  input.classList.remove('is-valid', 'is-invalid', 'field-error');
+  if (icon) { icon.classList.remove('is-shown', 'is-valid', 'is-invalid'); icon.innerHTML = ''; }
+  if (hint) { hint.classList.remove('is-shown'); hint.textContent = ''; }
+  if (state === 'valid') {
+    input.classList.add('is-valid');
+    if (icon) { icon.classList.add('is-shown', 'is-valid'); icon.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'; }
+  } else if (state === 'invalid') {
+    input.classList.add('is-invalid');
+    if (icon) { icon.classList.add('is-shown', 'is-invalid'); icon.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'; }
+    if (hint && hintKey) { hint.textContent = window.t ? window.t(hintKey) : hintKey; hint.classList.add('is-shown'); }
+  }
+}
+
+function clearFieldError(id) {
+  var input = document.getElementById(id);
+  if (input && input.classList.contains('is-invalid')) {
+    setFieldState(id, null);
+  }
+  refreshCtaProgress();
+}
+
+function validateField(id, kind) {
+  var v = getValidators(); if (!v) return true;
+  var el = document.getElementById(id); if (!el) return true;
+  var raw = (el.value || '').trim();
+  if (!raw) {
+    // Required = leeg → niet meteen rood maken (geen aria-spam), enkel state clearen
+    setFieldState(id, null);
+    refreshCtaProgress();
+    return false;
+  }
+  var ok = false, hintKey = 'validation.required';
+  if (kind === 'nonEmpty') { ok = v.nonEmpty(raw); }
+  else if (kind === 'email') { ok = v.email(raw); hintKey = 'validation.invalidEmail'; }
+  else if (kind === 'phone') { ok = v.phoneAny(raw); hintKey = 'validation.invalidPhone'; }
+  else if (kind === 'fullName') { ok = v.fullName(raw); hintKey = 'validation.invalidName'; }
+  else if (kind === 'postcodeBE') { ok = v.postcodeBE(raw); hintKey = 'validation.invalidPostcode'; }
+  setFieldState(id, ok ? 'valid' : 'invalid', ok ? null : hintKey);
+  refreshCtaProgress();
+  return ok;
+}
+
+function onKlantTelBlur() {
+  var v = getValidators();
+  var el = document.getElementById('klant-tel'); if (!el) return;
+  if (v && el.value.trim()) {
+    var formatted = v.formatPhoneBE(el.value);
+    if (formatted) el.value = formatted;
+  }
+  validateField('klant-tel', 'phone');
+}
+
+// Required-fields counter onder submit-knop
+function listRequiredFieldsStep2() {
+  var subtype = (typeof getKlantSubtype === 'function') ? getKlantSubtype() : 'particulier';
+  var ids = ['klant-naam', 'klant-straat', 'klant-huisnr', 'klant-postcode', 'klant-gemeente', 'klant-tel', 'klant-email'];
+  if (subtype === 'bedrijf') {
+    ids.push('klant-bedrijfsnaam', 'klant-btw-validated', 'klant-contact');
+  }
+  return ids;
+}
+
+function refreshCtaProgress() {
+  var hint = document.getElementById('cta-progress');
+  if (!hint) return;
+  var v = getValidators();
+  var missing = 0;
+  var ids = listRequiredFieldsStep2();
+  ids.forEach(function (id) {
+    var el = document.getElementById(id); if (!el) return;
+    var raw = (el.value || '').trim();
+    if (!raw) { missing++; return; }
+    if (id === 'klant-email' && v && !v.email(raw)) missing++;
+    else if (id === 'klant-tel' && v && !v.phoneAny(raw)) missing++;
+    else if (id === 'klant-postcode' && v && !v.postcodeBE(raw)) {
+      // Buitenlandse postcode: niet als 'missing' tellen, MAAR submit-pad blokkeert btw6.
+      // We laten 'missing' staan als veld leeg is; ongeldig accepteren we (auto 21%).
+    }
+  });
+  // Privacy + 6% verklaring
+  var pc = document.getElementById('privacy-check');
+  if (pc && !pc.checked) missing++;
+  var sel = document.querySelector('input[name="btw"]:checked');
+  if (sel && sel.value === '6' && !bothBtw6Checked()) missing++;
+
+  hint.classList.remove('is-warning', 'is-ok');
+  if (missing === 0) {
+    hint.classList.add('is-ok');
+    hint.textContent = window.t ? window.t('validation.okReady') : 'Alle gegevens zijn correct ingevuld.';
+  } else if (missing === 1) {
+    hint.classList.add('is-warning');
+    hint.textContent = window.t ? window.t('validation.remainingFieldsOne') : 'Nog 1 verplicht veld in te vullen voor u verder kan.';
+  } else {
+    hint.classList.add('is-warning');
+    var tpl = window.t ? window.t('validation.remainingFieldsMany', { count: missing }) : 'Nog ' + missing + ' verplichte velden in te vullen voor u verder kan.';
+    hint.textContent = tpl;
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -3734,6 +4257,21 @@ function goToStep(n) {
     if (i === idx) tab.classList.add('active');
   });
 
+  // Slot O2 — bij intrede stap 2: warmup postcode-data + refresh CTA-progress
+  if (String(n) === '2') {
+    if (window.flanccoPostcodes && typeof window.flanccoPostcodes.warmup === 'function') {
+      try { window.flanccoPostcodes.warmup(); } catch (_) {}
+    }
+    if (typeof refreshCtaProgress === 'function') refreshCtaProgress();
+  }
+
+  // Slot O2 — bij intrede stap 1: warmup postcode-data zodat eerste lookup snel is
+  if (String(n) === '1') {
+    if (window.flanccoPostcodes && typeof window.flanccoPostcodes.warmup === 'function') {
+      try { window.flanccoPostcodes.warmup(); } catch (_) {}
+    }
+  }
+
   window.scrollTo(0, 0);
 }
 
@@ -3765,11 +4303,39 @@ function goToSummary() {
   }
   if (!valid) { calcToast('Vul alle verplichte velden in (aangeduid met *).', 'error'); return; }
 
-  // Validate 6% BTW
+  // Slot O2 — Validate 6% BTW: BEIDE verklaringen moeten aangevinkt zijn
   var is6 = document.querySelector('input[name="btw"]:checked') && document.querySelector('input[name="btw"]:checked').value === '6';
-  if (is6 && !document.getElementById('btw6-check').checked) {
-    calcToast('U dient de verklaring op eer te bevestigen om het verlaagd btw-tarief van 6% te kunnen toepassen.', 'error');
+  if (is6 && !bothBtw6Checked()) {
+    var rowP = document.getElementById('btw6-check-prive-row');
+    var rowO = document.getElementById('btw6-check-ouderdom-row');
+    if (rowP && !document.getElementById('btw6-check-prive').checked) rowP.classList.add('is-required-missing');
+    if (rowO && !document.getElementById('btw6-check-ouderdom').checked) rowO.classList.add('is-required-missing');
+    try { window.flanccoTrack && window.flanccoTrack('Calculator Validation Error', { field: 'btw6_verklaring' }); } catch (_) {}
+    calcToast(window.t ? window.t('validation.btw6NeedsBoth') : 'Vink beide verklaringen aan of kies voor 21% BTW.', 'error');
+    // Scroll naar 6%-blok zodat klant het ziet
+    var box = document.getElementById('btw6-verklaring');
+    if (box && typeof box.scrollIntoView === 'function') {
+      try { box.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+    }
     return;
+  }
+  // Slot O2 — extra format-checks (e-mail + telefoon) op submit-pad
+  var vlds = (typeof getValidators === 'function') ? getValidators() : null;
+  if (vlds) {
+    var emailEl = document.getElementById('klant-email');
+    var telEl   = document.getElementById('klant-tel');
+    if (emailEl && !vlds.email(emailEl.value)) {
+      setFieldState('klant-email', 'invalid', 'validation.invalidEmail');
+      try { window.flanccoTrack && window.flanccoTrack('Calculator Validation Error', { field: 'email' }); } catch (_) {}
+      calcToast(window.t ? window.t('validation.invalidEmail') : 'Ongeldig e-mailadres.', 'error');
+      return;
+    }
+    if (telEl && !vlds.phoneAny(telEl.value)) {
+      setFieldState('klant-tel', 'invalid', 'validation.invalidPhone');
+      try { window.flanccoTrack && window.flanccoTrack('Calculator Validation Error', { field: 'phone' }); } catch (_) {}
+      calcToast(window.t ? window.t('validation.invalidPhone') : 'Ongeldig telefoonnummer.', 'error');
+      return;
+    }
   }
 
   var s = sharedState;
@@ -4260,7 +4826,12 @@ async function submitContract() {
       bedrijfsnaam: bedrijfsnaamVal || null,
       btw_nummer_validated: btwValidated,
       btw_validated_at: btwValidated ? new Date().toISOString() : null,
-      btw_validated_payload: btwValidated ? viesResult : null
+      btw_validated_payload: btwValidated ? viesResult : null,
+      // Slot O2 — verklaring op eer (KB nr. 20). Enkel relevant bij 6% BTW;
+      // bij 21% blijven booleans false en datum NULL (CHECK-constraint compliant).
+      verklaring_6btw_privewoning_aangevinkt: (s.btwPct === 6) ? !!(document.getElementById('btw6-check-prive') && document.getElementById('btw6-check-prive').checked) : false,
+      verklaring_6btw_ouderdan10j_aangevinkt: (s.btwPct === 6) ? !!(document.getElementById('btw6-check-ouderdom') && document.getElementById('btw6-check-ouderdom').checked) : false,
+      verklaring_6btw_datum: (s.btwPct === 6) ? new Date().toISOString() : null
     };
 
     // Add solar-specific backward-compatible fields
@@ -4797,16 +5368,21 @@ init();
   }
 
   function attachPostcodeListener() {
-    var pc = document.getElementById('klant-postcode');
-    if (!pc) return;
-    pc.addEventListener('blur', function () {
-      var before = window.flanccoI18n.getLang();
-      window.flanccoI18n.setLangFromPostcode(this.value, showBrusselsPrompt);
-      var after = window.flanccoI18n.getLang();
-      if (before !== after && typeof window.flanccoTrack === 'function') {
-        window.flanccoTrack('Language Switched', { source: 'postcode', lang: after });
-      }
+    // Slot O2 — luister op zowel de nieuwe stap-1 postcode als de stap-2 spiegel
+    ['pc-postcode', 'klant-postcode'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('blur', function () {
+        var before = window.flanccoI18n.getLang();
+        window.flanccoI18n.setLangFromPostcode(this.value, showBrusselsPrompt);
+        var after = window.flanccoI18n.getLang();
+        if (before !== after && typeof window.flanccoTrack === 'function') {
+          window.flanccoTrack('Language Switched', { source: 'postcode', lang: after });
+        }
+      });
     });
+    // Expose voor Slot O2 handlers (synchrone Brussels-prompt vanuit pc-blur)
+    window.__showBrusselsPrompt = showBrusselsPrompt;
   }
 
   function init() {

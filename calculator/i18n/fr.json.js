@@ -36,6 +36,17 @@
       subtitle: 'Compl\u00e9tez les donn\u00e9es de votre installation et d\u00e9couvrez imm\u00e9diatement votre prix personnalis\u00e9.',
       ctaNext: 'Continuer vers le contrat \u2192',
       ctaHint: 'Compl\u00e9tez vos coordonn\u00e9es et consultez imm\u00e9diatement votre contrat personnalis\u00e9',
+      postcode: {
+        title: 'Code postal du chantier',
+        subtitle: 'Indiquez le code postal de l\'adresse o\u00f9 les travaux seront ex\u00e9cut\u00e9s. Sur cette base, nous d\u00e9terminons vos frais de d\u00e9placement et le taux de TVA applicable.',
+        label: 'Code postal',
+        placeholder: 'Ex. 4000',
+        helperBE: 'Code postal belge \u2014 tous les taux de TVA disponibles.',
+        helperFallback: 'Code postal \u00e9tranger ou invalide \u2014 TVA standard de 21\u202f% appliqu\u00e9e.',
+        gemeenteLabel: 'Commune',
+        gemeenteAuto: 'Compl\u00e9t\u00e9 automatiquement sur base du code postal.',
+        gemeenteChoose: 'S\u00e9lectionnez la commune correcte\u00a0:'
+      },
       cards: {
         afstand: 'Distance',
         afstandLabel: 'Distance jusqu\'\u00e0 votre habitation',
@@ -45,6 +56,7 @@
         btw21sub: 'Taux standard',
         btw6: 'TVA 6\u202f%',
         btw6sub: 'R\u00e9novation \u2014 habitation de plus de 10 ans (Belgique uniquement)',
+        btw6disabled: 'Disponible uniquement pour les codes postaux belges',
         freq: 'Fr\u00e9quence',
         freqJaarlijks: 'Annuel',
         freqJaarlijksSub: '1 entretien par an',
@@ -65,12 +77,14 @@
         btwNote6: 'Tous les montants TVA 6\u202f% incluse'
       },
       btw6: {
-        title: 'D\u00e9claration sur l\'honneur \u2014 taux de TVA r\u00e9duit (6\u202f%)',
-        intro: 'Pour b\u00e9n\u00e9ficier du taux de TVA r\u00e9duit de 6\u202f%, l\'habitation o\u00f9 les travaux sont r\u00e9alis\u00e9s doit r\u00e9pondre aux conditions suivantes :',
+        title: 'D\u00e9claration sur l\'honneur \u2014 taux de TVA r\u00e9duit de 6\u202f%',
+        intro: 'Conform\u00e9ment \u00e0 l\'arr\u00eat\u00e9 royal n\u00b0\u202f20 (rubriques XXXVIII et XXXI du tableau A), le taux de TVA r\u00e9duit de 6\u202f% ne peut \u00eatre appliqu\u00e9 que si l\'habitation r\u00e9pond aux deux conditions ci-dessous. Cochez les deux d\u00e9clarations pour confirmer le taux de 6\u202f%.',
         cond1: 'L\'habitation a plus de 10 ans (premi\u00e8re occupation depuis plus de 10 ans)',
         cond2: 'L\'habitation est utilis\u00e9e principalement comme logement priv\u00e9',
         cond3: 'Les travaux sont factur\u00e9s directement \u00e0 l\'utilisateur final',
-        check: 'Je d\u00e9clare sur l\'honneur que le b\u00e2timent o\u00f9 les travaux sont r\u00e9alis\u00e9s est utilis\u00e9 depuis plus de 10 ans comme logement priv\u00e9 et que je suis l\'utilisateur final. Je prends acte qu\'en cas de d\u00e9claration inexacte, la diff\u00e9rence de TVA (15\u202f%) pourra \u00eatre r\u00e9clam\u00e9e.'
+        checkPrive: 'Je d\u00e9clare sur l\'honneur que le b\u00e2timent o\u00f9 les travaux sont ex\u00e9cut\u00e9s est utilis\u00e9 exclusivement ou principalement comme logement priv\u00e9, et que je suis l\'utilisateur final \u00e0 qui ces travaux sont factur\u00e9s directement.',
+        checkOuderdom: 'Je d\u00e9clare sur l\'honneur que la premi\u00e8re occupation du b\u00e2timent date d\'au moins dix ans avant le premier moment auquel cette TVA devient exigible.',
+        disclaimer: 'En cas de d\u00e9claration inexacte, la diff\u00e9rence de TVA (15\u202f%), ainsi que les \u00e9ventuels int\u00e9r\u00eats de retard et amendes, peuvent \u00eatre int\u00e9gralement r\u00e9clam\u00e9s \u00e0 l\'utilisateur final (AR n\u00b0\u202f20 \u2014 art.\u202f1quater).'
       }
     },
     step2: {
@@ -202,6 +216,19 @@
       invalidPostcode: 'Code postal invalide',
       invalidPhone: 'Num\u00e9ro de t\u00e9l\u00e9phone invalide',
       tooManySubmits: 'Trop d\'envois. R\u00e9essayez dans une heure.'
+    },
+    validation: {
+      required: 'Ce champ est obligatoire.',
+      invalidEmail: 'Indiquez une adresse e-mail valide (ex.\u00a0nom@exemple.be).',
+      invalidPhone: 'Indiquez un num\u00e9ro de t\u00e9l\u00e9phone belge valide (ex.\u00a0+32 4XX XX XX XX).',
+      invalidPostcode: 'Indiquez un code postal valide (4 chiffres, ex.\u00a04000).',
+      invalidName: 'Indiquez au moins votre pr\u00e9nom et nom de famille.',
+      postcodeNotFound: 'Code postal introuvable dans notre r\u00e9f\u00e9rentiel \u2014 v\u00e9rifiez la saisie.',
+      remainingFieldsOne: 'Encore 1 champ obligatoire \u00e0 compl\u00e9ter avant de continuer.',
+      remainingFieldsMany: 'Encore {count} champs obligatoires \u00e0 compl\u00e9ter avant de continuer.',
+      okReady: 'Toutes les donn\u00e9es sont correctement remplies.',
+      btw6NeedsBoth: 'Cochez les deux d\u00e9clarations ou choisissez la TVA \u00e0 21\u202f%.',
+      btw6Reverted: 'TVA automatiquement repass\u00e9e \u00e0 21\u202f% car les conditions ne sont pas remplies.'
     }
   });
 })();

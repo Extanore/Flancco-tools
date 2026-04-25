@@ -37,6 +37,9 @@
   })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Slot O2 — gedeelde validators + postcode-lookup (zelfde modules als calculator) -->
+<script src="/calculator/shared/validators.js"></script>
+<script src="/calculator/shared/postcode-lookup.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -356,6 +359,39 @@
   /* TOAST */
   .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: white; padding: 14px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
   .toast.visible { transform: translateY(0); opacity: 1; }
+
+  /* Slot O2 — wizard validation states */
+  .field { position: relative; }
+  .field input.is-valid { border-color: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,0.10); }
+  .field input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,62,62,0.10); }
+  .field-hint { font-size: 12px; color: var(--red); margin-top: 4px; min-height: 0; max-height: 0; overflow: hidden; transition: max-height 0.18s, margin-top 0.18s; }
+  .field-hint.is-shown { max-height: 60px; margin-top: 4px; }
+  .field-helper { font-size: 12px; color: var(--grey); margin-top: 4px; min-height: 16px; }
+  .field-helper.is-be { color: var(--green); }
+  .field-helper.is-fallback { color: #B47A1A; }
+  .field-helper.is-error { color: var(--red); }
+  .nc-deelgemeente-picker { margin-top: 8px; padding: 10px 12px; background: var(--light); border: 1px solid var(--rule); border-radius: 6px; }
+  .nc-deelgemeente-picker label { font-size: 11px; color: var(--grey); margin-bottom: 4px; display: block; }
+  .nc-deelgemeente-picker select { width: 100%; }
+
+  /* Slot O2 — wizard BTW card */
+  .btw-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .btw-card-grid { grid-template-columns: 1fr; } }
+  .btw-tile { padding: 18px 20px; border: 2px solid var(--rule); border-radius: 8px; cursor: pointer; transition: all 0.15s; background: white; display: flex; flex-direction: column; gap: 4px; }
+  .btw-tile:hover { border-color: var(--navy); }
+  .btw-tile.is-selected { border-color: var(--navy); background: #F8F8FB; }
+  .btw-tile.is-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+  .btw-tile h4 { font-size: 16px; font-weight: 700; color: var(--navy); }
+  .btw-tile p { font-size: 12px; color: var(--grey); line-height: 1.4; }
+  .btw-tile small { font-size: 11px; color: var(--grey); }
+
+  .wiz-btw6-box { margin-top: 14px; background: #FFF8E7; border: 1px solid #F0DCA0; border-radius: 8px; padding: 18px 20px; font-size: 13px; line-height: 1.55; color: #5C4B10; }
+  .wiz-btw6-box strong { color: #3D3209; }
+  .wiz-btw6-box .check-row { margin-top: 10px; cursor: pointer; display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 6px; border: 1px solid transparent; }
+  .wiz-btw6-box .check-row:hover { background: rgba(0,0,0,0.03); }
+  .wiz-btw6-box .check-row input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--navy); cursor: pointer; }
+  .wiz-btw6-box .check-row.is-required-missing { border-color: var(--red); background: rgba(229,62,62,0.05); }
+  .wiz-btw6-box .verklaring-disclaimer { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #D9C285; font-size: 11px; color: #7A6520; }
 </style>
 </head>
 <body>
@@ -542,11 +578,21 @@
           </div>
           <div class="field-row" style="margin-bottom:12px">
             <div class="field"><label>Straat + nr</label><input type="text" id="nc-straat"></div>
-            <div class="field"><label>Postcode</label><input type="text" id="nc-postcode" maxlength="6"></div>
+            <div class="field">
+              <label>Postcode</label>
+              <input type="text" id="nc-postcode" inputmode="numeric" maxlength="4" autocomplete="postal-code"
+                     oninput="onNcPostcodeInput()" onblur="onNcPostcodeBlur()">
+              <div class="field-hint" id="nc-postcode-hint" role="alert"></div>
+              <div class="field-helper" id="nc-postcode-helper"></div>
+            </div>
           </div>
           <div class="field">
             <label>Gemeente</label>
-            <input type="text" id="nc-gemeente">
+            <input type="text" id="nc-gemeente" autocomplete="address-level2">
+            <div class="nc-deelgemeente-picker" id="nc-deelgemeente-picker" style="display:none">
+              <label>Selecteer de juiste gemeente:</label>
+              <select id="nc-deelgemeente-select" onchange="onNcDeelgemeenteChange()"></select>
+            </div>
           </div>
         </div>
       </div>
@@ -619,6 +665,35 @@
           </div>
         </div>
       </div>
+      <!-- Slot O2 — BTW-tarief + verklaring op eer (KB nr. 20) -->
+      <div class="card">
+        <div class="card-title">BTW-tarief</div>
+        <div class="btw-card-grid">
+          <div class="btw-tile is-selected" id="wiz-btw-tile-21" onclick="onWizBtwSelect(21)">
+            <h4>21% BTW</h4>
+            <p>Standaardtarief</p>
+          </div>
+          <div class="btw-tile" id="wiz-btw-tile-6" onclick="onWizBtwSelect(6)">
+            <h4>6% BTW</h4>
+            <p>Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</p>
+            <small id="wiz-btw-tile-6-hint" style="display:none">Enkel beschikbaar voor Belgische postcodes.</small>
+          </div>
+        </div>
+        <div class="wiz-btw6-box" id="wiz-btw6-verklaring" style="display:none">
+          <strong>Verklaring op eer — verlaagd btw-tarief van 6%</strong>
+          <p style="margin-top:6px">Volgens KB nr. 20 (rubriek XXXVIII en XXXI van tabel A) kan het verlaagd btw-tarief van 6% enkel worden toegepast wanneer de woning aan beide onderstaande voorwaarden voldoet. Vink beide verklaringen aan om het tarief van 6% te bevestigen.</p>
+          <label class="check-row" id="wiz-btw6-check-prive-row">
+            <input type="checkbox" id="wiz-btw6-check-prive" onchange="onWizBtw6CheckChange()">
+            <span>De partner bevestigt dat het gebouw waar de werken worden uitgevoerd uitsluitend of hoofdzakelijk wordt gebruikt als priv&eacute;woning, en dat de eindverbruiker rechtstreeks wordt gefactureerd.</span>
+          </label>
+          <label class="check-row" id="wiz-btw6-check-ouderdom-row">
+            <input type="checkbox" id="wiz-btw6-check-ouderdom" onchange="onWizBtw6CheckChange()">
+            <span>De partner bevestigt dat de eerste ingebruikname van het gebouw minstens tien jaar voorafgaat aan het eerste tijdstip waarop deze btw opeisbaar wordt.</span>
+          </label>
+          <div class="verklaring-disclaimer">Bij een onjuiste verklaring kan het verschil in btw (15%), evenals eventuele verwijlinteresten en boetes, integraal op de eindverbruiker worden verhaald (KB nr. 20 — art. 1quater).</div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">Details</div>
         <div class="field-row">
@@ -718,7 +793,12 @@ let wizState = {
   startDatum: '',
   afstandKm: 0,
   beschrijving: '',
-  notities: ''
+  notities: '',
+  // Slot O2 — BTW-keuze + verklaring op eer
+  btwPct: 21,                                        // 21 (default) | 6
+  verklaring6BtwPriveAangevinkt: false,
+  verklaring6BtwOuderdan10jAangevinkt: false,
+  verklaring6BtwDatum: null
 };
 
 // =============================================
@@ -1395,6 +1475,15 @@ function goStep(n) {
     if (i === n - 1) tab.classList.add('active');
   });
 
+  // Slot O2 — bij stap 4: BTW-tile-availability syncen met klant-postcode
+  if (n === 4 && typeof refreshWizBtw6Availability === 'function') {
+    try { refreshWizBtw6Availability(); } catch (_) {}
+  }
+  // Slot O2 — bij stap 2: warmup postcode-data
+  if (n === 2 && window.flanccoPostcodes && typeof window.flanccoPostcodes.warmup === 'function') {
+    try { window.flanccoPostcodes.warmup(); } catch (_) {}
+  }
+
   window.scrollTo(0, 0);
 }
 
@@ -1656,13 +1745,189 @@ function autoFillNcFromVies(data) {
 
   if (data.naam && bedrijfInput && !bedrijfInput.value.trim()) bedrijfInput.value = data.naam;
   if (data.adres && straatInput && !straatInput.value.trim()) straatInput.value = data.adres;
-  if (data.postcode && pcInput && !pcInput.value.trim()) pcInput.value = data.postcode;
+  if (data.postcode && pcInput && !pcInput.value.trim()) {
+    pcInput.value = data.postcode;
+    // Slot O2 — trigger postcode validatie + gemeente-lookup
+    try { onNcPostcodeBlur(); } catch (_) {}
+  }
   if (data.gemeente && gemInput && !gemInput.value.trim()) gemInput.value = data.gemeente;
 }
 
 function trackNcVies(result, country) {
   if (typeof window.flanccoTrack !== 'function') return;
   try { window.flanccoTrack('Wizard VIES Validation', { result: result, country: country || 'unknown' }); } catch (_) {}
+}
+
+// =============================================
+// Slot O2 — POSTCODE LOOKUP (nieuwe klant)
+// ─────────────────────────────────────────
+// Hergebruikt window.flanccoPostcodes (lazy-loaded JSON) en
+// window.flanccoValidators voor format-checks.
+// =============================================
+var ncPcLookupTimer = null;
+var ncPcLastKey = null;
+
+function isBePc(v) { return /^[1-9]\d{3}$/.test(String(v || '').trim()); }
+
+function setNcPcHint(state, msg) {
+  var hint = document.getElementById('nc-postcode-hint');
+  if (!hint) return;
+  hint.classList.remove('is-shown');
+  hint.textContent = '';
+  if (state === 'invalid' && msg) { hint.textContent = msg; hint.classList.add('is-shown'); }
+}
+function setNcPcHelper(state, msg) {
+  var h = document.getElementById('nc-postcode-helper');
+  if (!h) return;
+  h.classList.remove('is-be', 'is-fallback', 'is-error');
+  if (state) h.classList.add('is-' + state);
+  h.textContent = msg || '';
+}
+function setNcPcInputState(state) {
+  var input = document.getElementById('nc-postcode');
+  if (!input) return;
+  input.classList.remove('is-valid', 'is-invalid');
+  if (state) input.classList.add('is-' + state);
+}
+
+function onNcPostcodeInput() {
+  var el = document.getElementById('nc-postcode'); if (!el) return;
+  var v = el.value.replace(/[^\d]/g, '').substring(0, 4);
+  if (el.value !== v) el.value = v;
+  setNcPcInputState(null);
+  setNcPcHint(null);
+  setNcPcHelper(null);
+  // Toggle 6%-tile-availability live
+  refreshWizBtw6Availability();
+  if (v.length === 4) {
+    if (ncPcLookupTimer) clearTimeout(ncPcLookupTimer);
+    ncPcLookupTimer = setTimeout(function () { runNcPcLookup(v); }, 250);
+  }
+}
+
+function onNcPostcodeBlur() {
+  var el = document.getElementById('nc-postcode'); if (!el) return;
+  var v = el.value.trim().replace(/[^\d]/g, '').substring(0, 4);
+  if (!v) { setNcPcInputState(null); setNcPcHelper(null); return; }
+  if (!isBePc(v)) {
+    setNcPcInputState('invalid');
+    setNcPcHint('invalid', 'Vul een geldige postcode in (4 cijfers).');
+    setNcPcHelper('fallback', 'Buitenlandse of ongeldige postcode — standaard 21% BTW van toepassing.');
+    refreshWizBtw6Availability();
+    return;
+  }
+  runNcPcLookup(v);
+}
+
+function runNcPcLookup(pc) {
+  if (!isBePc(pc)) return;
+  setNcPcInputState('valid');
+  setNcPcHelper('be', 'Belgische postcode — alle BTW-tarieven beschikbaar.');
+  refreshWizBtw6Availability();
+  if (ncPcLastKey === pc) return;
+  ncPcLastKey = pc;
+
+  if (!window.flanccoPostcodes) return;
+  window.flanccoPostcodes.lookup(pc).then(function (res) {
+    var picker = document.getElementById('nc-deelgemeente-picker');
+    var sel    = document.getElementById('nc-deelgemeente-select');
+    var gem    = document.getElementById('nc-gemeente');
+    if (!picker || !sel) return;
+    picker.style.display = 'none';
+    sel.innerHTML = '';
+    if (!res || !res.deelgemeenten || !res.deelgemeenten.length) return;
+    if (res.deelgemeenten.length === 1) {
+      if (gem && !gem.value.trim()) gem.value = res.deelgemeenten[0];
+    } else {
+      res.deelgemeenten.forEach(function (n, i) {
+        var o = document.createElement('option');
+        o.value = n; o.textContent = n;
+        if (i === 0) o.selected = true;
+        sel.appendChild(o);
+      });
+      picker.style.display = 'block';
+      if (gem && !gem.value.trim()) gem.value = res.deelgemeenten[0];
+    }
+  }).catch(function () { /* soft-fail */ });
+}
+
+function onNcDeelgemeenteChange() {
+  var sel = document.getElementById('nc-deelgemeente-select');
+  var gem = document.getElementById('nc-gemeente');
+  if (sel && gem) gem.value = sel.value;
+}
+
+// =============================================
+// Slot O2 — BTW-TARIEF + VERKLARING OP EER
+// =============================================
+function getActiveKlantPostcode() {
+  // Bepaalt de postcode die telt voor 6%-availability:
+  //   1. wizState.newClient.postal_code (vastgelegd bij goStep van 2 → 3)
+  //   2. nc-postcode input (lopende invoer)
+  //   3. wizState.clientId → bestaande klant → clients.postal_code
+  if (wizState.newClient && wizState.newClient.postal_code) return wizState.newClient.postal_code;
+  var ncEl = document.getElementById('nc-postcode');
+  if (ncEl && ncEl.value && ncEl.value.trim()) return ncEl.value.trim();
+  if (wizState.clientId) {
+    var c = clients.find(function (x) { return x.id === wizState.clientId; });
+    if (c && c.postal_code) return c.postal_code;
+  }
+  return '';
+}
+
+function refreshWizBtw6Availability() {
+  var pc = getActiveKlantPostcode();
+  var allow = isBePc(pc);
+  var tile6 = document.getElementById('wiz-btw-tile-6');
+  var hint6 = document.getElementById('wiz-btw-tile-6-hint');
+  if (tile6) tile6.classList.toggle('is-disabled', !allow);
+  if (hint6) hint6.style.display = allow ? 'none' : 'block';
+  // Force-revert naar 21% als 6% niet (langer) toegestaan is
+  if (!allow && wizState.btwPct === 6) onWizBtwSelect(21, /*silent*/ true);
+}
+
+function onWizBtwSelect(pct, silent) {
+  if (pct !== 6 && pct !== 21) return;
+  if (pct === 6) {
+    var pc = getActiveKlantPostcode();
+    if (!isBePc(pc)) {
+      if (!silent) showToast('6% BTW is enkel beschikbaar voor Belgische postcodes.', 'error');
+      pct = 21;
+    }
+  }
+  wizState.btwPct = pct;
+  var t21 = document.getElementById('wiz-btw-tile-21');
+  var t6  = document.getElementById('wiz-btw-tile-6');
+  if (t21) t21.classList.toggle('is-selected', pct === 21);
+  if (t6)  t6.classList.toggle('is-selected', pct === 6);
+  var box = document.getElementById('wiz-btw6-verklaring');
+  if (box) box.style.display = (pct === 6) ? 'block' : 'none';
+  if (pct !== 6) {
+    var p = document.getElementById('wiz-btw6-check-prive');
+    var o = document.getElementById('wiz-btw6-check-ouderdom');
+    if (p) p.checked = false;
+    if (o) o.checked = false;
+    wizState.verklaring6BtwPriveAangevinkt = false;
+    wizState.verklaring6BtwOuderdan10jAangevinkt = false;
+    wizState.verklaring6BtwDatum = null;
+  }
+  recalcPricing();
+}
+
+function onWizBtw6CheckChange() {
+  var p = document.getElementById('wiz-btw6-check-prive');
+  var o = document.getElementById('wiz-btw6-check-ouderdom');
+  var rowP = document.getElementById('wiz-btw6-check-prive-row');
+  var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
+  if (rowP) rowP.classList.remove('is-required-missing');
+  if (rowO) rowO.classList.remove('is-required-missing');
+  wizState.verklaring6BtwPriveAangevinkt = !!(p && p.checked);
+  wizState.verklaring6BtwOuderdan10jAangevinkt = !!(o && o.checked);
+  if (wizState.verklaring6BtwPriveAangevinkt && wizState.verklaring6BtwOuderdan10jAangevinkt) {
+    if (!wizState.verklaring6BtwDatum) wizState.verklaring6BtwDatum = new Date().toISOString();
+  } else {
+    wizState.verklaring6BtwDatum = null;
+  }
 }
 
 // =============================================
@@ -1874,8 +2139,8 @@ function recalcPricing() {
     grandSubtotal -= korting;
   }
 
-  // BTW
-  var btwPct = 21; // default, could be 6% for renovatie
+  // BTW (Slot O2 — gestuurd door wizState.btwPct, default 21%)
+  var btwPct = (wizState.btwPct === 6) ? 6 : 21;
   var btwBedrag = grandSubtotal * (btwPct / 100);
   var totaalIncl = grandSubtotal + btwBedrag;
 
@@ -2022,6 +2287,21 @@ function renderSummary() {
 // SAVE CONTRACT
 // =============================================
 async function saveContract() {
+  // Slot O2 — guard 6% BTW: beide verklaringen verplicht of revert naar 21%
+  if (wizState.btwPct === 6) {
+    var p = document.getElementById('wiz-btw6-check-prive');
+    var o = document.getElementById('wiz-btw6-check-ouderdom');
+    if (!p || !p.checked || !o || !o.checked) {
+      var rowP = document.getElementById('wiz-btw6-check-prive-row');
+      var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
+      if (rowP && (!p || !p.checked)) rowP.classList.add('is-required-missing');
+      if (rowO && (!o || !o.checked)) rowO.classList.add('is-required-missing');
+      showToast('Vink beide verklaringen aan voor 6% BTW, of selecteer 21%.', 'error');
+      return;
+    }
+    if (!wizState.verklaring6BtwDatum) wizState.verklaring6BtwDatum = new Date().toISOString();
+  }
+
   var btn = document.getElementById('btn-save-concept');
   btn.disabled = true;
   btn.textContent = 'Opslaan...';
@@ -2108,6 +2388,10 @@ async function saveContract() {
       korting_pct: wizState.duur >= 3 ? 5 : 0,
       totaal_incl_btw: wizState._totaalIncl,
       btw_type: wizState._btwPct + '%',
+      // Slot O2 — verklaring op eer (CHECK-constraint compliant)
+      verklaring_6btw_privewoning_aangevinkt: (wizState.btwPct === 6) ? !!wizState.verklaring6BtwPriveAangevinkt : false,
+      verklaring_6btw_ouderdan10j_aangevinkt: (wizState.btwPct === 6) ? !!wizState.verklaring6BtwOuderdan10jAangevinkt : false,
+      verklaring_6btw_datum: (wizState.btwPct === 6) ? (wizState.verklaring6BtwDatum || new Date().toISOString()) : null,
       forfait_bedrag: wizState._subtotalExcl,
       contract_start: wizState.startDatum || null,
       contract_einde: eindDatum,
