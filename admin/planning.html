@@ -740,6 +740,193 @@
   .day-grid th .btn-werkplanning-export-th:disabled { cursor: wait; opacity: 0.5; }
   .day-grid th .btn-werkplanning-export-th svg { display: block; }
 
+  /* =====================================================================
+     Slot M — Helper-popover op lopende balk
+     - .hp-add-btn   : kleine + knop binnen .appt-card (analoog aan wpeBtn)
+     - .appt-avatar-stack/.appt-avatar-mini : avatar-rij voor multi-tech-beurten
+     - .hp-popover   : drijvende mini-popover met periode-keuze + tech-lijst
+     - data-beurt-id-highlight : soft-highlight op alle balken zelfde opdracht
+     ===================================================================== */
+  .hp-add-btn {
+    position: absolute; top: 4px; right: 4px; z-index: 4;
+    display: none; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--white); color: var(--navy);
+    border: 1px solid var(--navy); cursor: pointer;
+    padding: 0; font-size: 13px; line-height: 1; font-weight: 700;
+    transition: transform 0.15s var(--ease), background 0.15s var(--ease);
+    box-shadow: var(--shadow-sm);
+  }
+  .hp-add-btn:hover { transform: scale(1.12); background: var(--navy); color: var(--white); }
+  .hp-add-btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .appt-card:hover .hp-add-btn { display: inline-flex; }
+  /* Day-view: altijd zichtbaar (mirror van wpeBtn-pattern). */
+  .day-grid .appt-card .hp-add-btn { display: inline-flex; opacity: 0.8; }
+  .day-grid .appt-card:hover .hp-add-btn { opacity: 1; }
+  /* Wanneer een avatar-stack staat, schuift de + knop links zodat ze niet overlappen. */
+  .appt-card.has-avatar-stack .hp-add-btn { right: auto; left: 4px; top: 4px; }
+  /* En verberg sector-icon binnen avatar-stack zone door de stack rechts te zetten. */
+
+  .appt-avatar-stack {
+    position: absolute; top: 4px; right: 4px; z-index: 2;
+    display: inline-flex; pointer-events: none;
+  }
+  .appt-avatar-mini {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--white); color: var(--navy);
+    border: 1px solid var(--white);
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.15);
+    font-size: 9px; font-weight: 700; letter-spacing: 0.2px;
+    margin-left: -6px; pointer-events: auto;
+  }
+  .appt-avatar-mini:first-child { margin-left: 0; }
+  .appt-avatar-mini.is-overflow {
+    background: #1F2937; color: #fff; box-shadow: 0 0 0 1px rgba(15,23,42,0.25);
+  }
+  /* Sector-tinted achtergrond via inline --sector-color (gemixt met wit). */
+  .appt-avatar-mini[style*='--sector-color'] {
+    background: color-mix(in srgb, var(--sector-color) 18%, white);
+  }
+
+  /* Soft-highlight: alle balken van dezelfde opdracht bij hover op één. */
+  .appt-card[data-beurt-id-highlight='1'] {
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.55), var(--shadow-md);
+    z-index: 6;
+  }
+
+  .hp-popover {
+    position: absolute; z-index: 250;
+    width: 360px; max-width: 92vw;
+    background: var(--white); border: 1px solid #E5E7EB;
+    border-radius: 12px; padding: 16px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18), 0 4px 14px rgba(15, 23, 42, 0.10);
+    font-size: 12.5px; color: #1F2937;
+    animation: hpFadeIn 0.14s ease-out;
+  }
+  @keyframes hpFadeIn {
+    from { opacity: 0; transform: translateY(-2px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .hp-popover-arrow {
+    position: absolute; width: 14px; height: 14px;
+    background: var(--white); border-left: 1px solid #E5E7EB; border-top: 1px solid #E5E7EB;
+    transform: rotate(45deg);
+    /* default: above-anchor variant — pijl onderaan popover */
+    bottom: -8px; left: 24px;
+  }
+  .hp-popover[data-placement='below'] .hp-popover-arrow {
+    bottom: auto; top: -8px;
+    border-left: 1px solid #E5E7EB; border-top: 1px solid #E5E7EB;
+    border-right: none; border-bottom: none;
+  }
+  .hp-header {
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    line-height: 1.3;
+  }
+  .hp-meta {
+    font-size: 11.5px; color: #6B7280; margin-top: 4px; line-height: 1.4;
+  }
+  .hp-divider {
+    height: 1px; background: #F1F5F9; margin: 12px 0;
+  }
+  .hp-section + .hp-section { margin-top: 14px; }
+  .hp-section-label {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: #6B7280; margin-bottom: 6px; font-weight: 700;
+  }
+  .hp-period-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  }
+  .hp-period-btn {
+    padding: 6px 10px; border: 1px solid #E5E7EB; border-radius: 6px;
+    font-size: 12px; cursor: pointer; background: var(--white); color: #1F2937;
+    font-family: inherit; line-height: 1.2;
+    transition: all 0.15s var(--ease);
+  }
+  .hp-period-btn:hover { border-color: var(--navy); }
+  .hp-period-btn.is-active {
+    background: var(--navy); color: var(--white); border-color: var(--navy);
+  }
+  .hp-period-days-input {
+    width: 56px; padding: 6px 8px; border: 1px solid #E5E7EB; border-radius: 6px;
+    font-size: 12px; font-family: inherit; color: #1F2937;
+  }
+  .hp-period-days-input:focus { outline: 2px solid var(--navy); outline-offset: 1px; border-color: var(--navy); }
+  .hp-period-summary {
+    margin-top: 6px; font-size: 11px; color: #6B7280;
+  }
+  .hp-uren-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+    font-size: 12px;
+  }
+  .hp-uren-row label.hp-uren-toggle {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+  }
+  .hp-uren-row input[type='time'] {
+    padding: 4px 6px; border: 1px solid #E5E7EB; border-radius: 5px;
+    font-size: 12px; font-family: inherit; color: #1F2937; width: 88px;
+  }
+  .hp-uren-row input[type='time']:disabled { background: #F8FAFC; color: #94A3B8; cursor: not-allowed; }
+  .hp-tech-list {
+    max-height: 200px; overflow-y: auto;
+    border: 1px solid #F1F5F9; border-radius: 8px;
+    background: #FCFCFD;
+  }
+  .hp-tech-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; cursor: pointer; border-bottom: 1px solid #F1F5F9;
+    transition: background 0.12s var(--ease);
+  }
+  .hp-tech-row:last-child { border-bottom: none; }
+  .hp-tech-row:hover { background: #F3F4F6; }
+  .hp-tech-row.is-selected { background: #EEF2FF; outline: 1px solid var(--navy); outline-offset: -1px; }
+  .hp-tech-row.is-bezet { opacity: 0.78; }
+  .hp-tech-avatar {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(145deg, #F8FAFC 0%, #E2E8F0 100%);
+    color: var(--navy); font-size: 10px; font-weight: 700;
+    border: 1px solid #E5E7EB;
+  }
+  .hp-tech-name { flex: 1; min-width: 0; font-size: 12.5px; color: #1F2937; font-weight: 600; }
+  .hp-tech-name-small { display: block; font-size: 10.5px; color: #6B7280; font-weight: 500; margin-top: 1px; }
+  .hp-conflict-badge {
+    display: inline-flex; align-items: center;
+    background: #FEE2E2; color: #991B1B;
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+    border: 1px solid rgba(153,27,27,0.2);
+  }
+  .hp-toggle-bezet {
+    margin-top: 8px; padding: 6px 10px; border: 1px dashed #CBD5E1;
+    background: var(--white); border-radius: 6px; font-size: 11.5px;
+    color: #475569; cursor: pointer; font-family: inherit; width: 100%;
+    transition: all 0.15s var(--ease);
+  }
+  .hp-toggle-bezet:hover { color: var(--navy); border-color: var(--navy); background: #F8FAFC; }
+  .hp-empty {
+    padding: 14px; text-align: center; color: #6B7280; font-size: 12px;
+  }
+  .hp-actions {
+    display: flex; justify-content: space-between; gap: 8px;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid #F1F5F9;
+  }
+  .hp-btn {
+    padding: 8px 14px; border-radius: 7px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit; line-height: 1.2;
+    transition: all 0.15s var(--ease);
+  }
+  .hp-btn-cancel {
+    background: var(--white); color: #475569; border: 1px solid #E5E7EB;
+  }
+  .hp-btn-cancel:hover { background: #F3F4F6; color: #1F2937; }
+  .hp-btn-save {
+    background: var(--navy); color: var(--white); border: 1px solid var(--navy);
+  }
+  .hp-btn-save:hover:not(:disabled) { background: #0F172A; }
+  .hp-btn-save:disabled { background: #CBD5E1; border-color: #CBD5E1; color: #fff; cursor: not-allowed; }
+
   /* Werkplanning-export modal — primaire PDF-actie + WhatsApp-share. */
   .werkplanning-export-actions {
     display: flex; flex-direction: column; gap: 10px; margin-top: 8px;
@@ -4954,13 +5141,44 @@ function renderApptCard(b, info, dayInfo, dateISO) {
     ? '<span class="cert-warn-icon" title="Technieker heeft verlopen certificeringen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>'
     : '';
 
-  return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + multiDagClass + certWarnClass + '" ' +
+  // Slot M — Avatar-stack + helper-popover knop
+  // Toon avatar-stack alleen als er meerdere techs betrokken zijn op deze dag (primair + extra)
+  // OF als de beurt multi-day is met verschillende techs verdeeld over de dagen.
+  var stackHtml = '';
+  var hasAvatarStack = false;
+  if (typeof slotM_buildAvatarStack === 'function' && dateISO) {
+    var stackResult = slotM_buildAvatarStack(b, dateISO, fields);
+    if (stackResult && stackResult.html) {
+      stackHtml = stackResult.html;
+      hasAvatarStack = stackResult.shouldRender;
+    }
+  }
+  // + knop: alleen voor admin/bediende én alleen op statussen die nog actief zijn (ingepland / uitgevoerd).
+  // Gepland-only zou te beperkend zijn; afgewerkt/geannuleerd is wel uitgesloten.
+  var canShowHpBtn = (typeof window !== 'undefined' && (window.userRole === 'admin' || window.userRole === 'bediende'));
+  var allowedStatusesForHp = (b.status === 'ingepland' || b.status === 'uitgevoerd');
+  var hpBtnHtml = '';
+  if (canShowHpBtn && allowedStatusesForHp && dateISO) {
+    var hpDatumAttr = esc(dateISO);
+    var hpTechAttr = esc(fields.technieker_id || '');
+    hpBtnHtml = '<button type="button" class="hp-add-btn" ' +
+      'data-beurt-id="' + esc(b.id) + '" data-datum="' + hpDatumAttr + '" data-tech-id="' + hpTechAttr + '" ' +
+      'onclick="event.stopPropagation();slotM_openHelperPopover(this.dataset.beurtId, this.dataset.techId, this.dataset.datum, this);" ' +
+      'aria-label="Extra technieker toevoegen" ' +
+      'title="Extra technieker toevoegen">+</button>';
+  }
+  var avatarStackClass = hasAvatarStack ? ' has-avatar-stack' : '';
+
+  return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + multiDagClass + certWarnClass + avatarStackClass + '" ' +
+    'data-beurt-id="' + esc(b.id) + '" ' +
     dragAttr +
     'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
     'oncontextmenu="onCardContext(event, \'' + b.id + '\')" ' +
     'style="cursor:pointer;position:relative" ' +
     'title="' + esc(info.naam) + ' - ' + esc(info.sector) + (info && info.isLosseOpdracht ? ' (losse opdracht)' : '') + titleSuffix + '">' +
     certWarnIcon +
+    stackHtml +
+    hpBtnHtml +
     '<div class="appt-klant">' + beurtRefHtml(b) + esc(info.naam) + losseBadge + multiDagBadge + '</div>' +
     '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
     (timeStr ? '<div class="appt-time">' + timeStr + (duurStr ? '<span class="appt-duur">· ' + duurStr + '</span>' : '') + '</div>' : '') +
@@ -9006,6 +9224,773 @@ function slotB_track(event, props) {
   if (typeof window.flanccoTrack !== 'function') return;
   try { window.flanccoTrack(event, props || {}); } catch (_) {}
 }
+
+/* =====================================================================
+ * Slot M — Helper-popover op lopende balk
+ * Mini-popover bovenop een appt-card waarmee admin/bediende snel een
+ * extra technieker kan toevoegen voor X dagen, zonder navigatie weg van
+ * de planning-grid. Hergebruikt Slot B upsert-pattern op
+ * `beurt_planning_dagen`. Geen DB-schema-wijziging.
+ *
+ * Gebruikersrol-gating: alleen admin + bediende zien de + knop én kunnen
+ * de popover openen. Partner heeft sowieso geen toegang tot deze pagina
+ * (auth-redirect bij init). Dubbele guard in slotM_openHelperPopover.
+ * ===================================================================== */
+
+/** State machine voor de actieve popover. */
+var slotM_state = {
+  beurtId: null,
+  anchorTechId: null,
+  anchorDatum: null,
+  periodMode: 'today',     // 'today'|'days'|'remaining'
+  periodDays: 1,           // gebruikt bij periodMode='days'
+  useUren: false,
+  urenStart: '08:00',
+  urenEnd: '17:00',
+  selectedTechId: null,
+  showBezet: false,
+  popoverEl: null,
+  anchorEl: null,
+  prevFocus: null,
+  escHandler: null,
+  outsideHandler: null,
+  techCache: null          // { vrij: [...], bezet: [...] } - recompute bij periode-wijziging
+};
+
+/** Slot 0 telemetry-helper voor Slot M (geen klant-PII). */
+function slotM_track(event, props) {
+  if (typeof window.flanccoTrack !== 'function') return;
+  try { window.flanccoTrack(event, props || {}); } catch (_) {}
+}
+
+/**
+ * Bouwt avatar-stack HTML voor een appt-card op een specifieke datum.
+ * Toont primaire tech eerst, dan extra-techs (max 3 zichtbaar; daarna +N badge).
+ * Returns { html: string, shouldRender: bool } — shouldRender=false als
+ * er maar 1 tech betrokken is (geen visuele clutter).
+ *
+ * @param {object} beurt - beurt-object
+ * @param {string} dateISO - YYYY-MM-DD
+ * @param {object} fields - resultaat van getBeurtFieldsOnDate (optional, hergebruik)
+ */
+function slotM_buildAvatarStack(beurt, dateISO, fields) {
+  if (!beurt || !dateISO) return { html: '', shouldRender: false };
+  var f = fields || (typeof getBeurtFieldsOnDate === 'function' ? getBeurtFieldsOnDate(beurt, dateISO) : null);
+  if (!f) return { html: '', shouldRender: false };
+  var techIds = [];
+  if (f.technieker_id) techIds.push(f.technieker_id);
+  if (Array.isArray(f.extra_technieker_ids)) {
+    f.extra_technieker_ids.forEach(function(tid) {
+      if (tid && techIds.indexOf(tid) === -1) techIds.push(tid);
+    });
+  }
+  // Slot M-strategie: alleen tonen als > 1 tech betrokken is (avatar = "extra info").
+  if (techIds.length < 2) return { html: '', shouldRender: false };
+
+  var sectorColor = (typeof getSectorColor === 'function')
+    ? getSectorColor((typeof getClientInfo === 'function' ? getClientInfo(beurt).sector : '') || '')
+    : '#6B7280';
+  var maxVisible = 3;
+  var visible = techIds.slice(0, maxVisible);
+  var overflow = techIds.length - maxVisible;
+  var html = '<span class="appt-avatar-stack" aria-hidden="true">';
+  visible.forEach(function(tid) {
+    var tech = (window.allTechniekers || []).find(function(t) { return t.id === tid; });
+    if (!tech) return;
+    var initials = (typeof getTechInitials === 'function') ? getTechInitials(tech) : '?';
+    var fullName = (tech.voornaam || '') + ' ' + (tech.naam || '');
+    html += '<span class="appt-avatar-mini" style="--sector-color:' + esc(sectorColor) + '" title="' + esc(fullName.trim()) + '">' + esc(initials) + '</span>';
+  });
+  if (overflow > 0) {
+    html += '<span class="appt-avatar-mini is-overflow" title="+' + overflow + '">+' + overflow + '</span>';
+  }
+  html += '</span>';
+  return { html: html, shouldRender: true };
+}
+
+/**
+ * Berekent de lijst datums in de actieve periode obv state.
+ * - 'today'    → [anchorDatum]
+ * - 'days'     → N opeenvolgende dagen vanaf anchorDatum (incl.)
+ * - 'remaining'→ alle dagen vanaf anchorDatum tot laatste-dag van de beurt
+ *
+ * Slaat dagen over die buiten weekend-mode vallen of waarop de beurt
+ * niet doorloopt is hier niet de bedoeling — periode is "wanneer extra tech
+ * meekomt", niet "wanneer beurt loopt". We laten alleen weekend-overslaan
+ * in 'remaining' over aan de bestaande planning-dagen-set.
+ */
+function slotM_computeDates() {
+  var anchor = slotM_state.anchorDatum;
+  if (!anchor) return [];
+  if (slotM_state.periodMode === 'today') return [anchor];
+  if (slotM_state.periodMode === 'days') {
+    var n = Math.max(1, Math.min(14, parseInt(slotM_state.periodDays, 10) || 1));
+    var out = [];
+    var d = (typeof parseDate === 'function') ? parseDate(anchor) : new Date(anchor);
+    if (!d || isNaN(d.getTime())) return [anchor];
+    for (var i = 0; i < n; i++) {
+      var copy = new Date(d.getTime());
+      copy.setDate(d.getDate() + i);
+      out.push((typeof formatDateISO === 'function') ? formatDateISO(copy) : copy.toISOString().slice(0, 10));
+    }
+    return out;
+  }
+  if (slotM_state.periodMode === 'remaining') {
+    var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(slotM_state.beurtId) : [];
+    if (!dagen.length) return [anchor];
+    // Filter op datums >= anchor (inclusief)
+    var out2 = dagen
+      .map(function(d) { return d.datum; })
+      .filter(function(ds) { return ds && ds >= anchor; });
+    return out2.length ? out2 : [anchor];
+  }
+  return [anchor];
+}
+
+/**
+ * Voor elke datum in de periode: per technieker check of vrij of bezet.
+ * Een tech is "vrij op een datum" als isTechAbsent=false EN er geen
+ * actieve beurt op die datum loopt. Telt over alle datums in periode.
+ * Returns { vrij: [tech, ...], bezet: [{tech, conflictDatums:[...]}, ...] }
+ *
+ * "Vrij" hier betekent: vrij op ALLE datums in de periode.
+ * "Bezet" verzamelt per tech de subset datums met conflict.
+ */
+function slotM_getTechsVoorPeriode(datums) {
+  var techs = (window.allTechniekers || []).filter(function(t) {
+    // Filter: alleen actieve techs, geen bedienden (die hebben sector_match-issue).
+    // We hanteren dezelfde set als renderApptCard veronderstelt: allTechniekers globaal.
+    if (!t || !t.id) return false;
+    if (t.actief === false) return false;
+    return true;
+  });
+  var vrij = [];
+  var bezet = [];
+  techs.forEach(function(tech) {
+    var conflicts = [];
+    datums.forEach(function(ds) {
+      // Verlof check
+      var absent = (typeof isTechAbsent === 'function') ? isTechAbsent(tech.id, ds) : false;
+      if (absent) { conflicts.push({ datum: ds, reason: 'verlof' }); return; }
+      // Reeds toegekend aan deze beurt op die dag → skip (geen conflict, gewoon dubbel)
+      var role = (typeof slotB_techAssignmentRole === 'function')
+        ? slotB_techAssignmentRole(slotM_state.beurtId, ds, tech.id) : 'none';
+      if (role !== 'none') { conflicts.push({ datum: ds, reason: 'reeds_toegekend' }); return; }
+      // Andere beurten op die dag = bezet
+      var beurtenOpDag = (typeof getBeurtenForTechDay === 'function')
+        ? getBeurtenForTechDay(tech.id, ds) : [];
+      // Filter de beurt zelf eruit (mag geen conflict met zichzelf zijn)
+      var others = beurtenOpDag.filter(function(b) { return b && b.id !== slotM_state.beurtId; });
+      if (others.length > 0) { conflicts.push({ datum: ds, reason: 'bezet' }); }
+    });
+    if (conflicts.length === 0) vrij.push(tech);
+    else bezet.push({ tech: tech, conflictDatums: conflicts });
+  });
+  // Sorteer alfabetisch op voornaam voor stabiele UX
+  function byVoornaam(a, b) {
+    var an = ((a.tech || a).voornaam || '').toLowerCase();
+    var bn = ((b.tech || b).voornaam || '').toLowerCase();
+    return an.localeCompare(bn);
+  }
+  vrij.sort(byVoornaam);
+  bezet.sort(byVoornaam);
+  return { vrij: vrij, bezet: bezet };
+}
+
+/** Recompute techs + refresh tech-lijst-DOM. */
+function slotM_recomputeTechs() {
+  var datums = slotM_computeDates();
+  slotM_state.techCache = slotM_getTechsVoorPeriode(datums);
+  // Reset selectie indien de gekozen tech niet meer in de lijst zit
+  if (slotM_state.selectedTechId) {
+    var stillAvailable = slotM_state.techCache.vrij.some(function(t) { return t.id === slotM_state.selectedTechId; })
+      || slotM_state.techCache.bezet.some(function(o) { return o.tech.id === slotM_state.selectedTechId; });
+    if (!stillAvailable) slotM_state.selectedTechId = null;
+  }
+  if (slotM_state.popoverEl) {
+    var techWrap = slotM_state.popoverEl.querySelector('[data-hp-tech-wrap]');
+    if (techWrap) {
+      techWrap.innerHTML = '';
+      techWrap.appendChild(slotM_buildTechListDom());
+    }
+    var summary = slotM_state.popoverEl.querySelector('[data-hp-period-summary]');
+    if (summary) summary.textContent = slotM_periodSummaryText(datums);
+    slotM_updateSaveBtn();
+  }
+}
+
+/** Korte samenvatting van gekozen periode (NL). */
+function slotM_periodSummaryText(datums) {
+  if (!datums || !datums.length) return '';
+  if (datums.length === 1) return '1 dag — ' + ((typeof fmtDate === 'function') ? fmtDate(datums[0]) : datums[0]);
+  return datums.length + ' dagen — ' +
+    ((typeof fmtDate === 'function') ? fmtDate(datums[0]) : datums[0]) + ' \u2192 ' +
+    ((typeof fmtDate === 'function') ? fmtDate(datums[datums.length - 1]) : datums[datums.length - 1]);
+}
+
+/** Bouwt de tech-lijst-DOM (vrij eerst, daarna toggle voor bezet). */
+function slotM_buildTechListDom() {
+  var wrap = document.createElement('div');
+  var cache = slotM_state.techCache || { vrij: [], bezet: [] };
+  if (!cache.vrij.length && !cache.bezet.length) {
+    var empty = document.createElement('div');
+    empty.className = 'hp-empty';
+    empty.textContent = 'Geen technici beschikbaar.';
+    wrap.appendChild(empty);
+    return wrap;
+  }
+  var list = document.createElement('div');
+  list.className = 'hp-tech-list';
+  list.setAttribute('role', 'listbox');
+
+  function appendRow(tech, conflictCount) {
+    var row = document.createElement('div');
+    row.className = 'hp-tech-row';
+    if (conflictCount > 0) row.classList.add('is-bezet');
+    if (slotM_state.selectedTechId === tech.id) row.classList.add('is-selected');
+    row.setAttribute('role', 'option');
+    row.dataset.techId = tech.id;
+    row.tabIndex = 0;
+    var avatar = document.createElement('span');
+    avatar.className = 'hp-tech-avatar';
+    avatar.textContent = (typeof getTechInitials === 'function') ? getTechInitials(tech) : '?';
+    row.appendChild(avatar);
+    var name = document.createElement('span');
+    name.className = 'hp-tech-name';
+    name.textContent = ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() || '—';
+    row.appendChild(name);
+    if (conflictCount > 0) {
+      var badge = document.createElement('span');
+      badge.className = 'hp-conflict-badge';
+      badge.textContent = conflictCount + ' conflict' + (conflictCount === 1 ? '' : 'en');
+      row.appendChild(badge);
+    }
+    row.addEventListener('click', function() { slotM_pickTech(tech.id); });
+    row.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); slotM_pickTech(tech.id); }
+    });
+    list.appendChild(row);
+  }
+
+  cache.vrij.forEach(function(tech) { appendRow(tech, 0); });
+
+  if (cache.bezet.length) {
+    if (slotM_state.showBezet) {
+      cache.bezet.forEach(function(o) { appendRow(o.tech, o.conflictDatums.length); });
+    }
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'hp-toggle-bezet';
+    toggle.textContent = (slotM_state.showBezet ? '\u25B4 Verberg bezette techs' : '\u25BE Toon ook bezette techs (' + cache.bezet.length + ')');
+    toggle.addEventListener('click', function() {
+      slotM_state.showBezet = !slotM_state.showBezet;
+      slotM_track('Helper Popover Show Bezet Toggled', { show: slotM_state.showBezet });
+      slotM_recomputeTechs();
+    });
+    wrap.appendChild(list);
+    wrap.appendChild(toggle);
+  } else {
+    wrap.appendChild(list);
+  }
+
+  return wrap;
+}
+
+/** Toggle visuele selectie + update save-knop disabled-state. */
+function slotM_pickTech(techId) {
+  slotM_state.selectedTechId = techId;
+  if (slotM_state.popoverEl) {
+    var rows = slotM_state.popoverEl.querySelectorAll('.hp-tech-row');
+    rows.forEach(function(r) {
+      r.classList.toggle('is-selected', r.dataset.techId === techId);
+    });
+  }
+  slotM_updateSaveBtn();
+}
+
+/** Enable/disable save-knop. */
+function slotM_updateSaveBtn() {
+  if (!slotM_state.popoverEl) return;
+  var saveBtn = slotM_state.popoverEl.querySelector('[data-hp-save]');
+  if (!saveBtn) return;
+  saveBtn.disabled = !slotM_state.selectedTechId;
+}
+
+/** Set periode-modus + toggle button-state + recompute. */
+function slotM_setPeriodMode(mode) {
+  slotM_state.periodMode = mode;
+  if (slotM_state.popoverEl) {
+    var btns = slotM_state.popoverEl.querySelectorAll('[data-hp-period]');
+    btns.forEach(function(b) { b.classList.toggle('is-active', b.dataset.hpPeriod === mode); });
+    var daysInput = slotM_state.popoverEl.querySelector('[data-hp-days-input]');
+    if (daysInput) daysInput.disabled = (mode !== 'days');
+  }
+  slotM_recomputeTechs();
+}
+
+/** Bouwt de hele popover-DOM en mount op body. */
+function slotM_renderPopover() {
+  var beurt = (window.allBeurten || []).find(function(b) { return b.id === slotM_state.beurtId; });
+  if (!beurt) return null;
+  var info = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : { naam: '', sector: '' };
+  var primaryTech = (window.allTechniekers || []).find(function(t) { return t.id === slotM_state.anchorTechId; });
+  var primaryName = primaryTech ? ((primaryTech.voornaam || '') + ' ' + (primaryTech.naam || '')).trim() : '—';
+  var rangeStr = (typeof slotB_formatDagRange === 'function') ? slotB_formatDagRange(beurt) : '';
+
+  var pop = document.createElement('div');
+  pop.className = 'hp-popover';
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-modal', 'false');
+  pop.setAttribute('aria-label', 'Helper popover — extra technieker toevoegen');
+
+  var arrow = document.createElement('span');
+  arrow.className = 'hp-popover-arrow';
+  pop.appendChild(arrow);
+
+  // Header
+  var header = document.createElement('div');
+  header.className = 'hp-header';
+  // Klant-naam = info.naam — XSS-safe via textContent
+  header.textContent = (info.naam || 'Opdracht');
+  pop.appendChild(header);
+
+  var meta = document.createElement('div');
+  meta.className = 'hp-meta';
+  // "Primair: <name> · loopt 28-30 apr"
+  meta.textContent = 'Primair: ' + primaryName + (rangeStr ? ' \u00B7 ' + rangeStr : '');
+  pop.appendChild(meta);
+
+  var divider = document.createElement('div');
+  divider.className = 'hp-divider';
+  pop.appendChild(divider);
+
+  // Sectie kop "+ Extra technieker erbij"
+  var extraLabel = document.createElement('div');
+  extraLabel.className = 'hp-section-label';
+  extraLabel.textContent = '+ Extra technieker erbij';
+  pop.appendChild(extraLabel);
+
+  // Sectie: Periode
+  var periodSec = document.createElement('div');
+  periodSec.className = 'hp-section';
+  var periodLabel = document.createElement('div');
+  periodLabel.className = 'hp-section-label';
+  periodLabel.textContent = 'Periode';
+  periodSec.appendChild(periodLabel);
+
+  var tabs = document.createElement('div');
+  tabs.className = 'hp-period-tabs';
+  ['today','days','remaining'].forEach(function(mode) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hp-period-btn' + (slotM_state.periodMode === mode ? ' is-active' : '');
+    btn.dataset.hpPeriod = mode;
+    btn.textContent = (mode === 'today') ? 'Vandaag' : (mode === 'days' ? 'Aantal dagen' : 'Resterende duur');
+    btn.addEventListener('click', function() { slotM_setPeriodMode(mode); });
+    tabs.appendChild(btn);
+  });
+  // Number-input voor 'days'
+  var daysInput = document.createElement('input');
+  daysInput.type = 'number';
+  daysInput.min = '1'; daysInput.max = '14';
+  daysInput.value = String(slotM_state.periodDays || 2);
+  daysInput.className = 'hp-period-days-input';
+  daysInput.dataset.hpDaysInput = '1';
+  daysInput.disabled = (slotM_state.periodMode !== 'days');
+  daysInput.addEventListener('input', function() {
+    var v = parseInt(daysInput.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 14) v = 14;
+    slotM_state.periodDays = v;
+    if (slotM_state.periodMode === 'days') slotM_recomputeTechs();
+  });
+  tabs.appendChild(daysInput);
+  periodSec.appendChild(tabs);
+
+  var summary = document.createElement('div');
+  summary.className = 'hp-period-summary';
+  summary.dataset.hpPeriodSummary = '1';
+  summary.textContent = slotM_periodSummaryText(slotM_computeDates());
+  periodSec.appendChild(summary);
+
+  // Sectie: uren-toggle
+  var urenRow = document.createElement('div');
+  urenRow.className = 'hp-uren-row';
+  var urenLabel = document.createElement('label');
+  urenLabel.className = 'hp-uren-toggle';
+  var urenCb = document.createElement('input');
+  urenCb.type = 'checkbox';
+  urenCb.checked = slotM_state.useUren;
+  urenLabel.appendChild(urenCb);
+  var urenText = document.createElement('span');
+  urenText.textContent = 'Specifieke uren?';
+  urenLabel.appendChild(urenText);
+  urenRow.appendChild(urenLabel);
+
+  var vanLbl = document.createElement('span');
+  vanLbl.textContent = 'Van';
+  urenRow.appendChild(vanLbl);
+  var startInput = document.createElement('input');
+  startInput.type = 'time';
+  startInput.value = slotM_state.urenStart;
+  startInput.disabled = !slotM_state.useUren;
+  urenRow.appendChild(startInput);
+
+  var totLbl = document.createElement('span');
+  totLbl.textContent = 'tot';
+  urenRow.appendChild(totLbl);
+  var endInput = document.createElement('input');
+  endInput.type = 'time';
+  endInput.value = slotM_state.urenEnd;
+  endInput.disabled = !slotM_state.useUren;
+  urenRow.appendChild(endInput);
+
+  urenCb.addEventListener('change', function() {
+    slotM_state.useUren = urenCb.checked;
+    startInput.disabled = !slotM_state.useUren;
+    endInput.disabled = !slotM_state.useUren;
+  });
+  startInput.addEventListener('input', function() { slotM_state.urenStart = startInput.value || '08:00'; });
+  endInput.addEventListener('input', function() { slotM_state.urenEnd = endInput.value || '17:00'; });
+  periodSec.appendChild(urenRow);
+  pop.appendChild(periodSec);
+
+  // Sectie: tech-lijst
+  var techSec = document.createElement('div');
+  techSec.className = 'hp-section';
+  var techLabel = document.createElement('div');
+  techLabel.className = 'hp-section-label';
+  techLabel.textContent = 'Kies technieker (vrij op deze datum)';
+  techSec.appendChild(techLabel);
+  var techWrap = document.createElement('div');
+  techWrap.dataset.hpTechWrap = '1';
+  techSec.appendChild(techWrap);
+  pop.appendChild(techSec);
+
+  // Acties
+  var actions = document.createElement('div');
+  actions.className = 'hp-actions';
+  var cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'hp-btn hp-btn-cancel';
+  cancel.textContent = 'Annuleer';
+  cancel.addEventListener('click', function() {
+    slotM_track('Helper Popover Cancelled', {});
+    slotM_close();
+  });
+  actions.appendChild(cancel);
+  var save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'hp-btn hp-btn-save';
+  save.dataset.hpSave = '1';
+  save.disabled = true;
+  save.textContent = 'Voeg toe';
+  save.addEventListener('click', slotM_save);
+  actions.appendChild(save);
+  pop.appendChild(actions);
+
+  return pop;
+}
+
+/** Positioneer popover relatief aan anchorEl. Boven indien ruimte, anders onder. */
+function slotM_positionPopover() {
+  if (!slotM_state.popoverEl || !slotM_state.anchorEl) return;
+  var anchor = slotM_state.anchorEl.getBoundingClientRect();
+  var popW = slotM_state.popoverEl.offsetWidth || 360;
+  var popH = slotM_state.popoverEl.offsetHeight || 320;
+  var scrollX = window.scrollX || window.pageXOffset || 0;
+  var scrollY = window.scrollY || window.pageYOffset || 0;
+  var vh = window.innerHeight || document.documentElement.clientHeight;
+
+  // Bij voorkeur boven; pijl wijst naar anchorEl
+  var spaceAbove = anchor.top;
+  var spaceBelow = vh - anchor.bottom;
+  var placement = (spaceAbove > popH + 16 || spaceAbove > spaceBelow) ? 'above' : 'below';
+
+  var top, left;
+  if (placement === 'above') {
+    top = scrollY + anchor.top - popH - 12;
+  } else {
+    top = scrollY + anchor.bottom + 12;
+  }
+  // Horizontaal: lijn de pijl uit met de + knop, maar voorkom edge-overflow
+  left = scrollX + anchor.left + (anchor.width / 2) - 28;
+  var maxLeft = scrollX + (window.innerWidth || document.documentElement.clientWidth) - popW - 8;
+  if (left > maxLeft) left = maxLeft;
+  if (left < scrollX + 8) left = scrollX + 8;
+
+  slotM_state.popoverEl.style.top = Math.max(scrollY + 8, top) + 'px';
+  slotM_state.popoverEl.style.left = left + 'px';
+  slotM_state.popoverEl.setAttribute('data-placement', placement);
+}
+
+/**
+ * Open de helper-popover voor (beurtId, datum) met techId als anchor-tech.
+ * Defensieve guards op rol + bestaan van beurt.
+ */
+function slotM_openHelperPopover(beurtId, techId, datum, anchorEl) {
+  if (typeof window !== 'undefined' && window.userRole !== 'admin' && window.userRole !== 'bediende') return;
+  if (!beurtId || !datum) return;
+  var beurt = (window.allBeurten || []).find(function(b) { return b.id === beurtId; });
+  if (!beurt) {
+    if (typeof showToast === 'function') showToast('Opdracht niet gevonden', 'error');
+    return;
+  }
+  // Sluit eventuele bestaande popover
+  if (slotM_state.popoverEl) slotM_close();
+
+  // State
+  slotM_state.beurtId = beurtId;
+  slotM_state.anchorTechId = techId || null;
+  slotM_state.anchorDatum = datum;
+  slotM_state.periodMode = 'today';
+  slotM_state.periodDays = 2;
+  slotM_state.useUren = false;
+  slotM_state.urenStart = '08:00';
+  slotM_state.urenEnd = '17:00';
+  slotM_state.selectedTechId = null;
+  slotM_state.showBezet = false;
+  slotM_state.anchorEl = anchorEl || null;
+  slotM_state.prevFocus = document.activeElement;
+
+  // Initial tech-cache
+  slotM_state.techCache = slotM_getTechsVoorPeriode(slotM_computeDates());
+
+  var pop = slotM_renderPopover();
+  if (!pop) return;
+  slotM_state.popoverEl = pop;
+  document.body.appendChild(pop);
+
+  // Mount tech-lijst (na DOM-attach zodat slotM_buildTechListDom direct gebruikt wordt)
+  var techWrap = pop.querySelector('[data-hp-tech-wrap]');
+  if (techWrap) techWrap.appendChild(slotM_buildTechListDom());
+
+  slotM_positionPopover();
+
+  // ESC + outside-click handlers
+  slotM_state.escHandler = function(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); slotM_track('Helper Popover Cancelled', { reason: 'escape' }); slotM_close(); }
+  };
+  slotM_state.outsideHandler = function(e) {
+    if (!slotM_state.popoverEl) return;
+    if (slotM_state.popoverEl.contains(e.target)) return;
+    if (slotM_state.anchorEl && slotM_state.anchorEl.contains(e.target)) return;
+    slotM_track('Helper Popover Cancelled', { reason: 'outside' });
+    slotM_close();
+  };
+  document.addEventListener('keydown', slotM_state.escHandler);
+  // Use mousedown so we close before other click-handlers fire
+  setTimeout(function() { document.addEventListener('mousedown', slotM_state.outsideHandler); }, 0);
+
+  // Focus management — focus eerste vrije tech-row of cancel-knop
+  var firstRow = pop.querySelector('.hp-tech-row');
+  if (firstRow) firstRow.focus();
+
+  // Reposition on scroll/resize
+  slotM_state._scrollHandler = function() { slotM_positionPopover(); };
+  window.addEventListener('scroll', slotM_state._scrollHandler, true);
+  window.addEventListener('resize', slotM_state._scrollHandler);
+
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
+  slotM_track('Helper Popover Opened', { multi_day: dagen.length > 1 });
+}
+
+/** Sluit popover, verwijder DOM, reset state, restore focus. */
+function slotM_close() {
+  if (slotM_state.escHandler) {
+    document.removeEventListener('keydown', slotM_state.escHandler);
+    slotM_state.escHandler = null;
+  }
+  if (slotM_state.outsideHandler) {
+    document.removeEventListener('mousedown', slotM_state.outsideHandler);
+    slotM_state.outsideHandler = null;
+  }
+  if (slotM_state._scrollHandler) {
+    window.removeEventListener('scroll', slotM_state._scrollHandler, true);
+    window.removeEventListener('resize', slotM_state._scrollHandler);
+    slotM_state._scrollHandler = null;
+  }
+  if (slotM_state.popoverEl && slotM_state.popoverEl.parentNode) {
+    slotM_state.popoverEl.parentNode.removeChild(slotM_state.popoverEl);
+  }
+  slotM_state.popoverEl = null;
+  if (slotM_state.prevFocus && typeof slotM_state.prevFocus.focus === 'function') {
+    try { slotM_state.prevFocus.focus(); } catch (_) {}
+  }
+  slotM_state.prevFocus = null;
+  slotM_state.anchorEl = null;
+  slotM_state.beurtId = null;
+  slotM_state.selectedTechId = null;
+  slotM_state.techCache = null;
+}
+
+/** Kern-save: voor elke datum in periode → upsert met multi-tech-semantiek. */
+async function slotM_save() {
+  if (!slotM_state.beurtId || !slotM_state.selectedTechId) return;
+  var datums = slotM_computeDates();
+  if (!datums.length) {
+    if (typeof showToast === 'function') showToast('Geen geldige datums in periode', 'error');
+    return;
+  }
+  var beurt = (window.allBeurten || []).find(function(b) { return b.id === slotM_state.beurtId; });
+  if (!beurt) {
+    if (typeof showToast === 'function') showToast('Opdracht niet gevonden', 'error');
+    return;
+  }
+  var techId = slotM_state.selectedTechId;
+  var saveBtn = slotM_state.popoverEl && slotM_state.popoverEl.querySelector('[data-hp-save]');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Bezig\u2026'; }
+
+  // Bepaal optionele tijds-override
+  var overrideStart = null, overrideDuur = null;
+  if (slotM_state.useUren && slotM_state.urenStart && slotM_state.urenEnd) {
+    var sp = slotM_state.urenStart.split(':');
+    var ep = slotM_state.urenEnd.split(':');
+    var sm = parseInt(sp[0], 10) * 60 + parseInt(sp[1] || '0', 10);
+    var em = parseInt(ep[0], 10) * 60 + parseInt(ep[1] || '0', 10);
+    if (em > sm) {
+      overrideStart = slotM_state.urenStart + ':00';
+      overrideDuur = em - sm;
+    }
+  }
+  // Tech was bezet (voor telemetry)
+  var techWasBezet = !!(slotM_state.techCache && slotM_state.techCache.bezet.some(function(o) { return o.tech.id === techId; }));
+
+  var added = 0;
+  var skipped = 0;
+  var lastErr = null;
+
+  for (var i = 0; i < datums.length; i++) {
+    var datum = datums[i];
+    try {
+      var existing = (typeof getDagForBeurtOnDate === 'function') ? getDagForBeurtOnDate(slotM_state.beurtId, datum) : null;
+      var role = (typeof slotB_techAssignmentRole === 'function')
+        ? slotB_techAssignmentRole(slotM_state.beurtId, datum, techId) : 'none';
+      if (role === 'primary' || role === 'extra') { skipped++; continue; }
+
+      var payload;
+      if (!existing) {
+        // INSERT — defaults uit sibling-dag of parent; technieker_id = nieuwe tech (primary van die dag)
+        var siblingDagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(slotM_state.beurtId) : [];
+        var sibling = siblingDagen[0];
+        payload = {
+          beurt_id: slotM_state.beurtId,
+          datum: datum,
+          start_tijd: overrideStart || (sibling && sibling.start_tijd) || beurt.start_tijd || null,
+          duur_minuten: overrideDuur || (sibling && sibling.duur_minuten) || beurt.duur_minuten || 60,
+          technieker_id: techId,
+          extra_technieker_ids: []
+        };
+      } else {
+        // UPDATE — voeg toe als extra technieker
+        var extras = Array.isArray(existing.extra_technieker_ids) ? existing.extra_technieker_ids.slice() : [];
+        extras.push(techId);
+        payload = {
+          beurt_id: slotM_state.beurtId,
+          datum: datum,
+          start_tijd: overrideStart || existing.start_tijd,
+          duur_minuten: overrideDuur || existing.duur_minuten,
+          technieker_id: existing.technieker_id,
+          extra_technieker_ids: extras
+        };
+      }
+
+      var res = await sb.from('beurt_planning_dagen').upsert(payload, { onConflict: 'beurt_id,datum' });
+      if (res.error) { lastErr = res.error.message || 'onbekende fout'; break; }
+      added++;
+    } catch (e) {
+      lastErr = (e && e.message) || 'onbekende fout';
+      break;
+    }
+  }
+
+  if (lastErr) {
+    if (typeof showToast === 'function') showToast('Toevoegen mislukt: ' + lastErr, 'error');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Voeg toe'; }
+    slotM_track('Helper Popover Saved', {
+      period_days: datums.length, use_uren: slotM_state.useUren, tech_was_bezet: techWasBezet, result: 'error'
+    });
+    return;
+  }
+
+  // Refresh-flow
+  try {
+    if (typeof loadPlanningData === 'function') await loadPlanningData();
+  } catch (_) {}
+  if (typeof renderView === 'function') renderView();
+  if (typeof renderSidebar === 'function') renderSidebar();
+
+  var msg;
+  if (added === 0) msg = 'Technieker was al toegekend';
+  else msg = 'Technieker toegevoegd voor ' + added + ' dag' + (added === 1 ? '' : 'en');
+  if (typeof showToast === 'function') showToast(msg, added > 0 ? 'success' : 'info');
+
+  slotM_track('Helper Popover Saved', {
+    period_days: datums.length,
+    use_uren: slotM_state.useUren,
+    tech_was_bezet: techWasBezet,
+    added: added,
+    skipped: skipped,
+    result: 'ok'
+  });
+
+  slotM_close();
+}
+
+/* ---- Soft-highlight: hover op een appt-card → highlight alle balken zelfde beurtId ---- */
+
+var _slotM_highlightedBeurtId = null;
+function slotM_clearHighlight() {
+  if (!_slotM_highlightedBeurtId) return;
+  document.querySelectorAll('.appt-card[data-beurt-id-highlight]').forEach(function(el) {
+    el.removeAttribute('data-beurt-id-highlight');
+  });
+  _slotM_highlightedBeurtId = null;
+}
+function slotM_applyHighlight(beurtId) {
+  if (!beurtId) return;
+  if (_slotM_highlightedBeurtId === beurtId) return;
+  slotM_clearHighlight();
+  document.querySelectorAll('.appt-card[data-beurt-id="' + (window.CSS && CSS.escape ? CSS.escape(beurtId) : beurtId) + '"]').forEach(function(el) {
+    el.setAttribute('data-beurt-id-highlight', '1');
+  });
+  _slotM_highlightedBeurtId = beurtId;
+}
+
+/** Bind soft-highlight delegated handlers op grid-area. Idempotent. */
+function slotM_bindHover() {
+  var grid = document.getElementById('grid-area');
+  if (!grid) return;
+  if (grid.dataset.slotMHoverBound === '1') return;
+  grid.dataset.slotMHoverBound = '1';
+  grid.addEventListener('mouseover', function(e) {
+    var card = e.target && e.target.closest ? e.target.closest('.appt-card[data-beurt-id]') : null;
+    if (!card) return;
+    var bid = card.getAttribute('data-beurt-id');
+    if (bid) slotM_applyHighlight(bid);
+  });
+  grid.addEventListener('mouseout', function(e) {
+    var card = e.target && e.target.closest ? e.target.closest('.appt-card[data-beurt-id]') : null;
+    if (!card) return;
+    // Check of we naar een ander gerelateerde card gaan (zelfde beurt) — dan niet clearen
+    var rel = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('.appt-card[data-beurt-id]') : null;
+    if (rel && rel.getAttribute('data-beurt-id') === card.getAttribute('data-beurt-id')) return;
+    slotM_clearHighlight();
+  });
+}
+
+/** Module-init — idempotent. Bind hover-handler. */
+function slotM_init() {
+  slotM_bindHover();
+}
+// Bind init na DOM-render. Bij elke renderView-call kunnen we slotM_bindHover
+// ook hercallen — guard voorkomt dubbele binding.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', slotM_init);
+} else {
+  slotM_init();
+}
+
 
 /**
  * Geeft de last-known view-context voor telemetry. Bij maand-cell-click is

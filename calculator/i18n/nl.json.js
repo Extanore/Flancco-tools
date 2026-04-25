@@ -369,6 +369,30 @@
         toastAddedExisting: 'Toegevoegd als extra technieker',
         toastAddedNew: 'Nieuwe planning-dag aangemaakt',
         toastAlreadyAssigned: 'Deze technieker is al toegekend op deze datum'
+      },
+      // Slot M — Helper-popover op lopende balk (admin/planning.html)
+      // Mini-popover om een extra technieker toe te voegen voor X dagen.
+      // Strings staan vandaag inline in admin/planning.html; deze keys zijn
+      // gespiegeld in fr.json.js voor parity en toekomstige i18n-runtime adoptie.
+      helperPopover: {
+        titleExtra: 'Extra technieker erbij',
+        primair: 'Primair',
+        looptPrefix: 'loopt',
+        periodLabel: 'Periode',
+        periodToday: 'Vandaag',
+        periodDays: 'Aantal dagen',
+        periodRemaining: 'Resterende duur',
+        urenCheckbox: 'Specifieke uren?',
+        urenFrom: 'Van',
+        urenTo: 'tot',
+        techLabel: 'Kies technieker (vrij op deze datum)',
+        showBezet: 'Toon ook bezette techs',
+        conflictBadge: '{n} conflict(en)',
+        cancel: 'Annuleer',
+        save: 'Voeg toe',
+        toastSaved: 'Technieker toegevoegd voor {n} dag(en)',
+        toastSkipped: 'Technieker was al toegekend',
+        toastError: 'Toevoegen mislukt: {error}'
       }
     },
     // Slot K & L — Admin-beheer: feestdagen, verlof / EW

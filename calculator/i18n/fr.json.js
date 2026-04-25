@@ -357,6 +357,30 @@
         toastAddedExisting: 'Ajout\u00e9 comme technicien suppl\u00e9mentaire',
         toastAddedNew: 'Nouvelle journ\u00e9e de planification cr\u00e9\u00e9e',
         toastAlreadyAssigned: 'Ce technicien est d\u00e9j\u00e0 assign\u00e9 \u00e0 cette date'
+      },
+      // Slot M — Popover d'aide sur la barre en cours (admin/planning.html)
+      // Mini-popover pour ajouter un technicien suppl\u00e9mentaire pour X jours.
+      // Strings actuellement inline dans admin/planning.html ; cl\u00e9s pr\u00eates
+      // pour adoption future via runtime i18n. Parit\u00e9 avec nl.json.js.
+      helperPopover: {
+        titleExtra: 'Technicien suppl\u00e9mentaire',
+        primair: 'Principal',
+        looptPrefix: 'du',
+        periodLabel: 'P\u00e9riode',
+        periodToday: 'Aujourd\u2019hui',
+        periodDays: 'Nombre de jours',
+        periodRemaining: 'Dur\u00e9e restante',
+        urenCheckbox: 'Heures sp\u00e9cifiques ?',
+        urenFrom: 'De',
+        urenTo: '\u00e0',
+        techLabel: 'Choisir un technicien (libre ce jour)',
+        showBezet: 'Afficher aussi les techs occup\u00e9s',
+        conflictBadge: '{n} conflit(s)',
+        cancel: 'Annuler',
+        save: 'Ajouter',
+        toastSaved: 'Technicien ajout\u00e9 pour {n} jour(s)',
+        toastSkipped: 'Technicien d\u00e9j\u00e0 assign\u00e9',
+        toastError: '\u00c9chec de l\u2019ajout : {error}'
       }
     },
     // Slot K & L — Gestion admin: jours f\u00e9ri\u00e9s, cong\u00e9s / CT
