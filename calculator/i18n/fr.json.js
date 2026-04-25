@@ -339,6 +339,24 @@
         warningSubtitle: 'Le planning a d\u00e9tect\u00e9 un conflit. Vous pouvez toujours continuer si c\u2019est exceptionnel.',
         warningCancel: 'Annuler',
         warningProceed: 'Planifier quand m\u00eame'
+      },
+      // Slot B — Smart picker modal pour les clics sur cellule vide (semaine/jour/mois).
+      // L'admin n'utilise pas de runtime i18n ; cl\u00e9s pr\u00eates pour adoption future.
+      // Strings actuellement inline dans admin/planning.html.
+      smartPicker: {
+        title: 'Pour {tech} le {date}',
+        searchPlaceholder: 'Rechercher client, mission, secteur\u2026',
+        sectionSuggesties: 'Suggestions',
+        sectionLopend: 'Missions en cours',
+        sectionGepland: 'Planifi\u00e9es / \u00e0 planifier',
+        emptyNoSuggesties: 'Aucune suggestion pour le moment.',
+        emptyNoLopend: 'Aucune mission en cours.',
+        emptyNoGepland: 'Aucune mission planifi\u00e9e.',
+        actionNew: '+ Nouvelle mission',
+        actionBeschikbaarheid: '+ Disponibilit\u00e9',
+        toastAddedExisting: 'Ajout\u00e9 comme technicien suppl\u00e9mentaire',
+        toastAddedNew: 'Nouvelle journ\u00e9e de planification cr\u00e9\u00e9e',
+        toastAlreadyAssigned: 'Ce technicien est d\u00e9j\u00e0 assign\u00e9 \u00e0 cette date'
       }
     },
     // Slot K & L — Gestion admin: jours f\u00e9ri\u00e9s, cong\u00e9s / CT

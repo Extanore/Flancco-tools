@@ -350,6 +350,25 @@
         warningSubtitle: 'Onze planning detecteerde een conflict. Je kan altijd doorgaan als dit een uitzondering is.',
         warningCancel: 'Annuleer',
         warningProceed: 'Toch plannen'
+      },
+      // Slot B — Smart picker modal voor cell-clicks (week/dag/maand views).
+      // Admin gebruikt geen runtime-i18n; deze keys zijn voorbereid voor toekomstige
+      // adoptie en gespiegeld in fr.json.js voor parity. Strings staan vandaag
+      // inline in admin/planning.html.
+      smartPicker: {
+        title: 'Voor {tech} op {date}',
+        searchPlaceholder: 'Zoek klant, opdracht, sector\u2026',
+        sectionSuggesties: 'Suggesties',
+        sectionLopend: 'Lopende opdrachten',
+        sectionGepland: 'Gepland / in te plannen',
+        emptyNoSuggesties: 'Geen suggesties op dit moment.',
+        emptyNoLopend: 'Geen lopende opdrachten.',
+        emptyNoGepland: 'Geen geplande opdrachten.',
+        actionNew: '+ Nieuwe opdracht',
+        actionBeschikbaarheid: '+ Beschikbaarheid',
+        toastAddedExisting: 'Toegevoegd als extra technieker',
+        toastAddedNew: 'Nieuwe planning-dag aangemaakt',
+        toastAlreadyAssigned: 'Deze technieker is al toegekend op deze datum'
       }
     },
     // Slot K & L — Admin-beheer: feestdagen, verlof / EW

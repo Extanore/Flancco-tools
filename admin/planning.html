@@ -1504,6 +1504,133 @@
   .feestdag-banner strong { font-weight: 700; }
   .feestdag-banner-list { display: flex; flex-direction: column; gap: 2px; }
 
+  /* =============================================
+     SLOT B — SMART PICKER MODAL
+     Vervangt 3-button kiezer met search-first + suggesties + lijsten.
+     ============================================= */
+  .modal.sp-modal {
+    max-width: 560px; width: 90%; padding: 0;
+    display: flex; flex-direction: column;
+  }
+  .sp-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 12px; padding: 20px 24px 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .sp-header-text { flex: 1; min-width: 0; }
+  .sp-header h2 {
+    font-size: 16px; line-height: 1.3; color: var(--navy); margin: 0;
+    font-weight: 700;
+  }
+  .sp-header-sep { color: var(--grey); font-weight: 500; }
+  .sp-header-sub {
+    font-size: 12px; color: var(--grey); margin: 2px 0 0;
+  }
+  .sp-close {
+    background: transparent; border: 0; color: var(--grey); cursor: pointer;
+    width: 32px; height: 32px; border-radius: 6px;
+    font-size: 22px; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  .sp-close:hover { background: var(--bg-page); color: var(--navy); }
+  .sp-close:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+  .sp-search-wrap {
+    position: relative; padding: 14px 24px 4px;
+  }
+  .sp-search {
+    width: 100%; box-sizing: border-box;
+    padding: 10px 14px 10px 38px;
+    border: 1.5px solid var(--rule); border-radius: 8px;
+    font-size: 14px; font-family: inherit; color: var(--navy);
+    background: #fff; transition: border-color .15s, box-shadow .15s;
+    height: var(--control-h, 38px);
+  }
+  .sp-search::placeholder { color: var(--grey); }
+  .sp-search:focus {
+    outline: none; border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(26,26,46,0.10);
+  }
+  .sp-search-icon {
+    position: absolute; left: 36px; top: 50%; transform: translateY(-30%);
+    color: var(--grey); pointer-events: none;
+  }
+
+  .sp-body {
+    max-height: 56vh; overflow-y: auto;
+    padding: 12px 24px 4px;
+  }
+  .sp-section + .sp-section { margin-top: 20px; }
+  .sp-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--grey);
+    margin: 0 0 8px;
+  }
+  .sp-list { display: flex; flex-direction: column; gap: 4px; }
+  .sp-row {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 10px 12px; border-radius: 8px;
+    cursor: pointer; background: #fff; border: 1px solid transparent;
+    transition: background .12s, border-color .12s;
+    text-align: left; font-family: inherit;
+  }
+  .sp-row:hover { background: var(--bg-page); }
+  .sp-row:focus-visible { outline: 2px solid var(--navy); outline-offset: 1px; border-color: var(--navy); }
+  .sp-row[data-disabled="true"] {
+    opacity: 0.55; cursor: not-allowed; pointer-events: none;
+  }
+  .sp-row-top { display: flex; align-items: center; gap: 8px; }
+  .sp-sector-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex: 0 0 auto; display: inline-block;
+  }
+  .sp-row-title {
+    font-size: 13.5px; font-weight: 600; color: var(--navy);
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sp-row-pill {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.4px; padding: 2px 8px; border-radius: 10px;
+    background: rgba(26,26,46,0.08); color: var(--navy);
+    flex: 0 0 auto;
+  }
+  .sp-row-pill.is-multi { background: rgba(124,58,237,0.12); color: #6D28D9; }
+  .sp-row-meta {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    font-size: 12px; color: var(--grey);
+    padding-left: 18px;
+  }
+  .sp-row-meta-item { display: inline-flex; align-items: center; gap: 4px; }
+  .sp-row-meta-item svg { color: var(--grey); }
+
+  .sp-empty {
+    text-align: center; padding: 16px 12px;
+    color: var(--grey); font-size: 12.5px; font-style: italic;
+  }
+  .sp-section.is-hidden { display: none; }
+
+  .sp-actions {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 24px; border-top: 1px solid var(--rule);
+    background: var(--bg-page);
+    border-radius: 0 0 16px 16px;
+  }
+  .sp-actions-spacer { flex: 1; }
+  .sp-actions-zone {
+    padding: 18px 24px;
+    border-top: 1px solid var(--rule);
+    background: #fff;
+  }
+  .sp-actions-zone[hidden] { display: none; }
+
+  /* Mode 'sub-flow': verberg lijst + zoek, toon alleen actions-zone */
+  .sp-modal.sp-mode-subflow .sp-search-wrap,
+  .sp-modal.sp-mode-subflow .sp-body,
+  .sp-modal.sp-mode-subflow .sp-actions { display: none; }
+  .sp-modal.sp-mode-subflow .sp-actions-zone[hidden] { display: block; }
+
   /* Soft-warning modal — eigen visuele identiteit (waarschuwingstoon, geen error) */
   .modal-feestdag-warning .modal {
     max-width: 460px; padding: 24px;
@@ -1879,29 +2006,72 @@
   </div>
 </div>
 
-<!-- DAG-PLUS KEUZEMENU -->
+<!-- DAG-PLUS SMART PICKER (Slot B) -->
+<!-- Re-uses #modal-dagplus shell. The original 3-button kiezer is now a sub-flow
+     onder "+ Nieuwe opdracht" en wordt dynamisch in #sp-actions-zone gerenderd. -->
 <div class="modal-overlay" id="modal-dagplus">
-  <div class="modal" style="max-width:440px">
-    <h2>Nieuwe taak</h2>
-    <p id="dp-info" style="color:var(--grey);font-size:12px;margin-bottom:16px"></p>
-    <div class="dp-kiezer" style="display:flex;flex-direction:column;gap:10px">
-      <button class="dp-optie" type="button" onclick="onDagPlusKies('contract')">
-        <strong>Contract-beurt</strong>
-        <small>Beurt plannen uit een lopend contract</small>
-      </button>
-      <button class="dp-optie" type="button" onclick="onDagPlusKies('eenmalig')">
-        <strong>Losse opdracht</strong>
-        <small>Eenmalige klus zonder contract — geen rapport vereist</small>
-      </button>
-      <button class="dp-optie" type="button" onclick="onDagPlusKies('interventie')">
-        <strong>Interventie</strong>
-        <small>Storing of dringende herstelling</small>
-      </button>
-    </div>
-    <div class="modal-buttons">
-      <div class="footer-right" style="margin-left:auto">
-        <button type="button" class="btn btn-ghost" onclick="closeDagPlusKiezer()">Annuleren</button>
+  <div class="modal sp-modal" role="dialog" aria-modal="true" aria-labelledby="sp-title">
+    <div class="sp-header">
+      <div class="sp-header-text">
+        <h2 id="sp-title">
+          <span id="sp-context-tech"></span>
+          <span class="sp-header-sep" aria-hidden="true"> &middot; </span>
+          <span id="sp-context-date"></span>
+        </h2>
+        <p id="dp-info" class="sp-header-sub"></p>
       </div>
+      <button type="button" class="sp-close" onclick="closeDagPlusKiezer()" aria-label="Sluiten">&times;</button>
+    </div>
+    <div class="sp-search-wrap">
+      <svg class="sp-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="sp-search" class="sp-search" type="search" autocomplete="off" placeholder="Zoek klant, opdracht, sector&hellip;" aria-label="Zoekveld" />
+    </div>
+    <div class="sp-body" id="sp-body">
+      <section class="sp-section" id="sp-suggesties-wrap">
+        <h3 class="sp-section-title">Suggesties</h3>
+        <div id="sp-suggesties" class="sp-list" role="list"></div>
+      </section>
+      <section class="sp-section" id="sp-lopend-wrap">
+        <h3 class="sp-section-title">Lopende opdrachten</h3>
+        <div id="sp-lopend" class="sp-list" role="list"></div>
+      </section>
+      <section class="sp-section" id="sp-gepland-wrap">
+        <h3 class="sp-section-title">Gepland / in te plannen</h3>
+        <div id="sp-gepland" class="sp-list" role="list"></div>
+      </section>
+    </div>
+    <!-- Sub-flow zone: bij klik op "+ Nieuwe opdracht" verschijnt hier de oude 3-button kiezer -->
+    <div class="sp-actions-zone" id="sp-actions-zone" hidden>
+      <h3 class="sp-section-title" style="margin-bottom:10px">Type opdracht</h3>
+      <div class="dp-kiezer" style="display:flex;flex-direction:column;gap:10px">
+        <button class="dp-optie" type="button" onclick="onDagPlusKies('contract')">
+          <strong>Contract-beurt</strong>
+          <small>Beurt plannen uit een lopend contract</small>
+        </button>
+        <button class="dp-optie" type="button" onclick="onDagPlusKies('eenmalig')">
+          <strong>Losse opdracht</strong>
+          <small>Eenmalige klus zonder contract \u2014 geen rapport vereist</small>
+        </button>
+        <button class="dp-optie" type="button" onclick="onDagPlusKies('interventie')">
+          <strong>Interventie</strong>
+          <small>Storing of dringende herstelling</small>
+        </button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px">
+        <button type="button" class="btn btn-ghost" onclick="slotB_backToList()">&larr; Terug naar lijst</button>
+      </div>
+    </div>
+    <div class="sp-actions" id="sp-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeDagPlusKiezer()">Annuleren</button>
+      <div class="sp-actions-spacer"></div>
+      <button type="button" class="btn btn-secondary" onclick="slotB_actionBeschikbaarheid()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Beschikbaarheid
+      </button>
+      <button type="button" class="btn btn-primary" onclick="slotB_actionNewOpdracht()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Nieuwe opdracht
+      </button>
     </div>
   </div>
 </div>
@@ -8794,6 +8964,607 @@ async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
 }
 
 // =============================================
+// SLOT B — SMART PICKER (cell-click → klant/opdracht-keuze)
+// ============================================================================
+// Vervangt de oude 3-button kiezer (Contract/Losse/Interventie) met een
+// search-first interface: bij klik op een lege cel zien admins direct
+// suggesties, lopende opdrachten en in-te-plannen werk dat aan deze
+// (technieker, datum)-combinatie kan worden toegevoegd. De originele 3-button
+// kiezer blijft intact als sub-flow onder "+ Nieuwe opdracht".
+//
+// Semantiek upsert in beurt_planning_dagen — relevant voor toekomstige
+// Slot M (collision-prevention):
+//   - Geen bestaand dag-record (beurtId, datum) → INSERT met
+//     technieker_id = picked, extra_technieker_ids = [].
+//   - Bestaand dag-record met technieker_id === picked → no-op + toast
+//     'al toegekend'.
+//   - Bestaand dag-record met picked in extra_technieker_ids → idem.
+//   - Anders → UPDATE: voeg picked toe aan extra_technieker_ids (extra tech
+//     bovenop hoofdtechnieker). Slot M zal hier later strengere checks doen
+//     (capaciteit/conflict).
+// =============================================
+var slotB_state = {
+  techId: null,
+  datum: null,
+  scrollPos: 0,
+  searchTimer: null,
+  searchedFiredOnce: false,
+  contextSrc: 'unknown', // 'week'|'day'|'month' — voor Slot 0 telemetry
+  prevFocus: null,
+  escHandler: null,
+  overlayHandler: null,
+  searchInputHandler: null,
+  // Cache van laatste-gerenderde rows per sectie zodat search filtert zonder rerender.
+  lastRowsBySection: { suggesties: [], lopend: [], gepland: [] }
+};
+
+/**
+ * Slot 0 telemetry-helper. Faalt veilig als window.flanccoTrack ontbreekt
+ * (bv. door adblocker). Geen klant-PII.
+ */
+function slotB_track(event, props) {
+  if (typeof window.flanccoTrack !== 'function') return;
+  try { window.flanccoTrack(event, props || {}); } catch (_) {}
+}
+
+/**
+ * Geeft de last-known view-context voor telemetry. Bij maand-cell-click is
+ * de gebruiker al naar dag-view geschakeld, dus die wordt 'day'. We
+ * onthouden 'month' tijdelijk via slotB_state.contextSrc waar opportuun.
+ */
+function slotB_detectContext() {
+  if (slotB_state.contextSrc && slotB_state.contextSrc !== 'unknown') return slotB_state.contextSrc;
+  if (typeof currentView === 'string') {
+    if (currentView === 'week') return 'week';
+    if (currentView === 'dag') return 'day';
+    if (currentView === 'maand') return 'month';
+  }
+  return 'unknown';
+}
+
+/**
+ * Bepaalt of `picked` techId al toegekend is op (beurtId, datum). Returnt
+ * 'primary'|'extra'|'none'.
+ */
+function slotB_techAssignmentRole(beurtId, datum, pickedTechId) {
+  if (!beurtId || !datum || !pickedTechId) return 'none';
+  var dag = (typeof getDagForBeurtOnDate === 'function') ? getDagForBeurtOnDate(beurtId, datum) : null;
+  if (!dag) return 'none';
+  if (dag.technieker_id === pickedTechId) return 'primary';
+  var extras = Array.isArray(dag.extra_technieker_ids) ? dag.extra_technieker_ids : [];
+  if (extras.indexOf(pickedTechId) >= 0) return 'extra';
+  return 'none';
+}
+
+/**
+ * Geeft de "laatste-N dag-records" voor een tech, gesorteerd op datum desc.
+ * Gebruikt voor scoring (sector/partner/postcode-affiniteit).
+ */
+function slotB_recentDaysForTech(techId, limit) {
+  limit = limit || 5;
+  var arr = (window.allPlanningDagen || []).filter(function(d) {
+    return d && (d.technieker_id === techId ||
+      (Array.isArray(d.extra_technieker_ids) && d.extra_technieker_ids.indexOf(techId) >= 0));
+  });
+  arr.sort(function(a, b) { return (b.datum || '').localeCompare(a.datum || ''); });
+  return arr.slice(0, limit);
+}
+
+/**
+ * Scoort een beurt voor de actieve (techId, datum). Hogere score = sterkere
+ * suggestie. Geen klant-PII in transparency-string.
+ */
+function slotB_scoreBeurt(beurt, techId, datum, recentBeurtenForTech) {
+  if (!beurt) return -Infinity;
+  // Hard filter: skip als deze tech reeds toegekend is op deze datum.
+  if (slotB_techAssignmentRole(beurt.id, datum, techId) !== 'none') return -Infinity;
+  var score = 0;
+  var info = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : { sector: '', postcode: '' };
+  // Sector-affiniteit
+  var sectorsRecent = recentBeurtenForTech.map(function(b) { return ((typeof getClientInfo === 'function') ? getClientInfo(b).sector : '') || ''; });
+  if (info.sector && sectorsRecent.indexOf(info.sector) >= 0) score += 30;
+  // Partner-affiniteit
+  var partnerId = null;
+  var contract = (window.allContracten || []).find(function(c) { return c.id === beurt.contract_id; });
+  if (contract && contract.partner_id) partnerId = contract.partner_id;
+  var partnersRecent = recentBeurtenForTech.map(function(b) {
+    var c = (window.allContracten || []).find(function(x) { return x.id === b.contract_id; });
+    return c ? c.partner_id : null;
+  }).filter(Boolean);
+  if (partnerId && partnersRecent.indexOf(partnerId) >= 0) score += 20;
+  // Postcode-affiniteit (eerste 2 digits)
+  var prefix = (typeof getPostcodePrefix === 'function') ? getPostcodePrefix(info.postcode) : null;
+  var prefixesRecent = recentBeurtenForTech.map(function(b) {
+    var i = (typeof getClientInfo === 'function') ? getClientInfo(b) : {};
+    return (typeof getPostcodePrefix === 'function') ? getPostcodePrefix(i.postcode) : null;
+  }).filter(function(p) { return p !== null; });
+  if (prefix !== null && prefixesRecent.indexOf(prefix) >= 0) score += 15;
+  // Multi-day in uitvoering = hogere prioriteit
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurt.id) : [];
+  if (dagen.length > 1) score += 10;
+  if (beurt.status === 'ingepland') score += 5;
+  return score;
+}
+
+/**
+ * Bouwt de "recent-beurten" lijst voor tech (om sector/partner/postcode te scoren).
+ * Returnt array van beurt-objecten (geen dag-records).
+ */
+function slotB_recentBeurtenForTech(techId, limit) {
+  var dagen = slotB_recentDaysForTech(techId, limit || 5);
+  var beurtMap = {};
+  dagen.forEach(function(d) {
+    var b = (window.allBeurten || []).find(function(x) { return x.id === d.beurt_id; });
+    if (b && !beurtMap[b.id]) beurtMap[b.id] = b;
+  });
+  return Object.keys(beurtMap).map(function(k) { return beurtMap[k]; });
+}
+
+/** Formatteer datum als 'dinsdag 28 april' (NL) — alleen zichtbare context-string. */
+function slotB_formatDateLong(dateISO) {
+  if (!dateISO) return '';
+  var d = (typeof parseDate === 'function') ? parseDate(dateISO) : new Date(dateISO);
+  if (!d || isNaN(d.getTime())) return dateISO;
+  var dagen = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  var maanden = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  return dagen[d.getDay()] + ' ' + d.getDate() + ' ' + maanden[d.getMonth()];
+}
+
+/** Formatteer multi-day range bv. '28-30 apr' of single 'wo 28 apr'. */
+function slotB_formatDagRange(beurt) {
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurt.id) : [];
+  if (!dagen.length) {
+    if (beurt.plan_datum) return 'plan ' + (typeof fmtDate === 'function' ? fmtDate(beurt.plan_datum) : beurt.plan_datum);
+    return 'niet gepland';
+  }
+  if (dagen.length === 1) return 'op ' + (typeof fmtDate === 'function' ? fmtDate(dagen[0].datum) : dagen[0].datum);
+  var first = dagen[0].datum;
+  var last = dagen[dagen.length - 1].datum;
+  return 'loopt ' + (typeof fmtDate === 'function' ? fmtDate(first) : first) + ' \u2192 ' + (typeof fmtDate === 'function' ? fmtDate(last) : last);
+}
+
+/** Telt unieke techs voor een beurt over alle dag-records. */
+function slotB_countTechs(beurt) {
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurt.id) : [];
+  var set = {};
+  dagen.forEach(function(d) {
+    if (d.technieker_id) set[d.technieker_id] = true;
+    if (Array.isArray(d.extra_technieker_ids)) d.extra_technieker_ids.forEach(function(t) { set[t] = true; });
+  });
+  if (!Object.keys(set).length && beurt.technieker_id) set[beurt.technieker_id] = true;
+  return Object.keys(set).length;
+}
+
+/**
+ * Bouwt 1 row-element voor sectie. `source` ∈ 'suggesties'|'lopend'|'gepland'
+ * voor telemetry. Geeft DOM-element terug zodat we event-listeners hangen
+ * zonder string-interpolation (XSS-defense, zelfs voor UUIDs).
+ */
+function slotB_buildRow(beurt, source) {
+  var info = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : { naam: '', sector: '', postcode: '', gemeente: '' };
+  var sector = info.sector || '';
+  var sectorColor = (typeof getSectorColor === 'function') ? getSectorColor(sector) : '#6B7280';
+  var sectorLabel = (typeof getSectorLabel === 'function') ? getSectorLabel(sector) : sector;
+  var statusLabel = (function(s) {
+    if (s === 'ingepland') return 'Gepland';
+    if (s === 'in_te_plannen') return 'In te plannen';
+    if (s === 'uitgevoerd') return 'Uitgevoerd';
+    if (s === 'afgewerkt') return 'Afgewerkt';
+    if (s === 'geannuleerd') return 'Geannuleerd';
+    return s || '';
+  })(beurt.status);
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurt.id) : [];
+  var isMulti = dagen.length > 1;
+  var techCount = slotB_countTechs(beurt);
+  var rangeStr = slotB_formatDagRange(beurt);
+  var partner = null;
+  if (beurt.contract_id) {
+    var c = (window.allContracten || []).find(function(x) { return x.id === beurt.contract_id; });
+    if (c && c.partner_id) {
+      var p = (window.allPartners || []).find(function(pp) { return pp.id === c.partner_id; });
+      if (p) partner = p.naam;
+    }
+  }
+
+  var row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'sp-row';
+  row.setAttribute('role', 'listitem');
+  row.dataset.beurtId = beurt.id;
+  row.dataset.source = source;
+  // Searchable haystack — alle relevante text lowercased
+  var haystack = [
+    info.naam, info.sector, info.postcode, info.gemeente,
+    sectorLabel, partner || '', beurt.id || '', beurt.opdracht_type || ''
+  ].filter(Boolean).join(' ').toLowerCase();
+  row.dataset.haystack = haystack;
+
+  // Top-row: dot + title + pill
+  var top = document.createElement('div');
+  top.className = 'sp-row-top';
+  var dot = document.createElement('span');
+  dot.className = 'sp-sector-dot';
+  dot.style.background = sectorColor;
+  dot.setAttribute('aria-hidden', 'true');
+  top.appendChild(dot);
+  var titleEl = document.createElement('span');
+  titleEl.className = 'sp-row-title';
+  titleEl.textContent = info.naam || 'Onbekende klant';
+  top.appendChild(titleEl);
+  if (isMulti) {
+    var pillM = document.createElement('span');
+    pillM.className = 'sp-row-pill is-multi';
+    pillM.textContent = dagen.length + ' dagen';
+    top.appendChild(pillM);
+  }
+  if (statusLabel) {
+    var pill = document.createElement('span');
+    pill.className = 'sp-row-pill';
+    pill.textContent = statusLabel;
+    top.appendChild(pill);
+  }
+  row.appendChild(top);
+
+  // Meta-row: sector, locatie, range, tech-count
+  var meta = document.createElement('div');
+  meta.className = 'sp-row-meta';
+  function metaItem(text) {
+    if (!text) return null;
+    var span = document.createElement('span');
+    span.className = 'sp-row-meta-item';
+    span.textContent = text;
+    return span;
+  }
+  var locStr = [info.postcode, info.gemeente].filter(Boolean).join(' ');
+  var items = [
+    sectorLabel ? sectorLabel : null,
+    locStr ? locStr : null,
+    rangeStr,
+    techCount ? (techCount + (techCount === 1 ? ' tech' : ' techs')) : null,
+    partner ? ('via ' + partner) : null
+  ];
+  items.forEach(function(t) {
+    var el = metaItem(t);
+    if (el) meta.appendChild(el);
+  });
+  row.appendChild(meta);
+
+  // Click-handler
+  row.addEventListener('click', function() {
+    slotB_pickBeurt(beurt.id, source);
+  });
+
+  return row;
+}
+
+/**
+ * Render lijst in container. `getRows()` returnt array van beurten. Toont
+ * empty-state als leeg of als onderliggende collectie missing.
+ */
+function slotB_renderList(containerId, beurten, emptyMsg, source, sectionKey) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = '';
+  if (!beurten || !beurten.length) {
+    var empty = document.createElement('div');
+    empty.className = 'sp-empty';
+    empty.textContent = emptyMsg;
+    el.appendChild(empty);
+    slotB_state.lastRowsBySection[sectionKey] = [];
+    return;
+  }
+  var rows = [];
+  beurten.forEach(function(b) {
+    var row = slotB_buildRow(b, source);
+    el.appendChild(row);
+    rows.push(row);
+  });
+  slotB_state.lastRowsBySection[sectionKey] = rows;
+}
+
+/** Render alle 3 secties + context-header + bind search. */
+function slotB_renderSmartPicker(techId, datum) {
+  slotB_state.techId = techId;
+  slotB_state.datum = datum;
+  slotB_state.searchedFiredOnce = false;
+
+  var tech = (window.allTechniekers || []).find(function(t) { return t.id === techId; });
+  var techName = tech ? (tech.voornaam + ' ' + tech.naam) : 'Technieker';
+  var dateLong = slotB_formatDateLong(datum);
+
+  var techEl = document.getElementById('sp-context-tech');
+  var dateEl = document.getElementById('sp-context-date');
+  if (techEl) techEl.textContent = techName;
+  if (dateEl) dateEl.textContent = dateLong;
+  // dp-info: legacy element behouden voor backward-compat (sommige scripts lezen het)
+  var info = document.getElementById('dp-info');
+  if (info) info.textContent = (datum || '');
+
+  // Input reset
+  var search = document.getElementById('sp-search');
+  if (search) search.value = '';
+
+  // Lijsten renderen
+  slotB_renderSuggesties(techId, datum);
+  slotB_renderLopend(techId, datum);
+  slotB_renderGepland(techId, datum);
+
+  // Search binden
+  slotB_bindSearch();
+}
+
+/** Top 5 gescoorde beurten exclusief degene waar deze tech al op datum is. */
+function slotB_renderSuggesties(techId, datum) {
+  var beurten = (window.allBeurten || []).filter(function(b) {
+    if (!b || !b.id) return false;
+    if (b.status === 'geannuleerd' || b.status === 'afgewerkt') return false;
+    return slotB_techAssignmentRole(b.id, datum, techId) === 'none';
+  });
+  var recent = slotB_recentBeurtenForTech(techId, 5);
+  var scored = beurten.map(function(b) {
+    return { beurt: b, score: slotB_scoreBeurt(b, techId, datum, recent) };
+  }).filter(function(x) { return x.score > 0; });
+  scored.sort(function(a, b) { return b.score - a.score; });
+  var top = scored.slice(0, 5).map(function(x) { return x.beurt; });
+  slotB_renderList('sp-suggesties', top, 'Geen suggesties op dit moment.', 'suggesties', 'suggesties');
+}
+
+/** "Lopende": ingepland + multi-day OR extra-techs aanwezig. */
+function slotB_renderLopend(techId, datum) {
+  var beurten = (window.allBeurten || []).filter(function(b) {
+    if (!b || !b.id) return false;
+    if (b.status !== 'ingepland' && b.status !== 'uitgevoerd') return false;
+    if (b.status === 'uitgevoerd') return false; // afronding-cyclus, niet relevant voor toevoegen
+    var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(b.id) : [];
+    var isMulti = dagen.length > 1;
+    var hasExtra = Array.isArray(b.extra_technieker_ids) && b.extra_technieker_ids.length > 0;
+    if (!isMulti && !hasExtra) return false;
+    if (slotB_techAssignmentRole(b.id, datum, techId) !== 'none') return false;
+    return true;
+  });
+  // Sorteer op laatste-dag-datum desc (recentst eerst)
+  beurten.sort(function(a, b) {
+    var da = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(a.id) : [];
+    var db = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(b.id) : [];
+    var la = da.length ? da[da.length - 1].datum : '';
+    var lb = db.length ? db[db.length - 1].datum : '';
+    return (lb || '').localeCompare(la || '');
+  });
+  slotB_renderList('sp-lopend', beurten.slice(0, 10), 'Geen lopende opdrachten.', 'lopend', 'lopend');
+}
+
+/** "Gepland / in te plannen": status in_te_plannen of ingepland zonder multi-day. */
+function slotB_renderGepland(techId, datum) {
+  var beurten = (window.allBeurten || []).filter(function(b) {
+    if (!b || !b.id) return false;
+    var validStatus = (b.status === 'in_te_plannen' || b.status === 'ingepland');
+    if (!validStatus) return false;
+    if (slotB_techAssignmentRole(b.id, datum, techId) !== 'none') return false;
+    // Skip multi-day (die zit al in 'lopend')
+    var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(b.id) : [];
+    if (dagen.length > 1) return false;
+    return true;
+  });
+  // Sorteer op postcode (route-vriendelijk) als helper bestaat, anders op plan_datum
+  if (typeof sortBeurtenByPostcode === 'function') {
+    beurten = sortBeurtenByPostcode(beurten);
+  } else {
+    beurten.sort(function(a, b) { return (a.plan_datum || '9999').localeCompare(b.plan_datum || '9999'); });
+  }
+  slotB_renderList('sp-gepland', beurten.slice(0, 10), 'Geen geplande opdrachten.', 'gepland', 'gepland');
+}
+
+/**
+ * Pick-handler. Voert upsert uit met multi-tech semantiek (zie module-comment).
+ * Refresh-flow: loadPlanningData() + renderView() + renderSidebar().
+ */
+async function slotB_pickBeurt(beurtId, source) {
+  if (!beurtId || !slotB_state.datum || !slotB_state.techId) {
+    if (typeof showToast === 'function') showToast('Selectie ongeldig', 'error');
+    return;
+  }
+  var datum = slotB_state.datum;
+  var techId = slotB_state.techId;
+  var beurt = (window.allBeurten || []).find(function(b) { return b.id === beurtId; });
+  if (!beurt) {
+    if (typeof showToast === 'function') showToast('Opdracht niet gevonden', 'error');
+    return;
+  }
+  var existing = (typeof getDagForBeurtOnDate === 'function') ? getDagForBeurtOnDate(beurtId, datum) : null;
+  var role = slotB_techAssignmentRole(beurtId, datum, techId);
+  if (role === 'primary' || role === 'extra') {
+    if (typeof showToast === 'function') showToast('Deze technieker is al toegekend op deze datum', 'info');
+    slotB_track('Smart Picker Pick', { source: source || 'unknown', has_existing_dag: true, result: 'duplicate' });
+    return;
+  }
+
+  var payload;
+  var operation; // 'insert' | 'update'
+  if (!existing) {
+    // INSERT — overneem defaults uit andere dag van deze beurt of uit beurt
+    var siblingDagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
+    var sibling = siblingDagen[0];
+    payload = {
+      beurt_id: beurtId,
+      datum: datum,
+      start_tijd: (sibling && sibling.start_tijd) || beurt.start_tijd || null,
+      duur_minuten: (sibling && sibling.duur_minuten) || beurt.duur_minuten || 60,
+      technieker_id: techId,
+      extra_technieker_ids: []
+    };
+    operation = 'insert';
+  } else {
+    // UPDATE — voeg toe als extra technieker
+    var extras = Array.isArray(existing.extra_technieker_ids) ? existing.extra_technieker_ids.slice() : [];
+    extras.push(techId);
+    payload = {
+      beurt_id: beurtId,
+      datum: datum,
+      start_tijd: existing.start_tijd,
+      duur_minuten: existing.duur_minuten,
+      technieker_id: existing.technieker_id,
+      extra_technieker_ids: extras
+    };
+    operation = 'update';
+  }
+
+  try {
+    var res = await sb.from('beurt_planning_dagen').upsert(payload, { onConflict: 'beurt_id,datum' });
+    if (res.error) {
+      if (typeof showToast === 'function') showToast('Fout: ' + res.error.message, 'error');
+      slotB_track('Smart Picker Pick', { source: source || 'unknown', has_existing_dag: !!existing, result: 'error' });
+      return;
+    }
+  } catch (e) {
+    if (typeof showToast === 'function') showToast('Fout: ' + ((e && e.message) || 'onbekend'), 'error');
+    slotB_track('Smart Picker Pick', { source: source || 'unknown', has_existing_dag: !!existing, result: 'exception' });
+    return;
+  }
+
+  // Refresh planning-data zodat trigger-output (parent onderhoudsbeurt) klopt
+  try {
+    if (typeof loadPlanningData === 'function') await loadPlanningData();
+  } catch (_) {}
+  if (typeof renderView === 'function') renderView();
+  if (typeof renderSidebar === 'function') renderSidebar();
+
+  var info = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : { naam: '' };
+  var clientLabel = info.naam || 'opdracht';
+  var msg = (operation === 'insert')
+    ? ('Nieuwe planning-dag aangemaakt voor ' + clientLabel)
+    : ('Toegevoegd als extra technieker bij ' + clientLabel);
+  if (typeof showToast === 'function') showToast(msg, 'success');
+
+  slotB_track('Smart Picker Pick', {
+    source: source || 'unknown',
+    has_existing_dag: !!existing,
+    result: 'ok',
+    operation: operation
+  });
+
+  closeDagPlusKiezer();
+}
+
+/** "+ Nieuwe opdracht" — toon de oude 3-button kiezer als sub-flow. */
+function slotB_actionNewOpdracht() {
+  var modal = document.getElementById('modal-dagplus');
+  var inner = modal && modal.querySelector('.sp-modal');
+  var zone = document.getElementById('sp-actions-zone');
+  if (inner) inner.classList.add('sp-mode-subflow');
+  if (zone) zone.hidden = false;
+  slotB_track('Smart Picker New Opdracht Clicked', { context: slotB_detectContext() });
+}
+
+/** Terug van sub-flow naar lijst. */
+function slotB_backToList() {
+  var modal = document.getElementById('modal-dagplus');
+  var inner = modal && modal.querySelector('.sp-modal');
+  var zone = document.getElementById('sp-actions-zone');
+  if (inner) inner.classList.remove('sp-mode-subflow');
+  if (zone) zone.hidden = true;
+}
+
+/**
+ * "+ Beschikbaarheid" — opent de bestaande verlof-modal voor (tech, datum).
+ * Als de helper niet beschikbaar is, toon coming-soon toast.
+ */
+function slotB_actionBeschikbaarheid() {
+  slotB_track('Smart Picker Beschikbaarheid Clicked', { context: slotB_detectContext() });
+  if (typeof openQuickVerlofModal === 'function' && slotB_state.techId && slotB_state.datum) {
+    closeDagPlusKiezer();
+    openQuickVerlofModal(slotB_state.techId, slotB_state.datum, null, null);
+    return;
+  }
+  if (typeof showToast === 'function') showToast('Beschikbaarheid-flow komt in volgende release', 'info');
+}
+
+/** Bind input-handler op #sp-search met debounce. */
+function slotB_bindSearch() {
+  var search = document.getElementById('sp-search');
+  if (!search) return;
+  // Idempotent: verwijder oude handler eerst
+  if (slotB_state.searchInputHandler) {
+    search.removeEventListener('input', slotB_state.searchInputHandler);
+  }
+  slotB_state.searchInputHandler = function(e) {
+    if (!slotB_state.searchedFiredOnce) {
+      slotB_state.searchedFiredOnce = true;
+      slotB_track('Smart Picker Searched', {});
+    }
+    if (slotB_state.searchTimer) clearTimeout(slotB_state.searchTimer);
+    slotB_state.searchTimer = setTimeout(function() {
+      slotB_applySearchFilter(String(e.target.value || '').toLowerCase().trim());
+    }, 100);
+  };
+  search.addEventListener('input', slotB_state.searchInputHandler);
+}
+
+/** Filtert reeds-gerenderde rows op haystack. Toont/verbergt secties als leeg. */
+function slotB_applySearchFilter(query) {
+  var sections = [
+    { key: 'suggesties', wrap: 'sp-suggesties-wrap', list: 'sp-suggesties', empty: 'Geen suggesties die matchen.' },
+    { key: 'lopend', wrap: 'sp-lopend-wrap', list: 'sp-lopend', empty: 'Geen lopende opdrachten die matchen.' },
+    { key: 'gepland', wrap: 'sp-gepland-wrap', list: 'sp-gepland', empty: 'Geen geplande opdrachten die matchen.' }
+  ];
+  sections.forEach(function(s) {
+    var rows = slotB_state.lastRowsBySection[s.key] || [];
+    var visibleCount = 0;
+    rows.forEach(function(r) {
+      if (!query) { r.style.display = ''; visibleCount++; return; }
+      if ((r.dataset.haystack || '').indexOf(query) >= 0) {
+        r.style.display = ''; visibleCount++;
+      } else {
+        r.style.display = 'none';
+      }
+    });
+    var listEl = document.getElementById(s.list);
+    var existingEmpty = listEl ? listEl.querySelector('.sp-empty.sp-empty-search') : null;
+    if (rows.length && visibleCount === 0) {
+      if (!existingEmpty && listEl) {
+        var em = document.createElement('div');
+        em.className = 'sp-empty sp-empty-search';
+        em.textContent = s.empty;
+        listEl.appendChild(em);
+      }
+    } else if (existingEmpty) {
+      existingEmpty.remove();
+    }
+  });
+}
+
+/** Cleanup bij sluiten — focus restore, listeners verwijderen, sub-flow reset. */
+function slotB_closeAndCleanup() {
+  // Sub-flow zone resetten
+  slotB_backToList();
+  // Search handler ontkoppelen
+  var search = document.getElementById('sp-search');
+  if (search && slotB_state.searchInputHandler) {
+    search.removeEventListener('input', slotB_state.searchInputHandler);
+  }
+  slotB_state.searchInputHandler = null;
+  if (slotB_state.searchTimer) {
+    clearTimeout(slotB_state.searchTimer);
+    slotB_state.searchTimer = null;
+  }
+  // ESC + overlay-click
+  if (slotB_state.escHandler) {
+    document.removeEventListener('keydown', slotB_state.escHandler);
+    slotB_state.escHandler = null;
+  }
+  var modal = document.getElementById('modal-dagplus');
+  if (modal && slotB_state.overlayHandler) {
+    modal.removeEventListener('click', slotB_state.overlayHandler);
+    slotB_state.overlayHandler = null;
+  }
+  // Focus restore
+  if (slotB_state.prevFocus && typeof slotB_state.prevFocus.focus === 'function') {
+    try { slotB_state.prevFocus.focus(); } catch (_) {}
+  }
+  slotB_state.prevFocus = null;
+  slotB_state.contextSrc = 'unknown';
+}
+
+// =============================================
 // DAG-PLUS KEUZEMENU — routeert naar contract/eenmalig/interventie
 // =============================================
 var dpContext = { techId: null, datum: null };
@@ -8801,6 +9572,16 @@ var dpContext = { techId: null, datum: null };
 function openDagPlusKiezer(techId, datum) {
   // Slot K — onderschep met soft-warning als datum een feestdag/sluitingsperiode is.
   // checkFeestdagAndProceed roept de callback meteen aan als er niets matcht.
+  // Slot B — context-detectie vóór de modal opent (currentView kan wijzigen
+  // bij maand→dag-redirect; zie monthDayClick).
+  slotB_state.contextSrc = (function() {
+    if (typeof currentView === 'string') {
+      if (currentView === 'week') return 'week';
+      if (currentView === 'dag') return 'day';
+      if (currentView === 'maand') return 'month';
+    }
+    return 'unknown';
+  })();
   if (typeof checkFeestdagAndProceed === 'function') {
     checkFeestdagAndProceed(datum, function() { _openDagPlusKiezerInternal(techId, datum); });
   } else {
@@ -8811,18 +9592,40 @@ function openDagPlusKiezer(techId, datum) {
 function _openDagPlusKiezerInternal(techId, datum) {
   dpContext.techId = techId;
   dpContext.datum = datum;
-  var tech = allTechniekers.find(function(t) { return t.id === techId; });
-  var info = document.getElementById('dp-info');
-  if (info) info.textContent = (tech ? tech.voornaam + ' ' + tech.naam : '') + (datum ? ' — ' + datum : '');
-  document.getElementById('modal-dagplus').classList.add('open');
+  // Slot B — render smart-picker UI vóór de modal getoond wordt.
+  slotB_state.prevFocus = document.activeElement;
+  if (typeof slotB_renderSmartPicker === 'function') {
+    try { slotB_renderSmartPicker(techId, datum); } catch (e) { console.warn('[Slot B] render mislukt:', e); }
+  }
+  var modal = document.getElementById('modal-dagplus');
+  modal.classList.add('open');
+  // ESC-close + click-outside close (één keer per open-cyclus binden)
+  slotB_state.escHandler = function(ev) {
+    if (ev.key === 'Escape') { ev.preventDefault(); closeDagPlusKiezer(); }
+  };
+  document.addEventListener('keydown', slotB_state.escHandler);
+  slotB_state.overlayHandler = function(ev) {
+    if (ev.target === ev.currentTarget) closeDagPlusKiezer();
+  };
+  modal.addEventListener('click', slotB_state.overlayHandler);
+  // Focus de zoekbalk voor snelle keyboard-flow
+  setTimeout(function() {
+    var s = document.getElementById('sp-search');
+    if (s) try { s.focus(); } catch (_) {}
+  }, 60);
+  slotB_track('Smart Picker Opened', { context: slotB_detectContext() });
 }
 
 function closeDagPlusKiezer() {
-  document.getElementById('modal-dagplus').classList.remove('open');
+  var modal = document.getElementById('modal-dagplus');
+  if (modal) modal.classList.remove('open');
+  slotB_closeAndCleanup();
 }
 
 function onDagPlusKies(type) {
   closeDagPlusKiezer();
+  // Slot B telemetry — welke sub-type werd gekozen
+  slotB_track('Smart Picker New Opdracht Clicked', { subtype: type });
   openNieuweTaakModal({ type: type, techId: dpContext.techId, datum: dpContext.datum });
 }
 
