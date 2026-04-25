@@ -130,6 +130,41 @@
   .radio-option .radio-text small { font-weight: 400; color: var(--grey); display: block; font-size: 12px; margin-top: 2px; }
   .radio-option:has(input:checked) { border-color: var(--primary); background: var(--primary-bg); }
 
+  /* KLANT-TYPE TOGGLE (Slot O1) — chip-pills bovenaan stap 2 */
+  .ktype-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ktype-chip { position: relative; display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: var(--white); border: 1.5px solid var(--rule); border-radius: 12px; cursor: pointer; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
+  .ktype-chip:hover { border-color: var(--primary-light); background: var(--light); }
+  .ktype-chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .ktype-chip:has(input:checked) { border-color: var(--primary); background: var(--primary-bg); box-shadow: 0 0 0 3px rgba(9,137,121,0.10); }
+  .ktype-chip:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .ktype-chip-icon { width: 38px; height: 38px; border-radius: 10px; background: var(--light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; }
+  .ktype-chip-icon svg { width: 20px; height: 20px; stroke: var(--grey); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s; }
+  .ktype-chip:has(input:checked) .ktype-chip-icon { background: var(--primary); }
+  .ktype-chip:has(input:checked) .ktype-chip-icon svg { stroke: var(--white); }
+  .ktype-chip-body { flex: 1; min-width: 0; }
+  .ktype-chip-title { font-size: 14px; font-weight: 600; color: var(--black); }
+  .ktype-chip-sub { font-size: 12px; color: var(--grey); margin-top: 2px; }
+  @media (max-width: 480px) { .ktype-toggle { grid-template-columns: 1fr; } }
+
+  /* BEDRIJF-VELDEN — animated reveal zonder layout-shift */
+  .bedrijf-fields { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease; margin-top: 0; }
+  .bedrijf-fields.is-open { max-height: 600px; opacity: 1; margin-top: 20px; }
+
+  /* VIES STATUS */
+  .vies-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; min-height: 20px; opacity: 0; transition: opacity 0.2s; }
+  .vies-status.is-visible { opacity: 1; }
+  .vies-status[data-state="loading"] { color: var(--grey); }
+  .vies-status[data-state="valid"] { color: #16A34A; }
+  .vies-status[data-state="invalid"] { color: var(--red); }
+  .vies-status[data-state="error"] { color: #D97706; }
+  .vies-spinner { width: 14px; height: 14px; border: 2px solid rgba(107,114,128,0.25); border-top-color: var(--grey); border-radius: 50%; animation: vies-spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes vies-spin { to { transform: rotate(360deg); } }
+  .vies-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .vies-icon svg { width: 16px; height: 16px; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .field input.is-vies-valid { border-color: #16A34A; box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
+  .field input.is-vies-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,62,62,0.12); }
+  .field input.is-vies-error { border-color: #D97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.12); }
+
   /* TOGGLES */
   .toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--light); border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: background 0.2s; }
   .toggle-group:hover { background: var(--primary-bg); }
@@ -572,9 +607,53 @@
   <div class="section" id="step-2">
     <div class="intro"><h1 data-i18n="step2.title">Uw gegevens</h1><p data-i18n="step2.subtitle">Vul hieronder uw gegevens in om uw persoonlijke overeenkomst op te stellen.</p></div>
 
+    <!-- KLANT-TYPE TOGGLE (Slot O1) -->
+    <div class="card">
+      <div class="card-title" data-i18n="klantType.title">U bent&hellip;</div>
+      <div class="ktype-toggle" role="radiogroup" aria-label="Klanttype">
+        <label class="ktype-chip">
+          <input type="radio" name="klant-subtype" value="particulier" checked onchange="onKlantSubtypeChange()">
+          <span class="ktype-chip-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <span class="ktype-chip-body">
+            <span class="ktype-chip-title" data-i18n="klantType.particulier">Particulier</span>
+            <span class="ktype-chip-sub" data-i18n="klantType.particulierSub">Privépersoon zonder BTW-nummer</span>
+          </span>
+        </label>
+        <label class="ktype-chip">
+          <input type="radio" name="klant-subtype" value="bedrijf" onchange="onKlantSubtypeChange()">
+          <span class="ktype-chip-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+          </span>
+          <span class="ktype-chip-body">
+            <span class="ktype-chip-title" data-i18n="klantType.bedrijf">Bedrijf</span>
+            <span class="ktype-chip-sub" data-i18n="klantType.bedrijfSub">Met BTW-nummer (B2B)</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title" data-i18n="step2.personal">Persoonsgegevens</div>
-      <div class="field"><label><span data-i18n="step2.naam">Naam / Bedrijfsnaam</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-naam" data-i18n-attr="placeholder:step2.naamPh" placeholder="Bijv. Jan Janssen of Janssen B.V." required></div>
+
+      <!-- BEDRIJF-VELDEN (Slot O1) — toon alleen bij klant-subtype=bedrijf, animated reveal -->
+      <div class="bedrijf-fields" id="bedrijf-fields" aria-hidden="true">
+        <div class="field">
+          <label><span data-i18n="klantType.bedrijfsnaam">Bedrijfsnaam</span> <small style="color:var(--red)">*</small></label>
+          <input type="text" id="klant-bedrijfsnaam" data-i18n-attr="placeholder:klantType.bedrijfsnaamPh" placeholder="Bijv. Janssen BV">
+        </div>
+        <div class="field">
+          <label><span data-i18n="klantType.btwNummer">BTW-nummer</span> <small style="color:var(--red)">*</small></label>
+          <input type="text" id="klant-btw-validated" data-i18n-attr="placeholder:klantType.btwNummerPh" placeholder="BE0123456789" autocomplete="off" inputmode="text" maxlength="20" onblur="onBtwBlur()" oninput="onBtwInput()" aria-describedby="vies-status-msg">
+          <div id="vies-status" class="vies-status" data-state="" role="status" aria-live="polite">
+            <span id="vies-status-icon" aria-hidden="true"></span>
+            <span id="vies-status-msg" data-i18n="klantType.btwHelper">We controleren automatisch via VIES (EU BTW-register).</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field"><label><span id="klant-naam-label" data-i18n="step2.naam">Naam</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-naam" data-i18n-attr="placeholder:step2.naamPh" placeholder="Bijv. Jan Janssen" required></div>
       <div class="field-row">
         <div class="field" style="flex:3"><label><span data-i18n="step2.straat">Straat</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-straat" data-i18n-attr="placeholder:step2.straatPh" placeholder="Straatnaam" required></div>
         <div class="field" style="flex:1"><label><span data-i18n="step2.huisnr">Nr.</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-huisnr" data-i18n-attr="placeholder:step2.huisnrPh" placeholder="12A" required></div>
@@ -583,12 +662,18 @@
         <div class="field"><label><span data-i18n="step2.postcode">Postcode</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-postcode" data-i18n-attr="placeholder:step2.postcodePh" placeholder="9000" required oninput="checkPostcode()"></div>
         <div class="field"><label><span data-i18n="step2.gemeente">Gemeente</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-gemeente" data-i18n-attr="placeholder:step2.gemeentePh" placeholder="Gent" required></div>
       </div>
-      <div class="field"><label><span data-i18n="step2.btwNr">BTW-nummer</span> <small>(<span data-i18n="common.optional">optioneel</span>)</small></label><input type="text" id="klant-btw" placeholder="BE0123.456.789"></div>
+      <!--
+        Legacy klant-btw veld (Slot O1): blijft in DOM voor backward-compatibility
+        van de payload-builder, maar is altijd hidden. Bij klant-subtype=bedrijf
+        wordt zijn waarde gespiegeld vanuit klant-btw-validated zodat bestaande
+        contract-rendering + DB-payload (klant_btw) ongewijzigd blijft werken.
+      -->
+      <input type="hidden" id="klant-btw" value="">
     </div>
 
     <div class="card">
       <div class="card-title" data-i18n="step2.contact">Contactgegevens</div>
-      <div class="field"><label><span data-i18n="step2.contactPersoon">Contactpersoon</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-contact" data-i18n-attr="placeholder:step2.contactPersoonPh" placeholder="Naam contactpersoon" required></div>
+      <div class="field" id="contact-naam-field" style="display:none"><label><span data-i18n="klantType.contactpersoon">Contactpersoon</span> <small style="color:var(--red)">*</small></label><input type="text" id="klant-contact" data-i18n-attr="placeholder:klantType.contactpersoonPh" placeholder="Naam contactpersoon binnen het bedrijf"></div>
       <div class="field-row">
         <div class="field"><label><span data-i18n="step2.tel">Telefoon</span> <small style="color:var(--red)">*</small></label><input type="tel" id="klant-tel" data-i18n-attr="placeholder:step2.telPh" placeholder="+32 4..." required></div>
         <div class="field"><label><span data-i18n="step2.email">E-mail</span> <small style="color:var(--red)">*</small></label><input type="email" id="klant-email" data-i18n-attr="placeholder:step2.emailPh" placeholder="jan@voorbeeld.be" required></div>
@@ -3392,6 +3477,244 @@ function toggleBtwAttest() {
 }
 
 // ═══════════════════════════════════════════
+// KLANT-SUBTYPE TOGGLE (Slot O1)
+// ─────────────────────────────────────────
+// Beheert particulier↔bedrijf state in stap 2: toont/verbergt bedrijf-velden,
+// muteert nooit DOM-structuur (enkel display-toggle + class), spiegelt waarden
+// naar legacy klant_btw / klant_contact zodat de bestaande payload/summary
+// builders ongewijzigd blijven werken. Persisteert tussen step-transities
+// omdat de DOM behouden blijft (geen re-render).
+// ═══════════════════════════════════════════
+
+var viesAbortCtrl = null; // canceleert pending VIES-call bij snelle re-blur
+var viesLastQuery = null; // dedupe: zelfde nummer 2x na elkaar = geen tweede call
+var viesDebounceTimer = null;
+
+function getKlantSubtype() {
+  var checked = document.querySelector('input[name="klant-subtype"]:checked');
+  return (checked && checked.value === 'bedrijf') ? 'bedrijf' : 'particulier';
+}
+
+function onKlantSubtypeChange() {
+  var subtype = getKlantSubtype();
+  var bedrijfFields = document.getElementById('bedrijf-fields');
+  var contactField = document.getElementById('contact-naam-field');
+  var naamLabel = document.getElementById('klant-naam-label');
+  var naamInput = document.getElementById('klant-naam');
+  var btwInput = document.getElementById('klant-btw-validated');
+  var bedrijfsnaamInput = document.getElementById('klant-bedrijfsnaam');
+
+  if (subtype === 'bedrijf') {
+    if (bedrijfFields) { bedrijfFields.classList.add('is-open'); bedrijfFields.setAttribute('aria-hidden', 'false'); }
+    if (contactField) contactField.style.display = '';
+    var contactInput = document.getElementById('klant-contact');
+    if (contactInput) contactInput.setAttribute('required', 'required');
+    // Naam-label blijft 'Naam' — verwijst nu naar de officiële naam-houder
+    if (naamLabel && window.t) naamLabel.textContent = window.t('step2.naam');
+    if (naamInput) naamInput.setAttribute('placeholder', (window.t ? window.t('step2.naamPh') : naamInput.getAttribute('placeholder') || ''));
+    if (btwInput) btwInput.setAttribute('required', 'required');
+    if (bedrijfsnaamInput) bedrijfsnaamInput.setAttribute('required', 'required');
+  } else {
+    if (bedrijfFields) { bedrijfFields.classList.remove('is-open'); bedrijfFields.setAttribute('aria-hidden', 'true'); }
+    if (contactField) contactField.style.display = 'none';
+    var contactInputP = document.getElementById('klant-contact');
+    if (contactInputP) {
+      contactInputP.removeAttribute('required');
+      contactInputP.classList.remove('field-error');
+    }
+    if (btwInput) {
+      btwInput.removeAttribute('required');
+      btwInput.classList.remove('field-error', 'is-vies-valid', 'is-vies-invalid', 'is-vies-error');
+    }
+    if (bedrijfsnaamInput) {
+      bedrijfsnaamInput.removeAttribute('required');
+      bedrijfsnaamInput.classList.remove('field-error');
+    }
+    // Reset VIES status UI maar bewaar values (state behoud bij toggle-flip-flop)
+    setViesStatus('', null);
+  }
+
+  // Slot 0 — track toggle-switch (geen PII)
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Calculator Klant Type', { type: subtype }); } catch (_) {}
+  }
+}
+
+// Synchroniseer side-velden vóór submit/summary zodat downstream
+// (payload, summary, contract-render) één bron-van-waarheid heeft.
+function syncKlantSubtypeToFields() {
+  var subtype = getKlantSubtype();
+  var contactInput = document.getElementById('klant-contact');
+  var naamInput = document.getElementById('klant-naam');
+  var legacyBtw = document.getElementById('klant-btw');
+  var btwValidated = document.getElementById('klant-btw-validated');
+  var bedrijfsnaamInput = document.getElementById('klant-bedrijfsnaam');
+
+  if (subtype === 'particulier') {
+    // Voor particulier: contactpersoon = naam, BTW-nr = leeg
+    if (contactInput && naamInput) contactInput.value = (naamInput.value || '').trim();
+    if (legacyBtw) legacyBtw.value = '';
+  } else {
+    // Voor bedrijf: contactpersoon door user ingevuld, BTW-nr gespiegeld naar legacy veld
+    if (legacyBtw && btwValidated) legacyBtw.value = (btwValidated.value || '').trim();
+    // klant-naam wordt voor bedrijf gebruikt als "officiële klant-naam" (typisch = bedrijfsnaam).
+    // Als naam-veld leeg is maar bedrijfsnaam ingevuld → spiegel zodat downstream rendering
+    // (contract, summary) niet leeg loopt.
+    if (naamInput && bedrijfsnaamInput && !naamInput.value.trim() && bedrijfsnaamInput.value.trim()) {
+      naamInput.value = bedrijfsnaamInput.value.trim();
+    }
+  }
+}
+
+// ─── VIES VALIDATIE ─────────────────────────────────────────────
+function setViesStatus(state, msgKey) {
+  var box = document.getElementById('vies-status');
+  var icon = document.getElementById('vies-status-icon');
+  var msg = document.getElementById('vies-status-msg');
+  var input = document.getElementById('klant-btw-validated');
+  if (!box || !msg) return;
+
+  // Reset visual states
+  if (input) input.classList.remove('is-vies-valid', 'is-vies-invalid', 'is-vies-error');
+
+  if (!state) {
+    box.removeAttribute('data-state');
+    box.classList.remove('is-visible');
+    if (icon) icon.innerHTML = '';
+    msg.setAttribute('data-i18n', 'klantType.btwHelper');
+    msg.textContent = window.t ? window.t('klantType.btwHelper') : '';
+    return;
+  }
+
+  box.setAttribute('data-state', state);
+  box.classList.add('is-visible');
+
+  var iconSvg = '';
+  if (state === 'loading') {
+    iconSvg = '<span class="vies-spinner" aria-hidden="true"></span>';
+  } else if (state === 'valid') {
+    iconSvg = '<span class="vies-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="#16A34A"><polyline points="20 6 9 17 4 12"/></svg></span>';
+    if (input) input.classList.add('is-vies-valid');
+  } else if (state === 'invalid') {
+    iconSvg = '<span class="vies-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="#E53E3E"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>';
+    if (input) input.classList.add('is-vies-invalid');
+  } else if (state === 'error') {
+    iconSvg = '<span class="vies-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="#D97706"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>';
+    if (input) input.classList.add('is-vies-error');
+  }
+  if (icon) icon.innerHTML = iconSvg;
+
+  if (msgKey) {
+    msg.setAttribute('data-i18n', msgKey);
+    msg.textContent = window.t ? window.t(msgKey) : msgKey;
+  }
+}
+
+// Bewaar laatste valide VIES-response voor submit-payload
+window.__viesLastResult = null;
+
+function onBtwInput() {
+  // Reset state bij elke keypress (gebruiker is aan het editen).
+  setViesStatus('', null);
+  window.__viesLastResult = null;
+  if (viesAbortCtrl) { try { viesAbortCtrl.abort(); } catch (_) {} viesAbortCtrl = null; }
+}
+
+function onBtwBlur() {
+  if (getKlantSubtype() !== 'bedrijf') return;
+  var input = document.getElementById('klant-btw-validated');
+  if (!input) return;
+  var raw = (input.value || '').trim();
+  if (!raw) { setViesStatus('', null); return; }
+  // Dedupe — zelfde input als laatst niet opnieuw checken
+  if (raw === viesLastQuery && window.__viesLastResult) return;
+  viesLastQuery = raw;
+  if (viesDebounceTimer) clearTimeout(viesDebounceTimer);
+  // Korte debounce zodat focus-loss → focus-back-zonder-edit geen request fired
+  viesDebounceTimer = setTimeout(function () { triggerViesValidate(raw); }, 150);
+}
+
+async function triggerViesValidate(raw) {
+  setViesStatus('loading', 'klantType.viesValidating');
+  if (viesAbortCtrl) { try { viesAbortCtrl.abort(); } catch (_) {} }
+  viesAbortCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var input = document.getElementById('klant-btw-validated');
+
+  try {
+    var resp = await fetch(SUPA_URL + '/functions/v1/validate-vat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+      body: JSON.stringify({ btw_nummer: raw }),
+      signal: viesAbortCtrl ? viesAbortCtrl.signal : undefined
+    });
+    var data = await resp.json().catch(function () { return null; });
+
+    if (!data) {
+      setViesStatus('error', 'klantType.viesError');
+      trackVies('error', null);
+      return;
+    }
+
+    if (data.valid === true) {
+      window.__viesLastResult = data;
+      setViesStatus('valid', 'klantType.viesValid');
+      autoFillFromVies(data);
+      trackVies('valid', data.country || null);
+    } else if (data.valid === null || data.error === 'upstream_timeout') {
+      setViesStatus('error', 'klantType.viesError');
+      trackVies('error', data.country || null);
+    } else {
+      setViesStatus('invalid', 'klantType.viesInvalid');
+      window.__viesLastResult = null;
+      trackVies('invalid', data.country || null);
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+    console.warn('[VIES] validation request failed:', err);
+    setViesStatus('error', 'klantType.viesError');
+    trackVies('error', null);
+  } finally {
+    viesAbortCtrl = null;
+  }
+}
+
+function autoFillFromVies(data) {
+  if (!data || data.valid !== true) return;
+  var bedrijfsnaamInput = document.getElementById('klant-bedrijfsnaam');
+  var naamInput = document.getElementById('klant-naam');
+  var straatInput = document.getElementById('klant-straat');
+  var huisnrInput = document.getElementById('klant-huisnr');
+  var pcInput = document.getElementById('klant-postcode');
+  var gemInput = document.getElementById('klant-gemeente');
+
+  // Alleen invullen als het veld leeg is (respecteer reeds-ingevulde waarden).
+  if (data.naam) {
+    if (bedrijfsnaamInput && !bedrijfsnaamInput.value.trim()) bedrijfsnaamInput.value = data.naam;
+    if (naamInput && !naamInput.value.trim()) naamInput.value = data.naam;
+  }
+  if (data.adres && straatInput && !straatInput.value.trim()) {
+    // Probeer huisnummer te scheiden (vereenvoudigde regex — laat huisnr-veld leeg als parse onduidelijk).
+    var m = String(data.adres).match(/^(.+?)\s+(\d+\w*)\s*(.*)$/);
+    if (m) {
+      straatInput.value = m[1].trim();
+      if (huisnrInput && !huisnrInput.value.trim()) huisnrInput.value = m[2].trim();
+    } else {
+      straatInput.value = data.adres;
+    }
+  }
+  if (data.postcode && pcInput && !pcInput.value.trim()) pcInput.value = data.postcode;
+  if (data.gemeente && gemInput && !gemInput.value.trim()) gemInput.value = data.gemeente;
+
+  // Trigger postcode-check voor automatic taal-detectie als die nog niet liep.
+  if (typeof checkPostcode === 'function') { try { checkPostcode(); } catch (_) {} }
+}
+
+function trackVies(result, country) {
+  if (typeof window.flanccoTrack !== 'function') return;
+  try { window.flanccoTrack('VIES Validation', { result: result, country: country || 'unknown' }); } catch (_) {}
+}
+
+// ═══════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════
 function goToStep(n) {
@@ -3418,12 +3741,21 @@ function goToStep(n) {
 // SUMMARY (Step 2b)
 // ═══════════════════════════════════════════
 function goToSummary() {
+  // Slot O1: synchroniseer klant_contact + klant_btw afhankelijk van klant-subtype
+  // (zodat downstream payload + summary blijven werken zonder extra branches).
+  syncKlantSubtypeToFields();
+
   // Validate required fields
+  var subtype = getKlantSubtype();
   var reqFields = ['klant-naam', 'klant-straat', 'klant-huisnr', 'klant-postcode', 'klant-gemeente', 'klant-contact', 'klant-tel', 'klant-email'];
+  if (subtype === 'bedrijf') {
+    reqFields.push('klant-bedrijfsnaam');
+    reqFields.push('klant-btw-validated');
+  }
   var valid = true;
   reqFields.forEach(function(id) {
     var el = document.getElementById(id);
-    if (!el.value.trim()) { el.classList.add('field-error'); valid = false; }
+    if (!el || !el.value.trim()) { if (el) el.classList.add('field-error'); valid = false; }
     else { el.classList.remove('field-error'); }
   });
 
@@ -3526,6 +3858,8 @@ function goToSummary() {
 // CONTRACT GENERATOR
 // ═══════════════════════════════════════════
 function generateContract() {
+  // Slot O1 — defensieve sync vóór render (idempotent)
+  if (typeof syncKlantSubtypeToFields === 'function') { try { syncKlantSubtypeToFields(); } catch (_) {} }
   var s = sharedState;
   var naam = esc(document.getElementById('klant-naam').value);
   var straat = esc(document.getElementById('klant-straat').value);
@@ -3881,6 +4215,14 @@ async function submitContract() {
     if (primarySector === 'warmtepomp' && sectorResults.warmtepomp && sectorResults.warmtepomp.inputs) {
       primarySubtype = sectorResults.warmtepomp.inputs.subtype || null;
     }
+    // Slot O1 — synchroniseer toggle-state naar legacy velden vóór payload-build
+    if (typeof syncKlantSubtypeToFields === 'function') { try { syncKlantSubtypeToFields(); } catch (_) {} }
+    var klantSubtype = (typeof getKlantSubtype === 'function') ? getKlantSubtype() : 'particulier';
+    var bedrijfsnaamEl = document.getElementById('klant-bedrijfsnaam');
+    var bedrijfsnaamVal = (klantSubtype === 'bedrijf' && bedrijfsnaamEl) ? (bedrijfsnaamEl.value || '').trim() : null;
+    var viesResult = (klantSubtype === 'bedrijf') ? (window.__viesLastResult || null) : null;
+    var btwValidated = !!(viesResult && viesResult.valid === true);
+
     var payload = {
       id: contractId,
       partner_id: partner.id,
@@ -3912,7 +4254,13 @@ async function submitContract() {
       status: 'getekend',
       sector_details: sectorDetails,
       // Slot S — persist taal-keuze; ground-truth voor latere outbound communicatie
-      lang: ((window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl')
+      lang: ((window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl'),
+      // Slot O1 — particulier/bedrijf-toggle + VIES audit-trail
+      klant_subtype: klantSubtype,
+      bedrijfsnaam: bedrijfsnaamVal || null,
+      btw_nummer_validated: btwValidated,
+      btw_validated_at: btwValidated ? new Date().toISOString() : null,
+      btw_validated_payload: btwValidated ? viesResult : null
     };
 
     // Add solar-specific backward-compatible fields

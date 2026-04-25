@@ -118,6 +118,39 @@
   .type-card h3 { font-size: 14px; color: var(--navy); margin-bottom: 4px; }
   .type-card p { font-size: 12px; color: var(--grey); }
 
+  /* KLANT-SUBTYPE TOGGLE (Slot O1) — particulier/bedrijf-pills */
+  .ktype-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .ktype-chip { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--white); border: 1.5px solid var(--rule); border-radius: 10px; cursor: pointer; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
+  .ktype-chip:hover { border-color: var(--navy); background: #fafaff; }
+  .ktype-chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .ktype-chip:has(input:checked) { border-color: var(--navy); background: #f0f0ff; box-shadow: 0 0 0 3px rgba(26,26,46,0.10); }
+  .ktype-chip:has(input:focus-visible) { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .ktype-chip-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; }
+  .ktype-chip-icon svg { width: 18px; height: 18px; stroke: var(--grey); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s; }
+  .ktype-chip:has(input:checked) .ktype-chip-icon { background: var(--navy); }
+  .ktype-chip:has(input:checked) .ktype-chip-icon svg { stroke: #fff; }
+  .ktype-chip-body { flex: 1; min-width: 0; }
+  .ktype-chip-title { font-size: 13px; font-weight: 600; color: #1f2937; }
+  .ktype-chip-sub { font-size: 11px; color: var(--grey); margin-top: 2px; }
+
+  /* BEDRIJF-VELDEN — animated reveal zonder layout-shift */
+  .nc-bedrijf-fields { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease, margin-bottom 0.3s ease; margin-bottom: 0; }
+  .nc-bedrijf-fields.is-open { max-height: 500px; opacity: 1; margin-bottom: 12px; }
+
+  /* VIES STATUS */
+  .vies-status { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; min-height: 18px; opacity: 0; transition: opacity 0.2s; }
+  .vies-status.is-visible { opacity: 1; }
+  .vies-status[data-state="loading"] { color: var(--grey); }
+  .vies-status[data-state="valid"] { color: var(--green); }
+  .vies-status[data-state="invalid"] { color: var(--red); }
+  .vies-status[data-state="error"] { color: var(--orange); }
+  .vies-spinner { width: 12px; height: 12px; border: 2px solid rgba(107,114,128,0.25); border-top-color: var(--grey); border-radius: 50%; animation: vies-spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes vies-spin { to { transform: rotate(360deg); } }
+  .vies-icon svg { width: 14px; height: 14px; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .field input.is-vies-valid { border-color: var(--green); box-shadow: 0 0 0 3px rgba(39,174,96,0.12); }
+  .field input.is-vies-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(231,76,60,0.12); }
+  .field input.is-vies-error { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(243,156,18,0.12); }
+
   /* FORM FIELDS */
   .field { margin-bottom: 16px; }
   .field label { display: block; font-size: 12px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
@@ -459,12 +492,49 @@
           <p id="kp-contact"></p>
         </div>
         <div class="new-client-form" id="new-client-form">
-          <div class="field-row" style="margin-bottom:12px">
-            <div class="field"><label>Voornaam *</label><input type="text" id="nc-voornaam" required placeholder="Jan"></div>
-            <div class="field"><label>Achternaam *</label><input type="text" id="nc-achternaam" required placeholder="Janssen"></div>
+          <!-- KLANT-SUBTYPE TOGGLE (Slot O1) — particulier (default) of bedrijf -->
+          <div class="ktype-toggle" role="radiogroup" aria-label="Klanttype (particulier of bedrijf)">
+            <label class="ktype-chip">
+              <input type="radio" name="nc-subtype" value="particulier" checked onchange="onNcSubtypeChange()">
+              <span class="ktype-chip-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <span class="ktype-chip-body">
+                <span class="ktype-chip-title">Particulier</span>
+                <span class="ktype-chip-sub">Privépersoon, geen BTW-nr</span>
+              </span>
+            </label>
+            <label class="ktype-chip">
+              <input type="radio" name="nc-subtype" value="bedrijf" onchange="onNcSubtypeChange()">
+              <span class="ktype-chip-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+              </span>
+              <span class="ktype-chip-body">
+                <span class="ktype-chip-title">Bedrijf</span>
+                <span class="ktype-chip-sub">Met BTW-nummer (B2B)</span>
+              </span>
+            </label>
           </div>
+
+          <!-- BEDRIJF-VELDEN (Slot O1): zichtbaar enkel bij subtype=bedrijf -->
+          <div class="nc-bedrijf-fields" id="nc-bedrijf-fields" aria-hidden="true">
+            <div class="field" style="margin-bottom:12px">
+              <label>Bedrijfsnaam *</label>
+              <input type="text" id="nc-bedrijf" placeholder="Bijv. Janssen BV">
+            </div>
+            <div class="field" style="margin-bottom:12px">
+              <label>BTW-nummer *</label>
+              <input type="text" id="nc-btw" placeholder="BE0123456789" autocomplete="off" maxlength="20" onblur="onNcBtwBlur()" oninput="onNcBtwInput()" aria-describedby="nc-vies-status-msg">
+              <div id="nc-vies-status" class="vies-status" data-state="" role="status" aria-live="polite">
+                <span id="nc-vies-status-icon" aria-hidden="true"></span>
+                <span id="nc-vies-status-msg">We controleren automatisch via VIES (EU BTW-register).</span>
+              </div>
+            </div>
+          </div>
+
           <div class="field-row" style="margin-bottom:12px">
-            <div class="field"><label>Bedrijfsnaam</label><input type="text" id="nc-bedrijf" placeholder="Optioneel"></div>
+            <div class="field"><label id="nc-voornaam-label">Voornaam *</label><input type="text" id="nc-voornaam" required placeholder="Jan"></div>
+            <div class="field"><label id="nc-achternaam-label">Achternaam *</label><input type="text" id="nc-achternaam" required placeholder="Janssen"></div>
           </div>
           <div class="field-row" style="margin-bottom:12px">
             <div class="field"><label>Email *</label><input type="email" id="nc-email" required></div>
@@ -1281,6 +1351,9 @@ function goStep(n) {
     }
     if (clientSel === '__new') {
       wizState.clientId = null;
+      var ncSubtype = (typeof getNcSubtype === 'function') ? getNcSubtype() : 'particulier';
+      var ncBtwRaw = (document.getElementById('nc-btw') ? document.getElementById('nc-btw').value : '').trim().toUpperCase().replace(/\s+/g,'');
+      var ncVies = window.__ncViesLastResult || null;
       wizState.newClient = {
         contact_person: (ncVoornaam + ' ' + ncAchternaam).trim(),
         company_name: document.getElementById('nc-bedrijf').value.trim() || null,
@@ -1288,8 +1361,13 @@ function goStep(n) {
         phone: document.getElementById('nc-telefoon').value.trim(),
         street: document.getElementById('nc-straat').value.trim(),
         postal_code: document.getElementById('nc-postcode').value.trim(),
-        city: document.getElementById('nc-gemeente').value.trim()
+        city: document.getElementById('nc-gemeente').value.trim(),
+        client_type: ncSubtype,
+        vat_number: (ncSubtype === 'bedrijf' && ncBtwRaw) ? ncBtwRaw : null
       };
+      // Bewaar VIES-resultaat afzonderlijk in wizState voor contract-payload
+      wizState._ncBtwValidated = !!(ncVies && ncVies.valid === true);
+      wizState._ncBtwValidatedPayload = (ncVies && ncVies.valid === true) ? ncVies : null;
     }
   }
   if (n === 4 && wizState.selectedSectors.length === 0) {
@@ -1419,6 +1497,172 @@ function onClientSelect() {
     preview.style.display = 'none';
     form.classList.remove('visible');
   }
+}
+
+// =============================================
+// KLANT-SUBTYPE TOGGLE — admin wizard (Slot O1)
+// ─────────────────────────────────────────────
+// Particulier (default) of bedrijf, met VIES BTW-validatie. Bewust gespiegeld
+// op de calculator-implementatie zodat beide bronnen dezelfde DB-shape
+// produceren. Voor admin gebruiken we andere DOM-id's (`nc-*`) zodat dit niet
+// botst met de bestaande `wizState.klantType` (die staat voor eindklant|partner).
+// =============================================
+
+var ncViesAbortCtrl = null;
+var ncViesLastQuery = null;
+var ncViesDebounceTimer = null;
+window.__ncViesLastResult = null;
+
+function getNcSubtype() {
+  var checked = document.querySelector('input[name="nc-subtype"]:checked');
+  return (checked && checked.value === 'bedrijf') ? 'bedrijf' : 'particulier';
+}
+
+function onNcSubtypeChange() {
+  var subtype = getNcSubtype();
+  var bedrijfFields = document.getElementById('nc-bedrijf-fields');
+  var bedrijfInput = document.getElementById('nc-bedrijf');
+  var btwInput = document.getElementById('nc-btw');
+  var voornaamLabel = document.getElementById('nc-voornaam-label');
+  var achternaamLabel = document.getElementById('nc-achternaam-label');
+
+  if (subtype === 'bedrijf') {
+    if (bedrijfFields) { bedrijfFields.classList.add('is-open'); bedrijfFields.setAttribute('aria-hidden', 'false'); }
+    if (bedrijfInput) bedrijfInput.setAttribute('required', 'required');
+    if (btwInput) btwInput.setAttribute('required', 'required');
+    if (voornaamLabel) voornaamLabel.textContent = 'Contactpersoon — voornaam *';
+    if (achternaamLabel) achternaamLabel.textContent = 'Contactpersoon — achternaam *';
+  } else {
+    if (bedrijfFields) { bedrijfFields.classList.remove('is-open'); bedrijfFields.setAttribute('aria-hidden', 'true'); }
+    if (bedrijfInput) { bedrijfInput.removeAttribute('required'); bedrijfInput.classList.remove('field-error'); }
+    if (btwInput) {
+      btwInput.removeAttribute('required');
+      btwInput.classList.remove('field-error', 'is-vies-valid', 'is-vies-invalid', 'is-vies-error');
+    }
+    if (voornaamLabel) voornaamLabel.textContent = 'Voornaam *';
+    if (achternaamLabel) achternaamLabel.textContent = 'Achternaam *';
+    setNcViesStatus('', null);
+  }
+
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Wizard Klant Type', { type: subtype }); } catch (_) {}
+  }
+}
+
+function setNcViesStatus(state, msg) {
+  var box = document.getElementById('nc-vies-status');
+  var icon = document.getElementById('nc-vies-status-icon');
+  var msgEl = document.getElementById('nc-vies-status-msg');
+  var input = document.getElementById('nc-btw');
+  if (!box || !msgEl) return;
+
+  if (input) input.classList.remove('is-vies-valid', 'is-vies-invalid', 'is-vies-error');
+
+  if (!state) {
+    box.removeAttribute('data-state');
+    box.classList.remove('is-visible');
+    if (icon) icon.innerHTML = '';
+    msgEl.textContent = 'We controleren automatisch via VIES (EU BTW-register).';
+    return;
+  }
+
+  box.setAttribute('data-state', state);
+  box.classList.add('is-visible');
+
+  var iconSvg = '';
+  if (state === 'loading') {
+    iconSvg = '<span class="vies-spinner" aria-hidden="true"></span>';
+  } else if (state === 'valid') {
+    iconSvg = '<span class="vies-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>';
+    if (input) input.classList.add('is-vies-valid');
+  } else if (state === 'invalid') {
+    iconSvg = '<span class="vies-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>';
+    if (input) input.classList.add('is-vies-invalid');
+  } else if (state === 'error') {
+    iconSvg = '<span class="vies-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>';
+    if (input) input.classList.add('is-vies-error');
+  }
+  if (icon) icon.innerHTML = iconSvg;
+  if (msg) msgEl.textContent = msg;
+}
+
+function onNcBtwInput() {
+  setNcViesStatus('', null);
+  window.__ncViesLastResult = null;
+  if (ncViesAbortCtrl) { try { ncViesAbortCtrl.abort(); } catch (_) {} ncViesAbortCtrl = null; }
+}
+
+function onNcBtwBlur() {
+  if (getNcSubtype() !== 'bedrijf') return;
+  var input = document.getElementById('nc-btw');
+  if (!input) return;
+  var raw = (input.value || '').trim();
+  if (!raw) { setNcViesStatus('', null); return; }
+  if (raw === ncViesLastQuery && window.__ncViesLastResult) return;
+  ncViesLastQuery = raw;
+  if (ncViesDebounceTimer) clearTimeout(ncViesDebounceTimer);
+  ncViesDebounceTimer = setTimeout(function () { triggerNcViesValidate(raw); }, 150);
+}
+
+async function triggerNcViesValidate(raw) {
+  setNcViesStatus('loading', 'BTW-nummer valideren\u2026');
+  if (ncViesAbortCtrl) { try { ncViesAbortCtrl.abort(); } catch (_) {} }
+  ncViesAbortCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+
+  try {
+    var resp = await fetch(SUPA_URL + '/functions/v1/validate-vat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+      body: JSON.stringify({ btw_nummer: raw }),
+      signal: ncViesAbortCtrl ? ncViesAbortCtrl.signal : undefined
+    });
+    var data = await resp.json().catch(function () { return null; });
+
+    if (!data) {
+      setNcViesStatus('error', 'Validatie tijdelijk niet beschikbaar — u kunt doorgaan, we valideren later.');
+      trackNcVies('error', null);
+      return;
+    }
+
+    if (data.valid === true) {
+      window.__ncViesLastResult = data;
+      setNcViesStatus('valid', 'Geverifieerd via VIES — gegevens automatisch ingevuld.');
+      autoFillNcFromVies(data);
+      trackNcVies('valid', data.country || null);
+    } else if (data.valid === null || data.error === 'upstream_timeout') {
+      setNcViesStatus('error', 'Validatie tijdelijk niet beschikbaar — u kunt doorgaan, we valideren later.');
+      trackNcVies('error', data.country || null);
+    } else {
+      setNcViesStatus('invalid', 'Ongeldig BTW-nummer (formaat of niet bekend in VIES-register).');
+      window.__ncViesLastResult = null;
+      trackNcVies('invalid', data.country || null);
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+    console.warn('[VIES] validation request failed:', err);
+    setNcViesStatus('error', 'Validatie tijdelijk niet beschikbaar — u kunt doorgaan, we valideren later.');
+    trackNcVies('error', null);
+  } finally {
+    ncViesAbortCtrl = null;
+  }
+}
+
+function autoFillNcFromVies(data) {
+  if (!data || data.valid !== true) return;
+  var bedrijfInput = document.getElementById('nc-bedrijf');
+  var straatInput = document.getElementById('nc-straat');
+  var pcInput = document.getElementById('nc-postcode');
+  var gemInput = document.getElementById('nc-gemeente');
+
+  if (data.naam && bedrijfInput && !bedrijfInput.value.trim()) bedrijfInput.value = data.naam;
+  if (data.adres && straatInput && !straatInput.value.trim()) straatInput.value = data.adres;
+  if (data.postcode && pcInput && !pcInput.value.trim()) pcInput.value = data.postcode;
+  if (data.gemeente && gemInput && !gemInput.value.trim()) gemInput.value = data.gemeente;
+}
+
+function trackNcVies(result, country) {
+  if (typeof window.flanccoTrack !== 'function') return;
+  try { window.flanccoTrack('Wizard VIES Validation', { result: result, country: country || 'unknown' }); } catch (_) {}
 }
 
 // =============================================
@@ -1806,6 +2050,14 @@ async function saveContract() {
     var klantTelefoon = client ? client.phone : (nc ? nc.phone : '');
     var klantContact = client ? client.contact_person : (nc ? nc.contact_person : '');
 
+    // Slot O1 — Particulier/Bedrijf-subtype + VIES-validatie
+    // Bron: bestaande klant uit clients-tabel, of nieuwe klant uit wizard-form.
+    // VIES-validatie wordt enkel meegestuurd voor nieuwe klanten (op moment van invoer).
+    var klantSubtype = client ? (client.client_type || 'particulier') : (nc && nc.client_type ? nc.client_type : 'particulier');
+    var bedrijfsnaamVal = client ? (client.company_name || null) : (nc ? (nc.company_name || null) : null);
+    var btwValidated = !!wizState._ncBtwValidated;
+    var btwValidatedPayload = wizState._ncBtwValidatedPayload || null;
+
     var freqTxt = wizState.freq === 0 ? 'eenmalig' : wizState.freq === 1 ? 'jaarlijks' : 'halfjaarlijks';
     var duurTxt = wizState.duur === 0 ? 'eenmalig' : wizState.duur + ' jaar';
 
@@ -1836,6 +2088,11 @@ async function saveContract() {
       client_id: clientId,
       contract_type: wizState.contractType,
       klant_type: wizState.klantType,
+      klant_subtype: klantSubtype,
+      bedrijfsnaam: bedrijfsnaamVal,
+      btw_nummer_validated: btwValidated,
+      btw_validated_at: btwValidated ? new Date().toISOString() : null,
+      btw_validated_payload: btwValidatedPayload,
       klant_naam: klantNaam,
       klant_adres: klantAdres,
       klant_postcode: klantPostcode,

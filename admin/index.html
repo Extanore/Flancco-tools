@@ -48,6 +48,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<!-- Slot J — QR-code library (Kazuhiko Arase qrcode-generator UMD).
+     Pinned aan exact versie + SHA-384 SRI-hash. Sync, geen dependencies. Exposeert window.qrcode. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"
+        integrity="sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k"
+        crossorigin="anonymous"></script>
 <script>
   // Early-boot partner-branding: leest cache voor eerste paint. Vult window.__flanccoBoot
   // zodat latere inline-scripts (na <html>-parse en bij #sidebar-logo) dezelfde data gebruiken.
@@ -1232,6 +1237,40 @@
     .dv-toolbar-right { margin-left:0; }
     .dv-filters { justify-content:flex-start; }
   }
+
+  /* =========================================================================
+     MARKETING-KIT (Slot J) — partner-only sectie met QR-code + share-templates
+     ========================================================================= */
+  .mkt-grid { display:grid; grid-template-columns: minmax(280px, 380px) 1fr; gap:18px; align-items:start; }
+  @media (max-width: 900px) { .mkt-grid { grid-template-columns: 1fr; } }
+
+  .mkt-qr-frame { background:#F9FAFB; border:1px solid var(--rule); border-radius:12px; padding:18px; display:flex; align-items:center; justify-content:center; min-height:280px; }
+  .mkt-qr-preview { width:100%; max-width:240px; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:8px; padding:10px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+  .mkt-qr-preview svg, .mkt-qr-preview canvas { display:block; width:100%; height:100%; }
+  .mkt-qr-skeleton { width:100%; height:100%; aspect-ratio:1/1; border-radius:6px; background:linear-gradient(90deg, #EEF2F7 0%, #F8FAFC 50%, #EEF2F7 100%); background-size:200% 100%; animation: mkt-skeleton-shimmer 1.4s ease-in-out infinite; }
+  @keyframes mkt-skeleton-shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .mkt-qr-actions { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .mkt-qr-actions .btn { min-height:44px; }
+
+  .mkt-templates { display:flex; flex-direction:column; gap:14px; }
+  .mkt-tpl-card { padding:18px 20px; }
+  .mkt-tpl-head { display:flex; align-items:flex-start; gap:14px; margin-bottom:12px; }
+  .mkt-tpl-icon { width:38px; height:38px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mkt-tpl-icon--linkedin { background:#E0EBFA; color:#0A66C2; }
+  .mkt-tpl-icon--email    { background:#EEF2F7; color:#475569; }
+  .mkt-tpl-icon--whatsapp { background:#DCF8C6; color:#128C7E; }
+  .mkt-tpl-meta { flex:1; min-width:0; }
+  .mkt-tpl-title { margin:0 0 2px; font-size:14px; font-weight:700; color:var(--navy); letter-spacing:-0.01em; }
+  .mkt-tpl-sub { margin:0; font-size:12px; color:var(--grey); line-height:1.4; }
+  .mkt-copy-btn { min-height:44px; flex-shrink:0; }
+  .mkt-tpl-body { margin:0; padding:14px 16px; background:#F9FAFB; border:1px solid var(--rule); border-radius:8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size:13px; line-height:1.55; color:#1F2937; white-space:pre-wrap; word-wrap:break-word; max-height:260px; overflow-y:auto; }
+  .mkt-tpl-body code { background:#E5E7EB; padding:1px 6px; border-radius:4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; color:var(--navy); }
+
+  @media (max-width: 640px) {
+    .mkt-tpl-head { flex-wrap:wrap; }
+    .mkt-copy-btn { width:100%; margin-top:6px; }
+  }
 </style>
 </head>
 <body>
@@ -1361,6 +1400,10 @@
     <a class="nav-item partner-only" id="nav-partner-facturatie" style="display:none" onclick="showPage('facturatie')" data-page="facturatie">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
       <span>Facturatie</span>
+    </a>
+    <a class="nav-item partner-only" onclick="showPage('marketing')" data-page="marketing">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="5" rx="0.5"/><rect x="3" y="16" width="5" height="5" rx="0.5"/><rect x="16" y="3" width="5" height="5" rx="0.5"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+      <span>Marketing</span>
     </a>
     <a class="nav-item admin-only perm-users" onclick="showPage('gebruikers')" data-page="gebruikers">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
@@ -2235,6 +2278,124 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--grey)" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <h3 style="margin:0 0 8px;color:var(--navy);font-size:16px">Overzicht wordt binnenkort beschikbaar</h3>
         <p style="color:var(--grey);font-size:13px;max-width:400px;margin:0 auto">Hier vindt u straks een overzicht van alle ingeplande, lopende en uitgevoerde onderhoudsbeurten voor uw klanten — inclusief rapporten en downloads.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         MARKETING PAGE (Slot J) — partner-only
+         QR-code generator + share-templates voor partner's calculator-link.
+         Render gebeurt door renderMarketingPage(); zie main JS-block.
+         ============================================================= -->
+    <div class="page partner-only" id="page-marketing">
+      <div class="card" style="background:transparent;box-shadow:none;padding:0;margin-bottom:20px">
+        <div class="dv-header" style="margin-bottom:0">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Marketing-kit</h2>
+            <p class="dv-subtitle">Deel je gepersonaliseerde calculator-link via QR-code, LinkedIn, e-mail of WhatsApp. Klanten landen rechtstreeks in jouw huisstijl en prijzen.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculator-link toolbar (selecteerbaar + copy) -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-header"><span class="card-title">Jouw calculator-link</span></div>
+        <p style="font-size:12px;color:var(--grey);margin:0 0 10px">Direct te kopiëren of te scannen — werkt overal waar je hem deelt.</p>
+        <div class="set-calc-link-row">
+          <input type="text" id="mkt-calc-link-input" readonly onclick="this.select()" aria-label="Calculator-link">
+          <button type="button" id="mkt-calc-link-copy" class="btn btn-primary" onclick="copyMarketingCalcLink()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Kopieer link
+          </button>
+          <a id="mkt-calc-link-open" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">Open</a>
+        </div>
+      </div>
+
+      <!-- Content grid: QR links, templates rechts -->
+      <div class="mkt-grid">
+        <!-- QR-code paneel -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><rect x="3" y="3" width="5" height="5" rx="0.5"/><rect x="3" y="16" width="5" height="5" rx="0.5"/><rect x="16" y="3" width="5" height="5" rx="0.5"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+              QR-code
+            </span>
+          </div>
+          <p style="font-size:12px;color:var(--grey);margin:0 0 14px;line-height:1.5">Scan-vriendelijk, hoog contrast (zwart op wit), error-correction M. Geschikt voor visitekaartjes, posters, flyers en tablets in showroom.</p>
+          <div class="mkt-qr-frame">
+            <div id="mkt-qr-preview" class="mkt-qr-preview" aria-live="polite">
+              <div class="mkt-qr-skeleton" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="mkt-qr-actions">
+            <button type="button" class="btn btn-primary" onclick="downloadMarketingQr('png')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PNG (512 px)
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="downloadMarketingQr('svg')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download SVG (schaalbaar)
+            </button>
+          </div>
+          <small style="display:block;margin-top:10px;font-size:11px;color:var(--grey);line-height:1.5">SVG is vector — scherp tot A4-poster of groter. PNG is universeler, ideaal voor e-mail-handtekeningen of social-share.</small>
+        </div>
+
+        <!-- Templates kolom -->
+        <div class="mkt-templates">
+          <!-- LinkedIn template -->
+          <div class="card mkt-tpl-card">
+            <div class="mkt-tpl-head">
+              <span class="mkt-tpl-icon mkt-tpl-icon--linkedin" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+              </span>
+              <div class="mkt-tpl-meta">
+                <h4 class="mkt-tpl-title">LinkedIn-post</h4>
+                <p class="mkt-tpl-sub">Professionele bekendmaking van de partnership — ~150 woorden</p>
+              </div>
+              <button type="button" class="btn btn-primary mkt-copy-btn" id="mkt-copy-btn-linkedin" onclick="copyMarketingTemplate('linkedin')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Kopieer
+              </button>
+            </div>
+            <pre class="mkt-tpl-body" id="mkt-tpl-body-linkedin"></pre>
+          </div>
+
+          <!-- E-mail template -->
+          <div class="card mkt-tpl-card">
+            <div class="mkt-tpl-head">
+              <span class="mkt-tpl-icon mkt-tpl-icon--email" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </span>
+              <div class="mkt-tpl-meta">
+                <h4 class="mkt-tpl-title">E-mail aan bestaande klant</h4>
+                <p class="mkt-tpl-sub">Korte uitnodiging om via je link een onderhoudscontract aan te vragen — ~100 woorden</p>
+              </div>
+              <button type="button" class="btn btn-primary mkt-copy-btn" id="mkt-copy-btn-email" onclick="copyMarketingTemplate('email')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Kopieer
+              </button>
+            </div>
+            <pre class="mkt-tpl-body" id="mkt-tpl-body-email"></pre>
+          </div>
+
+          <!-- WhatsApp template -->
+          <div class="card mkt-tpl-card">
+            <div class="mkt-tpl-head">
+              <span class="mkt-tpl-icon mkt-tpl-icon--whatsapp" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              </span>
+              <div class="mkt-tpl-meta">
+                <h4 class="mkt-tpl-title">WhatsApp-bericht</h4>
+                <p class="mkt-tpl-sub">Korte, persoonlijke aanspreking met placeholder voor voornaam — ~50 woorden</p>
+              </div>
+              <button type="button" class="btn btn-primary mkt-copy-btn" id="mkt-copy-btn-whatsapp" onclick="copyMarketingTemplate('whatsapp')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Kopieer
+              </button>
+            </div>
+            <pre class="mkt-tpl-body" id="mkt-tpl-body-whatsapp"></pre>
+            <small style="display:block;margin-top:8px;font-size:11px;color:var(--grey)">Vervang <code>{voornaam}</code> manueel per ontvanger.</small>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -5366,7 +5527,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren', ew: 'Economische werkloosheid', auditlog: 'Audit-log' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren', ew: 'Economische werkloosheid', auditlog: 'Audit-log' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -5376,6 +5537,7 @@ function showPage(name) {
   if (name === 'bouwdrogers') renderBouwdrogers();
   if (name === 'ew') renderEWPage();
   if (name === 'auditlog') { initAuditLogPage(); }
+  if (name === 'marketing' && typeof renderMarketingPage === 'function') renderMarketingPage();
   if (name === 'instellingen' && userRole === 'partner' && typeof can === 'function' && can('manage_users') && typeof renderPartnerTeamList === 'function') renderPartnerTeamList();
 }
 
@@ -6477,6 +6639,293 @@ function copyPartnerCalcLink(slug, btnId) {
 function copyOwnCalcLink() {
   var slug = (userPartner && userPartner.slug) || '';
   copyPartnerCalcLink(slug, 'set-calc-link-copy');
+}
+
+// =============================================================================
+// MARKETING-KIT (Slot J) — partner-portal sectie met QR-code + share-templates
+// -----------------------------------------------------------------------------
+// QR-engine: window.qrcode (qrcode-generator UMD, type-auto, error-correction M).
+// PNG output: 512x512 cellSize 12 + margin 4 (≈ 24-modules QR voor URL ~50 chars).
+// SVG output: viewBox-based, schaalbaar tot A4-poster zonder kwaliteitsverlies.
+// Templates: NL marketing-tekst met {{partner_naam}} + {{calculator_url}} placeholders.
+// Geen PII opgeslagen, alle data komt uit userPartner — public calculator-link.
+// =============================================================================
+
+var MKT_QR_TYPE_NUMBER = 0;          // 0 = auto-detect by data length
+var MKT_QR_ERROR_LEVEL = 'M';         // L|M|Q|H — M = ~15% recovery, balanced
+var MKT_QR_PNG_CELL_SIZE = 12;        // Pixels per module → ≈ 512 px voor 25-25 modules + 4-cell quiet zone
+var MKT_QR_SVG_CELL_SIZE = 10;        // Cellsize voor SVG (viewBox is intrinsiek schaalbaar)
+var MKT_QR_MARGIN = 4;                // Quiet zone in modules (spec minimum = 4)
+
+// Marketing-kit templates. Plain text (geen HTML) → veilig voor clipboard-paste.
+// Placeholders: {{partner_naam}} en {{calculator_url}} worden vervangen op render-time.
+var MKT_TEMPLATES = {
+  linkedin:
+    'Bij {{partner_naam}} kiezen we voor partnerships die onze klanten écht vooruit helpen. ' +
+    'Daarom werken we samen met Flancco voor het onderhoud en de reiniging van zonnepanelen — ' +
+    'een specialist met jarenlange ervaring in technisch onderhoud, droogijsstralen en HVAC.\n\n' +
+    'Wat wij waarderen: transparante staffelprijzen, duidelijke contracten en een professionele ' +
+    'opvolging via een eigen platform. Onze klanten kunnen via onderstaande persoonlijke link ' +
+    'zelf snel een onderhoudscontract aanvragen — volledig digitaal, in onze huisstijl en met ' +
+    'prijzen op maat.\n\n' +
+    'Klanten met zonnepanelen die hun rendement willen bewaken: nodig je je eigen netwerk uit ' +
+    'om een offerte op te vragen, dan zorgt Flancco voor de opvolging van A tot Z.\n\n' +
+    'Vraag direct je contract aan: {{calculator_url}}\n\n' +
+    '#partnership #zonnepanelen #onderhoud #B2B',
+
+  email:
+    'Beste klant,\n\n' +
+    'Bij {{partner_naam}} willen we ervoor zorgen dat uw zonnepanelen jaar na jaar maximaal ' +
+    'blijven renderen. Daarom werken wij samen met Flancco — specialist in professioneel ' +
+    'paneel-onderhoud — om u een onderhoudscontract op maat aan te bieden.\n\n' +
+    'Via onderstaande persoonlijke link kunt u in enkele minuten een voorstel opvragen, ' +
+    'volledig in onze huisstijl en met prijzen die we voor u onderhandeld hebben:\n\n' +
+    '{{calculator_url}}\n\n' +
+    'Heeft u vragen of wenst u eerst telefonisch te overleggen? Antwoord gerust op deze mail, ' +
+    'we helpen u graag verder.\n\n' +
+    'Met vriendelijke groet,\n' +
+    'Het team van {{partner_naam}}',
+
+  whatsapp:
+    'Hoi {voornaam}, namens {{partner_naam}} — onze partner Flancco verzorgt voortaan het ' +
+    'onderhoud van zonnepanelen. Via deze link kan je snel een offerte op maat aanvragen, ' +
+    'in onze huisstijl: {{calculator_url}} — handig om je rendement te beschermen!'
+};
+
+/**
+ * Bouw het kale qrcode-object op met juiste type-number + error-correctie.
+ * Werkt defensief: als de UMD-lib niet beschikbaar is (CDN-blokkade, SRI-mismatch)
+ * geeft deze null terug zodat callers gracefully kunnen degraderen.
+ */
+function _mktBuildQrModel(url) {
+  if (typeof window.qrcode !== 'function') return null;
+  if (!url || typeof url !== 'string') return null;
+  try {
+    // typeNumber 0 → auto-detect kleinste passende QR-versie. addData met 'Byte' mode = veiligste voor URL's met query-params.
+    var qr = window.qrcode(MKT_QR_TYPE_NUMBER, MKT_QR_ERROR_LEVEL);
+    qr.addData(url, 'Byte');
+    qr.make();
+    return qr;
+  } catch (e) {
+    if (window.console && console.warn) console.warn('[marketing-kit] QR build failed:', e && e.message);
+    return null;
+  }
+}
+
+/**
+ * Render in-page preview als SVG (responsive). Vervangt skeleton-loader.
+ * SVG-preview = identieke output aan SVG-download → WYSIWYG.
+ */
+function renderMarketingQrPreview() {
+  var host = document.getElementById('mkt-qr-preview');
+  if (!host) return;
+  var url = mktCalcUrl();
+  if (!url) {
+    host.innerHTML = '<div style="font-size:12px;color:var(--grey);text-align:center;padding:14px">Geen calculator-slug beschikbaar.</div>';
+    return;
+  }
+  var qr = _mktBuildQrModel(url);
+  if (!qr) {
+    host.innerHTML = '<div style="font-size:12px;color:#B91C1C;text-align:center;padding:14px">QR-library niet geladen — herlaad de pagina.</div>';
+    return;
+  }
+  // createSvgTag(cellSize, margin) → string, alle units in module-grid (viewBox sizing = vector).
+  host.innerHTML = qr.createSvgTag({ cellSize: MKT_QR_SVG_CELL_SIZE, margin: MKT_QR_MARGIN, scalable: true });
+}
+
+/** Calculator-URL voor ingelogde partner. Returnt '' als geen slug. */
+function mktCalcUrl() {
+  if (!userPartner || !userPartner.slug) return '';
+  return partnerCalculatorUrl(userPartner.slug);
+}
+
+/** Partner-naam zoals getoond op marketingmateriaal. Fallback: kale partner.naam. */
+function mktPartnerNaam() {
+  if (!userPartner) return 'ons bedrijf';
+  return userPartner.bedrijfsnaam || userPartner.naam || 'ons bedrijf';
+}
+
+/** Render één template met placeholders ingevuld. Retourneert plain string. */
+function mktRenderTemplate(key) {
+  var raw = MKT_TEMPLATES[key];
+  if (!raw) return '';
+  var url = mktCalcUrl();
+  return raw
+    .split('{{partner_naam}}').join(mktPartnerNaam())
+    .split('{{calculator_url}}').join(url || '[link wordt zichtbaar zodra je slug is ingesteld]');
+}
+
+/**
+ * Hoofdrenderer voor de Marketing-pagina. Wordt aangeroepen door showPage('marketing').
+ * Defensief: werkt zelfs als userPartner nog niet geladen is (toont placeholder + retry).
+ */
+function renderMarketingPage() {
+  // Calculator-link in toolbar
+  var url = mktCalcUrl();
+  var inp = document.getElementById('mkt-calc-link-input');
+  var open = document.getElementById('mkt-calc-link-open');
+  if (inp) inp.value = url || '— Geen slug ingesteld op je partneraccount —';
+  if (open) {
+    if (url) { open.href = url; open.removeAttribute('aria-disabled'); open.style.pointerEvents = ''; open.style.opacity = ''; }
+    else { open.href = '#'; open.setAttribute('aria-disabled', 'true'); open.style.pointerEvents = 'none'; open.style.opacity = '0.5'; }
+  }
+
+  // QR-preview (sync — qrcode-generator is non-blocking)
+  renderMarketingQrPreview();
+
+  // Templates renderen (placeholders ingevuld)
+  ['linkedin', 'email', 'whatsapp'].forEach(function(key) {
+    var el = document.getElementById('mkt-tpl-body-' + key);
+    if (el) el.textContent = mktRenderTemplate(key);
+  });
+}
+
+/** Kopieer calculator-link knop in marketing-toolbar (apart van set-calc-link in instellingen). */
+function copyMarketingCalcLink() {
+  var slug = (userPartner && userPartner.slug) || '';
+  copyPartnerCalcLink(slug, 'mkt-calc-link-copy');
+}
+
+/**
+ * Centrale clipboard-helper met fallback naar deprecated execCommand voor browsers
+ * zonder Clipboard API (oudere mobiele browsers / non-HTTPS contexts).
+ */
+function _mktCopyToClipboard(text) {
+  if (typeof text !== 'string' || !text) return Promise.reject(new Error('empty'));
+  // Modern path
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext !== false) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Legacy fallback (off-screen textarea + execCommand)
+  return new Promise(function(resolve, reject) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error('execCommand failed'));
+    } catch (e) { reject(e); }
+  });
+}
+
+/** Kopieer template-tekst naar klembord. Fires Slot 0 event 'Marketing Template Copied'. */
+function copyMarketingTemplate(key) {
+  var text = mktRenderTemplate(key);
+  if (!text) { showToast('Template niet beschikbaar.', 'error'); return; }
+  _mktCopyToClipboard(text).then(function() {
+    showToast('Gekopieerd naar klembord');
+    var btn = document.getElementById('mkt-copy-btn-' + key);
+    if (btn) {
+      var orig = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>Gekopieerd';
+      setTimeout(function() { btn.innerHTML = orig; }, 1800);
+    }
+    if (typeof window.flanccoTrack === 'function') {
+      window.flanccoTrack('Marketing Template Copied', {
+        template: key,
+        partner: (userPartner && userPartner.slug) || 'unknown'
+      });
+    }
+  }).catch(function(err) {
+    if (window.console && console.warn) console.warn('[marketing-kit] copy failed:', err && err.message);
+    showToast('Kopiëren mislukt — selecteer en kopieer handmatig.', 'error');
+  });
+}
+
+/**
+ * Trigger download van QR-code in opgegeven formaat ('png' of 'svg').
+ * Bestandsnaam: flancco-qr-<slug>.<ext>. Fires Slot 0 event 'Marketing QR Downloaded'.
+ */
+function downloadMarketingQr(format) {
+  var url = mktCalcUrl();
+  if (!url) { showToast('Geen calculator-link beschikbaar — controleer je partner-slug.', 'error'); return; }
+  var qr = _mktBuildQrModel(url);
+  if (!qr) { showToast('QR-library niet geladen — herlaad de pagina.', 'error'); return; }
+  var slug = (userPartner && userPartner.slug) || 'partner';
+  var safeSlug = String(slug).replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
+  var filename = 'flancco-qr-' + safeSlug + '.' + (format === 'svg' ? 'svg' : 'png');
+
+  try {
+    if (format === 'svg') {
+      var svgString = qr.createSvgTag({ cellSize: MKT_QR_SVG_CELL_SIZE, margin: MKT_QR_MARGIN, scalable: true });
+      var blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      _mktTriggerDownload(blob, filename);
+    } else {
+      // PNG via canvas, gerendered naar exacte 512×512 px (high-DPI safe).
+      _mktRenderQrToPng(qr, 512).then(function(blob) {
+        _mktTriggerDownload(blob, filename);
+      }).catch(function(e) {
+        if (window.console && console.warn) console.warn('[marketing-kit] PNG render failed:', e && e.message);
+        showToast('PNG-export mislukt — probeer SVG of herlaad de pagina.', 'error');
+      });
+    }
+    if (typeof window.flanccoTrack === 'function') {
+      window.flanccoTrack('Marketing QR Downloaded', {
+        format: format === 'svg' ? 'svg' : 'png',
+        partner: safeSlug
+      });
+    }
+  } catch (e) {
+    if (window.console && console.error) console.error('[marketing-kit] download failed:', e);
+    showToast('Download mislukt — probeer opnieuw.', 'error');
+  }
+}
+
+/** Render een qrcode-model naar exact size×size PNG via canvas. Resolves Blob. */
+function _mktRenderQrToPng(qr, size) {
+  return new Promise(function(resolve, reject) {
+    try {
+      var moduleCount = qr.getModuleCount();
+      var totalModules = moduleCount + MKT_QR_MARGIN * 2;
+      var pxPerModule = Math.floor(size / totalModules);
+      // Indien gevraagde size niet exact deelbaar is, ronden we naar veelvoud van pxPerModule
+      var realSize = pxPerModule * totalModules;
+
+      var canvas = document.createElement('canvas');
+      canvas.width = realSize;
+      canvas.height = realSize;
+      var ctx = canvas.getContext('2d');
+      // Witte achtergrond (incl. quiet-zone)
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, realSize, realSize);
+      // Zwarte modules
+      ctx.fillStyle = '#000000';
+      for (var r = 0; r < moduleCount; r++) {
+        for (var c = 0; c < moduleCount; c++) {
+          if (qr.isDark(r, c)) {
+            var x = (c + MKT_QR_MARGIN) * pxPerModule;
+            var y = (r + MKT_QR_MARGIN) * pxPerModule;
+            ctx.fillRect(x, y, pxPerModule, pxPerModule);
+          }
+        }
+      }
+      canvas.toBlob(function(blob) {
+        if (blob) resolve(blob);
+        else reject(new Error('toBlob returned null'));
+      }, 'image/png');
+    } catch (e) { reject(e); }
+  });
+}
+
+/** Trigger download via temporary anchor + Blob URL. Cleanup na ~0ms (browser event-loop). */
+function _mktTriggerDownload(blob, filename) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 0);
 }
 
 function renderPartnerDetail(p, actieve, alleContracten) {
