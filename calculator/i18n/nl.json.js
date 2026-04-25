@@ -211,6 +211,69 @@
         help: 'Interactieve berichten met foto\'s van het rapport en mogelijkheid tot directe vragen.'
       }
     },
+    // Slot F — Klant-facing multi-kanaal notificaties (email/SMS/WhatsApp)
+    // Deze keys worden gerendered in send-klant-notification-email/-sms/-whatsapp
+    // en in eventuele admin-kant trigger-knoppen. Spiegel altijd in fr.json.js.
+    notification: {
+      reminder_24h: {
+        emailSubject: 'Herinnering: morgen onderhoud zonnepanelen',
+        emailHeader: 'Tot morgen',
+        emailIntroNamed: 'Beste {klant}, een korte herinnering aan uw geplande onderhoudsbeurt.',
+        emailIntroAnon: 'Een korte herinnering aan uw geplande onderhoudsbeurt.',
+        emailDateLabel: 'Datum',
+        emailTimeLabel: 'Aankomst',
+        emailTimeFullDay: 'Ganse dag',
+        emailNote: 'Zorg ervoor dat de panelen toegankelijk zijn en dat eventuele toegangscodes/sleutels klaar liggen.',
+        emailContactCta: 'Iets aan te passen? Antwoord op deze mail.',
+        smsBody: '{partner}: herinnering — onderhoud zonnepanelen morgen {datum}{tijd, select, leeg{} other{ om {tijd}}}.',
+        whatsappTemplateName: 'klant_reminder_24h_nl'
+      },
+      reminder_day: {
+        emailSubject: 'Onze technieker komt vandaag langs',
+        emailHeader: 'We komen vandaag',
+        emailIntroNamed: 'Beste {klant}, vandaag voert onze technieker het onderhoud aan uw zonnepanelen uit.',
+        emailIntroAnon: 'Vandaag voert onze technieker het onderhoud aan uw zonnepanelen uit.',
+        emailTimeLabel: 'Verwachte aankomst',
+        emailTechnicianLabel: 'Technieker',
+        emailContactCta: 'Vragen? Bel of antwoord op deze mail.',
+        smsBody: '{partner}: we komen vandaag langs{tijd, select, leeg{} other{ om {tijd}}}.',
+        whatsappTemplateName: 'klant_reminder_day_nl'
+      },
+      rapport_klaar: {
+        emailSubject: 'Uw onderhoudsrapport is klaar',
+        emailHeader: 'Rapport beschikbaar',
+        emailIntroNamed: 'Beste {klant}, het rapport van uw recent uitgevoerde onderhoudsbeurt is klaar.',
+        emailIntroAnon: 'Het rapport van uw recent uitgevoerde onderhoudsbeurt is klaar.',
+        emailCtaButton: 'Open rapport',
+        emailExpiryNote: 'Deze link blijft 30 dagen geldig.',
+        emailFollowupHint: 'Bewaar dit rapport — u kunt het later nog opvragen via uw klantenportaal.'
+      },
+      common: {
+        partnerSignature: 'Met vriendelijke groet,\n{partner}',
+        optOutFooter: 'U ontvangt deze mail omdat u akkoord gaf bij ondertekening van uw onderhoudscontract.',
+        optOutLink: 'Uitschrijven voor dit kanaal',
+        privacyLink: 'Privacyverklaring',
+        contactSupport: 'Contact: {email}'
+      },
+      adminTrigger: {
+        sectionTitle: 'Notificaties manueel versturen',
+        btnReminder24h: 'Stuur 24u-herinnering',
+        btnReminderDay: 'Stuur dag-herinnering',
+        btnRapportKlaar: 'Stuur rapport-mail',
+        toastSent: 'Notificatie verstuurd via {kanaal}.',
+        toastSkipped: 'Niet verstuurd: {reden}.',
+        toastFailed: 'Versturen mislukt: {reden}.',
+        confirmForce: 'Deze beurt heeft al een notificatie ontvangen via dit kanaal. Toch opnieuw versturen?'
+      },
+      reasons: {
+        no_consent: 'Klant heeft geen actieve toestemming voor dit kanaal',
+        already_sent: 'Notificatie was al eerder verstuurd',
+        missing_contact: 'Geen geldig contactgegeven beschikbaar',
+        daily_cap: 'Dag-limiet voor dit kanaal bereikt',
+        not_configured: 'Kanaal nog niet geconfigureerd door beheerder',
+        send_failed: 'Provider weigerde de verzending'
+      }
+    },
     optOut: {
       title: 'Uitschrijving bevestigd',
       subtitleSuccess: 'U ontvangt geen berichten meer via dit kanaal. Service-mails (afspraakbevestigingen, facturen) blijven u bereiken zolang uw contract loopt.',

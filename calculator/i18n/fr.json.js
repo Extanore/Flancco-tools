@@ -201,6 +201,69 @@
         help: 'Messages interactifs avec photos du rapport et possibilit\u00e9 de poser des questions directement.'
       }
     },
+    // Slot F \u2014 Notifications client multi-canal (e-mail/SMS/WhatsApp)
+    // Ces cl\u00e9s sont rendues dans send-klant-notification-email/-sms/-whatsapp
+    // et dans les boutons de d\u00e9clenchement c\u00f4t\u00e9 admin. Toujours en parit\u00e9 avec nl.json.js.
+    notification: {
+      reminder_24h: {
+        emailSubject: 'Rappel : entretien de vos panneaux solaires demain',
+        emailHeader: 'A demain',
+        emailIntroNamed: 'Bonjour {klant}, voici un bref rappel concernant votre intervention d\'entretien planifi\u00e9e.',
+        emailIntroAnon: 'Bref rappel concernant votre intervention d\'entretien planifi\u00e9e.',
+        emailDateLabel: 'Date',
+        emailTimeLabel: 'Arriv\u00e9e',
+        emailTimeFullDay: 'Toute la journ\u00e9e',
+        emailNote: 'Veillez \u00e0 rendre les panneaux accessibles et \u00e0 pr\u00e9parer les codes ou cl\u00e9s d\'acc\u00e8s \u00e9ventuels.',
+        emailContactCta: 'Une modification \u00e0 apporter ? R\u00e9pondez \u00e0 ce courriel.',
+        smsBody: '{partner} : rappel \u2014 entretien panneaux solaires demain {datum}{tijd, select, leeg{} other{ \u00e0 {tijd}}}.',
+        whatsappTemplateName: 'klant_reminder_24h_fr'
+      },
+      reminder_day: {
+        emailSubject: 'Notre technicien arrive aujourd\'hui',
+        emailHeader: 'Nous arrivons aujourd\'hui',
+        emailIntroNamed: 'Bonjour {klant}, notre technicien intervient aujourd\'hui pour l\'entretien de vos panneaux solaires.',
+        emailIntroAnon: 'Notre technicien intervient aujourd\'hui pour l\'entretien de vos panneaux solaires.',
+        emailTimeLabel: 'Heure d\'arriv\u00e9e pr\u00e9vue',
+        emailTechnicianLabel: 'Technicien',
+        emailContactCta: 'Des questions ? Appelez-nous ou r\u00e9pondez \u00e0 ce courriel.',
+        smsBody: '{partner} : nous arrivons aujourd\'hui{tijd, select, leeg{} other{ \u00e0 {tijd}}}.',
+        whatsappTemplateName: 'klant_reminder_day_fr'
+      },
+      rapport_klaar: {
+        emailSubject: 'Votre rapport d\'entretien est pr\u00eat',
+        emailHeader: 'Rapport disponible',
+        emailIntroNamed: 'Bonjour {klant}, le rapport de votre intervention d\'entretien r\u00e9cente est pr\u00eat.',
+        emailIntroAnon: 'Le rapport de votre intervention d\'entretien r\u00e9cente est pr\u00eat.',
+        emailCtaButton: 'Ouvrir le rapport',
+        emailExpiryNote: 'Ce lien reste valide pendant 30 jours.',
+        emailFollowupHint: 'Conservez ce rapport \u2014 vous pourrez le consulter ult\u00e9rieurement via votre espace client.'
+      },
+      common: {
+        partnerSignature: 'Cordialement,\n{partner}',
+        optOutFooter: 'Vous recevez ce message car vous avez donn\u00e9 votre accord lors de la signature de votre contrat d\'entretien.',
+        optOutLink: 'Se d\u00e9sinscrire de ce canal',
+        privacyLink: 'D\u00e9claration de confidentialit\u00e9',
+        contactSupport: 'Contact : {email}'
+      },
+      adminTrigger: {
+        sectionTitle: 'Envoyer manuellement les notifications',
+        btnReminder24h: 'Envoyer rappel 24 h',
+        btnReminderDay: 'Envoyer rappel du jour',
+        btnRapportKlaar: 'Envoyer le rapport',
+        toastSent: 'Notification envoy\u00e9e via {kanaal}.',
+        toastSkipped: 'Non envoy\u00e9 : {reden}.',
+        toastFailed: 'Envoi \u00e9chou\u00e9 : {reden}.',
+        confirmForce: 'Cette intervention a d\u00e9j\u00e0 re\u00e7u une notification via ce canal. R\u00e9envoyer quand m\u00eame ?'
+      },
+      reasons: {
+        no_consent: 'Le client n\'a pas donn\u00e9 d\'accord actif pour ce canal',
+        already_sent: 'La notification a d\u00e9j\u00e0 \u00e9t\u00e9 envoy\u00e9e pr\u00e9c\u00e9demment',
+        missing_contact: 'Aucune coordonn\u00e9e valide disponible',
+        daily_cap: 'Limite quotidienne pour ce canal atteinte',
+        not_configured: 'Canal pas encore configur\u00e9 par l\'administrateur',
+        send_failed: 'Le fournisseur a refus\u00e9 l\'envoi'
+      }
+    },
     optOut: {
       title: 'D\u00e9sinscription confirm\u00e9e',
       subtitleSuccess: 'Vous ne recevrez plus de messages via ce canal. Les e-mails de service (confirmations de rendez-vous, factures) continueront de vous parvenir tant que votre contrat est en cours.',

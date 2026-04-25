@@ -36,6 +36,7 @@ Alle bestanden zijn **single-file HTML** met inline CSS en JS. Geen npm, geen bu
 - `contracten` — id, partner_id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_email, klant_telefoon, aantal_panelen, frequentie, contractduur, forfait_per_beurt, totaal_excl_btw, totaal_incl_btw, handtekening (base64), datum_ondertekening, status
 - `user_roles` — id, user_id (FK auth.users), role ('admin'|'partner'), partner_id (nullable FK partners)
 - `klant_consents` (Slot Q) — GDPR consent-trail per klant per kanaal: id, contract_id (FK), klant_email, kanaal ('email_service'|'email_marketing'|'sms'|'whatsapp'), opt_in, opt_in_ts/bron/ip/ua, opt_out_ts/bron/ip, opt_out_token (UNIQUE), notitie. View `v_klant_consent_actief` toont laatste status per email/kanaal voor send-* functions.
+- `klant_notification_log` (Slot F) — append-only audit-trail voor elke klant-notificatie poging: id, beurt_id (FK), contract_id (FK), partner_id (FK), kanaal ('email'|'sms'|'whatsapp'), event_type ('reminder_24h'|'reminder_day'|'rapport_klaar'|'test'), recipient (gemaskeerd), status ('sent'|'failed'|'skipped_no_consent'|'skipped_already_sent'|'skipped_missing_contact'|'skipped_daily_cap'), provider_message_id, error_detail, created_at. RLS: admin full SELECT, partner SELECT enkel eigen `partner_id`. Idempotency wordt afgedwongen via 7 timestamp-kolommen op `onderhoudsbeurten` (`reminder_24h_email_ts`, `reminder_day_email_ts`, `_sms_ts` × 2, `_whatsapp_ts` × 2, `rapport_klaar_email_ts`).
 
 ### Storage buckets
 - `contracten-pdf` — getekende contracten (publiek voor klant-link)
@@ -48,12 +49,26 @@ Alle bestanden zijn **single-file HTML** met inline CSS en JS. Geen npm, geen bu
 - `send-contract-link` — contract-link mail (verify_jwt=true)
 - `generate-pdf` (Slot P) — generieke PDF-engine: templates `werkplanning|rapport_branded|contract_signed|facturatie_overzicht`. Auth-gating per template; werkplanning is public, rest vereist JWT + rol-check. Output naar bucket `gen-pdf` met signed URL TTL 7 dagen. (verify_jwt=false, custom auth in handler)
 - `handle-opt-out` (Slot Q) — public GDPR opt-out endpoint. POST {token, confirm:true} → muteert `klant_consents` rij. Idempotent + rate-limited 10/min. (verify_jwt=false)
+- `send-klant-notification-email` (Slot F) — klant-facing transactionele mail via Resend. Events: `reminder_24h`, `reminder_day`, `rapport_klaar`, `test`. Auth: service-role bearer OF user-JWT met admin/partner-owner. Idempotency via `${event_type}_email_ts`-kolommen. Consent-check op `v_klant_consent_actief` (kanaal=`email_service`). GDPR opt-out footer met token. (verify_jwt=false, custom auth)
+- `send-klant-notification-sms` (Slot F) — Twilio Programmable SMS. E.164-normalisatie (BE shortform `04XX` → `+324XX`). Daily-cap via `TWILIO_DAILY_CAP` (default 100). Returns 503 `twilio_not_configured` zonder beurt-ts update bij ontbrekende secrets. `rapport_klaar` geweigerd via SMS. Consent vereist expliciete opt-in (kanaal=`sms`). (verify_jwt=false, custom auth)
+- `send-klant-notification-whatsapp` (Slot F) — Meta WhatsApp Cloud API. Template-first payload `klant_${event_type}_${lang}` met components (header/body/button). Freeform fallback enkel via admin-JWT in 24h-venster. Daily-cap via `WHATSAPP_DAILY_CAP`. (verify_jwt=false, custom auth)
+- `dispatch-klant-notifications` (Slot F) — pg_cron orchestrator (07:15 UTC dagelijks). Service-role bearer enforced (constant-time). Selecteert beurten met `plan_datum=tomorrow` (reminder_24h) en `plan_datum=today AND status='ingepland'` (reminder_day), vuurt parallel 3 kanalen via `Promise.allSettled`. `DISPATCH_MAX_BATCH=500`, channel-toggles via `DISPATCH_ENABLE_EMAIL/SMS/WHATSAPP`. (verify_jwt=false, service-role only)
 - `invite-partner`, `invite-partner-member`, `create-bediende` — gebruikers-invites (admin-only)
+
+### Scheduled Jobs (pg_cron)
+- `slot_f_klant_dispatch_daily` (Slot F) — `'15 7 * * *'` (07:15 UTC dagelijks). Roept `SELECT dispatch_klant_notifications_via_http()` aan, een SECURITY DEFINER functie die `pg_net.http_post` gebruikt om `dispatch-klant-notifications` te invoken met service-role bearer. Vereist twee Vault-secrets: `slot_f_supabase_url` en `slot_f_service_role_key`.
 
 ### RLS Policies
 - **Admin**: volledige CRUD op alle tabellen
-- **Partner**: SELECT op eigen contracten (partner_id match), UPDATE op eigen partner-record (branding/instellingen), SELECT op `klant_consents` van eigen contracten
+- **Partner**: SELECT op eigen contracten (partner_id match), UPDATE op eigen partner-record (branding/instellingen), SELECT op `klant_consents` van eigen contracten, SELECT op `klant_notification_log` van eigen contracten
 - **Anon**: INSERT op contracten + SELECT op pricing en partners (nodig voor calculatoren); INSERT op `klant_consents` met `opt_in_bron='calculator'`
+
+### Edge Function Secrets vereist (Slot F)
+- `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_REPLY_TO` — voor `send-klant-notification-email`
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, optioneel `TWILIO_DAILY_CAP` — voor `send-klant-notification-sms`
+- `WHATSAPP_PHONE_ID`, `WHATSAPP_ACCESS_TOKEN`, optioneel `WHATSAPP_API_VERSION` (default `v18.0`), `WHATSAPP_DAILY_CAP` — voor `send-klant-notification-whatsapp`
+- `APP_BASE_URL` — basis voor opt-out links (default `https://flancco-platform.be/`)
+- Optioneel: `DISPATCH_ENABLE_EMAIL`, `DISPATCH_ENABLE_SMS`, `DISPATCH_ENABLE_WHATSAPP` (default `true`) — staged rollout flags
 
 ### Partners in Database
 | Naam | ID | Slug | Marge | Planning fee |
