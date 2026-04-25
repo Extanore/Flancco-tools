@@ -608,6 +608,60 @@
       </div>
     </div>
 
+    <!--
+      Communicatie-voorkeuren (Slot Q — GDPR consent)
+      ────────────────────────────────────────────────
+      Vier kanalen; elk gemapt op één rij in `klant_consents`. Wettelijke basis
+      per kanaal verschilt (zie comment in migratie 20260425100000):
+        • email_service   — art. 6.1.b WER, default-aan toegestaan
+        • email_marketing — art. 6.1.a, expliciete opt-in vereist (default-uit)
+        • sms / whatsapp  — ePrivacy-richtlijn, expliciete opt-in vereist
+    -->
+    <div class="card" id="consent-card">
+      <h3 style="margin:0 0 8px;font-size:15px;font-weight:600;color:var(--text)" data-i18n="consent.title">Communicatie-voorkeuren</h3>
+      <p style="margin:0 0 14px;font-size:12px;color:var(--grey)" data-i18n="consent.subtitle">U kunt deze voorkeuren altijd later aanpassen via de opt-out-link in elke communicatie.</p>
+
+      <div class="accept-box" style="border-color:var(--rule);background:var(--light);margin-bottom:8px">
+        <label>
+          <input type="checkbox" id="consent-email-service" checked>
+          <div class="accept-text" style="font-size:12px;color:var(--grey)">
+            <strong data-i18n="consent.email_service.label">Service-mails (vereist voor uitvoering contract)</strong>
+            <div data-i18n="consent.email_service.help">Bevestiging van uw afspraken, factuur, rapport na onderhoudsbeurt en service-meldingen.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="accept-box" style="border-color:var(--rule);background:var(--light);margin-bottom:8px">
+        <label>
+          <input type="checkbox" id="consent-email-marketing">
+          <div class="accept-text" style="font-size:12px;color:var(--grey)">
+            <strong data-i18n="consent.email_marketing.label">Marketing-mails (optioneel)</strong>
+            <div data-i18n="consent.email_marketing.help">Tips, nieuwsbrief en promo-acties. Maximaal eenmaal per maand.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="accept-box" style="border-color:var(--rule);background:var(--light);margin-bottom:8px">
+        <label>
+          <input type="checkbox" id="consent-sms">
+          <div class="accept-text" style="font-size:12px;color:var(--grey)">
+            <strong data-i18n="consent.sms.label">SMS-herinneringen (optioneel)</strong>
+            <div data-i18n="consent.sms.help">Korte herinnering 24u voor uw beurt + dag-zelf met aankomsttijd technieker.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="accept-box" style="border-color:var(--rule);background:var(--light)">
+        <label>
+          <input type="checkbox" id="consent-whatsapp">
+          <div class="accept-text" style="font-size:12px;color:var(--grey)">
+            <strong data-i18n="consent.whatsapp.label">WhatsApp-berichten (optioneel)</strong>
+            <div data-i18n="consent.whatsapp.help">Interactieve berichten met foto's van het rapport en mogelijkheid tot directe vragen.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
     <div class="btn-row">
       <button class="btn btn-outline" onclick="goToStep(showStep0 ? 0 : 1)" data-i18n="step2.ctaBack">&larr; Terug</button>
       <button class="btn" onclick="goToSummary()" data-i18n="step2.ctaNext">Bekijk samenvatting &rarr;</button>
@@ -3911,6 +3965,37 @@ async function submitContract() {
         await sb.from('contract_regels').insert(regels);
       }
     } catch (regelErr) { console.warn('Contract regels insert mislukt:', regelErr); }
+
+    // ─── Slot Q — GDPR consent-trail ───
+    // Eén rij per kanaal (4 kanalen). Anon-policy laat alleen INSERT toe met
+    // opt_in_bron='calculator'. Token wordt server-side gegenereerd via trigger.
+    // Faalt deze insert, dan blokkeert dat het signing-flow NIET — consent is
+    // belangrijk maar mag de klant-flow niet stuk maken (wordt admin-side
+    // bijgewerkt via reconciliation-job indien nodig).
+    try {
+      var consentEmail = (document.getElementById('klant-email').value || '').trim().toLowerCase();
+      if (consentEmail) {
+        var ua = (navigator && navigator.userAgent) ? navigator.userAgent.slice(0, 500) : null;
+        var consentRows = [
+          { kanaal: 'email_service',   opt_in: !!document.getElementById('consent-email-service').checked },
+          { kanaal: 'email_marketing', opt_in: !!document.getElementById('consent-email-marketing').checked },
+          { kanaal: 'sms',             opt_in: !!document.getElementById('consent-sms').checked },
+          { kanaal: 'whatsapp',        opt_in: !!document.getElementById('consent-whatsapp').checked }
+        ].map(function(r) {
+          return {
+            contract_id: contractId,
+            klant_email: consentEmail,
+            kanaal: r.kanaal,
+            opt_in: r.opt_in,
+            opt_in_bron: 'calculator',
+            opt_in_ip: signingIp,
+            opt_in_user_agent: ua
+          };
+        });
+        var consentRes = await sb.from('klant_consents').insert(consentRows);
+        if (consentRes && consentRes.error) console.warn('Consent insert mislukt:', consentRes.error);
+      }
+    } catch (consentErr) { console.warn('Consent-trail aanmaken mislukt (non-blocking):', consentErr); }
 
     // Auto-generate onderhoudsbeurten per sector
     try {

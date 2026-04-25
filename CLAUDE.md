@@ -35,11 +35,25 @@ Alle bestanden zijn **single-file HTML** met inline CSS en JS. Geen npm, geen bu
 - `pricing` — id, partner_id, staffel_min, staffel_max, label, flancco_forfait
 - `contracten` — id, partner_id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_email, klant_telefoon, aantal_panelen, frequentie, contractduur, forfait_per_beurt, totaal_excl_btw, totaal_incl_btw, handtekening (base64), datum_ondertekening, status
 - `user_roles` — id, user_id (FK auth.users), role ('admin'|'partner'), partner_id (nullable FK partners)
+- `klant_consents` (Slot Q) — GDPR consent-trail per klant per kanaal: id, contract_id (FK), klant_email, kanaal ('email_service'|'email_marketing'|'sms'|'whatsapp'), opt_in, opt_in_ts/bron/ip/ua, opt_out_ts/bron/ip, opt_out_token (UNIQUE), notitie. View `v_klant_consent_actief` toont laatste status per email/kanaal voor send-* functions.
+
+### Storage buckets
+- `contracten-pdf` — getekende contracten (publiek voor klant-link)
+- `handtekeningen` — handtekening PNG's (publiek)
+- `gen-pdf` (Slot P) — privé bucket voor `generate-pdf` Edge Function output. 5 MB cap, PDF-only MIME. Path-vorm `<partner_slug>/<YYYY-MM-DD>/<filename>.pdf`. RLS: service_role full, admin read all, partner+bediende read alleen eigen slug-prefix.
+- `partner-logos` — partner branding-logo's
+
+### Edge Functions
+- `send-confirmation` — bevestigingsmail post-signing met contract-PDF + herroepingsformulier (verify_jwt=false, public)
+- `send-contract-link` — contract-link mail (verify_jwt=true)
+- `generate-pdf` (Slot P) — generieke PDF-engine: templates `werkplanning|rapport_branded|contract_signed|facturatie_overzicht`. Auth-gating per template; werkplanning is public, rest vereist JWT + rol-check. Output naar bucket `gen-pdf` met signed URL TTL 7 dagen. (verify_jwt=false, custom auth in handler)
+- `handle-opt-out` (Slot Q) — public GDPR opt-out endpoint. POST {token, confirm:true} → muteert `klant_consents` rij. Idempotent + rate-limited 10/min. (verify_jwt=false)
+- `invite-partner`, `invite-partner-member`, `create-bediende` — gebruikers-invites (admin-only)
 
 ### RLS Policies
 - **Admin**: volledige CRUD op alle tabellen
-- **Partner**: SELECT op eigen contracten (partner_id match), UPDATE op eigen partner-record (branding/instellingen)
-- **Anon**: INSERT op contracten + SELECT op pricing en partners (nodig voor calculatoren)
+- **Partner**: SELECT op eigen contracten (partner_id match), UPDATE op eigen partner-record (branding/instellingen), SELECT op `klant_consents` van eigen contracten
+- **Anon**: INSERT op contracten + SELECT op pricing en partners (nodig voor calculatoren); INSERT op `klant_consents` met `opt_in_bron='calculator'`
 
 ### Partners in Database
 | Naam | ID | Slug | Marge | Planning fee |

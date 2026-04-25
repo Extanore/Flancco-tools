@@ -142,6 +142,34 @@
       fr: 'Fran\u00e7ais',
       remember: 'Onthoud mijn keuze'
     },
+    consent: {
+      title: 'Communicatie-voorkeuren',
+      subtitle: 'U kunt deze voorkeuren altijd later aanpassen via de opt-out-link in elke communicatie.',
+      email_service: {
+        label: 'Service-mails (vereist voor uitvoering contract)',
+        help: 'Bevestiging van uw afspraken, factuur, rapport na onderhoudsbeurt en service-meldingen.'
+      },
+      email_marketing: {
+        label: 'Marketing-mails (optioneel)',
+        help: 'Tips, nieuwsbrief en promo-acties. Maximaal eenmaal per maand.'
+      },
+      sms: {
+        label: 'SMS-herinneringen (optioneel)',
+        help: 'Korte herinnering 24u voor uw beurt + dag-zelf met aankomsttijd technieker.'
+      },
+      whatsapp: {
+        label: 'WhatsApp-berichten (optioneel)',
+        help: 'Interactieve berichten met foto\'s van het rapport en mogelijkheid tot directe vragen.'
+      }
+    },
+    optOut: {
+      title: 'Uitschrijving bevestigd',
+      subtitleSuccess: 'U ontvangt geen berichten meer via dit kanaal. Service-mails (afspraakbevestigingen, facturen) blijven u bereiken zolang uw contract loopt.',
+      subtitleFail: 'We konden uw uitschrijving niet verwerken. Mogelijk is de link verlopen of al gebruikt.',
+      contactHint: 'Vragen? Mail ons op {email}.',
+      backHome: 'Terug naar de website',
+      processing: 'Bezig met verwerken\u2026'
+    },
     errors: {
       generic: 'Er is iets misgegaan. Probeer opnieuw of neem contact op.',
       requiredField: 'Dit veld is verplicht',

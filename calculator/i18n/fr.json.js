@@ -132,6 +132,34 @@
       fr: 'Fran\u00e7ais',
       remember: 'Retenir mon choix'
     },
+    consent: {
+      title: 'Pr\u00e9f\u00e9rences de communication',
+      subtitle: 'Vous pouvez modifier ces pr\u00e9f\u00e9rences \u00e0 tout moment via le lien de d\u00e9sinscription pr\u00e9sent dans chaque communication.',
+      email_service: {
+        label: 'E-mails de service (n\u00e9cessaires \u00e0 l\'ex\u00e9cution du contrat)',
+        help: 'Confirmation de vos rendez-vous, facture, rapport apr\u00e8s entretien et messages de service.'
+      },
+      email_marketing: {
+        label: 'E-mails marketing (facultatif)',
+        help: 'Conseils, newsletter et offres promotionnelles. Au maximum une fois par mois.'
+      },
+      sms: {
+        label: 'Rappels SMS (facultatif)',
+        help: 'Bref rappel 24 h avant votre entretien et le jour m\u00eame avec l\'heure d\'arriv\u00e9e du technicien.'
+      },
+      whatsapp: {
+        label: 'Messages WhatsApp (facultatif)',
+        help: 'Messages interactifs avec photos du rapport et possibilit\u00e9 de poser des questions directement.'
+      }
+    },
+    optOut: {
+      title: 'D\u00e9sinscription confirm\u00e9e',
+      subtitleSuccess: 'Vous ne recevrez plus de messages via ce canal. Les e-mails de service (confirmations de rendez-vous, factures) continueront de vous parvenir tant que votre contrat est en cours.',
+      subtitleFail: 'Nous n\'avons pas pu traiter votre d\u00e9sinscription. Le lien est peut-\u00eatre expir\u00e9 ou d\u00e9j\u00e0 utilis\u00e9.',
+      contactHint: 'Des questions ? \u00c9crivez-nous \u00e0 {email}.',
+      backHome: 'Retour vers le site',
+      processing: 'Traitement en cours\u2026'
+    },
     errors: {
       generic: 'Une erreur s\'est produite. R\u00e9essayez ou contactez-nous.',
       requiredField: 'Ce champ est obligatoire',
