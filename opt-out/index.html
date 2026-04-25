@@ -6,6 +6,13 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Uitschrijving — Flancco Platform</title>
 
+  <!-- Slot 0 — Plausible Analytics (privacy-first, cookieless, GDPR-compliant).
+       Volgt zelfde pattern als andere pagina's. Defer load — never blocks rendering.
+       Fallback: if blocked by adblocker, window.flanccoTrack() degrades gracefully. -->
+  <script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.manual.tagged-events.js"></script>
+  <script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
+  <script defer src="/shared/analytics.js"></script>
+
   <!-- i18n (Slot S) — synchroon laden om flash-of-fallback te vermijden -->
   <script src="/calculator/i18n/i18n.js"></script>
   <script src="/calculator/i18n/nl.json.js"></script>
@@ -182,14 +189,29 @@
           if (res.ok && json && json.success) {
             fillMeta(json);
             show('state-success');
+            // Slot 0 — anonieme conversie-meting; geen PII (alleen kanaal + idempotency-flag)
+            if (typeof window.flanccoTrack === 'function') {
+              window.flanccoTrack('Opt-out Confirmed', {
+                kanaal: json.kanaal || 'unknown',
+                idempotent: json.already_opted_out ? 'true' : 'false'
+              });
+            }
           } else {
             show('state-fail');
             fillContactHint();
+            if (typeof window.flanccoTrack === 'function') {
+              window.flanccoTrack('Opt-out Failed', {
+                error: (json && json.error) || 'unknown'
+              });
+            }
           }
         } catch (err) {
           console.error('[opt-out] error', err);
           show('state-fail');
           fillContactHint();
+          if (typeof window.flanccoTrack === 'function') {
+            window.flanccoTrack('Opt-out Failed', { error: 'network' });
+          }
         }
       }
 

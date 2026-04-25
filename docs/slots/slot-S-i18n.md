@@ -110,11 +110,24 @@ window.flanccoI18n.onLangChange(function() {
 
 Verwijder de 3 `<script src="/calculator/i18n/...">` regels uit `calculator/index.html` `<head>` en de `<script>`-block + `<style>`-block + `<div class="lang-switch">` aan einde van body. Hardgecodeerde NL-tekst blijft als fallback overal staan — pagina werkt nog steeds, alleen geen FR.
 
+## Persistentie in DB — `contracten.lang`
+
+Cookie persisteert keuze klant-side, maar bij outbound communicatie (bevestiging-mail, herinnering, opt-out-link in andere device/incognito) hebben we ground-truth nodig in de DB. Daarom schrijft de calculator de actieve UI-taal mee in `contracten.lang` (NOT NULL DEFAULT 'nl', CHECK in {nl,fr}).
+
+| Flow | Schrijft `contracten.lang` | Hoe |
+|---|---|---|
+| Calculator submit (publiek) | ja, via `payload.lang` | INSERT op `contracten` met `lang: window.flanccoI18n.getLang()` |
+| Signed link (gemailed contract) | ja, via RPC `anon_sign_contract_complete(p_lang)` | UPDATE op contracten, gevalideerd 'nl'\|'fr' (anders fallback 'nl') |
+| Admin contract-wizard | nog niet (toekomst — Slot S follow-up) | n/a |
+
+Send-* edge functions moeten `contracten.lang` lezen en NIET op cookie of header vertrouwen.
+
 ## Open follow-ups
 
 - [ ] FR-vertaling laten reviewen door native FR-speaker (Belgisch register, formele 'vous')
 - [ ] Sector-tabs + USP-render i18n-aware maken (incrementeel)
-- [ ] Success-page + post-submit-summary vertalen
-- [ ] Plausible event `language_switched` afvuren bij `setLang()` voor analytics-funnel
+- [x] Success-page + post-submit-summary vertalen (data-i18n + JS-helpers)
+- [x] Plausible event `Language Switched` afvuren bij `setLang()` voor analytics-funnel
 - [ ] Server-side i18n in Slot P PDF-engine (templates per taal)
-- [ ] i18n voor `admin/contracten-wizard.html` (admin-flow voor partner-contracten — zelfde mechanisme, andere keys-set)
+- [ ] i18n voor `admin/contracten-wizard.html` (admin-flow voor partner-contracten — zelfde mechanisme, andere keys-set) + p_lang doorzetten in admin contract-RPC's
+- [x] DB-persistentie via `contracten.lang` kolom + `anon_sign_contract_complete(p_lang)` RPC-uitbreiding

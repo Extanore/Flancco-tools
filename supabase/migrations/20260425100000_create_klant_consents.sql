@@ -82,7 +82,10 @@ CREATE TRIGGER trg_klant_consents_bijgewerkt
 CREATE OR REPLACE FUNCTION public.tg_klant_consents_set_token()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SET search_path = public, pg_temp
+-- search_path MOET extensions bevatten — Supabase hoist pgcrypto naar
+-- 'extensions' schema, niet 'public'. Zonder deze entry faalt
+-- gen_random_bytes() silent en blijft opt_out_token NULL.
+SET search_path = public, extensions, pg_temp
 AS $$
 BEGIN
   IF NEW.opt_out_token IS NULL THEN
@@ -182,8 +185,14 @@ ALTER VIEW public.v_klant_consent_actief SET (security_invoker = true);
 ALTER VIEW public.v_klant_consent_actief OWNER TO postgres;
 
 -- ----------------------------------------------------------------
--- GRANT — anon mag inserten via RLS, daarna alleen admin/partner zien
+-- GRANT — defense-in-depth: REVOKE ALL eerst, daarna expliciet wat
+-- toegestaan is. Default Supabase grants geven anon/authenticated
+-- ALL privileges op nieuwe tabellen — RLS blokt dat in de praktijk
+-- maar we willen geen GRANT die ons RLS-beleid contradicteert.
 -- ----------------------------------------------------------------
+REVOKE ALL ON public.klant_consents FROM anon;
+REVOKE ALL ON public.klant_consents FROM authenticated;
+
 GRANT INSERT ON public.klant_consents TO anon;
 GRANT SELECT, INSERT, UPDATE ON public.klant_consents TO authenticated;
 GRANT SELECT ON public.v_klant_consent_actief TO authenticated;

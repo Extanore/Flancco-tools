@@ -116,6 +116,7 @@
     success: {
       title: 'Votre contrat a \u00e9t\u00e9 sign\u00e9 avec succ\u00e8s',
       subtitle: 'Votre PDF est t\u00e9l\u00e9charg\u00e9 automatiquement. Conservez-le comme confirmation.',
+      subtitleSigning: 'Merci de votre confiance. Vous recevrez une confirmation par e-mail.',
       headerOvereenkomst: 'Votre contrat',
       labelNr: 'Num\u00e9ro de contrat',
       labelDatum: 'Date',
@@ -123,7 +124,22 @@
       labelFreq: 'Fr\u00e9quence',
       labelDuur: 'Dur\u00e9e du contrat',
       labelBedrag: 'Total par entretien',
-      headerNext: 'Que se passe-t-il maintenant ?'
+      headerNext: 'Que se passe-t-il maintenant ?',
+      stepDownloaded: 'Votre PDF de contrat a \u00e9t\u00e9 t\u00e9l\u00e9charg\u00e9 automatiquement \u2014 conservez ce document',
+      stepProcessed: 'Votre contrat sign\u00e9 est trait\u00e9 par votre partenaire',
+      stepPlanFirst: 'Nous planifions votre premier entretien',
+      stepCalled: 'Vous serez contact\u00e9 par t\u00e9l\u00e9phone pour fixer une date pr\u00e9cise',
+      dlAgain: '\u2193 T\u00e9l\u00e9charger le PDF \u00e0 nouveau',
+      dlContract: '\u2193 T\u00e9l\u00e9charger votre contrat en PDF',
+      contactQuestion: 'Des questions ? Contactez',
+      freqJaarlijks: 'Annuel (1\u00D7)',
+      freqHalfjaarlijks: 'Semestriel (2\u00D7)',
+      freqEenmalig: 'Unique',
+      duurEenmalig: 'Intervention unique',
+      duurJaarSingular: '{n} an',
+      duurJaarPlural: '{n} ans',
+      seizoenPrefix: 'Nous planifions votre premier entretien durant la p\u00e9riode {seizoenen}',
+      nvt: 's.o.'
     },
     languagePrompt: {
       title: 'Quelle langue pr\u00e9f\u00e9rez-vous ?',

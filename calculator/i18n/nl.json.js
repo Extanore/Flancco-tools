@@ -126,6 +126,7 @@
     success: {
       title: 'Uw contract is succesvol ondertekend',
       subtitle: 'Uw PDF wordt automatisch gedownload. Bewaar dit als bevestiging.',
+      subtitleSigning: 'Bedankt voor uw vertrouwen. U ontvangt een bevestiging per e-mail.',
       headerOvereenkomst: 'Uw overeenkomst',
       labelNr: 'Contractnummer',
       labelDatum: 'Datum',
@@ -133,7 +134,22 @@
       labelFreq: 'Frequentie',
       labelDuur: 'Contractduur',
       labelBedrag: 'Totaal per beurt',
-      headerNext: 'Wat gebeurt er nu?'
+      headerNext: 'Wat gebeurt er nu?',
+      stepDownloaded: 'Uw contract PDF is automatisch gedownload \u2014 bewaar dit document',
+      stepProcessed: 'Uw ondertekend contract wordt verwerkt door uw partner',
+      stepPlanFirst: 'Wij plannen uw eerste onderhoudsbeurt in',
+      stepCalled: 'U wordt telefonisch gecontacteerd voor een exacte datum',
+      dlAgain: '\u2193 Download PDF opnieuw',
+      dlContract: '\u2193 Download uw contract als PDF',
+      contactQuestion: 'Vragen? Neem contact op met',
+      freqJaarlijks: 'Jaarlijks (1\u00D7)',
+      freqHalfjaarlijks: 'Halfjaarlijks (2\u00D7)',
+      freqEenmalig: 'Eenmalig',
+      duurEenmalig: 'Eenmalige interventie',
+      duurJaarSingular: '{n} jaar',
+      duurJaarPlural: '{n} jaar',
+      seizoenPrefix: 'Wij plannen uw eerste onderhoudsbeurt in de periode {seizoenen}',
+      nvt: 'n.v.t.'
     },
     languagePrompt: {
       title: 'Welke taal verkiest u?',
