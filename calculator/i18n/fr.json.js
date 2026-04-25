@@ -328,6 +328,58 @@
         errorNoBeurten: 'Aucune mission trouv\u00e9e pour ce technicien ce jour-l\u00e0.',
         waMessageNl: 'Bonjour {voornaam}, voici votre planning de travail pour {datum}: {url}',
         expiresHint: 'Lien valable 7 jours.'
+      },
+      // Slot K — Jours f\u00e9ri\u00e9s + p\u00e9riodes de fermeture (soft-warning)
+      feestdagen: {
+        markerLabelFd: 'Jour f\u00e9ri\u00e9',
+        markerLabelSp: 'P\u00e9riode de fermeture',
+        bannerHeading: 'P\u00e9riodes de fermeture sur cette p\u00e9riode',
+        warningTitleFd: 'Vous planifiez un jour f\u00e9ri\u00e9',
+        warningTitleSp: 'Vous planifiez pendant une p\u00e9riode de fermeture',
+        warningSubtitle: 'Le planning a d\u00e9tect\u00e9 un conflit. Vous pouvez toujours continuer si c\u2019est exceptionnel.',
+        warningCancel: 'Annuler',
+        warningProceed: 'Planifier quand m\u00eame'
+      }
+    },
+    // Slot K — Gestion admin: jours f\u00e9ri\u00e9s & fermetures
+    admin: {
+      feestdagen: {
+        pageTitle: 'Jours f\u00e9ri\u00e9s & p\u00e9riodes de fermeture',
+        pageSubtitle: 'Jours f\u00e9ri\u00e9s belges et fermetures de l\u2019entreprise. Affich\u00e9s comme avertissement dans le planning.',
+        btnNew: 'Nouveau',
+        btnAutoExtend: 'G\u00e9n\u00e9rer pour l\u2019ann\u00e9e prochaine',
+        colDate: 'Date',
+        colDateEnd: 'Date de fin',
+        colType: 'Type',
+        colLabel: 'Libell\u00e9',
+        colRecurring: 'R\u00e9currence',
+        colActions: 'Actions',
+        typeFd: 'Jour f\u00e9ri\u00e9',
+        typeSp: 'P\u00e9riode de fermeture',
+        recurringJaarlijks: 'Annuel',
+        recurringEenmalig: 'Ponctuel',
+        empty: 'Aucun jour f\u00e9ri\u00e9 ou p\u00e9riode de fermeture trouv\u00e9 pour ce filtre.',
+        modalNewFd: 'Nouveau jour f\u00e9ri\u00e9',
+        modalNewSp: 'Nouvelle p\u00e9riode de fermeture',
+        modalEditFd: 'Modifier le jour f\u00e9ri\u00e9',
+        modalEditSp: 'Modifier la p\u00e9riode de fermeture',
+        labelDate: 'Date',
+        labelDateStart: 'Date de d\u00e9but',
+        labelDateEnd: 'Date de fin',
+        labelLabel: 'Libell\u00e9',
+        placeholderLabel: 'P. ex. Cong\u00e9 du b\u00e2timent \u00e9t\u00e9 2027',
+        helpLabel: 'Affich\u00e9 dans le planning sur le jour concern\u00e9.',
+        helpRecurring: 'Les jours f\u00e9ri\u00e9s annuels sont \u00e9tendus automatiquement via cron (1er d\u00e9cembre).',
+        toastSaved: 'Enregistr\u00e9.',
+        toastDeleted: 'Supprim\u00e9.',
+        toastSeedDone: 'Jours f\u00e9ri\u00e9s pour {year} ajout\u00e9s ({count} nouveaux, {dup} d\u00e9j\u00e0 pr\u00e9sents).',
+        toastSeedFailed: 'L\u2019extension automatique a \u00e9chou\u00e9 : {reason}',
+        errRequired: 'La date, le libell\u00e9 et le type sont obligatoires.',
+        errEindRequired: 'Une p\u00e9riode de fermeture requiert une date de fin.',
+        errEindBeforeStart: 'La date de fin doit \u00eatre \u00e9gale ou post\u00e9rieure \u00e0 la date de d\u00e9but.',
+        errLabelShort: 'Le libell\u00e9 doit contenir au moins 2 caract\u00e8res.',
+        deleteConfirmFd: 'Voulez-vous vraiment supprimer le jour f\u00e9ri\u00e9 {label} ({datum}) ?',
+        deleteConfirmSp: 'Voulez-vous vraiment supprimer la p\u00e9riode de fermeture {label} ({datum}) ?'
       }
     }
   });

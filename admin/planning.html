@@ -1433,6 +1433,105 @@
   @media (min-width: 769px) {
     .btn-sidebar-toggle { display: none; }
   }
+
+  /* ============================================================
+     SLOT K — Feestdagen + sluitingsperiodes (soft-warning)
+     ============================================================
+     Dag-header markering (week + dag view), maand-cel highlight,
+     sluitingsperiode-balk en soft-warning modal. */
+
+  /* Dag-header markering — week-grid + day-grid <th> krijgt klasse .is-feestdag */
+  .week-grid th.is-feestdag,
+  .day-grid th.is-feestdag {
+    background: rgba(231, 76, 60, 0.08);
+    border-bottom: 2px solid rgba(231, 76, 60, 0.35);
+    position: relative;
+  }
+  .week-grid th.is-sluiting,
+  .day-grid th.is-sluiting {
+    background: rgba(243, 156, 18, 0.10);
+    border-bottom: 2px solid rgba(243, 156, 18, 0.40);
+    position: relative;
+  }
+  .week-grid th .th-day-label,
+  .day-grid th .th-day-label {
+    display: block; line-height: 1.2;
+  }
+  .feestdag-marker {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 4px; padding: 2px 6px; border-radius: 4px;
+    background: rgba(231, 76, 60, 0.12); color: #B83227;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.2px;
+    text-transform: none; line-height: 1.2; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .feestdag-marker.is-sluiting {
+    background: rgba(243, 156, 18, 0.15); color: #9A6300;
+  }
+  .feestdag-marker svg { flex: 0 0 auto; }
+
+  /* Maand-view: cel-highlight bij feestdag/sluitingsperiode */
+  .month-grid td.is-feestdag {
+    background: rgba(231, 76, 60, 0.06);
+    box-shadow: inset 0 -2px 0 rgba(231, 76, 60, 0.30);
+  }
+  .month-grid td.is-sluiting {
+    background: rgba(243, 156, 18, 0.07);
+    box-shadow: inset 0 -2px 0 rgba(243, 156, 18, 0.35);
+  }
+  .month-feestdag-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    margin-top: 4px; padding: 1px 5px; border-radius: 3px;
+    background: rgba(231, 76, 60, 0.14); color: #B83227;
+    font-size: 9.5px; font-weight: 700; line-height: 1.3;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .month-feestdag-tag.is-sluiting {
+    background: rgba(243, 156, 18, 0.16); color: #9A6300;
+  }
+
+  /* Sluitingsperiode-balk — toont boven view-header bij overlap met huidige periode */
+  .feestdag-banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin: 0 0 10px;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.10), rgba(243, 156, 18, 0.04));
+    border: 1px solid rgba(243, 156, 18, 0.35);
+    border-radius: 8px;
+    color: #7A4F00; font-size: 12.5px; font-weight: 600;
+    line-height: 1.4;
+  }
+  .feestdag-banner svg { flex: 0 0 auto; color: #B07000; }
+  .feestdag-banner strong { font-weight: 700; }
+  .feestdag-banner-list { display: flex; flex-direction: column; gap: 2px; }
+
+  /* Soft-warning modal — eigen visuele identiteit (waarschuwingstoon, geen error) */
+  .modal-feestdag-warning .modal {
+    max-width: 460px; padding: 24px;
+  }
+  .feestdag-warning-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: rgba(231, 76, 60, 0.12); color: #B83227;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px;
+  }
+  .feestdag-warning-icon.is-sluiting {
+    background: rgba(243, 156, 18, 0.14); color: #9A6300;
+  }
+  .feestdag-warning-detail {
+    margin: 12px 0 20px; padding: 12px 14px;
+    background: var(--bg-page); border-radius: 8px;
+    border-left: 3px solid rgba(231, 76, 60, 0.45);
+    font-size: 13px; line-height: 1.5; color: var(--text-primary);
+  }
+  .feestdag-warning-detail.is-sluiting {
+    border-left-color: rgba(243, 156, 18, 0.55);
+  }
+  .feestdag-warning-detail .label-row {
+    font-weight: 700; color: var(--navy); margin-bottom: 4px;
+  }
+  .feestdag-warning-detail .date-row {
+    font-size: 12px; color: var(--grey);
+  }
 </style>
 </head>
 <body>
@@ -2393,6 +2492,37 @@
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
     Annuleer beurt
   </button>
+</div>
+
+<!-- SLOT K — SOFT-WARNING MODAL bij plannen op feestdag/sluitingsperiode -->
+<div class="modal-overlay modal-feestdag-warning" id="modal-feestdag-warning"
+     role="dialog" aria-modal="true" aria-labelledby="fdw-title" aria-describedby="fdw-detail">
+  <div class="modal" style="max-width:460px">
+    <div class="feestdag-warning-icon" id="fdw-icon" aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <line x1="9" y1="15" x2="15" y2="15" stroke-dasharray="2,2"/>
+        <line x1="9" y1="18" x2="15" y2="18" stroke-dasharray="2,2"/>
+      </svg>
+    </div>
+    <h2 id="fdw-title">Je plant op een feestdag</h2>
+    <p style="color:var(--grey);font-size:13px;margin:6px 0 0;line-height:1.5">
+      Onze planning detecteerde een conflict. Je kan altijd doorgaan als dit een uitzondering is.
+    </p>
+    <div class="feestdag-warning-detail" id="fdw-detail">
+      <div class="label-row" id="fdw-label">—</div>
+      <div class="date-row" id="fdw-date">—</div>
+    </div>
+    <div class="modal-buttons">
+      <div class="footer-right" style="margin-left:auto;display:flex;gap:8px">
+        <button type="button" class="btn btn-ghost" id="fdw-cancel-btn">Annuleer</button>
+        <button type="button" class="btn btn-primary" id="fdw-proceed-btn">Toch plannen</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST -->
@@ -3533,6 +3663,267 @@ async function loadPlanningData() {
   _rebuildPlanningDagenIndex();
 
   populateFilterDropdowns();
+
+  // Slot K — feestdagen + sluitingsperiodes parallel laden (non-blocking voor render)
+  // Bewust in dezelfde async-flow zodat de eerste renderView() al markering toont.
+  try { await loadFeestdagen(); } catch (e) { console.warn('[Slot K] loadFeestdagen mislukt:', e); }
+}
+
+// =============================================
+// SLOT K — FEESTDAGEN + SLUITINGSPERIODES
+// =============================================
+// Centrale state + helpers voor Belgische feestdagen en bedrijfs-sluitingsperiodes.
+// Geladen 1× bij planning-init (loadPlanningData), gecached in module-scope voor
+// O(1) lookup tijdens render. Soft-warning modal onderschept cell-click vóór de
+// bestaande quick-add flow opent — gebruiker kan altijd doorduwen.
+window.flanccoFeestdagen = {
+  data: [],                    // raw rows uit Supabase
+  byDatum: new Map(),          // 'YYYY-MM-DD' → row (alleen type='feestdag')
+  sluitingsperiodes: []        // type='sluitingsperiode' rows
+};
+
+async function loadFeestdagen() {
+  try {
+    var resp = await sb.from('feestdagen')
+      .select('id, datum, datum_eind, label, type, recurring')
+      .order('datum', { ascending: true });
+    if (resp.error) {
+      console.warn('[Slot K] feestdagen-fetch error:', resp.error.message);
+      return;
+    }
+    var rows = resp.data || [];
+    var byDatum = new Map();
+    var sluitings = [];
+    rows.forEach(function(r) {
+      if (r.type === 'feestdag') {
+        // Bij meerdere events op zelfde datum (bv. feestdag + lokale notitie) houden
+        // we de eerste — UI toont één marker. Voor lijst-views wordt `data` gebruikt.
+        if (!byDatum.has(r.datum)) byDatum.set(r.datum, r);
+      } else if (r.type === 'sluitingsperiode') {
+        sluitings.push(r);
+      }
+    });
+    window.flanccoFeestdagen.data = rows;
+    window.flanccoFeestdagen.byDatum = byDatum;
+    window.flanccoFeestdagen.sluitingsperiodes = sluitings;
+  } catch (e) {
+    console.warn('[Slot K] loadFeestdagen exception:', e);
+  }
+}
+
+// O(1) lookup per datum — returnt het feestdag-record of null
+function isFeestdag(datumYYYYMMDD) {
+  if (!datumYYYYMMDD) return null;
+  return window.flanccoFeestdagen.byDatum.get(datumYYYYMMDD) || null;
+}
+
+// O(n) check op sluitingsperiode-overlap (n is klein: typisch 3-5/jaar)
+// Returnt het sluitingsperiode-record waarin deze datum valt, of null
+function getSluitingsperiodeOverlap(datumYYYYMMDD) {
+  if (!datumYYYYMMDD) return null;
+  var arr = window.flanccoFeestdagen.sluitingsperiodes || [];
+  for (var i = 0; i < arr.length; i++) {
+    var sp = arr[i];
+    if (datumYYYYMMDD >= sp.datum && datumYYYYMMDD <= (sp.datum_eind || sp.datum)) {
+      return sp;
+    }
+  }
+  return null;
+}
+
+// Compacte ISO date → "1 jan 2026" voor in modal/banner
+function formatFeestdagDate(iso) {
+  if (!iso) return '';
+  var months = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  var parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  var y = parts[0]; var m = parseInt(parts[1], 10) - 1; var d = parseInt(parts[2], 10);
+  if (isNaN(m) || isNaN(d) || m < 0 || m > 11) return iso;
+  return d + ' ' + months[m] + ' ' + y;
+}
+
+// Inline SVG icon voor calendar-x (Lucide-stijl, gebruikt in dag-header marker + modal)
+function feestdagIconSvg(size) {
+  size = size || 12;
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="3" y="4" width="18" height="18" rx="2"/>' +
+    '<line x1="16" y1="2" x2="16" y2="6"/>' +
+    '<line x1="8" y1="2" x2="8" y2="6"/>' +
+    '<line x1="3" y1="10" x2="21" y2="10"/>' +
+    '<line x1="9.5" y1="14.5" x2="14.5" y2="19.5"/>' +
+    '<line x1="14.5" y1="14.5" x2="9.5" y2="19.5"/>' +
+    '</svg>';
+}
+
+// Render dag-header markup voor een datum (gebruikt door week + dag view)
+// Returnt { thClass: '', markerHtml: '' } — empty als geen feestdag/sluiting
+function getFeestdagHeaderMarkup(datumYYYYMMDD) {
+  var fd = isFeestdag(datumYYYYMMDD);
+  if (fd) {
+    return {
+      thClass: ' is-feestdag',
+      markerHtml: '<div class="feestdag-marker" title="' + esc(fd.label) + '" aria-label="Feestdag: ' + esc(fd.label) + '">' +
+        feestdagIconSvg(11) + '<span>' + esc(fd.label) + '</span></div>'
+    };
+  }
+  var sp = getSluitingsperiodeOverlap(datumYYYYMMDD);
+  if (sp) {
+    return {
+      thClass: ' is-sluiting',
+      markerHtml: '<div class="feestdag-marker is-sluiting" title="' + esc(sp.label) + '" aria-label="Sluitingsperiode: ' + esc(sp.label) + '">' +
+        feestdagIconSvg(11) + '<span>' + esc(sp.label) + '</span></div>'
+    };
+  }
+  return { thClass: '', markerHtml: '' };
+}
+
+// Sluitingsperiodes die overlappen met een datum-range (week of maand)
+// Returnt unieke records — voor banner bovenaan view-header
+function getSluitingsperiodesInRange(startDateISO, endDateISO) {
+  var arr = window.flanccoFeestdagen.sluitingsperiodes || [];
+  var result = [];
+  arr.forEach(function(sp) {
+    var spEnd = sp.datum_eind || sp.datum;
+    // Overlap als: sp.datum <= endDate AND spEnd >= startDate
+    if (sp.datum <= endDateISO && spEnd >= startDateISO) result.push(sp);
+  });
+  return result;
+}
+
+// Render banner-HTML voor sluitingsperiodes in zicht (week/maand view)
+function renderSluitingsperiodesBanner(startDateISO, endDateISO) {
+  var sps = getSluitingsperiodesInRange(startDateISO, endDateISO);
+  if (sps.length === 0) return '';
+  var icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' +
+    '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  var listHtml = sps.map(function(sp) {
+    var start = formatFeestdagDate(sp.datum);
+    var end = sp.datum_eind && sp.datum_eind !== sp.datum ? formatFeestdagDate(sp.datum_eind) : null;
+    var range = end ? (start + ' \u2014 ' + end) : start;
+    return '<div><strong>' + esc(sp.label) + '</strong> \u00b7 ' + esc(range) + '</div>';
+  }).join('');
+  return '<div class="feestdag-banner" role="note">' + icon +
+    '<div class="feestdag-banner-list">' + listHtml + '</div></div>';
+}
+
+// =============================================
+// SLOT K — SOFT-WARNING MODAL
+// =============================================
+// Onderschept cell-click vóór de bestaande quick-add flow opent. Gebruiker
+// krijgt confirm-modal "Je plant op [feestdag] — toch doorgaan?". Geen harde
+// block — admin kan altijd doorduwen voor uitzonderingen.
+var _fdwState = { onProceed: null, onCancel: null, escHandler: null, prevFocus: null };
+
+function showFeestdagWarningModal(record, onProceed, onCancel) {
+  var modal = document.getElementById('modal-feestdag-warning');
+  if (!modal) {
+    // Fallback: modal niet aanwezig → direct doorgaan (graceful degradation)
+    if (typeof onProceed === 'function') onProceed();
+    return;
+  }
+  var isSluiting = record && record.type === 'sluitingsperiode';
+  var titleEl = document.getElementById('fdw-title');
+  var iconEl = document.getElementById('fdw-icon');
+  var detailEl = document.getElementById('fdw-detail');
+  var labelEl = document.getElementById('fdw-label');
+  var dateEl = document.getElementById('fdw-date');
+
+  if (titleEl) titleEl.textContent = isSluiting ? 'Je plant tijdens een sluitingsperiode' : 'Je plant op een feestdag';
+  if (iconEl) iconEl.classList.toggle('is-sluiting', isSluiting);
+  if (detailEl) detailEl.classList.toggle('is-sluiting', isSluiting);
+  if (labelEl) labelEl.textContent = (record && record.label) || '\u2014';
+  if (dateEl) {
+    var dateStr = formatFeestdagDate(record && record.datum);
+    if (record && record.datum_eind && record.datum_eind !== record.datum) {
+      dateStr += ' \u2014 ' + formatFeestdagDate(record.datum_eind);
+    }
+    dateEl.textContent = dateStr;
+  }
+
+  _fdwState.onProceed = onProceed || null;
+  _fdwState.onCancel = onCancel || null;
+  _fdwState.prevFocus = document.activeElement;
+
+  // Slot 0 event — modal shown
+  if (typeof window.flanccoTrack === 'function') {
+    try {
+      window.flanccoTrack('Planning Feestdag Warning Shown', {
+        type: record ? record.type : 'unknown',
+        label: record && record.label ? String(record.label).slice(0, 50) : null
+      });
+    } catch (_) {}
+  }
+
+  modal.classList.add('open');
+
+  // Focus-trap basics: focus de Annuleer-knop (safer default = cancel)
+  setTimeout(function() {
+    var cancelBtn = document.getElementById('fdw-cancel-btn');
+    if (cancelBtn) cancelBtn.focus();
+  }, 50);
+
+  // ESC-close + click-outside-close (één keer per open-cyclus binden)
+  _fdwState.escHandler = function(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closeFeestdagWarningModal('cancel'); }
+  };
+  document.addEventListener('keydown', _fdwState.escHandler);
+  modal.addEventListener('click', _fdwOverlayClick);
+}
+
+function _fdwOverlayClick(e) {
+  // Klik buiten .modal (op de overlay zelf) = cancel
+  if (e.target === e.currentTarget) closeFeestdagWarningModal('cancel');
+}
+
+function closeFeestdagWarningModal(decision) {
+  var modal = document.getElementById('modal-feestdag-warning');
+  if (!modal) return;
+  modal.classList.remove('open');
+  if (_fdwState.escHandler) {
+    document.removeEventListener('keydown', _fdwState.escHandler);
+    _fdwState.escHandler = null;
+  }
+  modal.removeEventListener('click', _fdwOverlayClick);
+
+  // Restore focus voor a11y
+  if (_fdwState.prevFocus && typeof _fdwState.prevFocus.focus === 'function') {
+    try { _fdwState.prevFocus.focus(); } catch (_) {}
+  }
+
+  // Slot 0 event met decision
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Planning Feestdag Warning Decision', { decision: decision }); } catch (_) {}
+  }
+
+  if (decision === 'proceed' && typeof _fdwState.onProceed === 'function') {
+    var fn = _fdwState.onProceed;
+    _fdwState.onProceed = null; _fdwState.onCancel = null;
+    fn();
+  } else if (typeof _fdwState.onCancel === 'function') {
+    var cfn = _fdwState.onCancel;
+    _fdwState.onProceed = null; _fdwState.onCancel = null;
+    cfn();
+  } else {
+    _fdwState.onProceed = null; _fdwState.onCancel = null;
+  }
+}
+
+// Wire-up button-handlers (idempotent — DOMContentLoaded zou ook werken, maar de
+// modal-HTML staat boven de script-tag dus directe lookup is veilig)
+(function _wireFdwButtons() {
+  var c = document.getElementById('fdw-cancel-btn');
+  var p = document.getElementById('fdw-proceed-btn');
+  if (c) c.addEventListener('click', function() { closeFeestdagWarningModal('cancel'); });
+  if (p) p.addEventListener('click', function() { closeFeestdagWarningModal('proceed'); });
+})();
+
+// Convenience-wrapper: check beide types in volgorde, toon modal indien match.
+// `onProceed` wordt onmiddellijk uitgevoerd als er geen feestdag/sluiting is.
+function checkFeestdagAndProceed(datumYYYYMMDD, onProceed) {
+  var fd = isFeestdag(datumYYYYMMDD) || getSluitingsperiodeOverlap(datumYYYYMMDD);
+  if (!fd) { if (typeof onProceed === 'function') onProceed(); return; }
+  showFeestdagWarningModal(fd, onProceed);
 }
 
 // =============================================
@@ -4013,13 +4404,23 @@ function renderWeekView() {
 
   var techniekers = getFilteredTechniekers();
 
-  var html = '<table class="week-grid"><thead><tr><th>Technieker</th>';
+  // Slot K — sluitingsperiode-banner bovenaan week
+  var weekStartISO = formatDateISO(dates[0]);
+  var weekEndISO = formatDateISO(dates[6]);
+  var sluitingsBanner = (typeof renderSluitingsperiodesBanner === 'function')
+    ? renderSluitingsperiodesBanner(weekStartISO, weekEndISO) : '';
+
+  var html = sluitingsBanner + '<table class="week-grid"><thead><tr><th>Technieker</th>';
   for (var d = 0; d < 7; d++) {
     var isToday = isSameDay(dates[d], today);
     var isWeekend = d >= 5; // 5=Za, 6=Zo
     var cls = (isToday ? 'today-col' : '') + (isWeekend ? ' weekend-col' : '');
-    html += '<th class="' + cls.trim() + '">' +
-      dayNames[d] + ' ' + formatDate(dates[d]) + '</th>';
+    // Slot K — feestdag/sluiting-marker in dag-header
+    var fdMarkup = (typeof getFeestdagHeaderMarkup === 'function')
+      ? getFeestdagHeaderMarkup(formatDateISO(dates[d])) : { thClass: '', markerHtml: '' };
+    html += '<th class="' + (cls + fdMarkup.thClass).trim() + '">' +
+      '<div class="th-day-label">' + dayNames[d] + ' ' + formatDate(dates[d]) + '</div>' +
+      fdMarkup.markerHtml + '</th>';
   }
   html += '</tr></thead><tbody>';
 
@@ -4420,7 +4821,13 @@ function renderDayView() {
     slots.push(String(h).padStart(2,'0') + ':30');
   }
 
-  var html = '<div class="day-grid-wrap"><table class="day-grid"><thead><tr><th>Tijd</th>';
+  // Slot K — feestdag/sluiting-banner bovenaan dag-view + marker in 'Tijd'-header
+  var dayBanner = (typeof renderSluitingsperiodesBanner === 'function')
+    ? renderSluitingsperiodesBanner(dateStr, dateStr) : '';
+  var dayFdMarkup = (typeof getFeestdagHeaderMarkup === 'function')
+    ? getFeestdagHeaderMarkup(dateStr) : { thClass: '', markerHtml: '' };
+
+  var html = dayBanner + '<div class="day-grid-wrap"><table class="day-grid"><thead><tr><th class="' + dayFdMarkup.thClass.trim() + '">Tijd' + dayFdMarkup.markerHtml + '</th>';
   techniekers.forEach(function(tech) {
     // Slot A4: per-tech-per-dag export-knop in day-view header.
     // Telt zowel primaire als duo-beurten van deze tech op deze dag — knop alleen
@@ -4525,8 +4932,18 @@ function renderDayView() {
 // =============================================
 
 function monthDayClick(dateStr) {
-  currentDate = parseDate(dateStr);
-  switchView('dag');
+  // Slot K — soft-warning als de gebruiker direct vanuit maand naar een
+  // feestdag/sluitingsperiode-cel klikt. Doel: geen actieve plan-actie blokkeren,
+  // wel bewust maken vóór de focus naar de dag-view springt.
+  function _proceed() {
+    currentDate = parseDate(dateStr);
+    switchView('dag');
+  }
+  if (typeof checkFeestdagAndProceed === 'function') {
+    checkFeestdagAndProceed(dateStr, _proceed);
+  } else {
+    _proceed();
+  }
 }
 
 // =============================================
@@ -8261,7 +8678,12 @@ function renderMonthView() {
   startDay.setDate(startDay.getDate() - (dow === 0 ? 6 : dow - 1));
 
   var dayNames = getDayNames();
-  var html = '<table class="month-grid"><thead><tr>';
+  // Slot K — sluitingsperiode-banner bovenaan maand-view (range = hele maand)
+  var monthStartISO = formatDateISO(firstDay);
+  var monthEndISO = formatDateISO(lastDay);
+  var monthBanner = (typeof renderSluitingsperiodesBanner === 'function')
+    ? renderSluitingsperiodesBanner(monthStartISO, monthEndISO) : '';
+  var html = monthBanner + '<table class="month-grid"><thead><tr>';
   dayNames.forEach(function(n) { html += '<th>' + n + '</th>'; });
   html += '</tr></thead><tbody>';
 
@@ -8280,9 +8702,19 @@ function renderMonthView() {
           return isBeurtOnDay(b, ds);
         });
 
-        html += '<td class="' + (isOther ? 'other-month' : '') + (isToday ? ' today-cell' : '') + '" ' +
+        // Slot K — feestdag / sluitingsperiode markering op cell-niveau
+        var fdRec = (typeof isFeestdag === 'function') ? isFeestdag(ds) : null;
+        var spRec = (!fdRec && typeof getSluitingsperiodeOverlap === 'function') ? getSluitingsperiodeOverlap(ds) : null;
+        var fdCls = fdRec ? ' is-feestdag' : (spRec ? ' is-sluiting' : '');
+        var fdLabel = fdRec ? fdRec.label : (spRec ? spRec.label : '');
+        var fdTitle = fdLabel ? (' title="' + esc(fdLabel) + '"') : '';
+
+        html += '<td class="' + (isOther ? 'other-month' : '') + (isToday ? ' today-cell' : '') + fdCls + '"' + fdTitle + ' ' +
           'onclick="monthDayClick(\'' + ds + '\')">';
         html += '<div class="month-day-num">' + d.getDate() + '</div>';
+        if (fdLabel) {
+          html += '<div class="month-feestdag-tag" aria-label="' + esc(fdLabel) + '">' + esc(fdLabel) + '</div>';
+        }
         if (dayBeurten.length > 0) {
           html += '<div class="month-count">' + dayBeurten.length + ' beurt' + (dayBeurten.length > 1 ? 'en' : '') + '</div>';
           html += '<div class="month-dots">';
@@ -8367,6 +8799,16 @@ async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
 var dpContext = { techId: null, datum: null };
 
 function openDagPlusKiezer(techId, datum) {
+  // Slot K — onderschep met soft-warning als datum een feestdag/sluitingsperiode is.
+  // checkFeestdagAndProceed roept de callback meteen aan als er niets matcht.
+  if (typeof checkFeestdagAndProceed === 'function') {
+    checkFeestdagAndProceed(datum, function() { _openDagPlusKiezerInternal(techId, datum); });
+  } else {
+    _openDagPlusKiezerInternal(techId, datum);
+  }
+}
+
+function _openDagPlusKiezerInternal(techId, datum) {
   dpContext.techId = techId;
   dpContext.datum = datum;
   var tech = allTechniekers.find(function(t) { return t.id === techId; });

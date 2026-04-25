@@ -338,6 +338,59 @@
         errorNoBeurten: 'Geen beurten gevonden voor deze technieker op deze dag.',
         waMessageNl: 'Hoi {voornaam}, hier je werkplanning voor {datum}: {url}',
         expiresHint: 'Link 7 dagen geldig.'
+      },
+      // Slot K — Feestdagen + sluitingsperiodes (soft-warning)
+      // Strings worden inline gespiegeld in planning.html (geen i18n-runtime in admin).
+      feestdagen: {
+        markerLabelFd: 'Feestdag',
+        markerLabelSp: 'Sluitingsperiode',
+        bannerHeading: 'Sluitingsperiodes in deze periode',
+        warningTitleFd: 'Je plant op een feestdag',
+        warningTitleSp: 'Je plant tijdens een sluitingsperiode',
+        warningSubtitle: 'Onze planning detecteerde een conflict. Je kan altijd doorgaan als dit een uitzondering is.',
+        warningCancel: 'Annuleer',
+        warningProceed: 'Toch plannen'
+      }
+    },
+    // Slot K — Admin-beheer: feestdagen & sluitingsperiodes
+    admin: {
+      feestdagen: {
+        pageTitle: 'Feestdagen & sluitingsperiodes',
+        pageSubtitle: 'Wettelijke BE feestdagen en bedrijfs-sluitingen. Worden in de planning-agenda als waarschuwing getoond.',
+        btnNew: 'Nieuwe toevoegen',
+        btnAutoExtend: 'Genereer voor volgend jaar',
+        colDate: 'Datum',
+        colDateEnd: 'Einddatum',
+        colType: 'Type',
+        colLabel: 'Label',
+        colRecurring: 'Recurring',
+        colActions: 'Acties',
+        typeFd: 'Feestdag',
+        typeSp: 'Sluitingsperiode',
+        recurringJaarlijks: 'Jaarlijks',
+        recurringEenmalig: 'Eenmalig',
+        empty: 'Geen feestdagen of sluitingsperiodes gevonden voor deze filter.',
+        modalNewFd: 'Nieuwe feestdag',
+        modalNewSp: 'Nieuwe sluitingsperiode',
+        modalEditFd: 'Feestdag bewerken',
+        modalEditSp: 'Sluitingsperiode bewerken',
+        labelDate: 'Datum',
+        labelDateStart: 'Startdatum',
+        labelDateEnd: 'Einddatum',
+        labelLabel: 'Label',
+        placeholderLabel: 'Bv. Bouwverlof zomer 2027',
+        helpLabel: 'Wordt in de planning-agenda getoond bij de betreffende dag.',
+        helpRecurring: 'Jaarlijkse feestdagen worden automatisch uitgebreid via cron (1 december).',
+        toastSaved: 'Opgeslagen.',
+        toastDeleted: 'Verwijderd.',
+        toastSeedDone: 'Wettelijke feestdagen voor {year} toegevoegd ({count} nieuw, {dup} bestond al).',
+        toastSeedFailed: 'Auto-extend mislukt: {reason}',
+        errRequired: 'Datum, label en type zijn verplicht.',
+        errEindRequired: 'Sluitingsperiode vereist een einddatum.',
+        errEindBeforeStart: 'Einddatum moet gelijk of na de startdatum zijn.',
+        errLabelShort: 'Label moet minstens 2 tekens bevatten.',
+        deleteConfirmFd: 'Weet je zeker dat je de feestdag {label} ({datum}) wil verwijderen?',
+        deleteConfirmSp: 'Weet je zeker dat je de sluitingsperiode {label} ({datum}) wil verwijderen?'
       }
     }
   });
