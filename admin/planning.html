@@ -5640,28 +5640,34 @@ async function sidebarDeleteBeurt(beurtId) {
     }
   } catch (_) { /* tabel optioneel */ }
 
-  // Uniforme Flancco-confirm-dialog
-  var ok = await confirmDialog({ title: 'Losse opdracht verwijderen?', message: label + '\n\nDeze actie kan niet ongedaan gemaakt worden.', variant: 'danger', confirmLabel: 'Verwijderen', cancelLabel: 'Annuleren' });
+  // Uniforme Flancco-confirm-dialog — herstel-belofte expliciet vermelden
+  var ok = await confirmDialog({
+    title: 'Losse opdracht verwijderen?',
+    message: label + '\n\nHerstel is mogelijk binnen 30 dagen via "Prullenbak" in het admin-menu.',
+    variant: 'danger',
+    confirmLabel: 'Verwijderen',
+    cancelLabel: 'Annuleren'
+  });
   if (!ok) return;
 
-  // Laag 3: expliciete single-row delete + count-check
-  console.log('sidebarDeleteBeurt: deleting', beurtId);
+  // Laag 3: soft-delete via RPC — bewaart rij + audit-trail, kalender-view filtert ze weg
+  console.log('sidebarDeleteBeurt: soft-deleting', beurtId);
   try {
-    var res = await sb.from('onderhoudsbeurten').delete().eq('id', beurtId).select();
+    var res = await sb.rpc('soft_delete_beurt', {
+      p_id: beurtId,
+      p_reden: 'Verwijderd via sidebar (losse opdracht)'
+    });
     if (res.error) throw res.error;
-    if (!res.data || res.data.length !== 1) {
-      console.error('sidebarDeleteBeurt: expected 1 deleted row, got', res.data);
-      showToast('Onverwachte response — ververs pagina en controleer', 'error');
-      return;
-    }
     // Succes: update lokale state + render
     allBeurten = (allBeurten || []).filter(function(x) { return x.id !== beurtId; });
     if (typeof renderSidebar === 'function') renderSidebar();
     if (typeof renderWeekView === 'function') renderWeekView();
-    showToast('Losse opdracht verwijderd', 'success');
+    showToast('Opdracht verwijderd. Herstel mogelijk via prullenbak (30 dagen).', 'success');
   } catch (e) {
     var msg = (e && e.message) || 'Onbekende fout';
-    if (/facturatie_regels|foreign key/i.test(msg)) {
+    if (/permission|denied|not authorized|can_manage_planning/i.test(msg)) {
+      showToast('Geen rechten om deze opdracht te verwijderen.', 'error');
+    } else if (/facturatie_regels|foreign key/i.test(msg)) {
       showToast('Deze opdracht staat al op een factuur en kan niet worden verwijderd.', 'error');
     } else {
       showToast('Verwijderen mislukt: ' + msg, 'error');
@@ -5696,11 +5702,15 @@ async function sidebarDeleteInterventie(ivId) {
   if (!iv) { showToast('Interventie niet gevonden', 'error'); return; }
   var contract = allContracten.find(function(c) { return c.id === iv.contract_id; });
   var label = (iv.omschrijving || 'deze interventie').slice(0, 80);
-  if (!(await confirmDialog({ title: 'Interventie verwijderen?', message: label + '\n\nDeze actie kan niet ongedaan gemaakt worden.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
+  if (!(await confirmDialog({ title: 'Interventie verwijderen?', message: label + '\n\nGekoppelde beurt wordt eveneens verwijderd. Herstel mogelijk binnen 30 dagen via prullenbak.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
   try {
-    // Eerst gekoppelde beurt verwijderen (als aanwezig)
+    // Eerst gekoppelde beurt soft-deleten (audit-trail behouden)
     if (iv.onderhoudsbeurt_id) {
-      await sb.from('onderhoudsbeurten').delete().eq('id', iv.onderhoudsbeurt_id);
+      var bSoft = await sb.rpc('soft_delete_beurt', {
+        p_id: iv.onderhoudsbeurt_id,
+        p_reden: 'Verwijderd via sidebar (interventie-fallback)'
+      });
+      if (bSoft.error) throw bSoft.error;
       allBeurten = (allBeurten || []).filter(function(b) { return b.id !== iv.onderhoudsbeurt_id; });
     }
     var res = await sb.from('interventies').delete().eq('id', ivId);
@@ -5870,9 +5880,16 @@ async function deleteInterventieWithOwnershipCheck(ivId) {
           return;
         }
       } catch (_) {}
-      var bDel = await sb.from('onderhoudsbeurten').delete().eq('id', iv.onderhoudsbeurt_id);
+      var bDel = await sb.rpc('soft_delete_beurt', {
+        p_id: iv.onderhoudsbeurt_id,
+        p_reden: 'Verwijderd via interventie-delete (ownership-check)'
+      });
       if (bDel.error) {
-        // FK-constraint? → informeer gebruiker
+        // Permission of FK-constraint? → informeer gebruiker
+        if (/permission|denied|not authorized|can_manage_planning/i.test(bDel.error.message || '')) {
+          showToast('Geen rechten om de gekoppelde beurt te verwijderen.', 'error');
+          return;
+        }
         if (/foreign key|facturatie_regels/i.test(bDel.error.message || '')) {
           showToast('Gekoppelde beurt kan niet worden verwijderd (al gefactureerd).', 'error');
           return;
@@ -8109,7 +8126,21 @@ async function deleteDagFromBeurt(beurtId, datumISO) {
     showToast('Dit is de laatste dag — gebruik "Uitplannen" om de beurt uit het schema te halen.', 'error');
     return;
   }
-  var bevestig = confirm('Dag ' + formatDate(parseDate(datumISO)) + ' verwijderen uit deze reeks?');
+
+  // Klantnaam ophalen voor expliciete bevestiging — voorkomt misclick op verkeerde rij.
+  var beurtCtx = (allBeurten || []).find(function(b) { return b.id === beurtId; });
+  var infoCtx = (beurtCtx && typeof getClientInfo === 'function') ? getClientInfo(beurtCtx) : null;
+  var klantNaamCtx = (infoCtx && infoCtx.naam) ? infoCtx.naam : ((beurtCtx && beurtCtx.klant_naam) || 'deze klant');
+  var datumLabelCtx = formatDate(parseDate(datumISO));
+
+  var bevestig = await confirmDialog({
+    title: 'Dag verwijderen uit reeks?',
+    message: 'Weet je zeker dat je deze dag van de opdracht voor ' + klantNaamCtx +
+      ' op ' + datumLabelCtx + ' wil verwijderen?\n\nDit kan niet ongedaan gemaakt worden.',
+    confirmLabel: 'Ja, verwijderen',
+    cancelLabel: 'Annuleren',
+    variant: 'danger'
+  });
   if (!bevestig) return;
 
   var res = await sb.from('beurt_planning_dagen')
@@ -8449,8 +8480,10 @@ async function reopenBeurtFromModal() {
 }
 
 /**
- * Definitief verwijderen van een beurt. Vraagt bevestiging — extra waarschuwing
- * als er al uren geregistreerd zijn (die verdwijnen mee via cascade of expliciet).
+ * Soft-delete van een beurt vanuit de edit-modal.
+ * Sinds Slot N gebruiken we de RPC `soft_delete_beurt` zodat de rij + alle
+ * gekoppelde records (uren, materialen, rapporten) intact blijven en herstel
+ * mogelijk is binnen 30 dagen via "Prullenbak" in het admin-menu.
  */
 async function deleteBeurtFromModal() {
   var beurtId = document.getElementById('edit-beurt-id').value;
@@ -8466,25 +8499,21 @@ async function deleteBeurtFromModal() {
     }
   } catch (_) { /* tabel bestaat mogelijk niet — fall through */ }
 
-  var hasUren = !!(window._allUrenRegistraties || []).find(function(u) { return u.beurt_id === beurtId; });
-  var isUitgevoerd = (beurt.status === 'uitgevoerd' || beurt.status === 'afgewerkt');
+  // Klant + datum-context voor de explicit confirm-dialoog
+  var infoCtx = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : null;
+  var klantNaamCtx = (infoCtx && infoCtx.naam) ? infoCtx.naam : (beurt.klant_naam || 'deze klant');
+  var datumLabelCtx = beurt.plan_datum
+    ? (typeof formatDateFull === 'function' ? formatDateFull(parseDate(beurt.plan_datum)) : formatDate(parseDate(beurt.plan_datum)))
+    : 'onbekende datum';
 
-  // Pre-check 2: gekoppelde interventie? (FK → SET NULL sinds migratie, dus interventie-ticket blijft)
-  var linkedInterventie = null;
-  try {
-    var iv = await sb.from('interventies').select('id, omschrijving').eq('onderhoudsbeurt_id', beurtId).limit(1);
-    if (iv && iv.data && iv.data.length > 0) linkedInterventie = iv.data[0];
-  } catch (_) { /* niet fataal */ }
+  var msg = 'LET OP: Je staat op het punt de volledige opdracht voor ' + klantNaamCtx +
+    ' op ' + datumLabelCtx + ' te verwijderen.\n\n' +
+    'Dit verwijdert ook alle gekoppelde uren, materialen en rapporten.\n' +
+    'Herstel is mogelijk binnen 30 dagen via "Prullenbak" in het admin-menu.\n\n' +
+    'Doorgaan?';
 
-  var msg = 'Deze beurt wordt definitief verwijderd. Deze actie kan niet ongedaan gemaakt worden.';
-  if (hasUren || isUitgevoerd) {
-    msg += '\n\nLet op: geregistreerde uren worden mee verwijderd en verdwijnen uit de loon-export.';
-  }
-  if (linkedInterventie) {
-    msg += '\n\nDe gekoppelde interventie blijft bestaan (als ticket) en kan opnieuw ingepland worden.';
-  }
   var ok = await confirmDialog({
-    title: 'Beurt verwijderen?',
+    title: 'Opdracht verwijderen?',
     message: msg,
     confirmLabel: 'Ja, verwijderen',
     cancelLabel: 'Annuleren',
@@ -8492,38 +8521,42 @@ async function deleteBeurtFromModal() {
   });
   if (!ok) return;
 
-  // Expliciet uren opruimen (CASCADE-onafhankelijk).
-  try {
-    await sb.from('beurt_uren_registraties').delete().eq('beurt_id', beurtId);
-  } catch (_) { /* niet-fataal */ }
-
-  var res = await sb.from('onderhoudsbeurten').delete().eq('id', beurtId);
+  // Soft-delete via RPC: zet verwijderd_op/verwijderd_door + audit-log entry.
+  // Geen losse `beurt_uren_registraties` DELETE meer — die rijen blijven intact
+  // zodat herstel binnen 30 dagen volledig is (audit-trail behouden).
+  var res = await sb.rpc('soft_delete_beurt', {
+    p_id: beurtId,
+    p_reden: 'Verwijderd via planning-modal'
+  });
   if (res.error) {
-    // User-vriendelijke messages voor gekende error-codes
     var errMsg = res.error.message || '';
-    if (/foreign key/i.test(errMsg) || res.error.code === '23503') {
-      showToast('Beurt kan niet verwijderd worden: er zijn nog verwijzingen (factuur, rapport of ander record). Controleer de koppelingen.', 'error');
+    if (/permission|denied|not authorized|can_manage_planning/i.test(errMsg)) {
+      showToast('Geen rechten om deze opdracht te verwijderen.', 'error');
+    } else if (/foreign key/i.test(errMsg) || res.error.code === '23503') {
+      showToast('Opdracht kan niet verwijderd worden: er zijn nog verwijzingen (factuur, rapport of ander record). Controleer de koppelingen.', 'error');
     } else {
       showToast('Fout bij verwijderen: ' + errMsg, 'error');
     }
     return;
   }
 
-  // Lokale state opruimen
+  // Lokale state opruimen — view `v_kalender_beurten` filtert soft-deleted rijen,
+  // dus voor de kalender-rendering laten we ze ook lokaal verdwijnen.
   allBeurten = allBeurten.filter(function(b) { return b.id !== beurtId; });
   if (window._allUrenRegistraties) {
     window._allUrenRegistraties = window._allUrenRegistraties.filter(function(u) {
       return u.beurt_id !== beurtId;
     });
   }
-  // Lokale interventies-state: onderhoudsbeurt_id naar null zetten (DB heeft dit al via SET NULL)
+  // Lokale interventies-state: koppeling resetten zodat de UI niet meer verwijst
+  // naar een onzichtbare beurt. De DB-FK blijft staan zolang de soft-delete actief is.
   if (window._allInterventies) {
     window._allInterventies.forEach(function(i) {
       if (i.onderhoudsbeurt_id === beurtId) i.onderhoudsbeurt_id = null;
     });
   }
   closeEditBeurtModal();
-  showToast('Beurt verwijderd');
+  showToast('Opdracht verwijderd. Herstel mogelijk via prullenbak (30 dagen).', 'success');
   renderView();
   renderSidebar();
 }
@@ -9856,6 +9889,41 @@ async function slotM_save() {
   // Tech was bezet (voor telemetry)
   var techWasBezet = !!(slotM_state.techCache && slotM_state.techCache.bezet.some(function(o) { return o.tech.id === techId; }));
 
+  // Pre-check: voor dagen zónder bestaand planning-record en zónder bestaande parent-beurt
+  // moeten we vooraf bevestiging vragen. De helper-popover wordt typisch geopend
+  // vanuit een lopende opdracht, maar de UI laat ook toe dat een datum zonder
+  // dag-record geselecteerd wordt — daar mag een nieuwe primaire-tech toewijzing
+  // niet stilzwijgend gebeuren.
+  var datumsZonderRecord = [];
+  for (var pi = 0; pi < datums.length; pi++) {
+    var dCheck = datums[pi];
+    var existingCheck = (typeof getDagForBeurtOnDate === 'function') ? getDagForBeurtOnDate(slotM_state.beurtId, dCheck) : null;
+    if (!existingCheck) datumsZonderRecord.push(dCheck);
+  }
+  if (datumsZonderRecord.length > 0) {
+    var techRec = (window.allTechniekers || []).find(function(t) { return t.id === techId; });
+    var techNaam = techRec ? (techRec.voornaam ? (techRec.voornaam + ' ' + (techRec.achternaam || '')).trim() : (techRec.naam || 'deze technieker')) : 'deze technieker';
+    var info = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : null;
+    var klantNaam = (info && info.naam) ? info.naam : (beurt.klant_naam || 'deze klant');
+    var datumLabel = datumsZonderRecord.length === 1
+      ? formatDate(parseDate(datumsZonderRecord[0]))
+      : (datumsZonderRecord.length + ' dagen');
+    var bevestigMsg = 'Geen lopende opdracht voor ' + datumLabel + ' (' + klantNaam + ').\n\n' +
+      'Een nieuwe opdracht aanmaken met ' + techNaam + ' als hoofdtechnieker?';
+    var bevestigOk = await confirmDialog({
+      title: 'Nieuwe opdracht aanmaken?',
+      message: bevestigMsg,
+      confirmLabel: 'Ja, aanmaken',
+      cancelLabel: 'Annuleren',
+      variant: 'primary'
+    });
+    if (!bevestigOk) {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Voeg toe'; }
+      slotM_track('Helper Popover Cancelled', { reason: 'no_parent_confirm_declined' });
+      return;
+    }
+  }
+
   var added = 0;
   var skipped = 0;
   var lastErr = null;
@@ -9870,16 +9938,28 @@ async function slotM_save() {
 
       var payload;
       if (!existing) {
-        // INSERT — defaults uit sibling-dag of parent; technieker_id = nieuwe tech (primary van die dag)
+        // INSERT — geen bestaand dag-record voor deze datum.
+        // Defaults uit sibling-dag of parent. Techniek-rol-keuze:
+        //   - Als de parent-beurt al een primaire technieker heeft (sibling-dag of parent.technieker_id),
+        //     dan wordt de toegevoegde tech ALTIJD als extra geplaatst — nooit als nieuwe primary.
+        //     Dit voorkomt het bug-scenario waarbij vanuit de helper-popover een
+        //     "extra technieker" stilzwijgend de primaire tech overschreef op een
+        //     nieuwe dag, wat tot data-verlies bij verwijderen leidde.
+        //   - Enkel wanneer er geen primary bekend is (zelden — defensieve fallback)
+        //     en de gebruiker hierboven expliciet bevestigde, valt techId terug op primary.
         var siblingDagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(slotM_state.beurtId) : [];
         var sibling = siblingDagen[0];
+        var parentPrimary = (sibling && sibling.technieker_id) || beurt.technieker_id || null;
+        var primaryId = parentPrimary || techId;
+        var extras = [];
+        if (parentPrimary && parentPrimary !== techId) extras.push(techId);
         payload = {
           beurt_id: slotM_state.beurtId,
           datum: datum,
           start_tijd: overrideStart || (sibling && sibling.start_tijd) || beurt.start_tijd || null,
           duur_minuten: overrideDuur || (sibling && sibling.duur_minuten) || beurt.duur_minuten || 60,
-          technieker_id: techId,
-          extra_technieker_ids: []
+          technieker_id: primaryId,
+          extra_technieker_ids: extras
         };
       } else {
         // UPDATE — voeg toe als extra technieker
