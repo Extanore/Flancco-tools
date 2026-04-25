@@ -456,6 +456,58 @@
         emptyFollowUp: 'Aucun suivi pour le moment.',
         emailSubject: 'Rappel d\'entretien {klant}',
         emailBody: 'Bonjour {klant}, un bref rappel concernant votre entretien. Cordialement,'
+      },
+      // Slot D — Page Facturation (portail partenaire) + mod\u00e8le PDF d'aper\u00e7u
+      facturatie: {
+        title: 'Facturation',
+        subtitle: {
+          week: 'Toutes les interventions cl\u00f4tur\u00e9es en semaine {periode}',
+          maand: 'Toutes les interventions cl\u00f4tur\u00e9es sur {periode}',
+          jaar: 'Toutes les interventions cl\u00f4tur\u00e9es en {periode}'
+        },
+        kpi: {
+          count: 'Nombre d\'interventions',
+          excl: 'Chiffre d\'affaires HTVA',
+          incl: 'Chiffre d\'affaires TTC',
+          marge: 'Marge partenaire totale'
+        },
+        filter: {
+          week: 'Semaine',
+          maand: 'Mois',
+          jaar: 'Ann\u00e9e',
+          maandKeuze: {
+            '1': '1 mois',
+            '3': '3 mois',
+            '6': '6 mois',
+            '12': '12 mois'
+          },
+          alleenGefactureerd: 'Uniquement factur\u00e9es'
+        },
+        kolom: {
+          datum: 'Date',
+          klant: 'Client',
+          sector: 'Secteur',
+          panelen: 'Panneaux',
+          exclBtw: 'HTVA',
+          inclBtw: 'TTC',
+          planningFee: 'Frais de planning',
+          marge: 'Marge partenaire',
+          doorFactureren: '\u00c0 refacturer'
+        },
+        export: {
+          csv: 'Exporter CSV',
+          pdf: 'Aper\u00e7u PDF'
+        },
+        geenData: 'Aucune intervention cl\u00f4tur\u00e9e sur cette p\u00e9riode.',
+        loading: 'Chargement des interventions\u2026',
+        error: 'Impossible de charger les donn\u00e9es de facturation.',
+        pdf: {
+          header: 'Aper\u00e7u de facturation',
+          footer: 'Document interne \u2014 non destin\u00e9 au client final',
+          gegenereerdOp: 'G\u00e9n\u00e9r\u00e9 le {datum}',
+          totaalRij: 'Total',
+          aantalBeurten: '{n} interventions'
+        }
       }
     }
   });

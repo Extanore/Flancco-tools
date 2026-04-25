@@ -1274,6 +1274,49 @@
   }
 
   /* =========================================================================
+     SLOT D — Partner-facturatie
+     Periode-segmented + navigator + KPI-strip + datatabel + skeleton-loader.
+     Volgt design-template admin data-view (.dv-*); hergebruikt knop/select-stijl.
+     ========================================================================= */
+  .pf-segmented { display:inline-flex; gap:0; border:1.5px solid var(--rule); border-radius:8px; overflow:hidden; background:#fff; }
+  .pf-seg-btn { padding:7px 14px; background:transparent; border:none; font-size:13px; font-weight:600; color:var(--grey); cursor:pointer; transition:background 0.15s, color 0.15s; font-family:inherit; min-width:64px; }
+  .pf-seg-btn:not(:last-child) { border-right:1.5px solid var(--rule); }
+  .pf-seg-btn:hover:not(.active) { background:#F9FAFB; color:var(--navy); }
+  .pf-seg-btn.active { background:var(--navy); color:#fff; }
+  .pf-seg-btn:focus-visible { outline:2px solid var(--navy); outline-offset:2px; }
+
+  .pf-navigator { display:inline-flex; align-items:center; gap:6px; }
+  .pf-nav-btn { background:transparent; border:1.5px solid var(--rule); border-radius:8px; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--navy); transition:background 0.15s, border-color 0.15s; padding:0; }
+  .pf-nav-btn:hover { background:#F3F4F6; border-color:var(--navy); }
+  .pf-nav-btn:focus-visible { outline:2px solid var(--navy); outline-offset:2px; }
+  .pf-nav-label { font-size:14px; font-weight:700; color:var(--navy); min-width:200px; padding:6px 14px; text-align:center; text-transform:capitalize; }
+
+  .pf-kpi-strip { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:18px; }
+  .pf-kpi { background:#F9FAFB; border:1px solid var(--rule); border-radius:10px; padding:14px 16px; min-width:0; }
+  .pf-kpi-label { font-size:11px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px; }
+  .pf-kpi-value { font-size:20px; font-weight:700; color:var(--navy); letter-spacing:-0.01em; line-height:1.2; word-break:break-word; }
+  @media (max-width: 900px) { .pf-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 540px) { .pf-kpi-strip { grid-template-columns: 1fr; } }
+
+  .pf-skeleton-row { height:34px; border-radius:6px; background:linear-gradient(90deg, #EEF2F7 0%, #F8FAFC 50%, #EEF2F7 100%); background-size:200% 100%; animation: pf-skeleton-shimmer 1.4s ease-in-out infinite; }
+  @keyframes pf-skeleton-shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .pf-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .pf-table thead th { text-align:left; padding:10px 12px; border-bottom:1.5px solid var(--rule); color:var(--grey); font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:0.04em; background:#F9FAFB; white-space:nowrap; }
+  .pf-table tbody td { padding:10px 12px; border-bottom:1px solid var(--rule); color:var(--navy); vertical-align:middle; }
+  .pf-table tbody tr:hover { background:#F9FAFB; }
+  .pf-table tbody tr:last-child td { border-bottom:1.5px solid var(--rule); }
+  .pf-table tfoot td { padding:12px; font-weight:700; color:var(--navy); background:#F3F4F6; border-top:2px solid var(--navy); font-size:13px; }
+  .pf-cell-num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .pf-cell-status { display:inline-block; padding:2px 8px; font-size:11px; font-weight:600; border-radius:4px; text-transform:uppercase; letter-spacing:0.03em; }
+  .pf-cell-status--gefactureerd { background:rgba(34,197,94,0.12); color:#15803D; }
+  .pf-cell-status--open { background:rgba(234,179,8,0.12); color:#A16207; }
+
+  @media (max-width: 900px) {
+    .pf-navigator .pf-nav-label { min-width:140px; }
+  }
+
+  /* =========================================================================
      MARKETING-KIT (Slot J) — partner-only sectie met QR-code + share-templates
      ========================================================================= */
   .mkt-grid { display:grid; grid-template-columns: minmax(280px, 380px) 1fr; gap:18px; align-items:start; }
@@ -2270,7 +2313,8 @@
 
     <!-- FACTURATIE PAGE -->
     <div class="page" id="page-facturatie">
-      <div class="card">
+      <!-- Admin-tak: bestaande facturatie-records + regels-overzicht -->
+      <div class="card admin-only" id="card-facturatie-admin">
         <div class="dv-header">
           <div class="dv-header-left">
             <h2 class="dv-title">Facturatie</h2>
@@ -2303,6 +2347,114 @@
         </div>
         <div id="facturatie-list"></div>
         <p id="no-facturatie" style="display:none;text-align:center;color:var(--grey);padding:40px;font-size:13px">Geen facturatie-records gevonden.</p>
+      </div>
+
+      <!-- =====================================================================
+           Slot D — Partner-facturatie (partner-only)
+           Toont alle afgewerkte onderhoudsbeurten in een gekozen periode
+           met eindklantprijs, planning fee, partner-marge en doorfactuur-bedrag.
+           Data-bron: onderhoudsbeurten met status='afgerond' joined naar contracten.
+           ===================================================================== -->
+      <div class="card partner-only" id="card-partner-facturatie">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Facturatie</h2>
+            <p class="dv-subtitle" id="pf-subtitle">Alle afgewerkte beurten over deze periode</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" id="pf-btn-csv" onclick="exportPartnerFacturatieCsv()" title="Download als CSV">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporteer CSV
+            </button>
+            <button type="button" class="btn btn-primary" id="pf-btn-pdf" onclick="exportPartnerFacturatiePdf()" title="Genereer PDF-overzicht">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              PDF-overzicht
+            </button>
+          </div>
+        </div>
+
+        <!-- Toolbar: periode-type segmented + navigator + maand-aantal-dropdown -->
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-left">
+            <div class="pf-segmented" role="tablist" aria-label="Periode">
+              <button type="button" class="pf-seg-btn" data-pf-type="week" onclick="setPartnerFacturatiePeriodeType('week')">Week</button>
+              <button type="button" class="pf-seg-btn active" data-pf-type="maand" onclick="setPartnerFacturatiePeriodeType('maand')">Maand</button>
+              <button type="button" class="pf-seg-btn" data-pf-type="jaar" onclick="setPartnerFacturatiePeriodeType('jaar')">Jaar</button>
+            </div>
+            <div class="pf-navigator" aria-label="Periode-navigatie">
+              <button type="button" class="pf-nav-btn" onclick="movePartnerFacturatiePeriode(-1)" title="Vorige periode" aria-label="Vorige periode">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="pf-nav-label" id="pf-nav-label">—</span>
+              <button type="button" class="pf-nav-btn" onclick="movePartnerFacturatiePeriode(1)" title="Volgende periode" aria-label="Volgende periode">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <select id="pf-maand-aantal" class="dv-select" onchange="setPartnerFacturatieMaandAantal(this.value)" style="width:130px">
+              <option value="1">1 maand</option>
+              <option value="3">3 maanden</option>
+              <option value="6">6 maanden</option>
+              <option value="12">12 maanden</option>
+            </select>
+          </div>
+          <div class="dv-toolbar-right">
+            <label style="font-size:12px;color:var(--grey);font-weight:500;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="pf-only-fact" onchange="setPartnerFacturatieAlleenGefactureerd(this.checked)" style="margin:0">
+              Alleen gefactureerd
+            </label>
+          </div>
+        </div>
+
+        <!-- KPI-strip (4 stats) -->
+        <div class="pf-kpi-strip" id="pf-kpi-strip">
+          <div class="pf-kpi"><div class="pf-kpi-label">Aantal beurten</div><div class="pf-kpi-value" id="pf-kpi-count">—</div></div>
+          <div class="pf-kpi"><div class="pf-kpi-label">Omzet excl. btw</div><div class="pf-kpi-value" id="pf-kpi-excl">—</div></div>
+          <div class="pf-kpi"><div class="pf-kpi-label">Omzet incl. btw</div><div class="pf-kpi-value" id="pf-kpi-incl">—</div></div>
+          <div class="pf-kpi"><div class="pf-kpi-label">Partner-marge</div><div class="pf-kpi-value" id="pf-kpi-marge">—</div></div>
+        </div>
+
+        <!-- Loading skeleton -->
+        <div id="pf-loading" style="display:none;padding:40px 0">
+          <div class="pf-skeleton-row" style="margin-bottom:8px"></div>
+          <div class="pf-skeleton-row" style="margin-bottom:8px"></div>
+          <div class="pf-skeleton-row" style="margin-bottom:8px"></div>
+          <div class="pf-skeleton-row" style="margin-bottom:8px"></div>
+          <div class="pf-skeleton-row"></div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="pf-empty" style="display:none;text-align:center;padding:60px 24px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--grey)" stroke-width="1.4" style="width:44px;height:44px;margin:0 auto 14px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <h3 style="margin:0 0 6px;color:var(--navy);font-size:15px;font-weight:600">Geen afgewerkte beurten</h3>
+          <p style="margin:0;color:var(--grey);font-size:13px">Er zijn geen afgewerkte beurten in deze periode. Pas het filter aan of selecteer een andere periode.</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="pf-error" style="display:none;text-align:center;padding:40px 24px;background:rgba(231,76,60,0.05);border:1px solid rgba(231,76,60,0.2);border-radius:8px;margin-top:16px">
+          <p style="margin:0;color:var(--red);font-size:13px;font-weight:500" id="pf-error-msg">Kon facturatie-gegevens niet laden.</p>
+          <button type="button" class="btn btn-ghost" style="margin-top:12px" onclick="loadPartnerFacturatie()">Opnieuw proberen</button>
+        </div>
+
+        <!-- Tabel -->
+        <div id="pf-table-wrap" style="overflow-x:auto;display:none">
+          <table class="pf-table" id="pf-table">
+            <thead>
+              <tr>
+                <th style="text-align:left">Datum</th>
+                <th style="text-align:left">Klant</th>
+                <th style="text-align:left">Sector</th>
+                <th style="text-align:right">Panelen</th>
+                <th style="text-align:right">Excl. btw</th>
+                <th style="text-align:right">Incl. btw</th>
+                <th style="text-align:right">Planning fee</th>
+                <th style="text-align:right">Partner-marge</th>
+                <th style="text-align:right">Door te factureren</th>
+              </tr>
+            </thead>
+            <tbody id="pf-tbody"></tbody>
+            <tfoot id="pf-tfoot"></tfoot>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -5722,6 +5874,18 @@ function showPage(name) {
   if (name === 'auditlog') { initAuditLogPage(); }
   if (name === 'marketing' && typeof renderMarketingPage === 'function') renderMarketingPage();
   if (name === 'instellingen' && userRole === 'partner' && typeof can === 'function' && can('manage_users') && typeof renderPartnerTeamList === 'function') renderPartnerTeamList();
+  // Slot D — partner-facturatie laadt onderhoudsbeurten + analytics-event bij eerste paginabezoek
+  if (name === 'facturatie' && userRole === 'partner' && typeof loadPartnerFacturatie === 'function') {
+    loadPartnerFacturatie();
+    try {
+      if (window.flanccoTrack) {
+        window.flanccoTrack('Facturatie Page View', {
+          partner_slug: (userPartner && userPartner.slug) || null,
+          periode_type: (window.pfState && window.pfState.periodeType) || 'maand'
+        });
+      }
+    } catch (_e) {}
+  }
   // Slot K — feestdagen + sluitingsperiodes beheer (admin-only)
   if (name === 'feestdagen' && typeof renderFeestdagenPage === 'function') renderFeestdagenPage();
 }
@@ -8444,6 +8608,14 @@ async function loadFacturatie() {
 }
 
 function renderFacturatie() {
+  // Slot D — partner-rol gebruikt eigen render-tak met onderhoudsbeurten-overzicht.
+  // Admin/bediende zien het bestaande facturatie_records-overzicht.
+  if (userRole === 'partner') {
+    if (typeof renderPartnerFacturatie === 'function') {
+      renderPartnerFacturatie();
+    }
+    return;
+  }
   var container = document.getElementById('facturatie-list');
   var noEl = document.getElementById('no-facturatie');
   if (!container) return;
@@ -8662,7 +8834,10 @@ function exportFacturatieCSV() {
 }
 
 function csvEsc(val) {
-  var s = String(val);
+  var s = String(val == null ? '' : val);
+  // OWASP CSV-injection: cellen die starten met = + - @ \t \r worden in Excel/Sheets als formule
+  // geïnterpreteerd. Prefix met enkele quote om de cel als tekst te dwingen.
+  if (s.length && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
   if (s.indexOf(';') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
@@ -8671,6 +8846,602 @@ function csvEsc(val) {
 
 function formatCurrency(val) {
   return '€ ' + Number(val).toFixed(2).replace('.', ',');
+}
+
+// =============================================================================
+// SLOT D — PARTNER-FACTURATIE
+// -----------------------------------------------------------------------------
+// Aparte facturatie-tak voor partner-rol. Toont alle afgewerkte
+// onderhoudsbeurten in een gekozen periode (week / 1-3-6-12 maanden / jaar)
+// joined naar contracten, met:
+//   - KPI-strip: aantal beurten · excl btw · incl btw · partner-marge
+//   - Tabel: datum, klant, sector, panelen, excl/incl btw, planning fee,
+//     partner-marge, door te factureren bedrag (= incl btw)
+//   - Filter: alleen reeds gefactureerd of alle afgewerkte beurten
+//   - Export: CSV (lokaal) + PDF (Slot P generate-pdf engine)
+//
+// RLS-veiligheid: defense-in-depth — partner-policy filtert al op
+// contracten.partner_id, maar de query voegt expliciet ook
+// .eq('contracten.partner_id', userPartner.id) toe.
+// =============================================================================
+
+window.pfState = {
+  periodeType: 'maand',        // 'week' | 'maand' | 'jaar'
+  maandAantal: 1,              // 1 | 3 | 6 | 12 (alleen als periodeType='maand')
+  anchorDate: new Date(),      // ankerdatum waaromheen de periode wordt berekend
+  alleenGefactureerd: false,   // checkbox-filter
+  beurten: [],                 // huidige geladen beurten (verrijkt)
+  totalen: { count: 0, excl: 0, incl: 0, marge: 0, fee: 0, doorFactureren: 0 },
+  loading: false,
+  lastError: null
+};
+
+/** Maandnamen (NL) — capitalize voor display in nav-label. */
+var PF_MAAND_NAMEN = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+
+/** Sector-labels — herbruikt allSectorLabels indien aanwezig, anders fallback. */
+function pfSectorLabel(sector) {
+  if (!sector) return '-';
+  if (typeof allSectorLabels === 'object' && allSectorLabels && allSectorLabels[sector]) {
+    return allSectorLabels[sector];
+  }
+  return String(sector).charAt(0).toUpperCase() + String(sector).slice(1);
+}
+
+/** Format ISO yyyy-mm-dd of Date naar dd/mm/yyyy. */
+function pfFormatDate(d) {
+  if (!d) return '-';
+  var dt = (d instanceof Date) ? d : new Date(String(d));
+  if (isNaN(dt.getTime())) return '-';
+  var dd = String(dt.getDate()).padStart(2, '0');
+  var mm = String(dt.getMonth() + 1).padStart(2, '0');
+  var yy = dt.getFullYear();
+  return dd + '/' + mm + '/' + yy;
+}
+
+/** Format Date naar yyyy-mm-dd voor Supabase-query. */
+function pfIsoDate(d) {
+  var dt = (d instanceof Date) ? d : new Date(d);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+
+/**
+ * Bereken {van, tot, label} voor de huidige pfState.periodeType.
+ * - week: maandag..zondag rond anchor (ISO week, maandag=1)
+ * - maand: maandAantal-blok startend op de eerste dag van anchor's maand
+ * - jaar: 1 jan..31 dec van anchor.year
+ */
+function computePartnerFacturatiePeriode() {
+  var s = window.pfState;
+  var anchor = s.anchorDate instanceof Date ? new Date(s.anchorDate) : new Date();
+  anchor.setHours(0, 0, 0, 0);
+
+  if (s.periodeType === 'week') {
+    // Maandag (1) ... Zondag — JS getDay() heeft 0=zondag
+    var day = anchor.getDay();
+    var diffToMon = (day === 0 ? -6 : 1 - day);
+    var van = new Date(anchor);
+    van.setDate(anchor.getDate() + diffToMon);
+    var tot = new Date(van);
+    tot.setDate(van.getDate() + 6);
+    // ISO week-nummer
+    var yearStart = new Date(van.getFullYear(), 0, 1);
+    var dayOfYear = Math.floor((van - yearStart) / 86400000) + 1;
+    var weekNum = Math.ceil((dayOfYear + ((yearStart.getDay() + 6) % 7)) / 7);
+    var label = 'Week ' + weekNum + ' \u2014 ' + pfFormatDate(van) + ' tot ' + pfFormatDate(tot);
+    return { van: van, tot: tot, label: label };
+  }
+
+  if (s.periodeType === 'jaar') {
+    var van = new Date(anchor.getFullYear(), 0, 1);
+    var tot = new Date(anchor.getFullYear(), 11, 31);
+    return { van: van, tot: tot, label: String(anchor.getFullYear()) };
+  }
+
+  // Default = maand (incl. 1/3/6/12)
+  var aantal = parseInt(s.maandAantal, 10) || 1;
+  if (aantal < 1) aantal = 1;
+  if (aantal > 12) aantal = 12;
+  var startMonth = anchor.getMonth();
+  var van = new Date(anchor.getFullYear(), startMonth, 1);
+  var tot = new Date(anchor.getFullYear(), startMonth + aantal, 0); // laatste dag laatste maand
+  var label;
+  if (aantal === 1) {
+    label = PF_MAAND_NAMEN[van.getMonth()] + ' ' + van.getFullYear();
+  } else {
+    label = PF_MAAND_NAMEN[van.getMonth()] + ' ' + van.getFullYear() + ' \u2014 ' + PF_MAAND_NAMEN[tot.getMonth()] + ' ' + tot.getFullYear();
+  }
+  return { van: van, tot: tot, label: label };
+}
+
+/**
+ * Verrijk een geladen beurt-rij met afgeleide cijfers:
+ *  - bedrag_incl_btw: forfait_bedrag (overide) of contract.totaal_incl_btw / contract.aantal_beurten_in_contract
+ *  - btw_pct: uit contract.btw_type ('21' | '6' | '0')
+ *  - bedrag_excl_btw = incl / (1 + pct/100)
+ *  - planning_fee = userPartner.planning_fee
+ *  - bedrag_marge_pct = (excl - planning_fee) * marge_pct / (1 + marge_pct)
+ *    → omdat eindprijs = (flancco_forfait * (1+marge) + planning_fee), marge = excl - planning - flancco_forfait
+ *    Vereenvoudigd: marge = (excl - planning_fee) * (marge_pct / (100 + marge_pct))
+ */
+function pfBtwPctFromType(btwType) {
+  var t = String(btwType || '21');
+  if (t === '6' || t === '06') return 6;
+  if (t === '0' || t === '00') return 0;
+  return 21;
+}
+
+function pfEnrichBeurt(beurt, contract) {
+  var pct = pfBtwPctFromType(contract && contract.btw_type);
+  var inclBeurt = null;
+
+  // Eerst: forfait_bedrag op de beurt (overide voor losse-opdracht of EW-beurten)
+  if (beurt.forfait_bedrag !== null && beurt.forfait_bedrag !== undefined && Number(beurt.forfait_bedrag) > 0) {
+    inclBeurt = Number(beurt.forfait_bedrag);
+  } else if (contract && contract.totaal_incl_btw && contract.totaal_incl_btw > 0) {
+    // Verdeel contract-totaal over geplande beurten in contract
+    var divider = Number(contract.aantal_beurten_in_contract) || 1;
+    if (divider < 1) divider = 1;
+    inclBeurt = Number(contract.totaal_incl_btw) / divider;
+  } else {
+    inclBeurt = 0;
+  }
+
+  var excl = inclBeurt / (1 + pct / 100);
+  var planningFee = (userPartner && Number(userPartner.planning_fee)) || 0;
+  var margePct = (userPartner && Number(userPartner.marge_pct)) || 0;
+  // marge = (excl - planning_fee) * margePct / (100 + margePct)
+  var basis = excl - planningFee;
+  if (basis < 0) basis = 0;
+  var marge = basis * (margePct / (100 + margePct));
+
+  // Klantnaam
+  var klantNaam = '-';
+  if (contract) {
+    klantNaam = contract.klant_naam || ('' + (contract.klant_voornaam || '') + ' ' + (contract.klant_achternaam || '')).trim();
+    if (!klantNaam) klantNaam = '-';
+  }
+
+  return {
+    id: beurt.id,
+    contract_id: beurt.contract_id,
+    plan_datum: beurt.plan_datum,
+    klant_naam: klantNaam,
+    sector: beurt.sector || (contract && contract.sector) || null,
+    aantal_panelen: contract ? (contract.aantal_panelen || 0) : 0,
+    bedrag_incl_btw: round2(inclBeurt),
+    bedrag_excl_btw: round2(excl),
+    btw_pct: pct,
+    planning_fee: round2(planningFee),
+    bedrag_marge: round2(marge),
+    door_factureren: round2(inclBeurt),
+    facturatie_status: beurt.facturatie_status || 'open',
+    gefactureerd_op: beurt.gefactureerd_op || null
+  };
+}
+
+function round2(n) {
+  if (n === null || n === undefined || isNaN(n)) return 0;
+  return Math.round(Number(n) * 100) / 100;
+}
+
+/** Aggregeer totalen over een lijst verrijkte rijen. */
+function pfComputeTotalen(rows) {
+  var t = { count: 0, excl: 0, incl: 0, marge: 0, fee: 0, doorFactureren: 0 };
+  rows.forEach(function(r) {
+    t.count += 1;
+    t.excl += Number(r.bedrag_excl_btw) || 0;
+    t.incl += Number(r.bedrag_incl_btw) || 0;
+    t.marge += Number(r.bedrag_marge) || 0;
+    t.fee += Number(r.planning_fee) || 0;
+    t.doorFactureren += Number(r.door_factureren) || 0;
+  });
+  t.excl = round2(t.excl);
+  t.incl = round2(t.incl);
+  t.marge = round2(t.marge);
+  t.fee = round2(t.fee);
+  t.doorFactureren = round2(t.doorFactureren);
+  return t;
+}
+
+/** UI-state setters. */
+function setPartnerFacturatiePeriodeType(type) {
+  if (['week','maand','jaar'].indexOf(type) === -1) return;
+  window.pfState.periodeType = type;
+  window.pfState.anchorDate = new Date(); // reset naar vandaag bij type-switch
+  document.querySelectorAll('.pf-seg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.pfType === type);
+  });
+  // Maand-aantal dropdown enkel relevant bij 'maand'
+  var sel = document.getElementById('pf-maand-aantal');
+  if (sel) sel.style.display = (type === 'maand') ? '' : 'none';
+  loadPartnerFacturatie();
+}
+
+function setPartnerFacturatieMaandAantal(val) {
+  var n = parseInt(val, 10);
+  if (!n || [1,3,6,12].indexOf(n) === -1) n = 1;
+  window.pfState.maandAantal = n;
+  loadPartnerFacturatie();
+}
+
+function movePartnerFacturatiePeriode(direction) {
+  var s = window.pfState;
+  var d = new Date(s.anchorDate);
+  if (s.periodeType === 'week') {
+    d.setDate(d.getDate() + 7 * direction);
+  } else if (s.periodeType === 'jaar') {
+    d.setFullYear(d.getFullYear() + direction);
+  } else {
+    var step = parseInt(s.maandAantal, 10) || 1;
+    d.setMonth(d.getMonth() + step * direction);
+  }
+  s.anchorDate = d;
+  loadPartnerFacturatie();
+}
+
+function setPartnerFacturatieAlleenGefactureerd(checked) {
+  window.pfState.alleenGefactureerd = !!checked;
+  // Geen reload nodig — filter clientside via renderPartnerFacturatie
+  renderPartnerFacturatie();
+}
+
+/** Laad onderhoudsbeurten + contracten voor de huidige periode + partner. */
+async function loadPartnerFacturatie() {
+  if (userRole !== 'partner' || !userPartner) return;
+  var s = window.pfState;
+  s.loading = true;
+  s.lastError = null;
+  pfShowState('loading');
+
+  var periode = computePartnerFacturatiePeriode();
+  var vanIso = pfIsoDate(periode.van);
+  var totIso = pfIsoDate(periode.tot);
+
+  try {
+    // Stap 1: beurten met status='afgerond' in periode
+    // Volgens RLS-policy zou dit al gefilterd zijn op partner_id via contracten,
+    // maar we voegen expliciet contracten-join + .eq toe (defense in depth).
+    var beurtenRes = await sb
+      .from('onderhoudsbeurten')
+      .select('id, contract_id, plan_datum, status, opdracht_type, tarief_type, forfait_bedrag, sector, facturatie_status, gefactureerd_op')
+      .eq('status', 'afgerond')
+      .gte('plan_datum', vanIso)
+      .lte('plan_datum', totIso)
+      .order('plan_datum', { ascending: false });
+
+    if (beurtenRes.error) throw beurtenRes.error;
+    var beurten = beurtenRes.data || [];
+
+    if (beurten.length === 0) {
+      s.beurten = [];
+      s.totalen = { count: 0, excl: 0, incl: 0, marge: 0, fee: 0, doorFactureren: 0 };
+      s.loading = false;
+      renderPartnerFacturatie();
+      return;
+    }
+
+    // Stap 2: laad de contracten voor deze beurten + filter expliciet op partner_id
+    var contractIds = Array.from(new Set(beurten.map(function(b) { return b.contract_id; }).filter(Boolean)));
+    if (contractIds.length === 0) {
+      s.beurten = [];
+      s.totalen = { count: 0, excl: 0, incl: 0, marge: 0, fee: 0, doorFactureren: 0 };
+      s.loading = false;
+      renderPartnerFacturatie();
+      return;
+    }
+
+    var contractRes = await sb
+      .from('contracten')
+      .select('id, partner_id, klant_naam, klant_voornaam, klant_achternaam, aantal_panelen, totaal_incl_btw, btw_type, sector, aantal_beurten_in_contract')
+      .in('id', contractIds)
+      .eq('partner_id', userPartner.id);
+
+    if (contractRes.error) throw contractRes.error;
+    var contractsById = {};
+    (contractRes.data || []).forEach(function(c) { contractsById[c.id] = c; });
+
+    // Stap 3: filter beurten naar enkel die waar het contract bij eigen partner hoort
+    var enriched = beurten
+      .filter(function(b) { return contractsById[b.contract_id]; })
+      .map(function(b) { return pfEnrichBeurt(b, contractsById[b.contract_id]); });
+
+    s.beurten = enriched;
+    s.totalen = pfComputeTotalen(enriched);
+    s.loading = false;
+    renderPartnerFacturatie();
+
+  } catch (err) {
+    s.loading = false;
+    s.lastError = (err && err.message) || 'Onbekende fout';
+    console.error('[Slot D] loadPartnerFacturatie error:', err);
+    pfShowState('error');
+  }
+}
+
+/** Toon/verberg de juiste states (loading/empty/error/data). */
+function pfShowState(state) {
+  var loading = document.getElementById('pf-loading');
+  var empty = document.getElementById('pf-empty');
+  var error = document.getElementById('pf-error');
+  var tableWrap = document.getElementById('pf-table-wrap');
+  var kpiStrip = document.getElementById('pf-kpi-strip');
+  if (loading) loading.style.display = (state === 'loading') ? '' : 'none';
+  if (empty) empty.style.display = (state === 'empty') ? '' : 'none';
+  if (error) error.style.display = (state === 'error') ? '' : 'none';
+  if (tableWrap) tableWrap.style.display = (state === 'data') ? '' : 'none';
+  if (kpiStrip) kpiStrip.style.display = (state === 'loading' || state === 'error') ? 'none' : '';
+  if (state === 'error') {
+    var msg = document.getElementById('pf-error-msg');
+    if (msg && window.pfState.lastError) {
+      msg.textContent = 'Kon facturatie-gegevens niet laden: ' + window.pfState.lastError;
+    }
+  }
+}
+
+/** Render de partner-facturatie pagina (KPI + tabel + nav-label). */
+function renderPartnerFacturatie() {
+  if (userRole !== 'partner') return;
+
+  var s = window.pfState;
+  var periode = computePartnerFacturatiePeriode();
+
+  // Update nav-label en subtitle
+  var navLabel = document.getElementById('pf-nav-label');
+  if (navLabel) navLabel.textContent = periode.label;
+  var subtitle = document.getElementById('pf-subtitle');
+  if (subtitle) {
+    var subTpl;
+    if (s.periodeType === 'week') subTpl = 'Alle afgewerkte beurten in week ' + periode.label.replace(/^Week\s+/, '').split(' ')[0];
+    else if (s.periodeType === 'jaar') subTpl = 'Alle afgewerkte beurten in ' + periode.label;
+    else subTpl = 'Alle afgewerkte beurten over ' + periode.label;
+    subtitle.textContent = subTpl;
+  }
+
+  // Update segmented active-state (defensive — ook als gebruiker via direct setter komt)
+  document.querySelectorAll('.pf-seg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.pfType === s.periodeType);
+  });
+  var maandSel = document.getElementById('pf-maand-aantal');
+  if (maandSel) {
+    maandSel.value = String(s.maandAantal);
+    maandSel.style.display = (s.periodeType === 'maand') ? '' : 'none';
+  }
+
+  // Filter clientside: alleen-gefactureerd
+  var rows = (s.beurten || []).slice();
+  if (s.alleenGefactureerd) {
+    rows = rows.filter(function(r) { return r.facturatie_status === 'gefactureerd'; });
+  }
+
+  // KPI's
+  var totalen = pfComputeTotalen(rows);
+  var elCount = document.getElementById('pf-kpi-count');
+  var elExcl = document.getElementById('pf-kpi-excl');
+  var elIncl = document.getElementById('pf-kpi-incl');
+  var elMarge = document.getElementById('pf-kpi-marge');
+  if (elCount) elCount.textContent = String(totalen.count);
+  if (elExcl) elExcl.textContent = formatCurrency(totalen.excl);
+  if (elIncl) elIncl.textContent = formatCurrency(totalen.incl);
+  if (elMarge) elMarge.textContent = formatCurrency(totalen.marge);
+
+  // State: empty vs data
+  if (rows.length === 0) {
+    pfShowState(s.alleenGefactureerd ? 'empty' : (s.beurten.length === 0 ? 'empty' : 'empty'));
+    var tbody = document.getElementById('pf-tbody');
+    if (tbody) tbody.innerHTML = '';
+    var tfoot = document.getElementById('pf-tfoot');
+    if (tfoot) tfoot.innerHTML = '';
+    return;
+  }
+  pfShowState('data');
+
+  // Tabel-body
+  var tbody = document.getElementById('pf-tbody');
+  if (tbody) {
+    tbody.innerHTML = rows.map(function(r) {
+      var statusClass = r.facturatie_status === 'gefactureerd' ? 'pf-cell-status pf-cell-status--gefactureerd' : 'pf-cell-status pf-cell-status--open';
+      var statusLabel = r.facturatie_status === 'gefactureerd' ? 'Gefactureerd' : 'Open';
+      var sectorLabel = pfSectorLabel(r.sector);
+      return '<tr>' +
+        '<td>' + esc(pfFormatDate(r.plan_datum)) + '</td>' +
+        '<td>' + esc(r.klant_naam) + '</td>' +
+        '<td>' + esc(sectorLabel) + '</td>' +
+        '<td class="pf-cell-num">' + (r.aantal_panelen || 0) + '</td>' +
+        '<td class="pf-cell-num">' + formatCurrency(r.bedrag_excl_btw) + '</td>' +
+        '<td class="pf-cell-num">' + formatCurrency(r.bedrag_incl_btw) + '</td>' +
+        '<td class="pf-cell-num">' + formatCurrency(r.planning_fee) + '</td>' +
+        '<td class="pf-cell-num">' + formatCurrency(r.bedrag_marge) + '</td>' +
+        '<td class="pf-cell-num"><span class="' + statusClass + '" style="margin-right:6px">' + statusLabel + '</span>' + formatCurrency(r.door_factureren) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  // Tabel-footer (totalen)
+  var tfoot = document.getElementById('pf-tfoot');
+  if (tfoot) {
+    tfoot.innerHTML = '<tr>' +
+      '<td colspan="3">Totaal (' + totalen.count + ' beurten)</td>' +
+      '<td class="pf-cell-num">' + (rows.reduce(function(s, r){ return s + (r.aantal_panelen || 0); }, 0)) + '</td>' +
+      '<td class="pf-cell-num">' + formatCurrency(totalen.excl) + '</td>' +
+      '<td class="pf-cell-num">' + formatCurrency(totalen.incl) + '</td>' +
+      '<td class="pf-cell-num">' + formatCurrency(totalen.fee) + '</td>' +
+      '<td class="pf-cell-num">' + formatCurrency(totalen.marge) + '</td>' +
+      '<td class="pf-cell-num">' + formatCurrency(totalen.doorFactureren) + '</td>' +
+    '</tr>';
+  }
+}
+
+/** CSV-export — UTF-8 met BOM, ;-separator, NL-format. */
+function exportPartnerFacturatieCsv() {
+  if (userRole !== 'partner') return;
+  var s = window.pfState;
+  var rows = (s.beurten || []).slice();
+  if (s.alleenGefactureerd) rows = rows.filter(function(r) { return r.facturatie_status === 'gefactureerd'; });
+
+  if (rows.length === 0) {
+    showToast('Geen beurten om te exporteren', 'error');
+    return;
+  }
+
+  var periode = computePartnerFacturatiePeriode();
+  var header = ['Datum','Klant','Sector','Panelen','Excl. btw','Incl. btw','Planning fee','Partner-marge','Door te factureren','Facturatie-status'];
+  var lines = [header.join(';')];
+  rows.forEach(function(r) {
+    lines.push([
+      pfFormatDate(r.plan_datum),
+      r.klant_naam,
+      pfSectorLabel(r.sector),
+      String(r.aantal_panelen || 0),
+      Number(r.bedrag_excl_btw).toFixed(2).replace('.', ','),
+      Number(r.bedrag_incl_btw).toFixed(2).replace('.', ','),
+      Number(r.planning_fee).toFixed(2).replace('.', ','),
+      Number(r.bedrag_marge).toFixed(2).replace('.', ','),
+      Number(r.door_factureren).toFixed(2).replace('.', ','),
+      r.facturatie_status === 'gefactureerd' ? 'Gefactureerd' : 'Open'
+    ].map(csvEsc).join(';'));
+  });
+  // Totaalrij
+  var totalen = pfComputeTotalen(rows);
+  lines.push([
+    'Totaal (' + totalen.count + ' beurten)',
+    '',
+    '',
+    String(rows.reduce(function(s, r) { return s + (r.aantal_panelen || 0); }, 0)),
+    Number(totalen.excl).toFixed(2).replace('.', ','),
+    Number(totalen.incl).toFixed(2).replace('.', ','),
+    Number(totalen.fee).toFixed(2).replace('.', ','),
+    Number(totalen.marge).toFixed(2).replace('.', ','),
+    Number(totalen.doorFactureren).toFixed(2).replace('.', ','),
+    ''
+  ].map(csvEsc).join(';'));
+
+  var blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  var slug = (userPartner && userPartner.slug) || 'partner';
+  var periodeSlug = pfIsoDate(periode.van) + '_' + pfIsoDate(periode.tot);
+  var fileName = 'flancco-facturatie-' + slug + '-' + periodeSlug + '.csv';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  // Slot 0 — analytics
+  try {
+    if (window.flanccoTrack) {
+      window.flanccoTrack('Facturatie Export CSV', {
+        partner_slug: slug,
+        periode_type: s.periodeType,
+        aantal_rijen: rows.length,
+        alleen_gefactureerd: s.alleenGefactureerd
+      });
+    }
+  } catch (_e) {}
+
+  showToast('CSV geëxporteerd');
+}
+
+/** PDF-export via Slot P generate-pdf engine. */
+async function exportPartnerFacturatiePdf() {
+  if (userRole !== 'partner' || !userPartner) return;
+  var s = window.pfState;
+  var rows = (s.beurten || []).slice();
+  if (s.alleenGefactureerd) rows = rows.filter(function(r) { return r.facturatie_status === 'gefactureerd'; });
+
+  if (rows.length === 0) {
+    showToast('Geen beurten om te exporteren', 'error');
+    return;
+  }
+
+  var btn = document.getElementById('pf-btn-pdf');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+  try {
+    var sess = await sb.auth.getSession();
+    var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+    if (!token) {
+      showToast('Sessie verlopen — log opnieuw in', 'error');
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+      return;
+    }
+    var periode = computePartnerFacturatiePeriode();
+    var totalen = pfComputeTotalen(rows);
+
+    // Payload-shape matcht FacturatieOverzichtData (zie templates/facturatie_overzicht.ts)
+    var payload = {
+      template: 'facturatie_overzicht',
+      partner_slug: userPartner.slug,
+      data: {
+        periode_van: pfIsoDate(periode.van),
+        periode_tot: pfIsoDate(periode.tot),
+        periode_label: periode.label,
+        periode_type: s.periodeType,
+        alleen_gefactureerd: s.alleenGefactureerd,
+        beurten: rows.map(function(r) {
+          return {
+            datum: r.plan_datum, // ISO yyyy-mm-dd
+            klant_naam: r.klant_naam,
+            sector: r.sector || null,
+            aantal_panelen: r.aantal_panelen || 0,
+            bedrag_excl_btw: r.bedrag_excl_btw,
+            bedrag_incl_btw: r.bedrag_incl_btw,
+            planning_fee: r.planning_fee,
+            partner_marge: r.bedrag_marge
+          };
+        }),
+        totalen: {
+          aantal_beurten: totalen.count,
+          totaal_excl_btw: totalen.excl,
+          totaal_incl_btw: totalen.incl,
+          totaal_planning_fee: totalen.fee,
+          totaal_marge: totalen.marge
+        }
+      }
+    };
+
+    var resp = await fetch(SUPA_URL + '/functions/v1/generate-pdf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+        'apikey': SUPA_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!resp.ok) {
+      var errTxt = await resp.text();
+      console.error('[Slot D] PDF export failed:', resp.status, errTxt);
+      showToast('PDF-export mislukt (' + resp.status + ')', 'error');
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+      return;
+    }
+    var json = await resp.json();
+    var pdfUrl = json && (json.url || json.signedUrl);
+    if (json && json.success && pdfUrl) {
+      // Direct openen in nieuw tabblad
+      window.open(pdfUrl, '_blank', 'noopener');
+      showToast('PDF gegenereerd');
+      // Slot 0 — analytics
+      try {
+        if (window.flanccoTrack) {
+          window.flanccoTrack('Facturatie Export PDF', {
+            partner_slug: userPartner.slug,
+            periode_type: s.periodeType,
+            aantal_rijen: rows.length,
+            alleen_gefactureerd: s.alleenGefactureerd
+          });
+        }
+      } catch (_e) {}
+    } else {
+      showToast('PDF-export gaf onverwacht antwoord', 'error');
+    }
+  } catch (err) {
+    console.error('[Slot D] exportPartnerFacturatiePdf error:', err);
+    showToast('PDF-export mislukt: ' + ((err && err.message) || 'onbekende fout'), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
 }
 
 // =============================================
@@ -12470,6 +13241,8 @@ function getFilteredKlanten() {
 function csvEscape(v) {
   if (v === null || v === undefined) return '""';
   var s = String(v);
+  // OWASP CSV-injection: prefix formule-trigger characters met enkele quote
+  if (s.length && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return '"' + s.replace(/"/g, '""') + '"';
 }
 function csvNum(n) {
