@@ -16,7 +16,7 @@ Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onder
 ## Bestandsstructuur
 ```
 Flancco-tools/
-├── admin/index.html      — Admin dashboard (login, contracten, partners, pricing, forecast, instellingen)
+├── admin/index.html      — Admin dashboard (login, contracten, partners, pricing, winstgevendheid, instellingen)
 ├── novectra/index.html   — Calculator voor partner Novectra
 ├── cwsolar/index.html    — Calculator voor partner CW Solar
 ├── DEPLOY.sh             — Git deploy script
@@ -37,6 +37,11 @@ Alle bestanden zijn **single-file HTML** met inline CSS en JS. Geen npm, geen bu
 - `user_roles` — id, user_id (FK auth.users), role ('admin'|'partner'), partner_id (nullable FK partners)
 - `klant_consents` (Slot Q) — GDPR consent-trail per klant per kanaal: id, contract_id (FK), klant_email, kanaal ('email_service'|'email_marketing'|'sms'|'whatsapp'), opt_in, opt_in_ts/bron/ip/ua, opt_out_ts/bron/ip, opt_out_token (UNIQUE), notitie. View `v_klant_consent_actief` toont laatste status per email/kanaal voor send-* functions.
 - `klant_notification_log` (Slot F) — append-only audit-trail voor elke klant-notificatie poging: id, beurt_id (FK), contract_id (FK), partner_id (FK), kanaal ('email'|'sms'|'whatsapp'), event_type ('reminder_24h'|'reminder_day'|'rapport_klaar'|'test'), recipient (gemaskeerd), status ('sent'|'failed'|'skipped_no_consent'|'skipped_already_sent'|'skipped_missing_contact'|'skipped_daily_cap'), provider_message_id, error_detail, created_at. RLS: admin full SELECT, partner SELECT enkel eigen `partner_id`. Idempotency wordt afgedwongen via 7 timestamp-kolommen op `onderhoudsbeurten` (`reminder_24h_email_ts`, `reminder_day_email_ts`, `_sms_ts` × 2, `_whatsapp_ts` × 2, `rapport_klaar_email_ts`).
+
+### Database Views
+- `v_winstgevendheid_per_partner` (Slot G) — YTD-aggregatie per actieve partner: aantal afgewerkte beurten, omzet_excl_btw, planning_fee_kost, arbeids-/reis-/materiaalkost, brutomarge. `security_invoker=on`; admin ziet alle rijen, partner enkel eigen contracten via RLS.
+- `v_winstgevendheid_per_sector` (Slot G) — Idem per genormaliseerde sector (`warmtepomp_*` → `warmtepomp`, whitelist of `overig`).
+- `v_winstgevendheid_per_technieker` (Slot G) — Per-tech equal-share allocatie via `UNNEST(extra_technieker_ids)`; bevat `bezettingsgraad_pct` (v1: trekt verlof/feestdagen NIET af). Voedt de Winstgevendheid-pagina (voormalig forecast).
 
 ### Storage buckets
 - `contracten-pdf` — getekende contracten (publiek voor klant-link)
@@ -87,7 +92,7 @@ Alle bestanden zijn **single-file HTML** met inline CSS en JS. Geen npm, geen bu
 ### Rol-systeem
 Na login wordt `user_roles` gecheckt. De body krijgt class `role-admin` of `role-partner`.
 - CSS: `.admin-only` en `.partner-only` classes tonen/verbergen elementen per rol
-- Admin ziet: Dashboard, Contracten (met filter + "Nieuw contract"), Partners, Prijsbeheer, Forecast
+- Admin ziet: Dashboard, Contracten (met filter + "Nieuw contract"), Partners, Prijsbeheer, Winstgevendheid (Slot G — voormalig Forecast)
 - Partner ziet: Dashboard (eigen stats), Contracten (alleen eigen klanten), Instellingen (branding)
 
 ### Partner Branding

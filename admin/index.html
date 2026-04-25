@@ -336,15 +336,49 @@
   .page { display: none !important; }
   .page.active { display: block !important; }
 
-  /* FORECAST */
-  .forecast-chart { height: 240px; display: flex; align-items: flex-end; gap: 4px; padding: 16px 0; }
-  .forecast-bar { flex: 1; background: var(--navy); border-radius: 4px 4px 0 0; position: relative; min-width: 20px; transition: 0.3s; }
-  .forecast-bar:hover { opacity: 0.8; }
-  .forecast-bar .bar-label { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--grey); white-space: nowrap; }
-  .forecast-bar .bar-value { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: var(--navy); white-space: nowrap; }
-  .forecast-legend { display: flex; gap: 20px; margin-top: 32px; font-size: 12px; color: var(--grey); }
-  .forecast-legend span { display: flex; align-items: center; gap: 6px; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  /* =========================================================================
+     SLOT G — Winstgevendheid (vervangt voormalig .forecast-* CSS)
+     KPI-strip + stacked-bar SVG + tabel + color-coded marge-cellen.
+     Volgt design-template admin data-view (.dv-*); navy/red/green tokens.
+     ========================================================================= */
+  .winst-grid { display: block; }
+  .winst-kpi-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .winst-kpi { background: #F9FAFB; border: 1px solid var(--rule); border-radius: 10px; padding: 16px; min-width: 0; }
+  .winst-kpi-label { font-size: 11px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; line-height: 1.2; }
+  .winst-kpi-value { font-size: 20px; font-weight: 700; color: var(--navy); letter-spacing: -0.01em; line-height: 1.2; word-break: break-word; }
+  @media (max-width: 900px) { .winst-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 540px) { .winst-kpi-strip { grid-template-columns: 1fr; } }
+
+  .winst-chart-card { padding-bottom: 16px; }
+  .winst-chart-wrap { width: 100%; max-width: 100%; min-height: 220px; padding: 8px 0 4px; }
+  .winst-chart-wrap svg { display: block; width: 100%; height: 220px; }
+  .winst-chart-empty { color: var(--grey); font-size: 13px; text-align: center; padding: 32px 0; margin: 0; }
+  .winst-legend { display: flex; gap: 24px; padding: 12px 0 4px; font-size: 12px; color: var(--grey); flex-wrap: wrap; }
+  .winst-legend-item { display: inline-flex; align-items: center; gap: 8px; }
+  .winst-legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  .winst-table-wrap { overflow-x: auto; }
+  .winst-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .winst-table thead th { text-align: left; padding: 10px 12px; border-bottom: 1.5px solid var(--rule); color: var(--grey); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; background: #F9FAFB; white-space: nowrap; }
+  .winst-table thead th.winst-cell-num { text-align: right; }
+  .winst-table tbody td { padding: 10px 12px; border-bottom: 1px solid var(--rule); color: var(--navy); vertical-align: middle; }
+  .winst-table tbody tr:hover { background: #F9FAFB; }
+  .winst-table tbody tr:last-child td { border-bottom: 1.5px solid var(--rule); }
+  .winst-table tfoot td { padding: 12px; font-weight: 700; color: var(--navy); background: #F3F4F6; border-top: 2px solid var(--navy); font-size: 13px; }
+  .winst-cell-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .winst-cell-bold { font-weight: 600; }
+
+  /* Marge color-coding via CSS-class — geen inline styles. */
+  .winst-marge-good { color: var(--green); }
+  .winst-marge-warn { color: var(--orange); }
+  .winst-marge-bad  { color: var(--red); }
+  .winst-marge-na   { color: var(--grey); }
+
+  .winst-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 48px 24px; color: var(--grey); text-align: center; }
+  .winst-empty svg { color: var(--grey); opacity: 0.6; }
+  .winst-empty p { font-size: 13px; margin: 0; }
+
+  .winst-tabs { /* hergebruikt .dv-view-toggle styling — extra hook voor JS-selector */ }
 
   /* KLANT DOSSIER */
   .dossier-back { display:inline-flex; align-items:center; gap:6px; color:var(--blue); font-size:13px; cursor:pointer; margin-bottom:16px; background:none; border:none; font-family:inherit; }
@@ -1514,8 +1548,8 @@
       <span>Facturatie</span>
     </a>
     <a class="nav-item admin-only" onclick="showPage('forecast')" data-page="forecast">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>Forecast</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      <span>Winstgevendheid</span>
     </a>
 
     <!-- SPACER + BOTTOM GROUP -->
@@ -2500,24 +2534,151 @@
       </div>
     </div>
 
-    <!-- FORECAST PAGE -->
+    <!-- =============================================================
+         WINSTGEVENDHEID PAGE (Slot G) — admin-only
+         Drie drill-downs: Partner | Sector | Technieker.
+         Default-periode YTD; "Komend kwartaal" placeholder voor v2.
+         Render gebeurt door renderWinstgevendheid(); zie main JS-block.
+         ============================================================= -->
     <div class="page admin-only" id="page-forecast">
-      <div class="stats" id="forecast-stats"></div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Maandelijkse omzetprognose (12 maanden)</span></div>
-        <div class="forecast-chart" id="forecast-chart"></div>
-        <div class="forecast-legend">
-          <span><div class="legend-dot" style="background:var(--navy)"></div> Flancco omzet</span>
-          <span><div class="legend-dot" style="background:var(--blue)"></div> Partner omzet</span>
-          <span><div class="legend-dot" style="background:var(--green)"></div> Eindklant omzet</span>
+      <!-- Card-header (EW-design template) -->
+      <div class="dv-header">
+        <div class="dv-header-left">
+          <h1 class="dv-title">Winstgevendheid</h1>
+          <p class="dv-subtitle">Brutomarge per partner, sector en technieker (YTD)</p>
+        </div>
+        <div class="dv-header-actions">
+          <button class="btn btn-ghost" id="winst-export-btn" type="button" onclick="onWinstgevendheidExportClick()" disabled
+                  title="Export naar PDF wordt toegevoegd in een latere release.">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exporteren
+          </button>
         </div>
       </div>
-      <div class="card" style="margin-top:20px">
-        <div class="card-header"><span class="card-title">Omzet per partner</span></div>
-        <table>
-          <thead><tr><th>Partner</th><th>Contracten</th><th>Jaarlijks</th><th>Halfjaarlijks</th><th>Gem. panelen</th><th>Flancco/jaar</th><th>Eindklant/jaar</th></tr></thead>
-          <tbody id="forecast-table"></tbody>
-        </table>
+
+      <!-- Toolbar (segmented control + period selector) -->
+      <div class="dv-toolbar">
+        <div class="dv-toolbar-left">
+          <div class="dv-view-toggle winst-tabs" role="tablist" aria-label="Drill-down dimensie">
+            <button type="button" id="winst-tab-partner"     class="active" data-winst-tab="partner"     onclick="setWinstgevendheidTab('partner')"     role="tab" aria-selected="true">Partner</button>
+            <button type="button" id="winst-tab-sector"      data-winst-tab="sector"      onclick="setWinstgevendheidTab('sector')"      role="tab" aria-selected="false">Sector</button>
+            <button type="button" id="winst-tab-technieker"  data-winst-tab="technieker"  onclick="setWinstgevendheidTab('technieker')"  role="tab" aria-selected="false">Technieker</button>
+          </div>
+        </div>
+        <div class="dv-toolbar-right">
+          <label for="winst-period" style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Periode</label>
+          <select id="winst-period" class="dv-select" onchange="setWinstgevendheidPeriod(this.value)" aria-label="Periode-keuze">
+            <option value="ytd" selected>YTD (lopend jaar)</option>
+            <option value="komend_kwartaal">Komend kwartaal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PARTNER drill-down -->
+      <div class="winst-grid" id="winst-grid-partner">
+        <div class="winst-kpi-strip" id="winst-partner-kpis"></div>
+        <div class="card winst-chart-card">
+          <div class="card-header"><span class="card-title">Omzet versus kost per partner</span></div>
+          <div class="winst-chart-wrap" id="winst-partner-chart"></div>
+          <div class="winst-legend">
+            <span class="winst-legend-item"><span class="winst-legend-swatch" style="background:var(--green)"></span> Brutomarge</span>
+            <span class="winst-legend-item"><span class="winst-legend-swatch" style="background:#9CA3AF"></span> Arbeids- &amp; reiskost</span>
+            <span class="winst-legend-item"><span class="winst-legend-swatch" style="background:#D1D5DB"></span> Materiaal- &amp; planning-fee</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Detail per partner</span></div>
+          <div class="winst-table-wrap">
+            <table class="winst-table">
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th class="winst-cell-num">Beurten</th>
+                  <th class="winst-cell-num">Omzet</th>
+                  <th class="winst-cell-num">Planning fee</th>
+                  <th class="winst-cell-num">Arbeidskost</th>
+                  <th class="winst-cell-num">Reiskost</th>
+                  <th class="winst-cell-num">Materiaalkost</th>
+                  <th class="winst-cell-num">Brutomarge</th>
+                  <th class="winst-cell-num">Marge %</th>
+                </tr>
+              </thead>
+              <tbody id="winst-partner-tbody"></tbody>
+              <tfoot id="winst-partner-tfoot"></tfoot>
+            </table>
+          </div>
+          <div class="winst-empty" id="winst-partner-empty" hidden>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            <p>Nog geen afgewerkte beurten in deze periode.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTOR drill-down -->
+      <div class="winst-grid" id="winst-grid-sector" hidden>
+        <div class="winst-kpi-strip" id="winst-sector-kpis"></div>
+        <div class="card winst-chart-card">
+          <div class="card-header"><span class="card-title">Omzet versus kost per sector</span></div>
+          <div class="winst-chart-wrap" id="winst-sector-chart"></div>
+          <div class="winst-legend">
+            <span class="winst-legend-item"><span class="winst-legend-swatch" style="background:var(--green)"></span> Brutomarge</span>
+            <span class="winst-legend-item"><span class="winst-legend-swatch" style="background:#9CA3AF"></span> Arbeids- &amp; reiskost</span>
+            <span class="winst-legend-item"><span class="winst-legend-swatch" style="background:#D1D5DB"></span> Materiaal- &amp; planning-fee</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Detail per sector</span></div>
+          <div class="winst-table-wrap">
+            <table class="winst-table">
+              <thead>
+                <tr>
+                  <th>Sector</th>
+                  <th class="winst-cell-num">Beurten</th>
+                  <th class="winst-cell-num">Omzet</th>
+                  <th class="winst-cell-num">Kost</th>
+                  <th class="winst-cell-num">Brutomarge</th>
+                  <th class="winst-cell-num">Marge %</th>
+                </tr>
+              </thead>
+              <tbody id="winst-sector-tbody"></tbody>
+              <tfoot id="winst-sector-tfoot"></tfoot>
+            </table>
+          </div>
+          <div class="winst-empty" id="winst-sector-empty" hidden>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <p>Nog geen afgewerkte beurten in deze periode.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TECHNIEKER drill-down -->
+      <div class="winst-grid" id="winst-grid-technieker" hidden>
+        <div class="winst-kpi-strip" id="winst-tech-kpis"></div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Detail per technieker</span></div>
+          <div class="winst-table-wrap">
+            <table class="winst-table">
+              <thead>
+                <tr>
+                  <th>Technieker</th>
+                  <th class="winst-cell-num">Beurten</th>
+                  <th class="winst-cell-num">Gewerkte uren</th>
+                  <th class="winst-cell-num">Omzet-aandeel</th>
+                  <th class="winst-cell-num">Kost-aandeel</th>
+                  <th class="winst-cell-num">Brutomarge</th>
+                  <th class="winst-cell-num">Marge %</th>
+                  <th class="winst-cell-num">Bezetting</th>
+                </tr>
+              </thead>
+              <tbody id="winst-tech-tbody"></tbody>
+              <tfoot id="winst-tech-tfoot"></tfoot>
+            </table>
+          </div>
+          <div class="winst-empty" id="winst-tech-empty" hidden>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <p>Nog geen afgewerkte beurten in deze periode.</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -5916,7 +6077,7 @@ async function loadAllData() {
   renderContracten();
   renderKlanten();
   renderPricing();
-  renderForecast();
+  // Slot G — Winstgevendheid laadt lazy bij eerste paginabezoek (zie showPage hook).
   renderTechniekers();
   renderBedienden();
   renderWagenpark();
@@ -6014,7 +6175,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -6039,6 +6200,9 @@ function showPage(name) {
   }
   // Slot K — feestdagen + sluitingsperiodes beheer (admin-only)
   if (name === 'feestdagen' && typeof renderFeestdagenPage === 'function') renderFeestdagenPage();
+  // Slot G — Winstgevendheid: lazy data-load + render bij elke activatie van de pagina,
+  // zodat verse data getoond wordt na nieuwe afgerond-beurten zonder full reload.
+  if (name === 'forecast' && typeof activateWinstgevendheidPage === 'function') activateWinstgevendheidPage();
 }
 
 // =============================================
@@ -11012,75 +11176,521 @@ async function saveSupplementen(btn, partnerId, sector) {
   renderPricing();
 }
 
-// =============================================
-// FORECAST
-// =============================================
-function renderForecast() {
-  // Calculate per partner
-  const partnerData = partners.map(p => {
-    const contracts = allContracten.filter(c => c.partner_id === p.id && c.status !== 'geannuleerd');
-    const jaarlijks = contracts.filter(c => c.frequentie === 'jaarlijks' || c.frequentie === '1x').length;
-    const halfjaarlijks = contracts.filter(c => c.frequentie === 'halfjaarlijks' || c.frequentie === '2x').length;
-    const avgPanels = contracts.length > 0 ? Math.round(contracts.reduce((s,c) => s + c.aantal_panelen, 0) / contracts.length) : 0;
+// =====================================================================
+// SLOT G — WINSTGEVENDHEID (vervangt voormalig renderForecast)
+// ---------------------------------------------------------------------
+// Drie drill-downs op brutomarge: per partner, per sector, per technieker.
+// Data komt uit de views v_winstgevendheid_per_partner / _per_sector /
+// _per_technieker (security_invoker=on, RLS-gefilterd).
+// XSS-safe: alle data via textContent / esc(); geen innerHTML met user-data.
+// Slot 0 events: graceful via window.flanccoTrack-guard.
+// =====================================================================
 
-    // Revenue per year
-    const yearlyRevenue = contracts.reduce((sum, c) => {
-      const base = parseFloat(c.totaal_incl_btw || 0);
-      const freq = (c.frequentie === 'halfjaarlijks' || c.frequentie === '2x') ? 2 : 1;
-      return sum + (base * freq);
-    }, 0);
+var WINSTGEVENDHEID_DATA = { partner: [], sector: [], technieker: [] };
+var WINSTGEVENDHEID_TAB = 'partner';        // 'partner' | 'sector' | 'technieker'
+var WINSTGEVENDHEID_PERIOD = 'ytd';         // 'ytd' | 'komend_kwartaal'
+var WINSTGEVENDHEID_LOADING = false;
+var WINSTGEVENDHEID_PAGE_VIEW_TRACKED = false;
 
-    // Flancco share (reverse calculate)
-    const marge = parseFloat(p.marge_pct) / 100;
-    const flanccoShare = yearlyRevenue / 1.21 / (1 + marge);
+// Lokale helpers — geen globale namespace-pollution.
+function escWinst(s) {
+  if (s === null || s === undefined) return '';
+  var d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
 
-    return { partner: p, contracts: contracts.length, jaarlijks, halfjaarlijks, avgPanels, yearlyRevenue, flanccoShare };
+function fmtEurWinst(n) {
+  var v = Number(n);
+  if (!isFinite(v)) v = 0;
+  return '\u20AC ' + Math.round(v).toLocaleString('nl-BE');
+}
+
+function fmtPctWinst(n, digits) {
+  var v = Number(n);
+  if (!isFinite(v)) return '\u2014';
+  var d = (typeof digits === 'number') ? digits : 1;
+  return v.toFixed(d).replace('.', ',') + '%';
+}
+
+function margePctClass(pct) {
+  // Color-coding via CSS-class i.p.v. inline style: green >=20, amber 10-20, red <10.
+  if (pct === null || pct === undefined || !isFinite(pct)) return 'winst-marge-na';
+  if (pct >= 20) return 'winst-marge-good';
+  if (pct >= 10) return 'winst-marge-warn';
+  return 'winst-marge-bad';
+}
+
+function safeMargePct(omzet, brutomarge) {
+  var o = Number(omzet);
+  if (!isFinite(o) || o <= 0) return null;
+  return (Number(brutomarge) / o) * 100;
+}
+
+// Async data-load: drie views in parallel. Per-view try/catch zodat één faal
+// de rest niet blokkeert; toast voor admin-feedback bij fout.
+async function loadWinstgevendheid() {
+  if (WINSTGEVENDHEID_LOADING) return;
+  WINSTGEVENDHEID_LOADING = true;
+  try {
+    var results = await Promise.all([
+      sb.from('v_winstgevendheid_per_partner').select('*'),
+      sb.from('v_winstgevendheid_per_sector').select('*'),
+      sb.from('v_winstgevendheid_per_technieker').select('*')
+    ]);
+
+    var pRes = results[0], sRes = results[1], tRes = results[2];
+
+    if (pRes.error) {
+      console.error('[winst] partner-view fout:', pRes.error);
+      if (typeof showToast === 'function') showToast('Kon winstgevendheid per partner niet laden.', 'error');
+    }
+    if (sRes.error) {
+      console.error('[winst] sector-view fout:', sRes.error);
+      if (typeof showToast === 'function') showToast('Kon winstgevendheid per sector niet laden.', 'error');
+    }
+    if (tRes.error) {
+      console.error('[winst] technieker-view fout:', tRes.error);
+      if (typeof showToast === 'function') showToast('Kon winstgevendheid per technieker niet laden.', 'error');
+    }
+
+    WINSTGEVENDHEID_DATA.partner    = Array.isArray(pRes.data) ? pRes.data : [];
+    WINSTGEVENDHEID_DATA.sector     = Array.isArray(sRes.data) ? sRes.data : [];
+    WINSTGEVENDHEID_DATA.technieker = Array.isArray(tRes.data) ? tRes.data : [];
+  } catch (e) {
+    console.error('[winst] loadWinstgevendheid exception:', e);
+    if (typeof showToast === 'function') showToast('Onverwachte fout bij laden winstgevendheid.', 'error');
+  } finally {
+    WINSTGEVENDHEID_LOADING = false;
+  }
+}
+
+function renderWinstgevendheid() {
+  // Toon enkel actieve drill-down-grid; verberg andere.
+  var grids = ['partner', 'sector', 'technieker'];
+  grids.forEach(function(t) {
+    var g = document.getElementById('winst-grid-' + t);
+    if (g) g.hidden = (t !== WINSTGEVENDHEID_TAB);
+  });
+  // Sync segmented control aria + active-class.
+  document.querySelectorAll('.winst-tabs button[data-winst-tab]').forEach(function(btn) {
+    var active = (btn.getAttribute('data-winst-tab') === WINSTGEVENDHEID_TAB);
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
   });
 
-  const totalFlancco = partnerData.reduce((s, d) => s + d.flanccoShare, 0);
-  const totalClient = partnerData.reduce((s, d) => s + d.yearlyRevenue, 0);
-  const totalContracts = partnerData.reduce((s, d) => s + d.contracts, 0);
+  if (WINSTGEVENDHEID_TAB === 'partner')          renderWinstgevendheidPartner();
+  else if (WINSTGEVENDHEID_TAB === 'sector')      renderWinstgevendheidSector();
+  else if (WINSTGEVENDHEID_TAB === 'technieker')  renderWinstgevendheidTechnieker();
+}
 
-  document.getElementById('forecast-stats').innerHTML = `
-    <div class="stat-card green"><div class="stat-label">Flancco omzet / jaar</div><div class="stat-value">€ ${Math.round(totalFlancco).toLocaleString('nl-BE')}</div><div class="stat-sub">excl. btw (geschat)</div></div>
-    <div class="stat-card blue"><div class="stat-label">Eindklant omzet / jaar</div><div class="stat-value">€ ${Math.round(totalClient).toLocaleString('nl-BE')}</div><div class="stat-sub">incl. btw</div></div>
-    <div class="stat-card"><div class="stat-label">Actieve contracten</div><div class="stat-value">${totalContracts}</div><div class="stat-sub">over ${partners.length} partners</div></div>
-    <div class="stat-card orange"><div class="stat-label">Gem. waarde / contract</div><div class="stat-value">€ ${totalContracts > 0 ? Math.round(totalClient/totalContracts) : 0}</div><div class="stat-sub">incl. btw per beurt</div></div>
-  `;
+// ----- Partner-tab -----
+function renderWinstgevendheidPartner() {
+  var rows = WINSTGEVENDHEID_DATA.partner || [];
+  var hasData = rows.some(function(r) { return Number(r.aantal_beurten_afgerond) > 0; });
 
-  // Monthly chart (distribute yearly revenue over 12 months)
-  const months = ['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
-  // Solar cleaning is seasonal: peak Mar-Oct
-  const seasonality = [0.04, 0.06, 0.10, 0.12, 0.13, 0.13, 0.12, 0.11, 0.08, 0.06, 0.03, 0.02];
-  const maxVal = Math.max(...seasonality.map(s => s * totalClient));
+  // KPI's
+  var totOmzet = rows.reduce(function(s, r) { return s + Number(r.omzet_excl_btw || 0); }, 0);
+  var totMarge = rows.reduce(function(s, r) { return s + Number(r.brutomarge || 0); }, 0);
+  var totBeurten = rows.reduce(function(s, r) { return s + Number(r.aantal_beurten_afgerond || 0); }, 0);
+  var margePct = safeMargePct(totOmzet, totMarge);
+  renderWinstKpiStrip('winst-partner-kpis', [
+    { label: 'Totaal omzet (YTD)',   value: fmtEurWinst(totOmzet) },
+    { label: 'Totaal brutomarge',    value: fmtEurWinst(totMarge), valueClass: margePct === null ? '' : margePctClass(margePct) },
+    { label: 'Marge %',              value: margePct === null ? '\u2014' : fmtPctWinst(margePct), valueClass: margePctClass(margePct) },
+    { label: 'Afgewerkte beurten',   value: String(totBeurten) }
+  ]);
 
-  document.getElementById('forecast-chart').innerHTML = months.map((m, i) => {
-    const val = seasonality[i] * totalClient;
-    const h = maxVal > 0 ? (val / maxVal * 200) : 0;
-    return `<div class="forecast-bar" style="height:${Math.max(h, 4)}px;background:var(--navy)">
-      <span class="bar-value">€ ${Math.round(val).toLocaleString('nl-BE')}</span>
-      <span class="bar-label">${m}</span>
-    </div>`;
-  }).join('');
+  // Stacked-bar SVG.
+  renderWinstStackedBar('winst-partner-chart', rows.map(function(r) {
+    var omzet = Number(r.omzet_excl_btw || 0);
+    var arbeid = Number(r.arbeidskost || 0) + Number(r.reiskost || 0);
+    var materiaal = Number(r.materiaalkost || 0) + Number(r.planning_fee_kost || 0);
+    var marge = Math.max(0, Number(r.brutomarge || 0));
+    return {
+      label: r.partner_naam || '\u2014',
+      omzet: omzet,
+      segments: [
+        { label: 'Brutomarge',      value: marge,     color: 'var(--green)' },
+        { label: 'Arbeids-/reiskost', value: arbeid,  color: '#9CA3AF' },
+        { label: 'Materiaal+fee',   value: materiaal, color: '#D1D5DB' }
+      ]
+    };
+  }));
 
-  // Table
-  document.getElementById('forecast-table').innerHTML = partnerData.map(d => `<tr>
-    <td><strong>${d.partner.naam}</strong></td>
-    <td>${d.contracts}</td>
-    <td>${d.jaarlijks}</td>
-    <td>${d.halfjaarlijks}</td>
-    <td>${d.avgPanels}</td>
-    <td>€ ${Math.round(d.flanccoShare).toLocaleString('nl-BE')}</td>
-    <td>€ ${Math.round(d.yearlyRevenue).toLocaleString('nl-BE')}</td>
-  </tr>`).join('') + `<tr style="font-weight:700;border-top:2px solid var(--navy)">
-    <td>Totaal</td>
-    <td>${totalContracts}</td>
-    <td>${partnerData.reduce((s,d) => s+d.jaarlijks, 0)}</td>
-    <td>${partnerData.reduce((s,d) => s+d.halfjaarlijks, 0)}</td>
-    <td>—</td>
-    <td>€ ${Math.round(totalFlancco).toLocaleString('nl-BE')}</td>
-    <td>€ ${Math.round(totalClient).toLocaleString('nl-BE')}</td>
-  </tr>`;
+  // Tabel-body.
+  var tbody = document.getElementById('winst-partner-tbody');
+  var tfoot = document.getElementById('winst-partner-tfoot');
+  var emptyEl = document.getElementById('winst-partner-empty');
+  if (!tbody || !tfoot) return;
+
+  // Wis bestaande rijen vóór herbouw — voorkom duplicaten bij herhaalde render.
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  while (tfoot.firstChild) tfoot.removeChild(tfoot.firstChild);
+
+  if (!hasData) {
+    if (emptyEl) emptyEl.hidden = false;
+  } else {
+    if (emptyEl) emptyEl.hidden = true;
+    rows.forEach(function(r) {
+      var omzet = Number(r.omzet_excl_btw || 0);
+      var marge = Number(r.brutomarge || 0);
+      var pct = safeMargePct(omzet, marge);
+      var tr = document.createElement('tr');
+      tr.appendChild(buildTd(r.partner_naam || '\u2014', false, true));
+      tr.appendChild(buildTd(String(Number(r.aantal_beurten_afgerond || 0)), true));
+      tr.appendChild(buildTd(fmtEurWinst(omzet), true));
+      tr.appendChild(buildTd(fmtEurWinst(r.planning_fee_kost), true));
+      tr.appendChild(buildTd(fmtEurWinst(r.arbeidskost), true));
+      tr.appendChild(buildTd(fmtEurWinst(r.reiskost), true));
+      tr.appendChild(buildTd(fmtEurWinst(r.materiaalkost), true));
+      tr.appendChild(buildTd(fmtEurWinst(marge), true, false, margePctClass(pct)));
+      tr.appendChild(buildTd(pct === null ? '\u2014' : fmtPctWinst(pct), true, false, margePctClass(pct)));
+      tbody.appendChild(tr);
+    });
+
+    // Totaal-rij.
+    var totPlanFee = rows.reduce(function(s, r) { return s + Number(r.planning_fee_kost || 0); }, 0);
+    var totArbeid = rows.reduce(function(s, r) { return s + Number(r.arbeidskost || 0); }, 0);
+    var totReis = rows.reduce(function(s, r) { return s + Number(r.reiskost || 0); }, 0);
+    var totMat = rows.reduce(function(s, r) { return s + Number(r.materiaalkost || 0); }, 0);
+    var totPctClass = margePctClass(margePct);
+    var trf = document.createElement('tr');
+    trf.appendChild(buildTd('Totaal', false, true));
+    trf.appendChild(buildTd(String(totBeurten), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totOmzet), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totPlanFee), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totArbeid), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totReis), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totMat), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totMarge), true, true, totPctClass));
+    trf.appendChild(buildTd(margePct === null ? '\u2014' : fmtPctWinst(margePct), true, true, totPctClass));
+    tfoot.appendChild(trf);
+  }
+}
+
+// ----- Sector-tab -----
+function renderWinstgevendheidSector() {
+  var rows = WINSTGEVENDHEID_DATA.sector || [];
+  var hasData = rows.some(function(r) { return Number(r.aantal_beurten_afgerond) > 0; });
+
+  // KPI's
+  var actieveSectoren = rows.filter(function(r) { return Number(r.aantal_beurten_afgerond) > 0; }).length;
+  var topOmzetRow = rows.slice().sort(function(a, b) { return Number(b.omzet_excl_btw || 0) - Number(a.omzet_excl_btw || 0); })[0];
+  var topMargeRow = rows.slice().sort(function(a, b) { return Number(b.brutomarge || 0) - Number(a.brutomarge || 0); })[0];
+  var sumOmzet = rows.reduce(function(s, r) { return s + Number(r.omzet_excl_btw || 0); }, 0);
+  var sumMarge = rows.reduce(function(s, r) { return s + Number(r.brutomarge || 0); }, 0);
+  var gemMargePct = safeMargePct(sumOmzet, sumMarge);
+
+  renderWinstKpiStrip('winst-sector-kpis', [
+    { label: 'Actieve sectoren',     value: String(actieveSectoren) },
+    { label: 'Top sector (omzet)',   value: topOmzetRow ? (topOmzetRow.sector + ' \u2014 ' + fmtEurWinst(topOmzetRow.omzet_excl_btw)) : '\u2014' },
+    { label: 'Top sector (marge)',   value: topMargeRow ? (topMargeRow.sector + ' \u2014 ' + fmtEurWinst(topMargeRow.brutomarge)) : '\u2014' },
+    { label: 'Gemiddelde marge %',   value: gemMargePct === null ? '\u2014' : fmtPctWinst(gemMargePct), valueClass: margePctClass(gemMargePct) }
+  ]);
+
+  renderWinstStackedBar('winst-sector-chart', rows.map(function(r) {
+    var omzet = Number(r.omzet_excl_btw || 0);
+    var arbeid = Number(r.arbeidskost || 0) + Number(r.reiskost || 0);
+    var materiaal = Number(r.materiaalkost || 0) + Number(r.planning_fee_kost || 0);
+    var marge = Math.max(0, Number(r.brutomarge || 0));
+    return {
+      label: r.sector || '\u2014',
+      omzet: omzet,
+      segments: [
+        { label: 'Brutomarge',        value: marge,     color: 'var(--green)' },
+        { label: 'Arbeids-/reiskost', value: arbeid,    color: '#9CA3AF' },
+        { label: 'Materiaal+fee',     value: materiaal, color: '#D1D5DB' }
+      ]
+    };
+  }));
+
+  var tbody = document.getElementById('winst-sector-tbody');
+  var tfoot = document.getElementById('winst-sector-tfoot');
+  var emptyEl = document.getElementById('winst-sector-empty');
+  if (!tbody || !tfoot) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  while (tfoot.firstChild) tfoot.removeChild(tfoot.firstChild);
+
+  if (!hasData) {
+    if (emptyEl) emptyEl.hidden = false;
+  } else {
+    if (emptyEl) emptyEl.hidden = true;
+    var totBeurten = 0, totKost = 0;
+    rows.forEach(function(r) {
+      var omzet = Number(r.omzet_excl_btw || 0);
+      var marge = Number(r.brutomarge || 0);
+      var kost = Number(r.arbeidskost || 0) + Number(r.reiskost || 0) + Number(r.materiaalkost || 0) + Number(r.planning_fee_kost || 0);
+      var pct = safeMargePct(omzet, marge);
+      totBeurten += Number(r.aantal_beurten_afgerond || 0);
+      totKost += kost;
+      var tr = document.createElement('tr');
+      tr.appendChild(buildTd(r.sector || '\u2014', false, true));
+      tr.appendChild(buildTd(String(Number(r.aantal_beurten_afgerond || 0)), true));
+      tr.appendChild(buildTd(fmtEurWinst(omzet), true));
+      tr.appendChild(buildTd(fmtEurWinst(kost), true));
+      tr.appendChild(buildTd(fmtEurWinst(marge), true, false, margePctClass(pct)));
+      tr.appendChild(buildTd(pct === null ? '\u2014' : fmtPctWinst(pct), true, false, margePctClass(pct)));
+      tbody.appendChild(tr);
+    });
+
+    var totPctClass = margePctClass(gemMargePct);
+    var trf = document.createElement('tr');
+    trf.appendChild(buildTd('Totaal', false, true));
+    trf.appendChild(buildTd(String(totBeurten), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(sumOmzet), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totKost), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(sumMarge), true, true, totPctClass));
+    trf.appendChild(buildTd(gemMargePct === null ? '\u2014' : fmtPctWinst(gemMargePct), true, true, totPctClass));
+    tfoot.appendChild(trf);
+  }
+}
+
+// ----- Technieker-tab -----
+function renderWinstgevendheidTechnieker() {
+  var rows = WINSTGEVENDHEID_DATA.technieker || [];
+  var hasData = rows.some(function(r) { return Number(r.aantal_beurten) > 0; });
+
+  // KPI's
+  var totTechs = rows.length;
+  var totUren = rows.reduce(function(s, r) { return s + Number(r.gewerkte_uren || 0); }, 0);
+  var bezetWaarden = rows.map(function(r) { return Number(r.bezettingsgraad_pct); }).filter(function(v) { return isFinite(v) && v > 0; });
+  var gemBezet = bezetWaarden.length > 0 ? (bezetWaarden.reduce(function(s, v) { return s + v; }, 0) / bezetWaarden.length) : null;
+  var topMargeRow = rows.slice().sort(function(a, b) { return Number(b.brutomarge_aandeel || 0) - Number(a.brutomarge_aandeel || 0); })[0];
+
+  renderWinstKpiStrip('winst-tech-kpis', [
+    { label: 'Actieve techniekers',  value: String(totTechs) },
+    { label: 'Totaal gewerkte uren', value: totUren.toFixed(1).replace('.', ',') + ' u' },
+    { label: 'Gemiddelde bezetting', value: gemBezet === null ? '\u2014' : fmtPctWinst(gemBezet) },
+    { label: 'Top brutomarge / tech', value: topMargeRow ? (renderTechName(topMargeRow) + ' \u2014 ' + fmtEurWinst(topMargeRow.brutomarge_aandeel)) : '\u2014' }
+  ]);
+
+  var tbody = document.getElementById('winst-tech-tbody');
+  var tfoot = document.getElementById('winst-tech-tfoot');
+  var emptyEl = document.getElementById('winst-tech-empty');
+  if (!tbody || !tfoot) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  while (tfoot.firstChild) tfoot.removeChild(tfoot.firstChild);
+
+  if (!hasData) {
+    if (emptyEl) emptyEl.hidden = false;
+  } else {
+    if (emptyEl) emptyEl.hidden = true;
+    var totBeurten = 0, totOmzet = 0, totKost = 0, totMarge = 0;
+    rows.forEach(function(r) {
+      var omzet = Number(r.omzet_aandeel || 0);
+      var kost = Number(r.kost_aandeel || 0);
+      var marge = Number(r.brutomarge_aandeel || 0);
+      var pct = safeMargePct(omzet, marge);
+      totBeurten += Number(r.aantal_beurten || 0);
+      totOmzet += omzet;
+      totKost += kost;
+      totMarge += marge;
+
+      var tr = document.createElement('tr');
+      tr.appendChild(buildTd(renderTechName(r), false, true));
+      tr.appendChild(buildTd(String(Number(r.aantal_beurten || 0)), true));
+      tr.appendChild(buildTd(Number(r.gewerkte_uren || 0).toFixed(1).replace('.', ',') + ' u', true));
+      tr.appendChild(buildTd(fmtEurWinst(omzet), true));
+      tr.appendChild(buildTd(fmtEurWinst(kost), true));
+      tr.appendChild(buildTd(fmtEurWinst(marge), true, false, margePctClass(pct)));
+      tr.appendChild(buildTd(pct === null ? '\u2014' : fmtPctWinst(pct), true, false, margePctClass(pct)));
+      tr.appendChild(buildTd(r.bezettingsgraad_pct === null || r.bezettingsgraad_pct === undefined ? '\u2014' : fmtPctWinst(r.bezettingsgraad_pct), true));
+      tbody.appendChild(tr);
+    });
+
+    var totPct = safeMargePct(totOmzet, totMarge);
+    var totPctClass = margePctClass(totPct);
+    var trf = document.createElement('tr');
+    trf.appendChild(buildTd('Totaal', false, true));
+    trf.appendChild(buildTd(String(totBeurten), true, true));
+    trf.appendChild(buildTd(totUren.toFixed(1).replace('.', ',') + ' u', true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totOmzet), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totKost), true, true));
+    trf.appendChild(buildTd(fmtEurWinst(totMarge), true, true, totPctClass));
+    trf.appendChild(buildTd(totPct === null ? '\u2014' : fmtPctWinst(totPct), true, true, totPctClass));
+    trf.appendChild(buildTd(gemBezet === null ? '\u2014' : fmtPctWinst(gemBezet), true, true));
+    tfoot.appendChild(trf);
+  }
+}
+
+function renderTechName(r) {
+  var v = (r.technieker_voornaam || '').trim();
+  var n = (r.technieker_naam || '').trim();
+  if (v && n) return v + ' ' + n;
+  return n || v || '\u2014';
+}
+
+// Bouwt een <td> XSS-safe via textContent. `numeric=true` rechts-uitlijnen,
+// `bold=true` voor naam-kolommen of totaal-rijen, `extraClass` voor color-coding.
+function buildTd(text, numeric, bold, extraClass) {
+  var td = document.createElement('td');
+  if (numeric) td.classList.add('winst-cell-num');
+  if (bold) td.classList.add('winst-cell-bold');
+  if (extraClass) td.classList.add(extraClass);
+  td.textContent = (text === null || text === undefined) ? '\u2014' : String(text);
+  return td;
+}
+
+// KPI-strip renderer. items = [{label, value, valueClass?}]
+function renderWinstKpiStrip(containerId, items) {
+  var c = document.getElementById(containerId);
+  if (!c) return;
+  while (c.firstChild) c.removeChild(c.firstChild);
+  items.forEach(function(it) {
+    var k = document.createElement('div');
+    k.className = 'winst-kpi';
+    var l = document.createElement('div');
+    l.className = 'winst-kpi-label';
+    l.textContent = it.label;
+    var v = document.createElement('div');
+    v.className = 'winst-kpi-value' + (it.valueClass ? ' ' + it.valueClass : '');
+    v.textContent = it.value;
+    k.appendChild(l);
+    k.appendChild(v);
+    c.appendChild(k);
+  });
+}
+
+// Stacked-bar SVG. items = [{label, omzet, segments:[{label,value,color}]}]
+// max-hoogte 220px, responsive width:100%, accessible <title> per segment.
+function renderWinstStackedBar(containerId, items) {
+  var c = document.getElementById(containerId);
+  if (!c) return;
+  while (c.firstChild) c.removeChild(c.firstChild);
+
+  if (!items || items.length === 0) {
+    var ph = document.createElement('p');
+    ph.className = 'winst-chart-empty';
+    ph.textContent = 'Geen data om te tonen.';
+    c.appendChild(ph);
+    return;
+  }
+
+  var W = Math.max(320, c.clientWidth || 720);
+  var H = 220;
+  var marginTop = 16, marginBottom = 36, marginLeft = 8, marginRight = 8;
+  var plotH = H - marginTop - marginBottom;
+
+  var n = items.length;
+  var bandW = (W - marginLeft - marginRight) / Math.max(n, 1);
+  var barW = Math.min(64, bandW * 0.62);
+  var maxOmzet = items.reduce(function(m, it) { return Math.max(m, Number(it.omzet || 0)); }, 1);
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', String(H));
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Stacked bar-chart per ' + (containerId.indexOf('partner') !== -1 ? 'partner' : 'sector'));
+
+  items.forEach(function(it, i) {
+    var cx = marginLeft + i * bandW + (bandW - barW) / 2;
+    var totalSeg = it.segments.reduce(function(s, seg) { return s + Math.max(0, Number(seg.value || 0)); }, 0);
+    var scale = (totalSeg > 0) ? (plotH * (Number(it.omzet || 0) > 0 ? Math.min(1, totalSeg / maxOmzet) : 0)) : 0;
+    var yCursor = marginTop + plotH - scale;
+
+    // Achtergrond-bar (light) altijd vol-hoog tot maxOmzet, voor visuele relatieve schaal.
+    var bgH = plotH * (Number(it.omzet || 0) / maxOmzet);
+    if (bgH > 0) {
+      var bg = document.createElementNS(SVG_NS, 'rect');
+      bg.setAttribute('x', String(cx));
+      bg.setAttribute('y', String(marginTop + plotH - bgH));
+      bg.setAttribute('width', String(barW));
+      bg.setAttribute('height', String(bgH));
+      bg.setAttribute('fill', '#F3F4F6');
+      bg.setAttribute('rx', '4');
+      svg.appendChild(bg);
+    }
+
+    it.segments.forEach(function(seg) {
+      var v = Math.max(0, Number(seg.value || 0));
+      if (v <= 0 || totalSeg <= 0) return;
+      var segH = (v / totalSeg) * scale;
+      if (segH < 0.5) return;
+      var rect = document.createElementNS(SVG_NS, 'rect');
+      rect.setAttribute('x', String(cx));
+      rect.setAttribute('y', String(yCursor));
+      rect.setAttribute('width', String(barW));
+      rect.setAttribute('height', String(segH));
+      rect.setAttribute('fill', seg.color);
+      var title = document.createElementNS(SVG_NS, 'title');
+      title.textContent = (it.label || '') + ' \u2014 ' + seg.label + ': ' + fmtEurWinst(v);
+      rect.appendChild(title);
+      svg.appendChild(rect);
+      yCursor += segH;
+    });
+
+    // X-as label.
+    var lbl = document.createElementNS(SVG_NS, 'text');
+    lbl.setAttribute('x', String(cx + barW / 2));
+    lbl.setAttribute('y', String(H - 16));
+    lbl.setAttribute('text-anchor', 'middle');
+    lbl.setAttribute('font-size', '11');
+    lbl.setAttribute('fill', '#6B7280');
+    var labelText = String(it.label || '');
+    if (labelText.length > 14) labelText = labelText.slice(0, 13) + '\u2026';
+    lbl.textContent = labelText;
+    svg.appendChild(lbl);
+
+    // Omzet-bedrag boven bar.
+    var amt = document.createElementNS(SVG_NS, 'text');
+    amt.setAttribute('x', String(cx + barW / 2));
+    amt.setAttribute('y', String(marginTop + plotH - bgH - 6));
+    amt.setAttribute('text-anchor', 'middle');
+    amt.setAttribute('font-size', '10');
+    amt.setAttribute('fill', '#1A1A2E');
+    amt.setAttribute('font-weight', '600');
+    amt.textContent = fmtEurWinst(it.omzet);
+    svg.appendChild(amt);
+  });
+
+  c.appendChild(svg);
+}
+
+// Tab-switch — emit Slot 0 event en re-render.
+function setWinstgevendheidTab(tab) {
+  if (tab !== 'partner' && tab !== 'sector' && tab !== 'technieker') return;
+  if (tab === WINSTGEVENDHEID_TAB) return;
+  WINSTGEVENDHEID_TAB = tab;
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Winstgevendheid Tab Switch', { tab: tab }); } catch (_e) {}
+  }
+  renderWinstgevendheid();
+}
+
+// Periode-switch. v1 toont YTD voor beide periodes (komend kwartaal = roadmap).
+function setWinstgevendheidPeriod(period) {
+  if (period !== 'ytd' && period !== 'komend_kwartaal') return;
+  if (period === WINSTGEVENDHEID_PERIOD) return;
+  WINSTGEVENDHEID_PERIOD = period;
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Winstgevendheid Period Change', { period: period }); } catch (_e) {}
+  }
+  if (period === 'komend_kwartaal' && typeof showToast === 'function') {
+    showToast('Komend kwartaal — voorspelling wordt toegevoegd in een volgende release. Toont voorlopig YTD.', 'info');
+  }
+  renderWinstgevendheid();
+}
+
+// Disabled export-knop click — registreert intent en toont placeholder.
+function onWinstgevendheidExportClick() {
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Winstgevendheid Export Click', { tab: WINSTGEVENDHEID_TAB, period: WINSTGEVENDHEID_PERIOD }); } catch (_e) {}
+  }
+}
+
+// Hook: aangeroepen vanuit showPage('forecast'). Eenmalige Page View per sessie.
+async function activateWinstgevendheidPage() {
+  await loadWinstgevendheid();
+  renderWinstgevendheid();
+  if (!WINSTGEVENDHEID_PAGE_VIEW_TRACKED) {
+    WINSTGEVENDHEID_PAGE_VIEW_TRACKED = true;
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Winstgevendheid Page View', { tab: WINSTGEVENDHEID_TAB, period: WINSTGEVENDHEID_PERIOD }); } catch (_e) {}
+    }
+  }
 }
 
 // =============================================
