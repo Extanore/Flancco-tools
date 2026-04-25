@@ -1359,6 +1359,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="16 3 16 8 21 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
       <span>Economische werkloosheid</span>
     </a>
+    <!-- Slot K — feestdagen + sluitingsperiodes (admin-only beheer) -->
+    <a class="nav-item admin-only" onclick="showPage('feestdagen')" data-page="feestdagen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9.5" y1="14.5" x2="14.5" y2="19.5"/><line x1="14.5" y1="14.5" x2="9.5" y2="19.5"/></svg>
+      <span>Feestdagen</span>
+    </a>
 
     <!-- TEAM (admin/bediende) -->
     <div class="nav-section admin-only">Team</div>
@@ -3094,6 +3099,117 @@
           <button class="btn btn-danger" id="ew-detail-delete-btn" style="margin-right:auto" onclick="confirmSoftDeleteEW()">EW verwijderen</button>
           <button class="btn btn-ghost" onclick="closeEWDetailModal()">Sluiten</button>
           <button class="btn btn-primary" id="ew-detail-dimona-btn" onclick="toggleDimonaStatus()">Markeer als Dimona gemeld</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         SLOT K — FEESTDAGEN & SLUITINGSPERIODES (admin-beheer)
+         ============================================================
+         Beheer-UI voor wettelijke BE feestdagen + bedrijfs-sluitingsperiodes.
+         Feestdagen worden jaarlijks auto-uitgebreid via edge function
+         seed-feestdagen-jaar (cron 1 dec). Sluitingsperiodes (bv. bouwverlof)
+         worden manueel ingegeven door de admin. Beide vormen samen de soft-warning
+         in de planning-agenda. -->
+    <div class="page admin-only" id="page-feestdagen">
+      <div class="card">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Feestdagen &amp; sluitingsperiodes</h2>
+            <p class="dv-subtitle">Wettelijke BE feestdagen en bedrijfs-sluitingen (bv. bouwverlof). Worden in de planning-agenda als waarschuwing getoond &mdash; je kan altijd doorduwen.</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" id="btn-fd-autoextend" onclick="seedFeestdagenJaar()" title="Genereer wettelijke feestdagen voor het volgende jaar">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 12 13 12"/></svg>
+              <span id="btn-fd-autoextend-label">Genereer voor volgend jaar</span>
+            </button>
+            <button type="button" class="btn btn-primary" onclick="openFeestdagModal(null)">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nieuwe toevoegen
+            </button>
+          </div>
+        </div>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-left">
+            <select id="fd-filter-jaar" class="dv-select" onchange="renderFeestdagenPage()">
+              <option value="">Alle jaren</option>
+            </select>
+            <select id="fd-filter-type" class="dv-select" onchange="renderFeestdagenPage()">
+              <option value="">Alle types</option>
+              <option value="feestdag">Feestdagen</option>
+              <option value="sluitingsperiode">Sluitingsperiodes</option>
+            </select>
+          </div>
+          <div class="dv-toolbar-right">
+            <span id="fd-counts" style="font-size:12px;color:var(--grey)"></span>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Datum</th>
+            <th>Einddatum</th>
+            <th>Type</th>
+            <th>Label</th>
+            <th>Recurring</th>
+            <th style="width:120px;text-align:right">Acties</th>
+          </tr></thead>
+          <tbody id="fd-tbody"></tbody>
+        </table>
+        <p id="fd-empty" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen feestdagen of sluitingsperiodes gevonden voor deze filter.</p>
+      </div>
+    </div>
+
+    <!-- FEESTDAG / SLUITINGSPERIODE — CREATE/EDIT MODAL -->
+    <div class="modal-overlay" id="fd-modal" onclick="if(event.target===this)closeFeestdagModal()">
+      <div class="modal" style="max-width:520px">
+        <h2 id="fd-modal-title">Nieuwe feestdag</h2>
+        <input type="hidden" id="fd-edit-id">
+
+        <div class="modal-field">
+          <label>Type *</label>
+          <div class="ew-radio-group">
+            <label class="ew-radio-label"><input type="radio" name="fd-type" value="feestdag" checked onchange="onFeestdagTypeChange()"> Feestdag</label>
+            <label class="ew-radio-label"><input type="radio" name="fd-type" value="sluitingsperiode" onchange="onFeestdagTypeChange()"> Sluitingsperiode</label>
+          </div>
+        </div>
+
+        <div class="modal-row">
+          <div class="modal-field"><label id="fd-datum-label">Datum *</label><input type="date" id="fd-datum"></div>
+          <div class="modal-field" id="fd-eind-wrap" style="display:none"><label>Einddatum *</label><input type="date" id="fd-datum-eind"></div>
+        </div>
+
+        <div class="modal-field">
+          <label>Label *</label>
+          <input type="text" id="fd-label" maxlength="100" placeholder="Bv. Bouwverlof zomer 2027">
+          <small style="color:var(--grey);font-size:11px">Wordt in de planning-agenda getoond bij de betreffende dag.</small>
+        </div>
+
+        <div class="modal-field" id="fd-recurring-wrap">
+          <label>Recurring</label>
+          <div class="ew-radio-group">
+            <label class="ew-radio-label"><input type="radio" name="fd-recurring" value="eenmalig" checked> Eenmalig</label>
+            <label class="ew-radio-label"><input type="radio" name="fd-recurring" value="jaarlijks"> Jaarlijks (wettelijk)</label>
+          </div>
+          <small style="color:var(--grey);font-size:11px">Jaarlijkse feestdagen worden automatisch uitgebreid via cron (1 december).</small>
+        </div>
+
+        <div id="fd-error" style="display:none;background:#FEE2E2;border-left:3px solid #EF4444;padding:10px;border-radius:6px;margin-top:10px;font-size:12px;color:#991B1B"></div>
+
+        <div class="modal-buttons">
+          <button class="btn btn-ghost" onclick="closeFeestdagModal()">Annuleren</button>
+          <button class="btn btn-primary" id="fd-save-btn" onclick="submitFeestdag()">Opslaan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEESTDAG — DELETE BEVESTIGING -->
+    <div class="modal-overlay" id="fd-delete-modal" onclick="if(event.target===this)closeFeestdagDeleteModal()">
+      <div class="modal" style="max-width:420px">
+        <h2>Verwijderen?</h2>
+        <p style="color:var(--grey);font-size:13px;margin:6px 0 16px;line-height:1.5" id="fd-delete-body">Weet je zeker dat je deze entry wil verwijderen?</p>
+        <div class="modal-buttons">
+          <button class="btn btn-ghost" onclick="closeFeestdagDeleteModal()">Annuleren</button>
+          <button class="btn btn-danger" id="fd-delete-confirm-btn" onclick="confirmDeleteFeestdag()">Verwijder</button>
         </div>
       </div>
     </div>
@@ -5527,7 +5643,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren', ew: 'Economische werkloosheid', auditlog: 'Audit-log' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Forecast', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', verlof: 'Verlof', uren: 'Uren', ew: 'Economische werkloosheid', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -5539,6 +5655,8 @@ function showPage(name) {
   if (name === 'auditlog') { initAuditLogPage(); }
   if (name === 'marketing' && typeof renderMarketingPage === 'function') renderMarketingPage();
   if (name === 'instellingen' && userRole === 'partner' && typeof can === 'function' && can('manage_users') && typeof renderPartnerTeamList === 'function') renderPartnerTeamList();
+  // Slot K — feestdagen + sluitingsperiodes beheer (admin-only)
+  if (name === 'feestdagen' && typeof renderFeestdagenPage === 'function') renderFeestdagenPage();
 }
 
 // =============================================
@@ -18771,6 +18889,345 @@ if (typeof window.exportEWToCSV !== 'function') {
       showToast('CSV-export wordt afgerond in een volgende release.', 'info');
     }
   };
+}
+
+// =============================================
+// SLOT K — FEESTDAGEN & SLUITINGSPERIODES BEHEER
+// =============================================
+// Admin-only CRUD voor wettelijke BE feestdagen + bedrijfs-sluitingsperiodes.
+// Staat los van planning.html (eigen state, eigen RLS-acties); planning.html leest
+// dezelfde tabel `feestdagen` 1× bij init voor de soft-warning markering.
+//
+// Functies:
+//   - renderFeestdagenPage(): laadt + filtert + rendert tabel
+//   - openFeestdagModal(row|null): create/edit
+//   - submitFeestdag(): insert/update + audit-log
+//   - confirmDeleteFeestdag(): hard delete + audit-log
+//   - seedFeestdagenJaar(): edge function call voor auto-extend volgend jaar
+var fdAllRows = [];
+var fdDeleteId = null;
+
+// Inline-fallback i18n — admin.html laadt geen runtime-i18n; tekst is NL.
+var FD_I18N = {
+  type_feestdag: 'Feestdag',
+  type_sluiting: 'Sluitingsperiode',
+  recurring_jaarlijks: 'Jaarlijks',
+  recurring_eenmalig: 'Eenmalig',
+  edit: 'Bewerken',
+  delete: 'Verwijderen',
+  toast_saved: 'Opgeslagen.',
+  toast_deleted: 'Verwijderd.',
+  toast_seed_done: 'Wettelijke feestdagen voor {year} toegevoegd ({count} nieuw, {dup} bestond al).',
+  toast_seed_failed: 'Auto-extend mislukt: {reason}',
+  err_required: 'Datum, label en type zijn verplicht.',
+  err_eind_required: 'Sluitingsperiode vereist een einddatum.',
+  err_eind_before_start: 'Einddatum moet gelijk of na de startdatum zijn.',
+  err_label_short: 'Label moet minstens 2 tekens bevatten.',
+  err_save: 'Opslaan mislukt: {reason}',
+  err_delete: 'Verwijderen mislukt: {reason}',
+  delete_confirm_fd: 'Weet je zeker dat je de feestdag {label} ({datum}) wil verwijderen?',
+  delete_confirm_sp: 'Weet je zeker dat je de sluitingsperiode {label} ({datum}) wil verwijderen?'
+};
+
+function _fdT(key, vars) {
+  var s = FD_I18N[key] || key;
+  if (vars) Object.keys(vars).forEach(function(k) { s = s.replace('{' + k + '}', vars[k]); });
+  return s;
+}
+
+function _fdFmtDate(iso) {
+  if (!iso) return '';
+  var months = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  var p = iso.split('-');
+  if (p.length !== 3) return iso;
+  return parseInt(p[2], 10) + ' ' + months[parseInt(p[1], 10) - 1] + ' ' + p[0];
+}
+
+async function renderFeestdagenPage() {
+  var tbody = document.getElementById('fd-tbody');
+  var empty = document.getElementById('fd-empty');
+  var counts = document.getElementById('fd-counts');
+  var jaarSel = document.getElementById('fd-filter-jaar');
+  var typeSel = document.getElementById('fd-filter-type');
+  if (!tbody) return;
+
+  // Laad rows (eerst keer of bij refresh) — met paginate-veiligheidslimiet
+  if (!fdAllRows || fdAllRows.length === 0) {
+    try {
+      var resp = await sb.from('feestdagen')
+        .select('id, datum, datum_eind, label, type, recurring, aangemaakt_op')
+        .order('datum', { ascending: true })
+        .limit(2000);
+      if (resp.error) {
+        tbody.innerHTML = '';
+        if (empty) { empty.style.display = 'block'; empty.textContent = 'Laden mislukt: ' + resp.error.message; }
+        return;
+      }
+      fdAllRows = resp.data || [];
+    } catch (e) {
+      tbody.innerHTML = '';
+      if (empty) { empty.style.display = 'block'; empty.textContent = 'Laden mislukt: ' + (e && e.message ? e.message : e); }
+      return;
+    }
+  }
+
+  // Build jaarfilter dynamisch (incl. huidig + volgend jaar zelfs als leeg)
+  if (jaarSel && jaarSel.options.length <= 1) {
+    var years = new Set();
+    fdAllRows.forEach(function(r) { if (r.datum) years.add(r.datum.slice(0, 4)); });
+    var nowY = new Date().getFullYear();
+    years.add(String(nowY)); years.add(String(nowY + 1));
+    var sortedYears = Array.from(years).sort();
+    sortedYears.forEach(function(y) {
+      var opt = document.createElement('option'); opt.value = y; opt.textContent = y;
+      jaarSel.appendChild(opt);
+    });
+  }
+
+  // Filtering
+  var fJaar = (jaarSel && jaarSel.value) || '';
+  var fType = (typeSel && typeSel.value) || '';
+  var rows = fdAllRows.filter(function(r) {
+    if (fJaar && r.datum && r.datum.slice(0, 4) !== fJaar) return false;
+    if (fType && r.type !== fType) return false;
+    return true;
+  });
+
+  // Render
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+  } else {
+    if (empty) empty.style.display = 'none';
+    var html = '';
+    rows.forEach(function(r) {
+      var isSluiting = r.type === 'sluitingsperiode';
+      var typeLabel = isSluiting ? _fdT('type_sluiting') : _fdT('type_feestdag');
+      var recurringLabel = r.recurring === 'jaarlijks' ? _fdT('recurring_jaarlijks') : _fdT('recurring_eenmalig');
+      var typePill = '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:' +
+        (isSluiting ? 'rgba(243,156,18,0.14);color:#9A6300' : 'rgba(231,76,60,0.12);color:#B83227') + '">' + esc(typeLabel) + '</span>';
+      html += '<tr>' +
+        '<td>' + esc(_fdFmtDate(r.datum)) + '</td>' +
+        '<td>' + (r.datum_eind && r.datum_eind !== r.datum ? esc(_fdFmtDate(r.datum_eind)) : '<span style="color:var(--grey)">&mdash;</span>') + '</td>' +
+        '<td>' + typePill + '</td>' +
+        '<td>' + esc(r.label || '') + '</td>' +
+        '<td><span style="font-size:12px;color:var(--grey)">' + esc(recurringLabel) + '</span></td>' +
+        '<td style="text-align:right;white-space:nowrap">' +
+          '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="openFeestdagModal(\'' + r.id + '\')">' + _fdT('edit') + '</button> ' +
+          '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;color:#B83227" onclick="askDeleteFeestdag(\'' + r.id + '\')">' + _fdT('delete') + '</button>' +
+        '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  if (counts) {
+    var nFd = fdAllRows.filter(function(r) { return r.type === 'feestdag'; }).length;
+    var nSp = fdAllRows.filter(function(r) { return r.type === 'sluitingsperiode'; }).length;
+    counts.textContent = nFd + ' feestdagen \u00b7 ' + nSp + ' sluitingsperiodes';
+  }
+
+  // Auto-extend knop label updaten met volgend jaar
+  var btnLbl = document.getElementById('btn-fd-autoextend-label');
+  if (btnLbl) btnLbl.textContent = 'Genereer ' + (new Date().getFullYear() + 1);
+}
+
+function openFeestdagModal(id) {
+  var modal = document.getElementById('fd-modal');
+  if (!modal) return;
+  document.getElementById('fd-error').style.display = 'none';
+  document.getElementById('fd-edit-id').value = id || '';
+  var titleEl = document.getElementById('fd-modal-title');
+
+  if (id) {
+    var row = fdAllRows.find(function(r) { return r.id === id; });
+    if (!row) return;
+    titleEl.textContent = (row.type === 'sluitingsperiode' ? 'Sluitingsperiode bewerken' : 'Feestdag bewerken');
+    document.querySelector('input[name="fd-type"][value="' + row.type + '"]').checked = true;
+    document.getElementById('fd-datum').value = row.datum || '';
+    document.getElementById('fd-datum-eind').value = row.datum_eind || '';
+    document.getElementById('fd-label').value = row.label || '';
+    var recVal = row.recurring || 'eenmalig';
+    var recEl = document.querySelector('input[name="fd-recurring"][value="' + recVal + '"]');
+    if (recEl) recEl.checked = true;
+  } else {
+    titleEl.textContent = 'Nieuwe feestdag';
+    document.querySelector('input[name="fd-type"][value="feestdag"]').checked = true;
+    document.getElementById('fd-datum').value = '';
+    document.getElementById('fd-datum-eind').value = '';
+    document.getElementById('fd-label').value = '';
+    document.querySelector('input[name="fd-recurring"][value="eenmalig"]').checked = true;
+  }
+  onFeestdagTypeChange();
+  modal.classList.add('open');
+  setTimeout(function() {
+    var dInput = document.getElementById('fd-datum');
+    if (dInput) try { dInput.focus(); } catch(_){}
+  }, 50);
+}
+
+function closeFeestdagModal() {
+  var modal = document.getElementById('fd-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function onFeestdagTypeChange() {
+  var type = (document.querySelector('input[name="fd-type"]:checked') || {}).value || 'feestdag';
+  var isSluiting = type === 'sluitingsperiode';
+  var eindWrap = document.getElementById('fd-eind-wrap');
+  var datumLbl = document.getElementById('fd-datum-label');
+  if (eindWrap) eindWrap.style.display = isSluiting ? '' : 'none';
+  if (datumLbl) datumLbl.textContent = isSluiting ? 'Startdatum *' : 'Datum *';
+  // Voor sluitingsperiode is recurring altijd 'eenmalig' (functioneel logischer)
+  if (isSluiting) {
+    var rec = document.querySelector('input[name="fd-recurring"][value="eenmalig"]');
+    if (rec) rec.checked = true;
+  }
+}
+
+async function submitFeestdag() {
+  var errEl = document.getElementById('fd-error');
+  var btn = document.getElementById('fd-save-btn');
+  errEl.style.display = 'none';
+
+  var id = document.getElementById('fd-edit-id').value || null;
+  var type = (document.querySelector('input[name="fd-type"]:checked') || {}).value || 'feestdag';
+  var datum = document.getElementById('fd-datum').value || '';
+  var datumEind = document.getElementById('fd-datum-eind').value || '';
+  var label = (document.getElementById('fd-label').value || '').trim();
+  var recurring = (document.querySelector('input[name="fd-recurring"]:checked') || {}).value || 'eenmalig';
+
+  // Validatie
+  if (!datum || !label) { errEl.textContent = _fdT('err_required'); errEl.style.display = 'block'; return; }
+  if (label.length < 2) { errEl.textContent = _fdT('err_label_short'); errEl.style.display = 'block'; return; }
+  if (type === 'sluitingsperiode') {
+    if (!datumEind) { errEl.textContent = _fdT('err_eind_required'); errEl.style.display = 'block'; return; }
+    if (datumEind < datum) { errEl.textContent = _fdT('err_eind_before_start'); errEl.style.display = 'block'; return; }
+  }
+
+  var payload = {
+    datum: datum,
+    datum_eind: type === 'sluitingsperiode' ? datumEind : null,
+    label: label,
+    type: type,
+    recurring: type === 'sluitingsperiode' ? 'eenmalig' : recurring
+  };
+
+  btn.disabled = true; var oldLbl = btn.textContent; btn.textContent = 'Opslaan...';
+  try {
+    var resp;
+    if (id) {
+      resp = await sb.from('feestdagen').update(payload).eq('id', id).select().single();
+    } else {
+      resp = await sb.from('feestdagen').insert(payload).select().single();
+    }
+    if (resp.error) {
+      errEl.textContent = _fdT('err_save', { reason: resp.error.message }); errEl.style.display = 'block';
+      return;
+    }
+    // Audit log (best-effort, niet blokkerend)
+    try {
+      if (typeof auditLog === 'function') {
+        await auditLog('feestdagen', resp.data.id, id ? 'update' : 'create', null, payload);
+      }
+    } catch (_) {}
+    // Slot 0 event
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack(id ? 'Feestdag Updated' : 'Feestdag Created', { type: type, recurring: payload.recurring }); } catch (_) {}
+    }
+    fdAllRows = []; // force reload
+    closeFeestdagModal();
+    if (typeof showToast === 'function') showToast(_fdT('toast_saved'), 'success');
+    await renderFeestdagenPage();
+  } catch (e) {
+    errEl.textContent = _fdT('err_save', { reason: (e && e.message) || e }); errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = oldLbl;
+  }
+}
+
+function askDeleteFeestdag(id) {
+  var row = fdAllRows.find(function(r) { return r.id === id; });
+  if (!row) return;
+  fdDeleteId = id;
+  var bodyEl = document.getElementById('fd-delete-body');
+  var msgKey = row.type === 'sluitingsperiode' ? 'delete_confirm_sp' : 'delete_confirm_fd';
+  if (bodyEl) bodyEl.textContent = _fdT(msgKey, { label: row.label, datum: _fdFmtDate(row.datum) });
+  document.getElementById('fd-delete-modal').classList.add('open');
+}
+
+function closeFeestdagDeleteModal() {
+  fdDeleteId = null;
+  var m = document.getElementById('fd-delete-modal');
+  if (m) m.classList.remove('open');
+}
+
+async function confirmDeleteFeestdag() {
+  if (!fdDeleteId) return;
+  var btn = document.getElementById('fd-delete-confirm-btn');
+  btn.disabled = true; var oldLbl = btn.textContent; btn.textContent = 'Verwijderen...';
+  try {
+    var row = fdAllRows.find(function(r) { return r.id === fdDeleteId; });
+    var resp = await sb.from('feestdagen').delete().eq('id', fdDeleteId);
+    if (resp.error) {
+      if (typeof showToast === 'function') showToast(_fdT('err_delete', { reason: resp.error.message }), 'error');
+      return;
+    }
+    try { if (typeof auditLog === 'function') await auditLog('feestdagen', fdDeleteId, 'delete', row || null, null); } catch (_) {}
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Feestdag Deleted', { type: row ? row.type : null }); } catch (_) {}
+    }
+    fdAllRows = []; // force reload
+    closeFeestdagDeleteModal();
+    if (typeof showToast === 'function') showToast(_fdT('toast_deleted'), 'success');
+    await renderFeestdagenPage();
+  } catch (e) {
+    if (typeof showToast === 'function') showToast(_fdT('err_delete', { reason: (e && e.message) || e }), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = oldLbl;
+  }
+}
+
+async function seedFeestdagenJaar() {
+  var btn = document.getElementById('btn-fd-autoextend');
+  if (!btn) return;
+  var nextYear = new Date().getFullYear() + 1;
+  btn.disabled = true; var oldHtml = btn.innerHTML;
+  btn.innerHTML = '<span>Bezig...</span>';
+  try {
+    var sess = await sb.auth.getSession();
+    var jwt = sess && sess.data && sess.data.session && sess.data.session.access_token;
+    if (!jwt) throw new Error('Niet ingelogd');
+    var url = SUPA_URL + '/functions/v1/seed-feestdagen-jaar?year=' + nextYear;
+    var resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt
+      },
+      body: '{}'
+    });
+    var json = null;
+    try { json = await resp.json(); } catch (_) {}
+    if (!resp.ok || !json || json.success !== true) {
+      var reason = (json && (json.error || json.reason)) || ('HTTP ' + resp.status);
+      if (typeof showToast === 'function') showToast(_fdT('toast_seed_failed', { reason: reason }), 'error');
+      return;
+    }
+    var inserted = json.inserted_count || 0;
+    var dup = (json.total_target || 10) - inserted;
+    if (typeof showToast === 'function') {
+      showToast(_fdT('toast_seed_done', { year: json.year || nextYear, count: inserted, dup: dup }), 'success');
+    }
+    if (typeof window.flanccoTrack === 'function') {
+      try { window.flanccoTrack('Feestdagen Auto Extend', { year: json.year || nextYear, inserted_count: inserted }); } catch (_) {}
+    }
+    fdAllRows = []; // force reload
+    await renderFeestdagenPage();
+  } catch (e) {
+    if (typeof showToast === 'function') showToast(_fdT('toast_seed_failed', { reason: (e && e.message) || e }), 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = oldHtml;
+  }
 }
 
 // =============================================
