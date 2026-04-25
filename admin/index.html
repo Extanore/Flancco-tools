@@ -2369,11 +2369,12 @@
                 <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Actie</th>
                 <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Entiteit</th>
                 <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Record-ID</th>
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px" title="Slot H v2: IP + browser/device — gestempeld via DB-trigger uit request-headers. Leeg = service-role of pg_cron (geen browser-context).">Bron</th>
                 <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Wijziging</th>
               </tr>
             </thead>
             <tbody id="audit-tbody">
-              <tr><td colspan="6" style="padding:24px;text-align:center;color:var(--grey);font-size:13px">Laden…</td></tr>
+              <tr><td colspan="7" style="padding:24px;text-align:center;color:var(--grey);font-size:13px">Laden…</td></tr>
             </tbody>
           </table>
         </div>
@@ -18260,19 +18261,114 @@ function globalSearch(q) {
 }
 
 // =============================================
-// AUDIT LOGGING
+// AUDIT LOGGING (Slot H v2)
 // Centrale helper — faalt-stil zodat audit-problemen nooit de business-flow breken.
-// DB-kolomnamen: tabel, record_id, actie, oude_waarde (TEXT), nieuwe_waarde (TEXT), user_id, created_at (DEFAULT now()).
+// DB-kolomnamen: tabel, record_id, actie, oude_waarde (TEXT), nieuwe_waarde (TEXT),
+// user_id, created_at, ip (INET, gestempeld via DB-trigger), user_agent (TEXT, idem).
+//
+// GDPR — PII-redactie:
+// Plan-spec valiant-petting-pretzel.md Slot H stelt dat oude_waarde/nieuwe_waarde
+// "alleen veldnamen, niet waarden" mag bevatten voor klant-PII bij edit-acties.
+// We doen dit client-side via een whitelist van bekende PII-keys (AUDIT_PII_KEYS):
+// - String → '[REDACTED:str:<len>]'  (lengte-hint behouden voor zinvolle diff)
+// - Number → '[REDACTED:num]'         (boolean wordt niet gemaskeerd — geen PII)
+// - Object → recursief redacted
+// Niet-PII keys (status, marge_pct, contractduur, ...) blijven raw zodat diffs
+// blijven werken voor business-relevante mutaties.
 // =============================================
+
+// PII-veldnamen — bij twijfel maskeren. Lowercased; vergelijking via Set.has(key.toLowerCase()).
+var AUDIT_PII_KEYS = (function() {
+  var s = new Set();
+  [
+    // Identiteit
+    'email', 'klant_email', 'contact_email', 'recipient_email', 'opt_out_email',
+    'naam', 'voornaam', 'achternaam', 'klant_naam', 'contactpersoon',
+    // Bedrijf-identifiers (BTW koppelt aan natuurlijke persoon bij eenmanszaak → conservatief maskeren)
+    'bedrijfsnaam', 'btw_nummer', 'rijksregisternummer', 'national_id',
+    // Telefoon
+    'telefoon', 'klant_telefoon', 'contact_telefoon', 'gsm', 'mobiel',
+    'recipient_phone', 'phone', 'phone_number',
+    // Adres
+    'adres', 'klant_adres', 'straat', 'huisnummer', 'bus',
+    'postcode', 'klant_postcode', 'gemeente', 'klant_gemeente', 'stad',
+    // Handtekening + vrije tekst (kan PII bevatten)
+    'handtekening', 'signature', 'signature_data',
+    'notitie', 'opmerking', 'comment', 'bericht', 'instructies',
+    // Auth/secret-tokens (mogen NOOIT in audit-log lekken)
+    'token', 'opt_out_token', 'access_token', 'refresh_token', 'jwt', 'password', 'wachtwoord'
+  ].forEach(function(k) { s.add(k.toLowerCase()); });
+  return s;
+})();
+
+// Mask een single value met type-hint zodat diff-rendering bruikbaar blijft.
+function _auditMaskValue(value) {
+  if (value === null || value === undefined) return value;
+  var t = typeof value;
+  if (t === 'boolean') return value; // boolean is geen PII (consent-flag, actief-flag, etc.)
+  if (t === 'number') return '[REDACTED:num]';
+  if (t === 'string') {
+    if (value.length === 0) return '';
+    return '[REDACTED:str:' + value.length + ']';
+  }
+  if (Array.isArray(value)) return '[REDACTED:arr:' + value.length + ']';
+  if (t === 'object') return '[REDACTED:obj]';
+  return '[REDACTED]';
+}
+
+// Recursief: walk object → vervang PII-keys door masked value, andere keys onaangetast.
+function _auditRedactPii(obj) {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(_auditRedactPii);
+  if (typeof obj !== 'object') return obj;
+  var out = {};
+  var keys = Object.keys(obj);
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var lower = k.toLowerCase();
+    if (AUDIT_PII_KEYS.has(lower)) {
+      out[k] = _auditMaskValue(obj[k]);
+    } else if (obj[k] && typeof obj[k] === 'object') {
+      out[k] = _auditRedactPii(obj[k]);
+    } else {
+      out[k] = obj[k];
+    }
+  }
+  return out;
+}
+
+// Entry-point voor auditLog: accepteert string|object|null, retourneert string|null.
+// Strings die op JSON lijken worden geparsed + geredact; scalar strings (status-wijziging
+// 'ingepland' → 'uitgevoerd') blijven raw — dat zijn geen PII per definitie.
+function _auditSerializeSnapshot(snapshot) {
+  if (snapshot === null || snapshot === undefined || snapshot === '') return null;
+  if (typeof snapshot === 'string') {
+    var s = snapshot.trim();
+    if ((s[0] === '{' && s.slice(-1) === '}') || (s[0] === '[' && s.slice(-1) === ']')) {
+      try {
+        var parsed = JSON.parse(s);
+        return JSON.stringify(_auditRedactPii(parsed));
+      } catch (e) { return snapshot; }
+    }
+    return snapshot;
+  }
+  if (typeof snapshot === 'object') {
+    return JSON.stringify(_auditRedactPii(snapshot));
+  }
+  return String(snapshot);
+}
+
 async function auditLog(tabel, recordId, actie, oudeWaarde, nieuweWaarde) {
   try {
     var userId = currentUser ? currentUser.id : null;
+    // ip + user_agent worden server-side gestempeld door BEFORE INSERT trigger
+    // trg_audit_log_stamp_request_meta uit current_setting('request.headers').
     await sb.from('audit_log').insert({
       tabel: tabel,
       record_id: recordId,
       actie: actie,
-      oude_waarde: oudeWaarde || null,
-      nieuwe_waarde: nieuweWaarde || null,
+      oude_waarde: _auditSerializeSnapshot(oudeWaarde),
+      nieuwe_waarde: _auditSerializeSnapshot(nieuweWaarde),
       user_id: userId
     });
   } catch(e) { console.warn('Audit log failed:', e); }
@@ -18426,7 +18522,7 @@ async function loadAuditLogPage(resetPage) {
   if (resetPage) auditState.page = 0;
   auditState.filters = _auditReadFilters();
 
-  body.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--grey);font-size:13px">Laden…</td></tr>';
+  body.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--grey);font-size:13px">Laden…</td></tr>';
 
   try {
     // Count
@@ -18446,7 +18542,7 @@ async function loadAuditLogPage(resetPage) {
     if (needed.length) await _auditResolveUserLabels(needed);
 
     if (!auditState.rows.length) {
-      body.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:var(--grey);font-size:13px">Geen audit-entries voor deze filters.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" style="padding:28px;text-align:center;color:var(--grey);font-size:13px">Geen audit-entries voor deze filters.</td></tr>';
     } else {
       body.innerHTML = auditState.rows.map(_auditRenderRow).join('');
     }
@@ -18460,8 +18556,28 @@ async function loadAuditLogPage(resetPage) {
     if (nextBtn) nextBtn.disabled = (from + AUDIT_PAGE_SIZE) >= auditState.total;
   } catch (e) {
     console.error('loadAuditLogPage error:', e);
-    body.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:var(--red);font-size:13px">Fout bij laden: ' + esc(e.message || String(e)) + '</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" style="padding:28px;text-align:center;color:var(--red);font-size:13px">Fout bij laden: ' + esc(e.message || String(e)) + '</td></tr>';
   }
+}
+
+// Slot H v2: kort de User-Agent in tot "Browser · OS"; volledige UA in title-attr (tooltip).
+function _auditUserAgentShort(ua) {
+  if (!ua) return '';
+  var browser = '';
+  // Edge moet vóór Chrome (UA bevat beide); Safari moet ná Chrome (Chrome UA bevat 'Safari').
+  var m;
+  if ((m = ua.match(/Edg\/([\d.]+)/))) browser = 'Edge ' + m[1].split('.')[0];
+  else if ((m = ua.match(/Chrome\/([\d.]+)/))) browser = 'Chrome ' + m[1].split('.')[0];
+  else if ((m = ua.match(/Firefox\/([\d.]+)/))) browser = 'Firefox ' + m[1].split('.')[0];
+  else if ((m = ua.match(/Version\/([\d.]+).*Safari/))) browser = 'Safari ' + m[1].split('.')[0];
+  var os = '';
+  if (/Windows NT/i.test(ua)) os = 'Windows';
+  else if (/Mac OS X/i.test(ua)) os = 'macOS';
+  else if (/Android/i.test(ua)) os = 'Android';
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+  else if (/Linux/i.test(ua)) os = 'Linux';
+  var parts = [browser, os].filter(Boolean);
+  return parts.length ? parts.join(' · ') : (ua.length > 32 ? ua.slice(0, 32) + '…' : ua);
 }
 
 function _auditRenderRow(r) {
@@ -18470,6 +18586,22 @@ function _auditRenderRow(r) {
   var ts = r.created_at ? new Date(r.created_at).toLocaleString('nl-BE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
   var rid = r.record_id ? r.record_id.slice(0, 8) + '…' : '—';
   var diff = _auditRenderDiff(r.oude_waarde, r.nieuwe_waarde);
+
+  // Slot H v2 — Bron-kolom: IP + UA. NULL = service-role/pg_cron (geen browser-context).
+  var bron;
+  if (r.ip || r.user_agent) {
+    var ipHtml = r.ip
+      ? '<div style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--navy)">' + esc(r.ip) + '</div>'
+      : '<div style="font-size:11px;color:var(--grey)">—</div>';
+    var uaShort = r.user_agent ? _auditUserAgentShort(r.user_agent) : '';
+    var uaHtml = uaShort
+      ? '<div title="' + esc(r.user_agent) + '" style="font-size:10px;color:var(--grey);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help">' + esc(uaShort) + '</div>'
+      : '';
+    bron = ipHtml + uaHtml;
+  } else {
+    bron = '<span style="color:var(--grey);font-size:11px;font-style:italic">systeem</span>';
+  }
+
   return '' +
     '<tr style="border-bottom:1px solid var(--rule)">' +
       '<td style="padding:10px 12px;white-space:nowrap;font-variant-numeric:tabular-nums">' + esc(ts) + '</td>' +
@@ -18477,6 +18609,7 @@ function _auditRenderRow(r) {
       '<td style="padding:10px 12px"><code style="background:var(--light);padding:2px 6px;border-radius:4px;font-size:12px">' + esc(r.actie || '—') + '</code></td>' +
       '<td style="padding:10px 12px">' + esc(label) + '</td>' +
       '<td style="padding:10px 12px"><code title="' + esc(r.record_id || '') + '" style="font-size:11px;color:var(--grey);cursor:copy" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + esc(r.record_id || '') + '\')">' + esc(rid) + '</code></td>' +
+      '<td style="padding:10px 12px;vertical-align:top">' + bron + '</td>' +
       '<td style="padding:10px 12px">' + diff + '</td>' +
     '</tr>';
 }
@@ -18573,7 +18706,8 @@ async function exportAuditCsv() {
     all.forEach(function(r) { if (r.user_id && !auditState.users[r.user_id]) needed.push(r.user_id); });
     if (needed.length) await _auditResolveUserLabels(needed);
 
-    var header = ['tijdstip', 'uitvoerder_id', 'uitvoerder_label', 'actie', 'tabel', 'record_id', 'oude_waarde', 'nieuwe_waarde'];
+    // Slot H v2: ip + user_agent toegevoegd voor forensische trail in compliance-export.
+    var header = ['tijdstip', 'uitvoerder_id', 'uitvoerder_label', 'actie', 'tabel', 'record_id', 'ip', 'user_agent', 'oude_waarde', 'nieuwe_waarde'];
     var csvRows = [header.join(';')];
     all.forEach(function(r) {
       var userLabel = r.user_id ? (auditState.users[r.user_id] || '') : '';
@@ -18584,6 +18718,8 @@ async function exportAuditCsv() {
         _csvCell(r.actie || ''),
         _csvCell(r.tabel || ''),
         r.record_id || '',
+        r.ip || '',
+        _csvCell(r.user_agent || ''),
         _csvCell(r.oude_waarde || ''),
         _csvCell(r.nieuwe_waarde || '')
       ].join(';'));
