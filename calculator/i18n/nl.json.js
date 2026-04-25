@@ -468,6 +468,58 @@
         emptyFollowUp: 'Geen follow-ups op dit moment.',
         emailSubject: 'Herinnering onderhoud {klant}',
         emailBody: 'Beste {klant}, een korte herinnering aan uw onderhoudsbeurt. Met vriendelijke groet,'
+      },
+      // Slot D — Facturatie-pagina (partner-portal) + PDF-overzicht template
+      facturatie: {
+        title: 'Facturatie',
+        subtitle: {
+          week: 'Alle afgewerkte beurten in week {periode}',
+          maand: 'Alle afgewerkte beurten over {periode}',
+          jaar: 'Alle afgewerkte beurten in {periode}'
+        },
+        kpi: {
+          count: 'Aantal beurten',
+          excl: 'Totaal omzet excl. btw',
+          incl: 'Totaal omzet incl. btw',
+          marge: 'Totaal partner-marge'
+        },
+        filter: {
+          week: 'Week',
+          maand: 'Maand',
+          jaar: 'Jaar',
+          maandKeuze: {
+            '1': '1 maand',
+            '3': '3 maanden',
+            '6': '6 maanden',
+            '12': '12 maanden'
+          },
+          alleenGefactureerd: 'Alleen gefactureerd'
+        },
+        kolom: {
+          datum: 'Datum',
+          klant: 'Klant',
+          sector: 'Sector',
+          panelen: 'Panelen',
+          exclBtw: 'Excl. btw',
+          inclBtw: 'Incl. btw',
+          planningFee: 'Planning fee',
+          marge: 'Partner-marge',
+          doorFactureren: 'Door te factureren'
+        },
+        export: {
+          csv: 'Exporteer CSV',
+          pdf: 'PDF-overzicht'
+        },
+        geenData: 'Geen afgewerkte beurten in deze periode.',
+        loading: 'Beurten laden\u2026',
+        error: 'Kon facturatie-gegevens niet laden.',
+        pdf: {
+          header: 'Facturatie-overzicht',
+          footer: 'Intern document \u2014 niet bestemd voor de eindklant',
+          gegenereerdOp: 'Gegenereerd op {datum}',
+          totaalRij: 'Totaal',
+          aantalBeurten: '{n} beurten'
+        }
       }
     }
   });

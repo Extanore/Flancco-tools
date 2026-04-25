@@ -308,8 +308,54 @@ async function renderTemplate(
     case "contract_signed":
       return await renderContractSigned(data as ContractSignedData, branding, lang);
     case "facturatie_overzicht":
-      return await renderFacturatieOverzicht(data as FacturatieOverzichtData, branding, lang);
+      return await renderFacturatieOverzicht(coerceFacturatieOverzicht(data), branding, lang);
   }
+}
+
+// Slot D — strikte coercion van facturatie-payload. We accepteren een lege
+// `beurten`-array (toon "geen data"-state) maar wijzen niet-arrays af om
+// crashes in de renderer te voorkomen.
+function coerceFacturatieOverzicht(data: Record<string, unknown>): FacturatieOverzichtData {
+  const beurtenRaw = Array.isArray(data.beurten) ? data.beurten : [];
+  const beurten = beurtenRaw.map((b, idx) => {
+    if (!b || typeof b !== "object") throw new BadRequest(`data.beurten[${idx}] must be an object`);
+    const obj = b as Record<string, unknown>;
+    return {
+      datum: typeof obj.datum === "string" ? obj.datum : null,
+      klant_naam: typeof obj.klant_naam === "string" ? obj.klant_naam : null,
+      sector: typeof obj.sector === "string" ? obj.sector : null,
+      aantal_panelen: typeof obj.aantal_panelen === "number" ? obj.aantal_panelen : null,
+      bedrag_excl_btw: typeof obj.bedrag_excl_btw === "number" ? obj.bedrag_excl_btw : null,
+      bedrag_incl_btw: typeof obj.bedrag_incl_btw === "number" ? obj.bedrag_incl_btw : null,
+      planning_fee: typeof obj.planning_fee === "number" ? obj.planning_fee : null,
+      partner_marge: typeof obj.partner_marge === "number" ? obj.partner_marge : null,
+    };
+  });
+
+  const totalenRaw = (data.totalen && typeof data.totalen === "object" && !Array.isArray(data.totalen))
+    ? (data.totalen as Record<string, unknown>)
+    : null;
+  const totalen = totalenRaw ? {
+    aantal_beurten: typeof totalenRaw.aantal_beurten === "number" ? totalenRaw.aantal_beurten : beurten.length,
+    totaal_excl_btw: typeof totalenRaw.totaal_excl_btw === "number" ? totalenRaw.totaal_excl_btw : 0,
+    totaal_incl_btw: typeof totalenRaw.totaal_incl_btw === "number" ? totalenRaw.totaal_incl_btw : 0,
+    totaal_planning_fee: typeof totalenRaw.totaal_planning_fee === "number" ? totalenRaw.totaal_planning_fee : 0,
+    totaal_marge: typeof totalenRaw.totaal_marge === "number" ? totalenRaw.totaal_marge : 0,
+  } : undefined;
+
+  const periodeType = typeof data.periode_type === "string" && ["week", "maand", "jaar"].includes(data.periode_type)
+    ? (data.periode_type as "week" | "maand" | "jaar")
+    : "maand";
+
+  return {
+    periode_van: typeof data.periode_van === "string" ? data.periode_van : undefined,
+    periode_tot: typeof data.periode_tot === "string" ? data.periode_tot : undefined,
+    periode_label: typeof data.periode_label === "string" ? data.periode_label : undefined,
+    periode_type: periodeType,
+    alleen_gefactureerd: data.alleen_gefactureerd === true,
+    beurten,
+    totalen,
+  };
 }
 
 function coerceWerkplanning(data: Record<string, unknown>): WerkplanningData {
