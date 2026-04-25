@@ -692,6 +692,124 @@
     border-radius: 6px; letter-spacing: 0.2px;
     text-align: center;
   }
+
+  /* Slot A4 — Werkplanning per-dag export-knop
+     Identiek pattern als .route-btn (top-right hover-action) maar links daarvan
+     zodat beide knoppen comfortabel naast elkaar passen wanneer de cell ≥2
+     herplanbare beurten heeft. Op cells zonder route-btn schuift de export-btn
+     visueel naar de uiterste rechterhoek. */
+  .btn-werkplanning-export {
+    position: absolute; top: 4px; right: 30px; z-index: 3;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--white); color: var(--grey);
+    border: 1px solid var(--rule); cursor: pointer;
+    opacity: 0; transition: all 0.18s var(--ease);
+    padding: 0;
+  }
+  /* Wanneer er géén route-btn rechts ernaast staat, neemt export-btn die plek in. */
+  .btn-werkplanning-export.is-solo { right: 4px; }
+  .btn-werkplanning-export:hover {
+    opacity: 1 !important; color: var(--navy);
+    border-color: var(--navy); background: #F8FAFC;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-werkplanning-export:focus-visible {
+    opacity: 1 !important; outline: 2px solid var(--navy); outline-offset: 2px;
+  }
+  .btn-werkplanning-export:disabled { cursor: wait; opacity: 0.5 !important; }
+  td:hover .btn-werkplanning-export { opacity: 0.7; }
+  .btn-werkplanning-export svg { display: block; }
+
+  /* Day-view variant: zit in de <th> tech-header, niet in een td.
+     Altijd zichtbaar (geen hover-only) want de tech-kolom is de natuurlijke
+     entry-point voor de export. */
+  .day-grid th .btn-werkplanning-export-th {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 6px; margin-left: 6px;
+    background: transparent; color: var(--grey);
+    border: 1px solid var(--rule); cursor: pointer;
+    transition: all 0.18s var(--ease); padding: 0; vertical-align: middle;
+  }
+  .day-grid th .btn-werkplanning-export-th:hover {
+    color: var(--navy); border-color: var(--navy); background: #F8FAFC;
+  }
+  .day-grid th .btn-werkplanning-export-th:focus-visible {
+    outline: 2px solid var(--navy); outline-offset: 2px;
+  }
+  .day-grid th .btn-werkplanning-export-th:disabled { cursor: wait; opacity: 0.5; }
+  .day-grid th .btn-werkplanning-export-th svg { display: block; }
+
+  /* Werkplanning-export modal — primaire PDF-actie + WhatsApp-share. */
+  .werkplanning-export-actions {
+    display: flex; flex-direction: column; gap: 10px; margin-top: 8px;
+  }
+  .werkplanning-export-action {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: 10px;
+    border: 1.5px solid var(--rule); background: #fff;
+    cursor: pointer; transition: all 0.15s ease;
+    font-family: inherit; font-size: 14px; color: var(--navy);
+    text-align: left; line-height: 1.3; width: 100%;
+  }
+  .werkplanning-export-action:hover:not(:disabled) {
+    border-color: var(--navy); background: #F8FAFC; transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .werkplanning-export-action:focus-visible {
+    outline: 2px solid var(--navy); outline-offset: 2px;
+  }
+  .werkplanning-export-action:disabled { opacity: 0.55; cursor: not-allowed; }
+  .werkplanning-export-action.is-primary {
+    background: var(--navy); color: #fff; border-color: var(--navy);
+  }
+  .werkplanning-export-action.is-primary:hover:not(:disabled) {
+    background: #2A2A44; border-color: #2A2A44;
+  }
+  .werkplanning-export-action.is-whatsapp {
+    border-color: #25D366; color: #128C7E;
+  }
+  .werkplanning-export-action.is-whatsapp:hover:not(:disabled) {
+    background: #25D366; color: #fff; border-color: #25D366;
+  }
+  .werkplanning-export-action .wp-icon {
+    flex-shrink: 0; display: inline-flex; width: 24px; height: 24px;
+  }
+  .werkplanning-export-action .wp-icon svg { width: 100%; height: 100%; display: block; }
+  .werkplanning-export-action .wp-text { flex: 1; min-width: 0; }
+  .werkplanning-export-action .wp-text strong { display: block; font-size: 14px; font-weight: 600; }
+  .werkplanning-export-action .wp-text small { display: block; font-size: 11px; color: var(--grey); margin-top: 2px; font-weight: 400; }
+  .werkplanning-export-action.is-primary .wp-text small { color: rgba(255,255,255,0.8); }
+  .werkplanning-export-action.is-whatsapp .wp-text small { color: var(--grey); }
+  .werkplanning-export-action.is-whatsapp:hover:not(:disabled) .wp-text small { color: rgba(255,255,255,0.85); }
+
+  /* Inline spinner — gebruikt tijdens PDF-generatie */
+  .wp-spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+    border-radius: 50%; animation: wp-spin 0.8s linear infinite;
+    vertical-align: -2px;
+  }
+  .werkplanning-export-action:not(.is-primary) .wp-spinner {
+    border-color: rgba(26,26,46,0.18); border-top-color: var(--navy);
+  }
+  @keyframes wp-spin { to { transform: rotate(360deg); } }
+
+  .werkplanning-export-error {
+    margin-top: 12px; padding: 12px 14px;
+    background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px;
+    color: #B91C1C; font-size: 13px; line-height: 1.4;
+  }
+  .werkplanning-export-error strong { display: block; margin-bottom: 4px; font-weight: 600; }
+  .werkplanning-export-error .wp-error-detail { font-size: 11px; color: #991B1B; opacity: 0.85; margin-top: 4px; }
+
+  .werkplanning-export-meta {
+    margin-top: 8px; padding: 10px 12px; background: #F8FAFC;
+    border: 1px solid var(--rule); border-radius: 8px;
+    font-size: 12px; color: var(--grey); line-height: 1.45;
+  }
+  .werkplanning-export-meta strong { color: var(--navy); }
+
   .week-grid td { position: relative; }
 
   /* SECTOR COLORS */
@@ -1710,6 +1828,47 @@
       <div class="footer-right" style="margin-left:auto">
         <button type="button" class="btn btn-ghost" onclick="closeWerkbonModal()">Annuleren</button>
         <button type="button" class="btn btn-primary" onclick="saveWerkbon()">Voltooien &amp; werkbon aanmaken</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLOT A4 — WERKPLANNING EXPORT MODAL
+     Per technieker per dag: PDF genereren via Slot P (`generate-pdf`-engine)
+     en optioneel delen via WhatsApp. Modal opent vanuit kalender-cel of
+     day-view-header en bevat al voldoende context (technieker + datum + #beurten)
+     om de actie zonder verdere input te starten. -->
+<div class="modal-overlay" id="modal-werkplanning-export">
+  <div class="modal" style="max-width:460px">
+    <h2 id="wpe-title">Werkplanning exporteren</h2>
+    <p id="wpe-subtitle" style="color:var(--grey);font-size:12px;margin-bottom:12px"></p>
+    <input type="hidden" id="wpe-tech-id">
+    <input type="hidden" id="wpe-datum">
+    <div class="werkplanning-export-meta" id="wpe-meta"></div>
+    <div class="werkplanning-export-actions">
+      <button type="button" id="wpe-btn-pdf" class="werkplanning-export-action is-primary" onclick="onWerkplanningExportPdf()">
+        <span class="wp-icon" id="wpe-icon-pdf">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+        </span>
+        <span class="wp-text">
+          <strong id="wpe-label-pdf">PDF downloaden</strong>
+          <small id="wpe-sub-pdf">A4-document met alle beurten van de dag</small>
+        </span>
+      </button>
+      <button type="button" id="wpe-btn-whatsapp" class="werkplanning-export-action is-whatsapp" onclick="onWerkplanningExportWhatsapp()">
+        <span class="wp-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>
+        </span>
+        <span class="wp-text">
+          <strong id="wpe-label-wa">Stuur via WhatsApp</strong>
+          <small id="wpe-sub-wa">Opent WhatsApp met pre-fill bericht + PDF-link</small>
+        </span>
+      </button>
+    </div>
+    <div id="wpe-error" class="werkplanning-export-error" style="display:none"></div>
+    <div class="modal-buttons">
+      <div class="footer-right" style="margin-left:auto">
+        <button type="button" class="btn btn-ghost" id="wpe-btn-close" onclick="closeWerkplanningExport()">Sluiten</button>
       </div>
     </div>
   </div>
@@ -3959,6 +4118,19 @@ function renderWeekView() {
             'title="Route-suggestie op postcode-nabijheid (' + routeCandidates.length + ' beurten)">' + routeIcon + '</button>';
         }
 
+        // Slot A4: Werkplanning-export-knop — alleen tonen als er minstens één
+        // beurt is om te exporteren (incl. duo-beurten waar tech meewerkt).
+        // Naast route-btn (right:30px) of solo (right:4px) afhankelijk van context.
+        var exportTotal = beurten.length + ghostBeurten.length;
+        if (exportTotal > 0) {
+          var soloCls = (routeCandidates.length >= 2) ? '' : ' is-solo';
+          var wpeIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+          html += '<button class="btn-werkplanning-export' + soloCls + '" ' +
+            'onclick="event.stopPropagation();openWerkplanningExport(\'' + tech.id + '\', \'' + dayISO + '\')" ' +
+            'aria-label="Werkplanning exporteren (' + exportTotal + ' ' + (exportTotal === 1 ? 'beurt' : 'beurten') + ')" ' +
+            'title="Werkplanning exporteren \u2014 ' + exportTotal + ' ' + (exportTotal === 1 ? 'beurt' : 'beurten') + '">' + wpeIcon + '</button>';
+        }
+
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
           var dayInfo = getBeurtDayInfo(b, dayISO);
@@ -4250,7 +4422,22 @@ function renderDayView() {
 
   var html = '<div class="day-grid-wrap"><table class="day-grid"><thead><tr><th>Tijd</th>';
   techniekers.forEach(function(tech) {
-    html += '<th>' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</th>';
+    // Slot A4: per-tech-per-dag export-knop in day-view header.
+    // Telt zowel primaire als duo-beurten van deze tech op deze dag — knop alleen
+    // tonen als er iets te exporteren valt en de tech niet afwezig is.
+    var techHasBeurten = false;
+    if (!isTechAbsent(tech.id, viewDate)) {
+      techHasBeurten = getBeurtenForTechDay(tech.id, viewDate).filter(passesFilters).length > 0;
+    }
+    var wpeBtn = '';
+    if (techHasBeurten) {
+      var wpeIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+      wpeBtn = '<button type="button" class="btn-werkplanning-export-th" ' +
+        'onclick="openWerkplanningExport(\'' + tech.id + '\', \'' + dateStr + '\')" ' +
+        'aria-label="Werkplanning exporteren voor ' + esc(tech.voornaam + ' ' + tech.naam) + '" ' +
+        'title="Werkplanning exporteren">' + wpeIcon + '</button>';
+    }
+    html += '<th>' + esc(tech.voornaam) + ' ' + esc(tech.naam) + wpeBtn + '</th>';
   });
   html += '</tr></thead><tbody>';
 
@@ -9632,6 +9819,631 @@ async function saveWerkbon() {
   renderView();
   renderSidebar();
 }
+
+// =============================================
+// SLOT A4 — WERKPLANNING PER-DAG EXPORT
+// =============================================
+// Genereert per technieker per dag een werkplanning-PDF via de gedeelde
+// `generate-pdf` Edge Function (Slot P, template `werkplanning`) en biedt
+// optioneel een WhatsApp-share aan met de signed-URL ingebakken.
+//
+// Defense-in-depth: hoewel de werkplanning-template `requiresAuth: false`
+// heeft in TEMPLATES registry, sturen we ALTIJD de admin-session JWT mee.
+// Als de policy ooit op auth-required gezet wordt, breekt deze flow niet.
+//
+// State, debounce, abort en error-handling zijn modaal-scope.
+// =============================================
+var WERKPLANNING_PDF_URL = SUPA_URL + '/functions/v1/generate-pdf';
+var WERKPLANNING_PDF_TIMEOUT_MS = 30000;
+var WERKPLANNING_DEBOUNCE_MS = 300;
+
+// Modal-scope state — gewist bij elke nieuwe open-call.
+var _wpeState = {
+  techId: null,
+  datum: null,
+  loading: false,
+  abortCtrl: null,
+  lastResult: null,        // { url, path, expiresAt, filename }
+  lastClickTs: 0           // debounce tracking
+};
+
+/**
+ * Active taal voor de werkplanning-export. Admin/planning.html laadt momenteel
+ * geen i18n-runtime; we proberen `flanccoI18n.getLang()` defensief op te halen
+ * en vallen terug op 'nl'. Als de admin-app later een i18n-stack krijgt, werkt
+ * deze functie automatisch mee zonder code-wijziging hier.
+ */
+function getWerkplanningLang() {
+  try {
+    if (window.flanccoI18n && typeof window.flanccoI18n.getLang === 'function') {
+      var lang = window.flanccoI18n.getLang();
+      if (lang === 'fr' || lang === 'nl') return lang;
+    }
+  } catch (_) {}
+  return 'nl';
+}
+
+/**
+ * Mini-i18n-helper voor de werkplanning-export. Zo lang admin/planning.html geen
+ * full i18n-load doet, leveren we de strings inline (bron-of-truth) en spiegelen
+ * dezelfde keys in calculator/i18n/{nl,fr}.json.js zodat één enkele bron blijft
+ * bestaan zodra de admin-app i18n adopteert.
+ */
+function wpeT(key) {
+  var lang = getWerkplanningLang();
+  // Eerst proberen via globale i18n-runtime (toekomstig admin-i18n).
+  try {
+    if (typeof window.t === 'function') {
+      var v = window.t(key);
+      if (v && v !== key) return v;
+    }
+  } catch (_) {}
+  var nl = {
+    'planning.werkplanningExport.title': 'Werkplanning exporteren',
+    'planning.werkplanningExport.subtitle': '{tech} \u2014 {datum}',
+    'planning.werkplanningExport.metaCount': '{count} beurt vandaag',
+    'planning.werkplanningExport.metaCountPlural': '{count} beurten vandaag',
+    'planning.werkplanningExport.btnPdf': 'PDF downloaden',
+    'planning.werkplanningExport.btnPdfSub': 'A4-document met alle beurten van de dag',
+    'planning.werkplanningExport.btnPdfLoading': 'PDF wordt gegenereerd\u2026',
+    'planning.werkplanningExport.btnWhatsapp': 'Stuur via WhatsApp',
+    'planning.werkplanningExport.btnWhatsappSub': 'Opent WhatsApp met pre-fill bericht + PDF-link',
+    'planning.werkplanningExport.btnRetry': 'Opnieuw proberen',
+    'planning.werkplanningExport.close': 'Sluiten',
+    'planning.werkplanningExport.successToast': 'Werkplanning gegenereerd',
+    'planning.werkplanningExport.openInTab': 'Open PDF in nieuw tabblad',
+    'planning.werkplanningExport.errorTitle': 'Werkplanning kon niet gegenereerd worden',
+    'planning.werkplanningExport.errorTimeout': 'Het duurde te lang om de PDF te maken. Probeer opnieuw of contacteer support als dit blijft gebeuren.',
+    'planning.werkplanningExport.errorNetwork': 'Geen verbinding met de PDF-service. Controleer je internet en probeer opnieuw.',
+    'planning.werkplanningExport.errorAuth': 'Sessie verlopen. Log opnieuw in om de werkplanning te exporteren.',
+    'planning.werkplanningExport.errorRate': 'Te veel exports na elkaar. Wacht even en probeer opnieuw.',
+    'planning.werkplanningExport.errorGeneric': 'Er ging iets mis bij het genereren van de PDF.',
+    'planning.werkplanningExport.errorMissingSession': 'Geen actieve admin-sessie gevonden \u2014 herlaad de pagina.',
+    'planning.werkplanningExport.errorNoBeurten': 'Geen beurten gevonden voor deze technieker op deze dag.',
+    'planning.werkplanningExport.waMessageNl': 'Hoi {voornaam}, hier je werkplanning voor {datum}: {url}',
+    'planning.werkplanningExport.expiresHint': 'Link 7 dagen geldig.'
+  };
+  var fr = {
+    'planning.werkplanningExport.title': 'Exporter le planning de travail',
+    'planning.werkplanningExport.subtitle': '{tech} \u2014 {datum}',
+    'planning.werkplanningExport.metaCount': '{count} mission aujourd\u2019hui',
+    'planning.werkplanningExport.metaCountPlural': '{count} missions aujourd\u2019hui',
+    'planning.werkplanningExport.btnPdf': 'T\u00e9l\u00e9charger le PDF',
+    'planning.werkplanningExport.btnPdfSub': 'Document A4 avec toutes les missions du jour',
+    'planning.werkplanningExport.btnPdfLoading': 'G\u00e9n\u00e9ration du PDF\u2026',
+    'planning.werkplanningExport.btnWhatsapp': 'Envoyer via WhatsApp',
+    'planning.werkplanningExport.btnWhatsappSub': 'Ouvre WhatsApp avec un message pr\u00e9-rempli + lien PDF',
+    'planning.werkplanningExport.btnRetry': 'R\u00e9essayer',
+    'planning.werkplanningExport.close': 'Fermer',
+    'planning.werkplanningExport.successToast': 'Planning g\u00e9n\u00e9r\u00e9',
+    'planning.werkplanningExport.openInTab': 'Ouvrir le PDF dans un nouvel onglet',
+    'planning.werkplanningExport.errorTitle': 'Impossible de g\u00e9n\u00e9rer le planning',
+    'planning.werkplanningExport.errorTimeout': 'La g\u00e9n\u00e9ration du PDF a pris trop de temps. R\u00e9essayez ou contactez le support si le probl\u00e8me persiste.',
+    'planning.werkplanningExport.errorNetwork': 'Pas de connexion au service PDF. V\u00e9rifiez votre connexion et r\u00e9essayez.',
+    'planning.werkplanningExport.errorAuth': 'Session expir\u00e9e. Reconnectez-vous pour exporter le planning.',
+    'planning.werkplanningExport.errorRate': 'Trop d\u2019exports cons\u00e9cutifs. Patientez un instant.',
+    'planning.werkplanningExport.errorGeneric': 'Une erreur est survenue lors de la g\u00e9n\u00e9ration du PDF.',
+    'planning.werkplanningExport.errorMissingSession': 'Aucune session admin active \u2014 rechargez la page.',
+    'planning.werkplanningExport.errorNoBeurten': 'Aucune mission trouv\u00e9e pour ce technicien ce jour-l\u00e0.',
+    'planning.werkplanningExport.waMessageNl': 'Bonjour {voornaam}, voici votre planning de travail pour {datum}: {url}',
+    'planning.werkplanningExport.expiresHint': 'Lien valable 7 jours.'
+  };
+  var dict = (lang === 'fr') ? fr : nl;
+  return dict[key] || nl[key] || key;
+}
+
+function wpeFormat(template, params) {
+  if (typeof template !== 'string') return '';
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, function(_m, k) {
+    return params[k] != null ? String(params[k]) : '{' + k + '}';
+  });
+}
+
+/**
+ * Verzamel alle beurten voor (techId, datum) en map naar het WerkplanningData-
+ * contract van de Slot P engine. Sortering op start_tijd; beurten zonder
+ * starttijd komen achteraan zodat de PDF-render een logische volgorde aanhoudt.
+ */
+function gatherWerkplanningData(techId, dateISO) {
+  var tech = (allTechniekers || []).find(function(t) { return t.id === techId; });
+  if (!tech) return null;
+  var dateObj = parseDate(dateISO);
+  if (!dateObj) return null;
+
+  // Hergebruik bestaande helper — pakt zowel primaire als duo-beurten op deze dag.
+  var beurten = getBeurtenForTechDay(techId, dateObj).filter(passesFilters);
+
+  // Voor de werkplanning-PDF tonen we alle status'en die de tech vandaag op zijn
+  // bord heeft (ingepland + uitgevoerd + afgewerkt). De template laat zelf het
+  // verschil zien in de `scope_samenvatting`/notities.
+  var mapped = beurten.map(function(b) {
+    var info = getClientInfo(b);
+    var fields = getBeurtFieldsOnDate(b, dateISO);
+    var startTijd = fields.start_tijd ? fields.start_tijd.substring(0, 5) : null;
+    var duurMin = fields.duur_minuten || null;
+    var eindTijd = (startTijd && duurMin) ? calcEndTime(startTijd, duurMin) : null;
+    var tijdSlot = null;
+    if (b.hele_dag) {
+      tijdSlot = (getWerkplanningLang() === 'fr') ? 'Toute la journ\u00e9e' : 'Hele dag';
+    } else if (startTijd && eindTijd) {
+      tijdSlot = startTijd + ' \u2013 ' + eindTijd;
+    } else if (startTijd) {
+      tijdSlot = startTijd;
+    }
+
+    var scopeBits = [];
+    if (info.sector) scopeBits.push(getSectorLabel(info.sector));
+    if (info.sectorDetails) scopeBits.push(info.sectorDetails);
+
+    var instructionBits = [];
+    if (b.notities) instructionBits.push(String(b.notities).trim());
+    if (b.special_instructions) instructionBits.push(String(b.special_instructions).trim());
+    var dagRecord = fields._dagRecord;
+    if (dagRecord && dagRecord.notities) instructionBits.push(String(dagRecord.notities).trim());
+
+    // Aantal panelen: alleen zinvol bij sector zonnepanelen.
+    var aantalPanelen = null;
+    if ((info.sector || '').toLowerCase() === 'zonnepanelen') {
+      var contract = (allContracten || []).find(function(c) { return c.id === b.contract_id; });
+      if (contract && contract.aantal_panelen) aantalPanelen = parseInt(contract.aantal_panelen, 10) || null;
+    }
+
+    var beurt = {
+      id: b.id,
+      klant_naam: info.naam || '',
+      klant_telefoon: getKlantTelefoon(b),
+      klant_adres: info.adres || undefined,
+      klant_postcode: info.postcode || undefined,
+      klant_gemeente: info.gemeente || undefined,
+      tijd_slot: tijdSlot || undefined,
+      start_tijd: startTijd || undefined,
+      eind_tijd: eindTijd || undefined,
+      scope_samenvatting: scopeBits.length ? scopeBits.join(' \u00b7 ') : undefined,
+      special_instructions: instructionBits.length ? instructionBits.filter(Boolean).join('\n') : undefined,
+      aantal_panelen: aantalPanelen || undefined,
+      sector: info.sector || undefined,
+      geschatte_duur_min: duurMin || undefined
+    };
+    // Verwijder undefined-velden zodat de Slot P-coercer geen lege strings krijgt.
+    Object.keys(beurt).forEach(function(k) { if (beurt[k] === undefined || beurt[k] === '') delete beurt[k]; });
+    return beurt;
+  });
+
+  // Sortering: starttijd asc; beurten zonder starttijd onderaan (alfabetisch op klant).
+  mapped.sort(function(a, b) {
+    if (a.start_tijd && b.start_tijd) return a.start_tijd.localeCompare(b.start_tijd);
+    if (a.start_tijd) return -1;
+    if (b.start_tijd) return 1;
+    return (a.klant_naam || '').localeCompare(b.klant_naam || '');
+  });
+
+  return {
+    datum: dateISO,
+    technieker_naam: ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim() || 'Technieker',
+    technieker_telefoon: tech.telefoon || undefined,
+    beurten: mapped
+  };
+}
+
+/**
+ * Best-effort klant-telefoon. Volgorde:
+ *   1. contract.klant_telefoon (per-contract override)
+ *   2. clients.phone (gekoppeld via contract.client_id of beurt.client_id)
+ * Returnt null als niets bruikbaar — template laat het veld dan weg.
+ */
+function getKlantTelefoon(beurt) {
+  if (!beurt) return null;
+  if (beurt.contract_id) {
+    var contract = (allContracten || []).find(function(c) { return c.id === beurt.contract_id; });
+    if (contract) {
+      if (contract.klant_telefoon) return contract.klant_telefoon;
+      var client = (allClients || []).find(function(cl) { return cl.id === contract.client_id; });
+      if (client && client.phone) return client.phone;
+    }
+  }
+  if (beurt.client_id) {
+    var direct = (allClients || []).find(function(cl) { return cl.id === beurt.client_id; });
+    if (direct && direct.phone) return direct.phone;
+  }
+  return null;
+}
+
+/**
+ * Open de werkplanning-export-modal voor (techId, dateISO). Reset eerdere state
+ * (vorige PDF-resultaat, error, loading) en vult de meta-strip met context.
+ */
+function openWerkplanningExport(techId, dateISO) {
+  if (!techId || !dateISO) return;
+  var tech = (allTechniekers || []).find(function(t) { return t.id === techId; });
+  if (!tech) {
+    showToast(wpeT('planning.werkplanningExport.errorGeneric'), 'error');
+    return;
+  }
+  // Pre-flight: zijn er beurten?
+  var preview = gatherWerkplanningData(techId, dateISO);
+  if (!preview || preview.beurten.length === 0) {
+    showToast(wpeT('planning.werkplanningExport.errorNoBeurten'), 'info');
+    return;
+  }
+
+  // Reset state
+  if (_wpeState.abortCtrl) { try { _wpeState.abortCtrl.abort(); } catch (_) {} }
+  _wpeState = {
+    techId: techId,
+    datum: dateISO,
+    loading: false,
+    abortCtrl: null,
+    lastResult: null,
+    lastClickTs: 0
+  };
+
+  // Vul header + meta
+  var techNaam = ((tech.voornaam || '') + ' ' + (tech.naam || '')).trim();
+  var datumDisplay = formatDateFull(parseDate(dateISO));
+  document.getElementById('wpe-tech-id').value = techId;
+  document.getElementById('wpe-datum').value = dateISO;
+  document.getElementById('wpe-title').textContent = wpeT('planning.werkplanningExport.title');
+  document.getElementById('wpe-subtitle').textContent = wpeFormat(
+    wpeT('planning.werkplanningExport.subtitle'),
+    { tech: techNaam, datum: datumDisplay }
+  );
+
+  var count = preview.beurten.length;
+  var countKey = count === 1 ? 'planning.werkplanningExport.metaCount' : 'planning.werkplanningExport.metaCountPlural';
+  document.getElementById('wpe-meta').innerHTML =
+    '<strong>' + esc(techNaam) + '</strong> \u00b7 ' + esc(datumDisplay) + '<br>' +
+    esc(wpeFormat(wpeT(countKey), { count: count }));
+
+  // Reset knop-states
+  resetWerkplanningExportButtons();
+
+  document.getElementById('wpe-error').style.display = 'none';
+  document.getElementById('modal-werkplanning-export').classList.add('open');
+
+  // Slot 0 — view-event (open van modal); volume-tracking in Plausible.
+  try {
+    if (typeof window.flanccoTrack === 'function') {
+      window.flanccoTrack('Werkplanning Export Opened', {
+        beurten_count: count,
+        lang: getWerkplanningLang()
+      });
+    }
+  } catch (_) {}
+}
+
+function closeWerkplanningExport() {
+  if (_wpeState.abortCtrl) { try { _wpeState.abortCtrl.abort(); } catch (_) {} }
+  _wpeState.loading = false;
+  _wpeState.abortCtrl = null;
+  document.getElementById('modal-werkplanning-export').classList.remove('open');
+}
+
+function resetWerkplanningExportButtons() {
+  var btnPdf = document.getElementById('wpe-btn-pdf');
+  var btnWa = document.getElementById('wpe-btn-whatsapp');
+  if (btnPdf) {
+    btnPdf.disabled = false;
+    btnPdf.querySelector('#wpe-label-pdf').textContent = wpeT('planning.werkplanningExport.btnPdf');
+    btnPdf.querySelector('#wpe-sub-pdf').textContent = wpeT('planning.werkplanningExport.btnPdfSub');
+    btnPdf.querySelector('#wpe-icon-pdf').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>';
+  }
+  if (btnWa) {
+    btnWa.disabled = !_wpeState.lastResult;
+    btnWa.querySelector('#wpe-label-wa').textContent = wpeT('planning.werkplanningExport.btnWhatsapp');
+    btnWa.querySelector('#wpe-sub-wa').textContent = _wpeState.lastResult
+      ? wpeT('planning.werkplanningExport.btnWhatsappSub')
+      : (getWerkplanningLang() === 'fr' ? 'Disponible apr\u00e8s g\u00e9n\u00e9ration du PDF' : 'Beschikbaar zodra de PDF is gegenereerd');
+  }
+}
+
+function setWerkplanningExportLoading(isLoading) {
+  _wpeState.loading = isLoading;
+  var btnPdf = document.getElementById('wpe-btn-pdf');
+  var btnWa = document.getElementById('wpe-btn-whatsapp');
+  var btnClose = document.getElementById('wpe-btn-close');
+  if (btnPdf) {
+    btnPdf.disabled = isLoading;
+    if (isLoading) {
+      btnPdf.querySelector('#wpe-label-pdf').textContent = wpeT('planning.werkplanningExport.btnPdfLoading');
+      btnPdf.querySelector('#wpe-sub-pdf').textContent = '';
+      btnPdf.querySelector('#wpe-icon-pdf').innerHTML = '<span class="wp-spinner" aria-hidden="true"></span>';
+    } else {
+      btnPdf.querySelector('#wpe-label-pdf').textContent = _wpeState.lastResult
+        ? wpeT('planning.werkplanningExport.openInTab')
+        : wpeT('planning.werkplanningExport.btnPdf');
+      btnPdf.querySelector('#wpe-sub-pdf').textContent = _wpeState.lastResult
+        ? wpeT('planning.werkplanningExport.expiresHint')
+        : wpeT('planning.werkplanningExport.btnPdfSub');
+      btnPdf.querySelector('#wpe-icon-pdf').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>';
+    }
+  }
+  if (btnWa) btnWa.disabled = isLoading || !_wpeState.lastResult;
+  if (btnClose) btnClose.disabled = false; // user kan altijd sluiten — abort gaat dan via close-handler
+}
+
+function showWerkplanningExportError(messageKey, detail) {
+  var el = document.getElementById('wpe-error');
+  if (!el) return;
+  var msg = wpeT(messageKey || 'planning.werkplanningExport.errorGeneric');
+  var detailHtml = detail ? '<div class="wp-error-detail">' + esc(String(detail)) + '</div>' : '';
+  el.innerHTML = '<strong>' + esc(wpeT('planning.werkplanningExport.errorTitle')) + '</strong>' +
+    esc(msg) + detailHtml;
+  el.style.display = 'block';
+}
+
+function hideWerkplanningExportError() {
+  var el = document.getElementById('wpe-error');
+  if (el) el.style.display = 'none';
+}
+
+/**
+ * Klik-handler voor de primaire PDF-knop. Bij debounce-hit no-op; bij hergebruik
+ * (modal open + lastResult aanwezig) opent direct in nieuw tabblad zonder nieuwe
+ * generatie.
+ */
+async function onWerkplanningExportPdf() {
+  // Debounce — bescherm tegen rapid double-clicks.
+  var now = Date.now();
+  if (now - _wpeState.lastClickTs < WERKPLANNING_DEBOUNCE_MS) return;
+  _wpeState.lastClickTs = now;
+
+  if (_wpeState.loading) return;
+
+  // Hergebruik laatste resultaat indien aanwezig (geen nieuwe round-trip).
+  if (_wpeState.lastResult && _wpeState.lastResult.url) {
+    triggerWerkplanningDownload(_wpeState.lastResult);
+    return;
+  }
+
+  await generateWerkplanningPdf();
+}
+
+/**
+ * Voert de fetch naar generate-pdf uit met AbortController + 30s timeout.
+ * Bij success: stelt lastResult in, triggert download, enabled WhatsApp-knop.
+ */
+async function generateWerkplanningPdf() {
+  hideWerkplanningExportError();
+  setWerkplanningExportLoading(true);
+
+  var techId = _wpeState.techId;
+  var dateISO = _wpeState.datum;
+  var data = gatherWerkplanningData(techId, dateISO);
+  if (!data || !data.beurten.length) {
+    setWerkplanningExportLoading(false);
+    showWerkplanningExportError('planning.werkplanningExport.errorNoBeurten');
+    return;
+  }
+
+  // Admin-session ophalen (defense-in-depth — werkplanning-template is public
+  // maar we willen dat een ge-revoked sessie meteen detect wordt).
+  var session = null;
+  try {
+    var sessRes = await sb.auth.getSession();
+    session = sessRes && sessRes.data && sessRes.data.session;
+  } catch (_) {}
+  if (!session || !session.access_token) {
+    setWerkplanningExportLoading(false);
+    showWerkplanningExportError('planning.werkplanningExport.errorMissingSession');
+    return;
+  }
+
+  var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+  _wpeState.abortCtrl = ctrl;
+  var timeoutId = ctrl ? setTimeout(function() { try { ctrl.abort(); } catch (_) {} }, WERKPLANNING_PDF_TIMEOUT_MS) : null;
+
+  var startTs = Date.now();
+  try {
+    var res = await fetch(WERKPLANNING_PDF_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({
+        template: 'werkplanning',
+        // Admin-context: gebruik altijd Flancco-default branding (geen partner-mix
+        // op werkplanning — meerdere klanten van verschillende partners kunnen
+        // op één tech-dag zitten, partner-branding zou willekeurig zijn).
+        partner_slug: 'flancco',
+        lang: getWerkplanningLang(),
+        data: data
+      }),
+      signal: ctrl ? ctrl.signal : undefined
+    });
+
+    if (timeoutId) clearTimeout(timeoutId);
+
+    var json = null;
+    try { json = await res.json(); } catch (_) { json = null; }
+
+    if (!res.ok) {
+      var errKey = 'planning.werkplanningExport.errorGeneric';
+      if (res.status === 401 || res.status === 403) errKey = 'planning.werkplanningExport.errorAuth';
+      else if (res.status === 429) errKey = 'planning.werkplanningExport.errorRate';
+      else if (res.status >= 500) errKey = 'planning.werkplanningExport.errorGeneric';
+      var detailMsg = (json && (json.error || json.message)) ? (json.error || json.message) : ('HTTP ' + res.status);
+      setWerkplanningExportLoading(false);
+      showWerkplanningExportError(errKey, detailMsg);
+      try {
+        if (typeof window.flanccoTrack === 'function') {
+          window.flanccoTrack('Werkplanning Failed', {
+            error_type: 'http_' + res.status,
+            lang: getWerkplanningLang(),
+            duration_ms: Date.now() - startTs
+          });
+        }
+      } catch (_) {}
+      return;
+    }
+
+    var url = json && (json.url || json.signedUrl);
+    var path = json && json.path;
+    var expiresAt = json && json.expires_at;
+    if (!url) {
+      setWerkplanningExportLoading(false);
+      showWerkplanningExportError('planning.werkplanningExport.errorGeneric', 'Server returned no URL');
+      try {
+        if (typeof window.flanccoTrack === 'function') {
+          window.flanccoTrack('Werkplanning Failed', { error_type: 'no_url', lang: getWerkplanningLang() });
+        }
+      } catch (_) {}
+      return;
+    }
+
+    var filename = (path ? String(path).split('/').pop() : null) ||
+      ('werkplanning-' + dateISO + '.pdf');
+
+    _wpeState.lastResult = { url: url, path: path, expiresAt: expiresAt, filename: filename };
+    _wpeState.abortCtrl = null;
+    setWerkplanningExportLoading(false);
+    showToast(wpeT('planning.werkplanningExport.successToast'));
+    triggerWerkplanningDownload(_wpeState.lastResult);
+
+    try {
+      if (typeof window.flanccoTrack === 'function') {
+        window.flanccoTrack('Werkplanning Generated', {
+          tech_id: techId,
+          datum: dateISO,
+          beurten_count: data.beurten.length,
+          lang: getWerkplanningLang(),
+          duration_ms: Date.now() - startTs
+        });
+      }
+    } catch (_) {}
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId);
+    var errType = 'fetch_error';
+    var errKey2 = 'planning.werkplanningExport.errorNetwork';
+    if (err && err.name === 'AbortError') {
+      errType = 'timeout';
+      errKey2 = 'planning.werkplanningExport.errorTimeout';
+    }
+    setWerkplanningExportLoading(false);
+    showWerkplanningExportError(errKey2, err && err.message);
+    try {
+      if (typeof window.flanccoTrack === 'function') {
+        window.flanccoTrack('Werkplanning Failed', { error_type: errType, lang: getWerkplanningLang() });
+      }
+    } catch (_) {}
+  }
+}
+
+/**
+ * Trigger een browser-download van de signed PDF-URL. Open in nieuwe tab als
+ * fallback (niet alle browsers respecteren `download` op cross-origin URL's;
+ * Supabase storage URLs zijn cross-origin t.o.v. de app-host).
+ */
+function triggerWerkplanningDownload(result) {
+  if (!result || !result.url) return;
+  try {
+    var a = document.createElement('a');
+    a.href = result.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    if (result.filename) a.download = result.filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { try { document.body.removeChild(a); } catch (_) {} }, 0);
+  } catch (_) {
+    // Last-resort: open in nieuwe tab via window.open
+    window.open(result.url, '_blank', 'noopener');
+  }
+}
+
+/**
+ * Open WhatsApp met pre-fill bericht. Als technieker_telefoon bekend en in
+ * E.164-achtig formaat (Belgisch +32...), gebruik dan wa.me/<E.164> om direct
+ * naar de tech te chatten. Anders generieke wa.me/?text=... met share-sheet.
+ */
+function onWerkplanningExportWhatsapp() {
+  var now = Date.now();
+  if (now - _wpeState.lastClickTs < WERKPLANNING_DEBOUNCE_MS) return;
+  _wpeState.lastClickTs = now;
+
+  if (!_wpeState.lastResult || !_wpeState.lastResult.url) return;
+  var techId = _wpeState.techId;
+  var dateISO = _wpeState.datum;
+  var tech = (allTechniekers || []).find(function(t) { return t.id === techId; });
+  if (!tech) return;
+
+  var voornaam = (tech.voornaam || '').trim() || (tech.naam || '').trim() || 'collega';
+  var datumDisplay = formatDateFull(parseDate(dateISO));
+  var msgTemplate = wpeT('planning.werkplanningExport.waMessageNl');
+  var msg = wpeFormat(msgTemplate, {
+    voornaam: voornaam,
+    datum: datumDisplay,
+    date: datumDisplay,
+    url: _wpeState.lastResult.url
+  });
+
+  var encoded = encodeURIComponent(msg);
+  var phoneE164 = normalizeBelgianPhoneE164(tech.telefoon);
+  var waUrl;
+  if (phoneE164) {
+    // wa.me verwacht digits-only zonder leading + (per WhatsApp click-to-chat spec).
+    waUrl = 'https://wa.me/' + phoneE164.replace(/^\+/, '') + '?text=' + encoded;
+  } else {
+    waUrl = 'https://wa.me/?text=' + encoded;
+  }
+
+  try { window.open(waUrl, '_blank', 'noopener,noreferrer'); }
+  catch (_) { location.href = waUrl; }
+
+  try {
+    if (typeof window.flanccoTrack === 'function') {
+      window.flanccoTrack('Werkplanning Shared', {
+        via: 'whatsapp',
+        tech_id: techId,
+        has_phone: !!phoneE164,
+        lang: getWerkplanningLang()
+      });
+    }
+  } catch (_) {}
+}
+
+/**
+ * Normaliseer een Belgisch telefoonnummer naar +32XXXXXXXXX.
+ * Accepteert: '+32 470 12 34 56', '0032470123456', '0470/12.34.56', '470123456'.
+ * Returnt null bij invalide of niet-BE-formaat.
+ */
+function normalizeBelgianPhoneE164(raw) {
+  if (!raw) return null;
+  var s = String(raw).replace(/[\s./()-]/g, '');
+  if (!s) return null;
+  if (s.indexOf('+32') === 0) {
+    return /^\+32\d{8,9}$/.test(s) ? s : null;
+  }
+  if (s.indexOf('0032') === 0) {
+    var rest = '+32' + s.substring(4);
+    return /^\+32\d{8,9}$/.test(rest) ? rest : null;
+  }
+  if (s.indexOf('0') === 0 && s.length >= 9 && s.length <= 10) {
+    var local = '+32' + s.substring(1);
+    return /^\+32\d{8,9}$/.test(local) ? local : null;
+  }
+  // Generieke E.164 (niet-BE) — pass-through indien geldig.
+  if (/^\+\d{8,15}$/.test(s)) return s;
+  return null;
+}
+
+// Sluit modal bij Escape — consistent met andere modals in deze app.
+document.addEventListener('keydown', function(ev) {
+  if (ev.key !== 'Escape') return;
+  var modal = document.getElementById('modal-werkplanning-export');
+  if (modal && modal.classList.contains('open')) {
+    closeWerkplanningExport();
+  }
+});
+
+// Sluit modal bij click op overlay (buiten de .modal box) — consistent UX.
+document.addEventListener('click', function(ev) {
+  var modal = document.getElementById('modal-werkplanning-export');
+  if (!modal || !modal.classList.contains('open')) return;
+  if (ev.target === modal) closeWerkplanningExport();
+});
 
 // INIT
 // =============================================

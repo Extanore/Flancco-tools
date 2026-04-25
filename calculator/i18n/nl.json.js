@@ -239,6 +239,106 @@
       okReady: 'Alle gegevens zijn correct ingevuld.',
       btw6NeedsBoth: 'Vink beide verklaringen aan of kies voor 21% BTW.',
       btw6Reverted: 'BTW automatisch teruggezet naar 21% omdat niet aan de voorwaarden werd voldaan.'
+    },
+    rapport: {
+      contract: {
+        tabLabel: 'Contract',
+        tabSubtitle: 'Scope, klantgegevens en bijkomende afspraken voor deze opdracht.',
+        scope: {
+          title: 'Scope van de opdracht',
+          aantalPanelen: 'Aantal panelen',
+          frequentie: 'Frequentie',
+          contractduur: 'Contractduur',
+          btwTarief: 'BTW-tarief',
+          totaalInclBtw: 'Totaal incl. BTW',
+          totaalExclBtw: 'Totaal excl. BTW',
+          eenheidsprijsBeurt: 'Eenheidsprijs per beurt',
+          notSet: 'Niet ingevuld',
+          btw6Verklaring: 'Verklaring 6% BTW geregistreerd op {datum}',
+          btw6VerklaringMissing: 'Verklaring 6% BTW ontbreekt',
+          frequentieJaarlijks: 'Jaarlijks',
+          frequentieHalfjaarlijks: 'Halfjaarlijks',
+          frequentieEenmalig: 'Eenmalig',
+          duurEenmalig: 'Eenmalig',
+          duurJaren: '{n} jaar'
+        },
+        klantContact: {
+          title: 'Klant- en contactgegevens',
+          naam: 'Naam',
+          adres: 'Adres',
+          postcode: 'Postcode',
+          gemeente: 'Gemeente',
+          email: 'E-mail',
+          telefoon: 'Telefoon',
+          klantType: 'Type klant',
+          particulier: 'Particulier',
+          bedrijf: 'Bedrijf',
+          bedrijfsnaam: 'Bedrijfsnaam',
+          btwNummer: 'BTW-nummer',
+          contactpersoon: 'Contactpersoon',
+          btwGevalideerd: 'BTW geverifieerd via VIES op {datum}'
+        },
+        instructies: {
+          title: 'Speciale instructies voor de technieker',
+          subtitle: 'Bijzonderheden die de technieker ter plekke moet weten (toegang, code, hond, parkeren, contactpersoon op locatie, ...).',
+          placeholder: 'Bv. sleutel onder bloempot, hond aanwezig, parkeren op de oprit \u2014 bel klant 10 min voor aankomst.',
+          charCounter: '{n}/{max} tekens',
+          save: 'Instructies opslaan',
+          saving: 'Opslaan\u2026',
+          saved: 'Opgeslagen',
+          saveSuccess: 'Instructies opgeslagen.',
+          saveError: 'Opslaan mislukt. Probeer opnieuw.',
+          tooLong: 'Maximum {max} tekens bereikt.'
+        },
+        handtekening: {
+          title: 'Akkoord scope door klant',
+          subtitle: 'Optioneel \u2014 klant kan ter plekke akkoord geven voor de geplande scope vóór start van de werken.',
+          cta: 'Klant tekent ter plekke',
+          modalTitle: 'Klant tekent voor akkoord scope',
+          modalHint: 'Laat de klant hieronder tekenen. Door te tekenen bevestigt de klant dat de geplande werken overeenkomen met de afspraak.',
+          clear: 'Wissen',
+          confirm: 'Bevestig akkoord',
+          cancel: 'Annuleren',
+          signedAt: 'Akkoord getekend op {datum}',
+          confirmClear: 'Bestaande scope-akkoord-handtekening wissen? Deze actie kan niet ongedaan worden gemaakt.',
+          clearAction: 'Wis & opnieuw',
+          saveSuccess: 'Akkoord scope opgeslagen.',
+          saveError: 'Opslaan handtekening mislukt. Probeer opnieuw.',
+          empty: 'Teken eerst een handtekening voor u bevestigt.'
+        },
+        emptyState: 'Selecteer eerst een onderhoudsbeurt om de contractgegevens te zien.'
+      }
+    },
+    // Slot A4 — Werkplanning per-dag export (admin/planning.html)
+    // Strings worden ge-spiegeld in de inline wpeT()-fallback in planning.html
+    // zodat ze ook werken zonder geladen i18n-runtime; bij toekomstige admin-i18n
+    // adoptie nemen deze keys het over zonder code-wijziging.
+    planning: {
+      werkplanningExport: {
+        title: 'Werkplanning exporteren',
+        subtitle: '{tech} \u2014 {datum}',
+        metaCount: '{count} beurt vandaag',
+        metaCountPlural: '{count} beurten vandaag',
+        btnPdf: 'PDF downloaden',
+        btnPdfSub: 'A4-document met alle beurten van de dag',
+        btnPdfLoading: 'PDF wordt gegenereerd\u2026',
+        btnWhatsapp: 'Stuur via WhatsApp',
+        btnWhatsappSub: 'Opent WhatsApp met pre-fill bericht + PDF-link',
+        btnRetry: 'Opnieuw proberen',
+        close: 'Sluiten',
+        successToast: 'Werkplanning gegenereerd',
+        openInTab: 'Open PDF in nieuw tabblad',
+        errorTitle: 'Werkplanning kon niet gegenereerd worden',
+        errorTimeout: 'Het duurde te lang om de PDF te maken. Probeer opnieuw of contacteer support als dit blijft gebeuren.',
+        errorNetwork: 'Geen verbinding met de PDF-service. Controleer je internet en probeer opnieuw.',
+        errorAuth: 'Sessie verlopen. Log opnieuw in om de werkplanning te exporteren.',
+        errorRate: 'Te veel exports na elkaar. Wacht even en probeer opnieuw.',
+        errorGeneric: 'Er ging iets mis bij het genereren van de PDF.',
+        errorMissingSession: 'Geen actieve admin-sessie gevonden \u2014 herlaad de pagina.',
+        errorNoBeurten: 'Geen beurten gevonden voor deze technieker op deze dag.',
+        waMessageNl: 'Hoi {voornaam}, hier je werkplanning voor {datum}: {url}',
+        expiresHint: 'Link 7 dagen geldig.'
+      }
     }
   });
 })();
