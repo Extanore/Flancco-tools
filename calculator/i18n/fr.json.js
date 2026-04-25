@@ -508,6 +508,85 @@
           totaalRij: 'Total',
           aantalBeurten: '{n} interventions'
         }
+      },
+      // Slot I — \u00c9quipe partenaire bas\u00e9e sur les r\u00f4les (gestion d\u2019\u00e9quipe dans param\u00e8tres partenaire)
+      team: {
+        title: 'Membres de l\u2019\u00e9quipe',
+        subtitle: 'G\u00e9rez qui peut acc\u00e9der \u00e0 ce portail partenaire et quels droits ils re\u00e7oivent.',
+        add: {
+          btn: 'Ajouter un membre',
+          modalTitle: 'Inviter un nouveau membre',
+          email: 'Adresse e-mail',
+          emailPlaceholder: 'nom@entreprise.be',
+          voornaam: 'Pr\u00e9nom',
+          naam: 'Nom',
+          presetLabel: 'R\u00e9glage rapide',
+          presetMedewerkerBasis: 'Collaborateur \u2014 base',
+          presetMedewerkerUitgebreid: 'Collaborateur \u2014 \u00e9tendu',
+          presetCoOwner: 'Co-propri\u00e9taire',
+          submit: 'Inviter',
+          cancel: 'Annuler'
+        },
+        perm: {
+          contracten_aanmaken: {
+            label: 'Cr\u00e9er des contrats',
+            hint: 'Peut enregistrer de nouveaux contrats via le lien calculateur.'
+          },
+          facturatie_inzage: {
+            label: 'Acc\u00e8s facturation',
+            hint: 'Peut ouvrir la page facturation et t\u00e9l\u00e9charger les exports.'
+          },
+          rapporten_inzage: {
+            label: 'Acc\u00e8s rapports',
+            hint: 'Peut ouvrir les rapports d\u2019ex\u00e9cution et de service.'
+          },
+          planning_inzage: {
+            label: 'Acc\u00e8s planning',
+            hint: 'Peut consulter le calendrier de planning et voir ses propres t\u00e2ches.'
+          },
+          manage_users: {
+            label: 'Gestion d\u2019\u00e9quipe',
+            hint: 'Peut inviter des coll\u00e8gues, modifier leurs droits et les retirer.'
+          }
+        },
+        role: {
+          owner: 'Administrateur',
+          medewerker: 'Collaborateur'
+        },
+        actions: {
+          edit: 'Modifier les droits',
+          remove: 'Retirer'
+        },
+        edit: {
+          modalTitle: 'Modifier les droits de {naam}',
+          submit: 'Enregistrer',
+          cancel: 'Annuler'
+        },
+        remove: {
+          confirmTitle: 'Retirer ce membre\u00a0?',
+          confirmBody: 'Vous \u00eates sur le point de retirer {naam} de ce portail partenaire. Cette action est irr\u00e9versible.',
+          confirmBtn: 'Retirer d\u00e9finitivement',
+          cancel: 'Annuler'
+        },
+        toast: {
+          invited: 'Invitation envoy\u00e9e \u00e0 {email}.',
+          removed: 'Membre retir\u00e9.',
+          permsUpdated: 'Droits mis \u00e0 jour.',
+          errorPermission: 'Vous n\u2019avez pas les droits pour effectuer cette action.',
+          errorExists: 'Cet utilisateur existe d\u00e9j\u00e0 dans une autre \u00e9quipe partenaire \u2014 contactez l\u2019administrateur.',
+          errorSelf: 'Vous ne pouvez pas vous retirer vous-m\u00eame.',
+          errorLastOwner: 'Impossible de retirer le dernier administrateur \u2014 d\u00e9signez d\u2019abord un autre coll\u00e8gue comme administrateur.',
+          errorRateLimit: 'Trop d\u2019invitations en peu de temps \u2014 r\u00e9essayez plus tard.',
+          errorGeneric: 'Une erreur est survenue. R\u00e9essayez ou contactez le support.'
+        },
+        empty: {
+          title: 'Aucun membre pour le moment',
+          hint: 'Invitez votre premier coll\u00e8gue pour g\u00e9rer ensemble contrats et planning.'
+        },
+        list: {
+          permSummaryNone: 'Aucun droit suppl\u00e9mentaire',
+          permSummaryCount: '{n} droits actifs'
+        }
       }
     }
   });

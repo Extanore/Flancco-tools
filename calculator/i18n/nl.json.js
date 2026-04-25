@@ -520,6 +520,85 @@
           totaalRij: 'Totaal',
           aantalBeurten: '{n} beurten'
         }
+      },
+      // Slot I — Rol-gebaseerd partner-team (team-beheer in partner-instellingen)
+      team: {
+        title: 'Teamleden',
+        subtitle: 'Beheer wie toegang heeft tot dit partner-portaal en welke rechten ze krijgen.',
+        add: {
+          btn: 'Teamlid toevoegen',
+          modalTitle: 'Nieuw teamlid uitnodigen',
+          email: 'E-mailadres',
+          emailPlaceholder: 'naam@bedrijf.be',
+          voornaam: 'Voornaam',
+          naam: 'Achternaam',
+          presetLabel: 'Snel-instelling',
+          presetMedewerkerBasis: 'Medewerker basis',
+          presetMedewerkerUitgebreid: 'Medewerker uitgebreid',
+          presetCoOwner: 'Co-eigenaar',
+          submit: 'Uitnodigen',
+          cancel: 'Annuleren'
+        },
+        perm: {
+          contracten_aanmaken: {
+            label: 'Contracten aanmaken',
+            hint: 'Mag nieuwe contracten registreren via de calculator-link.'
+          },
+          facturatie_inzage: {
+            label: 'Facturatie inzage',
+            hint: 'Mag de facturatie-pagina openen en exports downloaden.'
+          },
+          rapporten_inzage: {
+            label: 'Rapporten inzage',
+            hint: 'Mag uitvoerings- en service-rapporten openen.'
+          },
+          planning_inzage: {
+            label: 'Planning inzage',
+            hint: 'Mag de planning-kalender bekijken en eigen taken zien.'
+          },
+          manage_users: {
+            label: 'Teambeheer',
+            hint: 'Mag collega\u2019s uitnodigen, rechten aanpassen en verwijderen.'
+          }
+        },
+        role: {
+          owner: 'Beheerder',
+          medewerker: 'Medewerker'
+        },
+        actions: {
+          edit: 'Rechten aanpassen',
+          remove: 'Verwijderen'
+        },
+        edit: {
+          modalTitle: 'Rechten aanpassen voor {naam}',
+          submit: 'Opslaan',
+          cancel: 'Annuleren'
+        },
+        remove: {
+          confirmTitle: 'Teamlid verwijderen?',
+          confirmBody: 'Je staat op het punt om {naam} te verwijderen uit dit partner-portaal. Deze actie kan niet ongedaan gemaakt worden.',
+          confirmBtn: 'Definitief verwijderen',
+          cancel: 'Annuleren'
+        },
+        toast: {
+          invited: 'Uitnodiging verstuurd naar {email}.',
+          removed: 'Teamlid verwijderd.',
+          permsUpdated: 'Rechten bijgewerkt.',
+          errorPermission: 'Je hebt geen rechten om deze actie uit te voeren.',
+          errorExists: 'Deze gebruiker bestaat al in een ander partner-team \u2014 contacteer de beheerder.',
+          errorSelf: 'Je kan jezelf niet verwijderen.',
+          errorLastOwner: 'Kan laatste beheerder niet verwijderen \u2014 wijs eerst een andere collega aan als beheerder.',
+          errorRateLimit: 'Te veel uitnodigingen kort na elkaar \u2014 probeer het later opnieuw.',
+          errorGeneric: 'Er ging iets mis. Probeer het opnieuw of contacteer support.'
+        },
+        empty: {
+          title: 'Nog geen teamleden',
+          hint: 'Nodig je eerste collega uit om samen contracten en planning te beheren.'
+        },
+        list: {
+          permSummaryNone: 'Geen extra rechten',
+          permSummaryCount: '{n} rechten actief'
+        }
       }
     }
   });
