@@ -352,8 +352,20 @@
         warningProceed: 'Toch plannen'
       }
     },
-    // Slot K — Admin-beheer: feestdagen & sluitingsperiodes
+    // Slot K & L — Admin-beheer: feestdagen, verlof / EW
     admin: {
+      // Slot L — Verlof / EW samengevoegd onder één pagina (page-verlof-ew)
+      verlofEw: {
+        title: 'Verlof / EW',
+        subtitle: 'Beheer verlof-aanvragen, saldi en economische werkloosheid',
+        tabVerlof: 'Verlof',
+        tabEw: 'EW',
+        subTabKalender: 'Kalender',
+        subTabAanvragen: 'Aanvragen',
+        subTabSaldo: 'Saldo',
+        subTabPersoneel: 'Personeel',
+        nieuweAanvraag: 'Nieuwe aanvraag'
+      },
       feestdagen: {
         pageTitle: 'Feestdagen & sluitingsperiodes',
         pageSubtitle: 'Wettelijke BE feestdagen en bedrijfs-sluitingen. Worden in de planning-agenda als waarschuwing getoond.',

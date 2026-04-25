@@ -341,8 +341,20 @@
         warningProceed: 'Planifier quand m\u00eame'
       }
     },
-    // Slot K — Gestion admin: jours f\u00e9ri\u00e9s & fermetures
+    // Slot K & L — Gestion admin: jours f\u00e9ri\u00e9s, cong\u00e9s / CT
     admin: {
+      // Slot L — Cong\u00e9s & ch\u00f4mage temporaire fusionn\u00e9s sous une seule page
+      verlofEw: {
+        title: 'Cong\u00e9s / CT',
+        subtitle: 'G\u00e9rez les demandes de cong\u00e9s, les soldes et le ch\u00f4mage \u00e9conomique',
+        tabVerlof: 'Cong\u00e9s',
+        tabEw: 'CT',
+        subTabKalender: 'Calendrier',
+        subTabAanvragen: 'Demandes',
+        subTabSaldo: 'Soldes',
+        subTabPersoneel: 'Personnel',
+        nieuweAanvraag: 'Nouvelle demande'
+      },
       feestdagen: {
         pageTitle: 'Jours f\u00e9ri\u00e9s & p\u00e9riodes de fermeture',
         pageSubtitle: 'Jours f\u00e9ri\u00e9s belges et fermetures de l\u2019entreprise. Affich\u00e9s comme avertissement dans le planning.',
