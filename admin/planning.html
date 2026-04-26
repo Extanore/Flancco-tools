@@ -748,24 +748,22 @@
      - data-beurt-id-highlight : soft-highlight op alle balken zelfde opdracht
      ===================================================================== */
   .hp-add-btn {
-    position: absolute; top: 4px; right: 4px; z-index: 4;
+    position: absolute; bottom: 4px; right: 4px; z-index: 6;
     display: none; align-items: center; justify-content: center;
-    width: 18px; height: 18px; border-radius: 50%;
+    width: 20px; height: 20px; border-radius: 50%;
     background: var(--white); color: var(--navy);
     border: 1px solid var(--navy); cursor: pointer;
-    padding: 0; font-size: 13px; line-height: 1; font-weight: 700;
+    padding: 0; font-size: 14px; line-height: 1; font-weight: 700;
     transition: transform 0.15s var(--ease), background 0.15s var(--ease);
     box-shadow: var(--shadow-sm);
+    pointer-events: auto;
   }
-  .hp-add-btn:hover { transform: scale(1.12); background: var(--navy); color: var(--white); }
+  .hp-add-btn:hover { transform: scale(1.15); background: var(--navy); color: var(--white); }
   .hp-add-btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
   .appt-card:hover .hp-add-btn { display: inline-flex; }
   /* Day-view: altijd zichtbaar (mirror van wpeBtn-pattern). */
-  .day-grid .appt-card .hp-add-btn { display: inline-flex; opacity: 0.8; }
+  .day-grid .appt-card .hp-add-btn { display: inline-flex; opacity: 0.85; }
   .day-grid .appt-card:hover .hp-add-btn { opacity: 1; }
-  /* Wanneer een avatar-stack staat, schuift de + knop links zodat ze niet overlappen. */
-  .appt-card.has-avatar-stack .hp-add-btn { right: auto; left: 4px; top: 4px; }
-  /* En verberg sector-icon binnen avatar-stack zone door de stack rechts te zetten. */
 
   .appt-avatar-stack {
     position: absolute; top: 4px; right: 4px; z-index: 2;
@@ -3278,7 +3276,7 @@ function getTechInitials(tech) {
 }
 
 function isTechAbsent(techId, date) {
-  var ds = formatDateISO(date);
+  var ds = (typeof date === 'string') ? date : formatDateISO(date);
   return allAfwezigheden.some(function(a) {
     return a.technieker_id === techId && ds >= a.van_datum && ds <= a.tot_datum;
   });
@@ -3453,7 +3451,7 @@ function getBeurtFieldsOnDate(beurt, dateISO) {
 }
 
 function getBeurtenForTechDay(techId, date) {
-  var ds = formatDateISO(date);
+  var ds = (typeof date === 'string') ? date : formatDateISO(date);
   return allBeurten.filter(function(b) {
     if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
     if (!isBeurtOnDay(b, ds)) return false;
@@ -3657,6 +3655,89 @@ function infoDialog(message, title) {
     message: message,
     confirmLabel: 'OK',
     cancelLabel: ''
+  });
+}
+
+/**
+ * Scope-keuze dialog voor verwijderen van een multi-dag opdracht.
+ * Default = 'dag' (minst destructief). Gebruiker kan via segmented-control
+ * switchen naar 'opdracht' (cascade). Voorkomt dat een misclick op de
+ * verwijder-knop in een dag-context onbedoeld de volledige opdracht wist.
+ *
+ * @param {object} ctx { klantNaam, datumLabel, dagenCount }
+ * @returns {Promise<'dag'|'opdracht'|null>}
+ */
+function confirmDeleteScopeDialog(ctx) {
+  return new Promise(function(resolve) {
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.style.zIndex = '2147482000';
+    overlay.innerHTML =
+      '<div class="modal" style="max-width:480px;padding:28px" role="alertdialog" aria-modal="true">' +
+        '<h2 style="margin:0 0 6px;font-size:18px;color:var(--navy)">Wat wil je verwijderen?</h2>' +
+        '<p style="margin:0 0 18px;color:#6B7280;font-size:13px">' +
+          esc(ctx.klantNaam) + ' \u2014 multi-dag opdracht (' + ctx.dagenCount + ' dagen)' +
+        '</p>' +
+        '<div class="segmented-control" style="display:flex;width:100%;margin-bottom:14px" role="radiogroup" aria-label="Verwijder-bereik">' +
+          '<button type="button" class="seg-btn is-active" data-scope="dag" style="flex:1" role="radio" aria-checked="true">Alleen deze dag</button>' +
+          '<button type="button" class="seg-btn" data-scope="opdracht" style="flex:1" role="radio" aria-checked="false">Volledige opdracht</button>' +
+        '</div>' +
+        '<div data-scope-info="dag" style="margin:0 0 22px;padding:12px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:13px;color:#14532D;line-height:1.5">' +
+          '<strong>Alleen ' + esc(ctx.datumLabel) + '</strong> wordt verwijderd.<br>' +
+          'De overige ' + (ctx.dagenCount - 1) + ' dag(en), uren, materialen en rapporten blijven bestaan.' +
+        '</div>' +
+        '<div data-scope-info="opdracht" style="display:none;margin:0 0 22px;padding:12px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:13px;color:#7F1D1D;line-height:1.5">' +
+          '<strong>LET OP \u2014 volledige opdracht wordt verwijderd</strong>:<br>' +
+          'Alle ' + ctx.dagenCount + ' dagen, uren, materialen en rapporten gaan weg.<br>' +
+          'Herstel binnen 30 dagen via Prullenbak in het admin-menu.' +
+        '</div>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+          '<button type="button" class="btn btn-ghost" data-role="cancel">Annuleren</button>' +
+          '<button type="button" class="btn btn-danger" data-role="confirm">Ja, verwijderen</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    var selected = 'dag';
+    var segBtns = overlay.querySelectorAll('.seg-btn');
+    var infoBlocks = overlay.querySelectorAll('[data-scope-info]');
+
+    function setScope(scope) {
+      selected = scope;
+      segBtns.forEach(function(b) {
+        var on = (b.dataset.scope === scope);
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      infoBlocks.forEach(function(el) {
+        el.style.display = (el.getAttribute('data-scope-info') === scope) ? 'block' : 'none';
+      });
+    }
+    segBtns.forEach(function(b) {
+      b.addEventListener('click', function() { setScope(b.dataset.scope); });
+    });
+
+    function finish(result) {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(result);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); finish(null); }
+      else if (e.key === 'Enter') { e.preventDefault(); finish(selected); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        setScope(selected === 'dag' ? 'opdracht' : 'dag');
+      }
+    }
+    overlay.querySelector('[data-role=cancel]').addEventListener('click', function() { finish(null); });
+    overlay.querySelector('[data-role=confirm]').addEventListener('click', function() { finish(selected); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) finish(null); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(function() {
+      var firstSeg = overlay.querySelector('.seg-btn.is-active');
+      if (firstSeg) firstSeg.focus();
+    }, 0);
   });
 }
 
@@ -5161,9 +5242,11 @@ function renderApptCard(b, info, dayInfo, dateISO) {
   if (canShowHpBtn && allowedStatusesForHp && dateISO) {
     var hpDatumAttr = esc(dateISO);
     var hpTechAttr = esc(fields.technieker_id || '');
-    hpBtnHtml = '<button type="button" class="hp-add-btn" ' +
+    hpBtnHtml = '<button type="button" class="hp-add-btn" draggable="false" ' +
       'data-beurt-id="' + esc(b.id) + '" data-datum="' + hpDatumAttr + '" data-tech-id="' + hpTechAttr + '" ' +
-      'onclick="event.stopPropagation();slotM_openHelperPopover(this.dataset.beurtId, this.dataset.techId, this.dataset.datum, this);" ' +
+      'onmousedown="event.stopPropagation();" ' +
+      'ondragstart="event.preventDefault();event.stopPropagation();return false;" ' +
+      'onclick="event.stopPropagation();event.preventDefault();slotM_openHelperPopover(this.dataset.beurtId, this.dataset.techId, this.dataset.datum, this);" ' +
       'aria-label="Extra technieker toevoegen" ' +
       'title="Extra technieker toevoegen">+</button>';
   }
@@ -8119,7 +8202,7 @@ function selectDagInEditor(beurtId, datumISO) {
  * plan_datum/eind_datum/duur automatisch. Als het de enige dag was, blijft parent
  * achter met plan_datum=null → beurt komt terug in backlog.
  */
-async function deleteDagFromBeurt(beurtId, datumISO) {
+async function deleteDagFromBeurt(beurtId, datumISO, skipConfirm) {
   var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
   if (!dagen || dagen.length === 0) return;
   if (dagen.length === 1) {
@@ -8127,21 +8210,23 @@ async function deleteDagFromBeurt(beurtId, datumISO) {
     return;
   }
 
-  // Klantnaam ophalen voor expliciete bevestiging — voorkomt misclick op verkeerde rij.
-  var beurtCtx = (allBeurten || []).find(function(b) { return b.id === beurtId; });
-  var infoCtx = (beurtCtx && typeof getClientInfo === 'function') ? getClientInfo(beurtCtx) : null;
-  var klantNaamCtx = (infoCtx && infoCtx.naam) ? infoCtx.naam : ((beurtCtx && beurtCtx.klant_naam) || 'deze klant');
-  var datumLabelCtx = formatDate(parseDate(datumISO));
+  if (!skipConfirm) {
+    // Klantnaam ophalen voor expliciete bevestiging — voorkomt misclick op verkeerde rij.
+    var beurtCtx = (allBeurten || []).find(function(b) { return b.id === beurtId; });
+    var infoCtx = (beurtCtx && typeof getClientInfo === 'function') ? getClientInfo(beurtCtx) : null;
+    var klantNaamCtx = (infoCtx && infoCtx.naam) ? infoCtx.naam : ((beurtCtx && beurtCtx.klant_naam) || 'deze klant');
+    var datumLabelCtx = formatDate(parseDate(datumISO));
 
-  var bevestig = await confirmDialog({
-    title: 'Dag verwijderen uit reeks?',
-    message: 'Weet je zeker dat je deze dag van de opdracht voor ' + klantNaamCtx +
-      ' op ' + datumLabelCtx + ' wil verwijderen?\n\nDit kan niet ongedaan gemaakt worden.',
-    confirmLabel: 'Ja, verwijderen',
-    cancelLabel: 'Annuleren',
-    variant: 'danger'
-  });
-  if (!bevestig) return;
+    var bevestig = await confirmDialog({
+      title: 'Dag verwijderen uit reeks?',
+      message: 'Weet je zeker dat je deze dag van de opdracht voor ' + klantNaamCtx +
+        ' op ' + datumLabelCtx + ' wil verwijderen?\n\nDit kan niet ongedaan gemaakt worden.',
+      confirmLabel: 'Ja, verwijderen',
+      cancelLabel: 'Annuleren',
+      variant: 'danger'
+    });
+    if (!bevestig) return;
+  }
 
   var res = await sb.from('beurt_planning_dagen')
     .delete()
@@ -8499,27 +8584,47 @@ async function deleteBeurtFromModal() {
     }
   } catch (_) { /* tabel bestaat mogelijk niet — fall through */ }
 
-  // Klant + datum-context voor de explicit confirm-dialoog
+  // Klant + datum-context voor de confirm-flow
   var infoCtx = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : null;
   var klantNaamCtx = (infoCtx && infoCtx.naam) ? infoCtx.naam : (beurt.klant_naam || 'deze klant');
-  var datumLabelCtx = beurt.plan_datum
-    ? (typeof formatDateFull === 'function' ? formatDateFull(parseDate(beurt.plan_datum)) : formatDate(parseDate(beurt.plan_datum)))
+  var actieveDatumEl = document.getElementById('edit-beurt-datum');
+  var actieveDatum = (actieveDatumEl && actieveDatumEl.value) || beurt.plan_datum;
+  var datumLabelCtx = actieveDatum
+    ? (typeof formatDateFull === 'function' ? formatDateFull(parseDate(actieveDatum)) : formatDate(parseDate(actieveDatum)))
     : 'onbekende datum';
 
-  var msg = 'LET OP: Je staat op het punt de volledige opdracht voor ' + klantNaamCtx +
-    ' op ' + datumLabelCtx + ' te verwijderen.\n\n' +
-    'Dit verwijdert ook alle gekoppelde uren, materialen en rapporten.\n' +
-    'Herstel is mogelijk binnen 30 dagen via "Prullenbak" in het admin-menu.\n\n' +
-    'Doorgaan?';
+  // Multi-dag check: bij 2+ dagen toon scope-keuze (default = alleen deze dag)
+  var dagenLijst = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
+  if (dagenLijst.length > 1 && actieveDatum) {
+    var scope = await confirmDeleteScopeDialog({
+      klantNaam: klantNaamCtx,
+      datumLabel: datumLabelCtx,
+      dagenCount: dagenLijst.length
+    });
+    if (!scope) return;
+    if (scope === 'dag') {
+      // Delegate naar dag-only delete (heeft al eigen state-update + UI-refresh)
+      await deleteDagFromBeurt(beurtId, actieveDatum, true);
+      return;
+    }
+    // scope === 'opdracht' — fall through naar volledige cascade-delete hieronder
+  } else {
+    // Single-day opdracht: directe cascade-confirm (geen keuze nodig)
+    var msg = 'LET OP: Je staat op het punt de volledige opdracht voor ' + klantNaamCtx +
+      ' op ' + datumLabelCtx + ' te verwijderen.\n\n' +
+      'Dit verwijdert ook alle gekoppelde uren, materialen en rapporten.\n' +
+      'Herstel is mogelijk binnen 30 dagen via "Prullenbak" in het admin-menu.\n\n' +
+      'Doorgaan?';
 
-  var ok = await confirmDialog({
-    title: 'Opdracht verwijderen?',
-    message: msg,
-    confirmLabel: 'Ja, verwijderen',
-    cancelLabel: 'Annuleren',
-    variant: 'danger'
-  });
-  if (!ok) return;
+    var ok = await confirmDialog({
+      title: 'Opdracht verwijderen?',
+      message: msg,
+      confirmLabel: 'Ja, verwijderen',
+      cancelLabel: 'Annuleren',
+      variant: 'danger'
+    });
+    if (!ok) return;
+  }
 
   // Soft-delete via RPC: zet verwijderd_op/verwijderd_door + audit-log entry.
   // Geen losse `beurt_uren_registraties` DELETE meer — die rijen blijven intact
