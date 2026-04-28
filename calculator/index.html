@@ -122,6 +122,13 @@
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(9,137,121,0.12); }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .field-error { border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(229,62,62,0.12) !important; }
+  /* Slot V — readonly afstand-veld: visueel onderscheid van bewerkbare velden */
+  .field input[readonly] { background: var(--light); color: var(--dark); cursor: not-allowed; border-color: var(--rule); }
+  .field input[readonly]:focus { box-shadow: none; border-color: var(--rule); }
+  .field-helper { font-size: 12px; color: var(--grey); margin-top: 6px; line-height: 1.4; display: flex; align-items: center; gap: 6px; }
+  .field-helper.is-computed { color: var(--primary); }
+  .field-helper.is-fallback { color: #B45309; }
+  .field-helper svg { width: 14px; height: 14px; flex-shrink: 0; }
 
   /* RADIO */
   .radio-group { display: flex; flex-direction: column; gap: 8px; }
@@ -630,11 +637,18 @@
 
     <!-- Shared fields (distance, BTW, freq, duur) -->
     <div id="shared-fields">
+      <!--
+        Slot V — Afstand wordt server-side berekend op basis van partner-
+        vestigingsadres ↔ klant-postcode. Veld is readonly (eindklant kan
+        het niet manipuleren — afstand is een prijs-driver). Auto-fill via
+        RPC anon_calculate_distance_km na geldige postcode-input.
+      -->
       <div class="card">
         <div class="card-title" data-i18n="step1.cards.afstand">Afstand</div>
         <div class="field">
           <label><span data-i18n="step1.cards.afstandLabel">Afstand tot uw woning</span> <small data-i18n="step1.cards.afstandUnit">(in km)</small></label>
-          <input type="number" id="afstand" min="0" max="500" value="15" oninput="calculateAll()">
+          <input type="number" id="afstand" min="0" max="500" value="15" readonly aria-readonly="true" tabindex="-1">
+          <div class="field-helper is-fallback" id="afstand-helper" aria-live="polite" data-i18n="step1.cards.afstandWaiting">Vul eerst uw postcode in om de afstand te berekenen.</div>
         </div>
       </div>
 
@@ -3633,6 +3647,98 @@ function syncPostcodeBetweenSteps(pcStr, gemStr) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Slot V — Server-side afstandsberekening
+// ─────────────────────────────────────────────────────────────────────
+// Cache per (partner_id|postcode|land) zodat we niet bij elke render een
+// roundtrip naar de RPC doen. Cleared bij sectorwissel niet nodig — input
+// hangt enkel af van postcode + partner.
+var afstandRpcCache = {};
+var afstandRpcInflight = null;
+
+function setAfstandHelper(state, msgKey) {
+  var el = document.getElementById('afstand-helper');
+  if (!el) return;
+  el.classList.remove('is-computed', 'is-fallback');
+  if (!state) { el.textContent = ''; el.removeAttribute('data-i18n'); return; }
+  el.classList.add(state === 'computed' ? 'is-computed' : 'is-fallback');
+  if (msgKey) {
+    el.setAttribute('data-i18n', msgKey);
+    el.textContent = (window.t ? window.t(msgKey) : '') || '';
+  }
+}
+
+function setAfstandValue(km) {
+  var el = document.getElementById('afstand');
+  if (!el) return;
+  el.value = km;
+  if (typeof calculateAll === 'function') calculateAll();
+}
+
+/**
+ * Roept de server-RPC anon_calculate_distance_km aan voor de huidige
+ * partner + de meegegeven klant-postcode. Werkt het readonly afstand-veld
+ * bij en triggert calculateAll(). Bij NULL (onbekende postcode) → fallback
+ * naar default 15 km met 'geschatte afstand'-helper.
+ *
+ * Aangeroepen na elke geslaagde postcode-validatie en wanneer de partner
+ * geladen is.
+ */
+function refreshAfstandFromPostcode(klantPostcode) {
+  if (!partner || !partner.id) return;
+  var pc = String(klantPostcode || '').trim().replace(/\s.*$/, '');
+  if (!pc) {
+    setAfstandHelper('fallback', 'step1.cards.afstandWaiting');
+    return;
+  }
+  // Klant-land afleiden: BE-format → 'BE', anders we gokken 'NL' niet (ander
+  // formaat) en behouden default. Calculator is BE-first; NL is partner-only.
+  var klantLand = isBePostcode(pc) ? 'BE' : 'BE';
+
+  var cacheKey = partner.id + '|' + pc + '|' + klantLand;
+  if (afstandRpcCache[cacheKey] !== undefined) {
+    var cached = afstandRpcCache[cacheKey];
+    if (cached === null) {
+      setAfstandHelper('fallback', 'step1.cards.afstandFallback');
+    } else {
+      setAfstandValue(cached);
+      setAfstandHelper('computed', 'step1.cards.afstandComputed');
+    }
+    return;
+  }
+
+  // Inflight-dedupe: als dezelfde call al loopt, wacht
+  if (afstandRpcInflight && afstandRpcInflight.key === cacheKey) return;
+
+  afstandRpcInflight = { key: cacheKey };
+  sb.rpc('anon_calculate_distance_km', {
+    p_partner_id: partner.id,
+    p_klant_postcode: pc,
+    p_klant_land: klantLand
+  }).then(function (res) {
+    if (afstandRpcInflight && afstandRpcInflight.key !== cacheKey) return;
+    afstandRpcInflight = null;
+    if (res.error) {
+      console.warn('[Slot V] afstand-RPC error:', res.error.message);
+      setAfstandHelper('fallback', 'step1.cards.afstandFallback');
+      afstandRpcCache[cacheKey] = null;
+      return;
+    }
+    var km = res.data;
+    afstandRpcCache[cacheKey] = (km === null || km === undefined) ? null : km;
+    if (km === null || km === undefined) {
+      setAfstandHelper('fallback', 'step1.cards.afstandFallback');
+    } else {
+      setAfstandValue(km);
+      setAfstandHelper('computed', 'step1.cards.afstandComputed');
+    }
+  }).catch(function (err) {
+    afstandRpcInflight = null;
+    console.warn('[Slot V] afstand-RPC throw:', err);
+    setAfstandHelper('fallback', 'step1.cards.afstandFallback');
+  });
+}
+
 // Toon/verberg 6%-optie + btw6-verklaring + BTW-revert.
 function applyPostcodeState(pc) {
   var opt = document.getElementById('btw6-option');
@@ -3652,6 +3758,12 @@ function applyPostcodeState(pc) {
     }
     if (typeof toggleBtwAttest === 'function') toggleBtwAttest();
     if (typeof calculateAll === 'function') calculateAll();
+  }
+  // Slot V — Server-side afstand bijwerken zodra postcode geldig is.
+  if (isBE && pc && pc.length === 4) {
+    refreshAfstandFromPostcode(pc);
+  } else {
+    setAfstandHelper('fallback', 'step1.cards.afstandWaiting');
   }
 }
 
