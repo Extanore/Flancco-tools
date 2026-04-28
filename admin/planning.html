@@ -1845,6 +1845,12 @@
     font-size: 12px; color: var(--grey);
   }
 </style>
+<!-- Flancco Client Combobox (shared) — searchable klant-picker met grouped headers.
+     Geladen synchroon (geen defer) zodat window.FlanccoClientCombobox + window.FlanccoClientItems
+     beschikbaar zijn voor alle inline init-paden (qaOpenModal, fillNiKlantDropdown, ...). -->
+<link rel="stylesheet" href="shared/client-combobox.css">
+<script src="shared/client-combobox.js"></script>
+<script src="shared/client-combobox-items.js"></script>
 </head>
 <body>
 
@@ -2083,10 +2089,12 @@
     </div>
     <div class="modal-field" id="qa-client-wrap" style="display:none">
       <label>Klant *</label>
-      <div style="display:flex;gap:8px">
-        <select id="qa-client" onchange="qaClientChanged()" style="flex:1">
-          <option value="">— Kies een klant —</option>
-        </select>
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <!-- Searchable combobox (FlanccoClientCombobox) — vervangt native select.
+             Input id="qa-client" wordt door de combobox-init aangemaakt als hidden
+             input voor backwards-compat met saveQuickAdd() dat .value leest. -->
+        <div class="fcb" id="qa-client-cb" style="flex:1"></div>
+        <input type="hidden" id="qa-client" onchange="qaClientChanged()">
         <button type="button" onclick="qaSelectNewKlant()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
       </div>
     </div>
@@ -2373,8 +2381,12 @@
 
     <div class="modal-field">
       <label>Klant / Contract *</label>
-      <div style="display:flex;gap:8px">
-        <select id="ni-klant" onchange="onNiKlantChange()" style="flex:1"></select>
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <!-- Searchable combobox — vervangt native select. Hidden input #ni-klant
+             bewaart de waarde (prefix 'client:UUID' of 'contract:UUID') voor
+             backwards-compat met onNiKlantChange + saveNieuweInterventie. -->
+        <div class="fcb" id="ni-klant-cb" style="flex:1"></div>
+        <input type="hidden" id="ni-klant" onchange="onNiKlantChange()">
         <button type="button" onclick="niSelectNewKlant()" style="padding:8px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit">+ Nieuwe klant</button>
       </div>
     </div>
@@ -6088,27 +6100,63 @@ function sidebarMenuEscape(ev) {
 var FLANCCO_PARTNER_ID = '93679849-afb0-4a69-8bd5-b74afdf22cad';
 
 function fillNiKlantDropdown(preselectId) {
-  var sel = document.getElementById('ni-klant');
-  sel.innerHTML = '<option value="">— Kies een klant —</option>';
-  // Klanten uit clients-tabel
-  var klanten = (allClients || []).slice().sort(function(a, b) {
-    return (a.company_name || a.contact_person || '').localeCompare(b.company_name || b.contact_person || '');
+  // FlanccoClientCombobox — bedrijven gegroepeerd, particulieren apart, legacy
+  // contracten in eigen sectie via extraItems. Value-prefix 'client:UUID' /
+  // 'contract:UUID' bewaard voor backwards-compat met onNiKlantChange.
+  var cbWrap = document.getElementById('ni-klant-cb');
+  var hidden = document.getElementById('ni-klant');
+  if (!cbWrap || !window.FlanccoClientCombobox || !window.FlanccoClientItems) return;
+
+  // Bouw items met value-prefix 'client:' (post-process op build-output).
+  var clientItems = window.FlanccoClientItems.build(allClients || []);
+  // Re-prefix alle item.value met 'client:'
+  clientItems.forEach(function (it) {
+    if (it.type === 'item' && it.value) it.value = 'client:' + it.value;
   });
-  klanten.forEach(function(k) {
-    var naam = k.company_name || k.contact_person || '—';
-    var stad = k.city || '';
-    sel.innerHTML += '<option value="client:' + k.id + '">' + esc(naam) + (stad ? ' (' + esc(stad) + ')' : '') + '</option>';
-  });
-  // Los klant_naam uit contracten die nog geen client_id hebben (legacy)
+
+  // Legacy contracten zonder client_id → eigen sectie 'Legacy contracten'
+  var legacyItems = [];
   var seen = {};
-  (allContracten || []).forEach(function(c) {
+  (allContracten || []).forEach(function (c) {
     if (c.client_id) return;
     var key = (c.klant_naam || '').trim().toLowerCase() + '|' + (c.klant_gemeente || '');
     if (!key || seen[key]) return;
     seen[key] = true;
-    sel.innerHTML += '<option value="contract:' + c.id + '">' + esc(c.klant_naam || '—') + ' (' + esc(c.klant_gemeente || '') + ') · legacy</option>';
+    legacyItems.push({
+      type: 'item',
+      label: c.klant_naam || '—',
+      value: 'contract:' + c.id,
+      meta: c.klant_gemeente || '',
+      searchText: ((c.klant_naam || '') + ' ' + (c.klant_gemeente || '') + ' legacy').toLowerCase()
+    });
   });
-  if (preselectId) sel.value = preselectId;
+
+  // Combineer: clientItems al volledig (incl. headers) + legacyItems als nieuwe sectie
+  var items = clientItems.slice();
+  if (legacyItems.length) {
+    items.push({ type: 'group', kind: 'header', label: 'Legacy contracten' });
+    items = items.concat(legacyItems);
+  }
+
+  var existing = cbWrap.__fcb;
+  if (existing) {
+    existing.setItems(items);
+    existing.setValue(preselectId || null);
+  } else {
+    cbWrap.__fcb = window.FlanccoClientCombobox.attach(cbWrap, {
+      items: items,
+      placeholder: 'Kies klant of contract…',
+      emptyText: 'Geen klanten beschikbaar',
+      initialValue: preselectId || null,
+      onChange: function (value) {
+        if (hidden) {
+          hidden.value = value || '';
+          hidden.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    });
+  }
+  if (hidden) hidden.value = preselectId || '';
 }
 
 /**
@@ -6322,6 +6370,9 @@ function openNieuweInterventieModal() {
 function niSelectNewKlant() {
   // Leeg dropdown en toon inline nieuwe-klant-velden
   document.getElementById('ni-klant').value = '';
+  // Sync combobox-UI
+  var niCb = document.getElementById('ni-klant-cb');
+  if (niCb && niCb.__fcb) niCb.__fcb.clear();
   document.getElementById('ni-contract-wrap').style.display = 'none';
   document.getElementById('ni-sector-wrap').style.display = 'block';
   var newWrap = document.getElementById('ni-new-client-fields');
@@ -6753,7 +6804,9 @@ async function _saveNieuweInterventieInner(action) {
 
   if (!klantVal && !newNiClientActive) {
     showToast('Selecteer een klant of klik "+ Nieuwe klant".', 'error');
-    var elKL = document.getElementById('ni-klant'); if (elKL) elKL.focus();
+    var niCbFocus = document.getElementById('ni-klant-cb');
+    if (niCbFocus && niCbFocus.__fcb) niCbFocus.__fcb.focus();
+    else { var elKL = document.getElementById('ni-klant'); if (elKL) elKL.focus(); }
     return;
   }
   if (!sector) {
@@ -10880,18 +10933,32 @@ function quickAdd(techId, datum, mode, opdrachtType) {
       esc(kl) + ' — ' + esc(c.sector || 'zonnepanelen') + (c.contract_nummer ? ' (' + c.contract_nummer + ')' : '') + '</option>';
   });
 
-  // Populate client dropdown voor losse opdracht
-  var clientSel = document.getElementById('qa-client');
-  if (clientSel) {
-    clientSel.innerHTML = '<option value="">— Kies een klant —</option>';
-    var sortedClients = (allClients || []).slice().sort(function(a, b) {
-      return (a.contact_person || '').localeCompare(b.contact_person || '');
-    });
-    sortedClients.forEach(function(c) {
-      var naam = c.contact_person || c.email || 'Klant ' + c.id.slice(0, 6);
-      var extra = c.city ? ' — ' + c.city : '';
-      clientSel.innerHTML += '<option value="' + c.id + '">' + esc(naam + extra) + '</option>';
-    });
+  // Populate client combobox voor losse opdracht (FlanccoClientCombobox).
+  // Bedrijven gegroepeerd, contactpersonen ingesprongen, particulieren in eigen sectie.
+  // Hidden input #qa-client bewaart geselecteerde client_id voor saveQuickAdd-flow.
+  var qaCbWrap = document.getElementById('qa-client-cb');
+  var qaHidden = document.getElementById('qa-client');
+  if (qaCbWrap && window.FlanccoClientCombobox && window.FlanccoClientItems) {
+    var items = window.FlanccoClientItems.build(allClients || []);
+    var existing = qaCbWrap.__fcb;
+    if (existing) {
+      existing.setItems(items);
+      existing.clear();
+    } else {
+      qaCbWrap.__fcb = window.FlanccoClientCombobox.attach(qaCbWrap, {
+        items: items,
+        placeholder: 'Kies klant…',
+        emptyText: 'Geen klanten beschikbaar',
+        onChange: function (value) {
+          if (qaHidden) {
+            qaHidden.value = value || '';
+            // Trigger native onchange zodat qaClientChanged() vuurt
+            qaHidden.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      });
+    }
+    if (qaHidden) qaHidden.value = '';
   }
 
   // Reset hidden tarief-keuze (default = uurtarief, backend verrekent)
@@ -11183,6 +11250,9 @@ function qaSelectNewKlant() {
   document.getElementById('qa-contract').value = '';
   var clientSel = document.getElementById('qa-client');
   if (clientSel) clientSel.value = '';
+  // Sync de combobox-UI (anders blijft een eerdere selectie zichtbaar in de trigger)
+  var qaCb = document.getElementById('qa-client-cb');
+  if (qaCb && qaCb.__fcb) qaCb.__fcb.clear();
   document.getElementById('qa-new-client-fields').style.display = 'block';
   // Reset locatie-picker bij "+ Nieuwe klant"
   var locWrap = document.getElementById('qa-loc-wrap'); if (locWrap) locWrap.style.display = 'none';
@@ -11297,7 +11367,10 @@ async function saveQuickAdd(action) {
       var clientValPre = document.getElementById('qa-client').value;
       if (!clientValPre && !newClientActivePre) {
         showToast('Kies een klant of maak een nieuwe aan.', 'error');
-        var elQC = document.getElementById('qa-client'); if (elQC) elQC.focus();
+        // Combobox heeft eigen focus-API; fallback op hidden-input voor geen-component-pagina's
+        var qaCbFocus = document.getElementById('qa-client-cb');
+        if (qaCbFocus && qaCbFocus.__fcb) qaCbFocus.__fcb.focus();
+        else { var elQC = document.getElementById('qa-client'); if (elQC) elQC.focus(); }
         return;
       }
     } else {
@@ -11324,7 +11397,9 @@ async function saveQuickAdd(action) {
   if (isLosse) {
     if (!clientVal && !newClientActive) {
       showToast('Kies een klant of klik "+ Nieuwe klant"', 'error');
-      var elQCl = document.getElementById('qa-client'); if (elQCl) elQCl.focus();
+      var qaCbFocus2 = document.getElementById('qa-client-cb');
+      if (qaCbFocus2 && qaCbFocus2.__fcb) qaCbFocus2.__fcb.focus();
+      else { var elQCl = document.getElementById('qa-client'); if (elQCl) elQCl.focus(); }
       return;
     }
   } else {

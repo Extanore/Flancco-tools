@@ -16,14 +16,30 @@ Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onder
 ## Bestandsstructuur
 ```
 Flancco-tools/
-├── admin/index.html      — Admin dashboard (login, contracten, partners, pricing, winstgevendheid, instellingen)
-├── novectra/index.html   — Calculator voor partner Novectra
-├── cwsolar/index.html    — Calculator voor partner CW Solar
-├── DEPLOY.sh             — Git deploy script
-└── CLAUDE.md             — Dit bestand
+├── admin/index.html               — Admin dashboard (login, contracten, partners, pricing, winstgevendheid, instellingen)
+├── admin/planning.html            — Planning + agenda (week/dag/maand views, QuickAdd, Interventie-modal)
+├── admin/contracten-wizard.html   — Multi-step contract-wizard (klantkeuze → sector → pricing → onderteken)
+├── admin/shared/                  — Shared componenten (gedeeld door admin/*.html)
+│   ├── client-combobox.js         — Searchable klant-picker (vervangt native <select>, bedrijven-grouping)
+│   ├── client-combobox.css        — Styles voor de combobox (.fcb- prefix)
+│   ├── client-combobox-items.js   — Helper: clients-array → combobox-items (DRY voor 4 call-sites)
+│   └── client-combobox-demo.html  — Standalone test-pagina met 3 scenario's
+├── novectra/index.html            — Calculator voor partner Novectra
+├── cwsolar/index.html             — Calculator voor partner CW Solar
+├── DEPLOY.sh                      — Git deploy script
+└── CLAUDE.md                      — Dit bestand
 ```
 
-Alle bestanden zijn **single-file HTML** met inline CSS en JS. Geen npm, geen bundler.
+Alle bestanden zijn **single-file HTML** met inline CSS en JS — behalve `admin/shared/` waar gedeelde componenten in afzonderlijke `.js`/`.css` files leven (geladen via `<script src>` + `<link>` in elke host-page). Geen npm, geen bundler.
+
+### Shared component: FlanccoClientCombobox
+Searchable klant-picker met bedrijven gegroepeerd, contactpersonen ingesprongen onder hun bedrijf, particulieren in eigen sectie. Vervangt native `<select>` op alle plaatsen waar een klant uit `clients`-tabel gekozen wordt:
+- `qa-client` (Losse opdracht in `planning.html`)
+- `ni-klant` (Nieuwe interventie in `planning.html`, met legacy-contracten als extra sectie)
+- `uitgeef-client` (Bouwdroger uitgeven in `index.html`)
+- `wiz-client` (Contract-wizard, partner-gefilterd, met magic `__new`-item bovenaan)
+
+Pattern: native hidden input behoudt waarde voor backwards-compat met bestaande save-handlers. Initialisatie via `window.FlanccoClientCombobox.attach(wrapperEl, {items, onChange, ...})`. Items-shape gebouwd door `window.FlanccoClientItems.build(allClients, options)`. ARIA combobox pattern, keyboard-navigatie, accent-insensitive search, XSS-defensief.
 
 ## Supabase Configuratie
 - **Project URL**: `https://dhuqpxwwavqyxaelxuzl.supabase.co`
