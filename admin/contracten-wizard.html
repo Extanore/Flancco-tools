@@ -393,6 +393,12 @@
   .wiz-btw6-box .check-row.is-required-missing { border-color: var(--red); background: rgba(229,62,62,0.05); }
   .wiz-btw6-box .verklaring-disclaimer { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #D9C285; font-size: 11px; color: #7A6520; }
 </style>
+<!-- Flancco Client Combobox (shared) — searchable klant-picker met grouped headers.
+     Geladen synchroon (geen defer) zodat window.FlanccoClientCombobox + window.FlanccoClientItems
+     beschikbaar zijn voor alle inline init-paden. -->
+<link rel="stylesheet" href="shared/client-combobox.css">
+<script src="shared/client-combobox.js"></script>
+<script src="shared/client-combobox-items.js"></script>
 </head>
 <body>
 
@@ -517,10 +523,11 @@
         <div class="card-title">Klant</div>
         <div class="field">
           <label>Bestaande klant</label>
-          <select id="wiz-client" onchange="onClientSelect()">
-            <option value="">Selecteer klant...</option>
-            <option value="__new">+ Nieuwe klant aanmaken</option>
-          </select>
+          <!-- Searchable combobox — vervangt native select. Magic value '__new'
+               triggert nieuwe-klant-formulier via onClientSelect. Hidden input
+               #wiz-client behoudt bestaande state-API. -->
+          <div class="fcb" id="wiz-client-cb"></div>
+          <input type="hidden" id="wiz-client" onchange="onClientSelect()">
         </div>
         <div class="klant-preview" id="klant-preview">
           <h4 id="kp-naam"></h4>
@@ -995,7 +1002,10 @@ function applyClientFromUrl() {
   if (!sel) return;
   var exists = (clients || []).some(function(c) { return c.id === clientId; });
   if (!exists) return;
+  // Sync zowel hidden input als combobox-UI voor deep-link consistentie
   sel.value = clientId;
+  var cbWrap = document.getElementById('wiz-client-cb');
+  if (cbWrap && cbWrap.__fcb) cbWrap.__fcb.setValue(clientId);
   if (typeof onClientSelect === 'function') onClientSelect();
 }
 
@@ -1551,14 +1561,41 @@ async function loadPartnerData(partnerId) {
 }
 
 function renderClientDropdown() {
-  var sel = document.getElementById('wiz-client');
-  sel.innerHTML = '<option value="">Selecteer klant...</option><option value="__new">+ Nieuwe klant aanmaken</option>';
-  clients.forEach(function(c) {
-    var opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = (c.company_name ? c.company_name + ' — ' : '') + (c.contact_person || c.email);
-    sel.appendChild(opt);
-  });
+  // FlanccoClientCombobox — clients zijn al partner-gefilterd in loadPartnerData.
+  // Magic '__new'-item bovenaan voor "+ Nieuwe klant aanmaken"-flow.
+  var cbWrap = document.getElementById('wiz-client-cb');
+  var hidden = document.getElementById('wiz-client');
+  if (!cbWrap || !window.FlanccoClientCombobox || !window.FlanccoClientItems) return;
+
+  var baseItems = window.FlanccoClientItems.build(clients || []);
+  var items = [
+    { type: 'group', kind: 'header', label: 'Acties' },
+    {
+      type: 'item',
+      label: '+ Nieuwe klant aanmaken',
+      value: '__new',
+      meta: 'Inline formulier',
+      searchText: 'nieuwe klant aanmaken nieuw'
+    }
+  ].concat(baseItems);
+
+  if (cbWrap.__fcb) {
+    cbWrap.__fcb.setItems(items);
+    cbWrap.__fcb.clear();
+  } else {
+    cbWrap.__fcb = window.FlanccoClientCombobox.attach(cbWrap, {
+      items: items,
+      placeholder: 'Selecteer klant…',
+      emptyText: 'Geen klanten voor deze partner',
+      onChange: function (value) {
+        if (hidden) {
+          hidden.value = value || '';
+          hidden.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    });
+  }
+  if (hidden) hidden.value = '';
 }
 
 function onClientSelect() {

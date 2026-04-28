@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flancco Client Combobox — Demo</title>
+  <link rel="stylesheet" href="./client-combobox.css">
+  <style>
+    :root {
+      --navy:  #1A1A2E;
+      --grey:  #6B7280;
+      --light: #F3F4F6;
+      --rule:  #E5E7EB;
+      --red:   #E74C3C;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--light);
+      color: var(--navy);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+    }
+    .lead {
+      color: var(--grey);
+      margin: 0 0 32px;
+      font-size: 13px;
+    }
+    .scenario {
+      background: #FFFFFF;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .scenario h2 {
+      margin: 0 0 4px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+    .scenario p.desc {
+      margin: 0 0 14px;
+      color: var(--grey);
+      font-size: 12px;
+    }
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--grey);
+      margin: 0 0 6px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--rule);
+      background: #FFFFFF;
+      color: var(--navy);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      min-height: 36px;
+    }
+    .btn:hover { background: var(--light); }
+    .btn--primary {
+      background: var(--navy);
+      color: #FFFFFF;
+      border-color: var(--navy);
+    }
+    .btn--primary:hover { background: #2d2d4a; }
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: var(--light);
+      border-radius: 6px;
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 11px;
+      color: var(--navy);
+      word-break: break-all;
+    }
+    .status strong { color: var(--grey); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Client Combobox — Demo</h1>
+    <p class="lead">Drie scenario's. Open de browser-console om <code>onChange</code>-events live te zien.</p>
+
+    <!-- Scenario A: B2B met bedrijfsgroepen + particulieren -->
+    <section class="scenario">
+      <h2>A · B2B-klanten gegroepeerd per bedrijf</h2>
+      <p class="desc">Contactpersonen ingesprongen onder hun bedrijf, particulieren onderaan.</p>
+      <span class="field-label" id="qa-label-a">Klant</span>
+      <div class="fcb" id="qa-client-cb-a" aria-labelledby="qa-label-a"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="btn-set-a">Zet op Sophie</button>
+        <button type="button" class="btn" id="btn-clear-a">Wissen</button>
+        <button type="button" class="btn btn--primary" id="btn-get-a">getValue()</button>
+      </div>
+      <div class="status" id="status-a"><strong>geen selectie</strong></div>
+    </section>
+
+    <!-- Scenario B: alleen particulieren -->
+    <section class="scenario">
+      <h2>B · Enkel particulieren</h2>
+      <p class="desc">Geen bedrijfsgroepen — items renderen niet ingesprongen.</p>
+      <span class="field-label" id="qa-label-b">Klant</span>
+      <div class="fcb" id="qa-client-cb-b" aria-labelledby="qa-label-b"></div>
+      <div class="status" id="status-b"><strong>geen selectie</strong></div>
+    </section>
+
+    <!-- Scenario C: lege lijst -->
+    <section class="scenario">
+      <h2>C · Lege lijst</h2>
+      <p class="desc">Toont de <em>emptyText</em>-boodschap.</p>
+      <span class="field-label" id="qa-label-c">Klant</span>
+      <div class="fcb" id="qa-client-cb-c" aria-labelledby="qa-label-c"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="btn-load-c">Laad items</button>
+      </div>
+      <div class="status" id="status-c"><strong>geen items</strong></div>
+    </section>
+  </main>
+
+  <script src="./client-combobox.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      // ---- Data ------------------------------------------------------------
+
+      var b2bItems = [
+        { type: 'group', kind: 'header',  label: 'Bedrijven' },
+
+        { type: 'group', kind: 'company', label: "Chef's Secret BV", meta: 'Brugge' },
+        { type: 'item',  label: 'Sophie De Vadder', value: 'uuid-1', meta: 'Brugge',
+          companyName: "Chef's Secret BV",
+          searchText: "sophie de vadder chef's secret brugge horeca" },
+        { type: 'item',  label: 'Pieter Janssens',  value: 'uuid-2', meta: 'Brugge',
+          companyName: "Chef's Secret BV",
+          searchText: "pieter janssens chef's secret brugge horeca" },
+
+        { type: 'group', kind: 'company', label: 'Aannemingen Vermeulen NV', meta: 'Gent' },
+        { type: 'item',  label: 'Karel Vermeulen', value: 'uuid-3', meta: 'Gent',
+          companyName: 'Aannemingen Vermeulen NV',
+          searchText: 'karel vermeulen aannemingen gent bouw' },
+        { type: 'item',  label: 'Linda Verstraete', value: 'uuid-4', meta: 'Gent',
+          companyName: 'Aannemingen Vermeulen NV',
+          searchText: 'linda verstraete aannemingen gent bouw' },
+
+        { type: 'group', kind: 'company', label: 'Industriebakkerij De Smet', meta: 'Roeselare' },
+        { type: 'item',  label: 'Tom De Smet',     value: 'uuid-5', meta: 'Roeselare',
+          companyName: 'Industriebakkerij De Smet',
+          searchText: 'tom de smet industriebakkerij roeselare voeding' },
+
+        { type: 'group', kind: 'header',  label: 'Particulieren' },
+        { type: 'item',  label: 'Gillian Geernaert', value: 'uuid-6', meta: 'Evergem',
+          searchText: 'gillian geernaert evergem particulier' },
+        { type: 'item',  label: 'Élise Dubois',      value: 'uuid-7', meta: 'Namur',
+          searchText: 'elise dubois namur particulier' },
+        { type: 'item',  label: 'Marc Vanderlinden', value: 'uuid-8', meta: 'Antwerpen',
+          searchText: 'marc vanderlinden antwerpen particulier' }
+      ];
+
+      var particulierItems = [
+        { type: 'group', kind: 'header', label: 'Particulieren' },
+        { type: 'item', label: 'Gillian Geernaert', value: 'p-1', meta: 'Evergem',
+          searchText: 'gillian geernaert evergem' },
+        { type: 'item', label: 'Annelies Peeters',  value: 'p-2', meta: 'Leuven',
+          searchText: 'annelies peeters leuven' },
+        { type: 'item', label: 'Bart Mertens',      value: 'p-3', meta: 'Mechelen',
+          searchText: 'bart mertens mechelen' },
+        { type: 'item', label: 'Céline Lambert',    value: 'p-4', meta: 'Liège',
+          searchText: 'celine lambert liege liège' }
+      ];
+
+      // ---- Helpers ---------------------------------------------------------
+
+      function setStatus(elId, value, item) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        if (value == null) {
+          el.innerHTML = '';
+          var s = document.createElement('strong');
+          s.textContent = 'geen selectie';
+          el.appendChild(s);
+          return;
+        }
+        el.innerHTML = '';
+        var label = document.createElement('strong');
+        label.textContent = 'value: ';
+        el.appendChild(label);
+        el.appendChild(document.createTextNode(value));
+        if (item && item.label) {
+          el.appendChild(document.createElement('br'));
+          var l2 = document.createElement('strong');
+          l2.textContent = 'item.label: ';
+          el.appendChild(l2);
+          el.appendChild(document.createTextNode(item.label));
+        }
+        if (item && item.companyName) {
+          el.appendChild(document.createElement('br'));
+          var l3 = document.createElement('strong');
+          l3.textContent = 'item.companyName: ';
+          el.appendChild(l3);
+          el.appendChild(document.createTextNode(item.companyName));
+        }
+      }
+
+      // ---- Scenario A ------------------------------------------------------
+
+      var cbA = window.FlanccoClientCombobox.attach(
+        document.getElementById('qa-client-cb-a'),
+        {
+          items: b2bItems,
+          placeholder: 'Kies klant…',
+          emptyText: 'Geen klanten gevonden',
+          onChange: function (value, item) {
+            console.log('[Scenario A] onChange:', value, item);
+            setStatus('status-a', value, item);
+          },
+          onClear: function () {
+            console.log('[Scenario A] onClear');
+          }
+        }
+      );
+
+      document.getElementById('btn-set-a').addEventListener('click', function () {
+        cbA.setValue('uuid-1');
+      });
+      document.getElementById('btn-clear-a').addEventListener('click', function () {
+        cbA.clear();
+        setStatus('status-a', null, null);
+      });
+      document.getElementById('btn-get-a').addEventListener('click', function () {
+        var v = cbA.getValue();
+        console.log('[Scenario A] getValue() ->', v);
+        window.alert('Huidige waarde: ' + (v == null ? '(null)' : v));
+      });
+
+      // ---- Scenario B ------------------------------------------------------
+
+      var cbB = window.FlanccoClientCombobox.attach(
+        document.getElementById('qa-client-cb-b'),
+        {
+          items: particulierItems,
+          placeholder: 'Kies particulier…',
+          onChange: function (value, item) {
+            console.log('[Scenario B] onChange:', value, item);
+            setStatus('status-b', value, item);
+          }
+        }
+      );
+
+      // ---- Scenario C ------------------------------------------------------
+
+      var cbC = window.FlanccoClientCombobox.attach(
+        document.getElementById('qa-client-cb-c'),
+        {
+          items: [],
+          placeholder: 'Kies klant…',
+          emptyText: 'Nog geen klanten — voeg eerst een contract toe',
+          onChange: function (value, item) {
+            console.log('[Scenario C] onChange:', value, item);
+            setStatus('status-c', value, item);
+          }
+        }
+      );
+      document.getElementById('btn-load-c').addEventListener('click', function () {
+        cbC.setItems(particulierItems);
+        var el = document.getElementById('status-c');
+        el.innerHTML = '';
+        var s = document.createElement('strong');
+        s.textContent = 'items geladen — open dropdown';
+        el.appendChild(s);
+      });
+
+      // ---- Console hint ----------------------------------------------------
+      console.log('Flancco Client Combobox demo geladen. Open de dropdowns en typ om te filteren.');
+    })();
+  </script>
+</body>
+</html>

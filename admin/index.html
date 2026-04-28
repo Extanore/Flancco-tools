@@ -1429,6 +1429,12 @@
     .mkt-copy-btn { width:100%; margin-top:6px; }
   }
 </style>
+<!-- Flancco Client Combobox (shared) — searchable klant-picker met grouped headers.
+     Geladen synchroon (geen defer) zodat window.FlanccoClientCombobox + window.FlanccoClientItems
+     beschikbaar zijn voor alle inline init-paden. -->
+<link rel="stylesheet" href="shared/client-combobox.css">
+<script src="shared/client-combobox.js"></script>
+<script src="shared/client-combobox-items.js"></script>
 </head>
 <body>
 
@@ -4566,7 +4572,11 @@
     <input type="hidden" id="uitgeef-droger-id">
     <div class="modal-field"><label>Droger</label><input id="uitgeef-droger-label" readonly style="background:#f5f5f5"></div>
     <div class="modal-field"><label>Klant *</label>
-      <select id="uitgeef-client" onchange="uitgeefClientChanged()"></select>
+      <!-- Searchable combobox — vervangt native select. Hidden input bewaart
+           geselecteerde client_id voor saveUitgeefDroger; postcode-lookup via
+           allClients-array i.p.v. data-attribute op option. -->
+      <div class="fcb" id="uitgeef-client-cb"></div>
+      <input type="hidden" id="uitgeef-client" onchange="uitgeefClientChanged()">
       <small style="color:var(--grey);font-size:11px">Regio wordt automatisch vergeleken met de droger — je krijgt een waarschuwing bij cross-regio.</small>
     </div>
     <div id="uitgeef-regio-waarschuwing" style="display:none;padding:8px 12px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;font-size:12px;color:#92400E;margin-bottom:12px"></div>
@@ -17603,15 +17613,29 @@ function openUitgeefModal(drogerId) {
   document.getElementById('uitgeef-notitie').value = '';
   document.getElementById('uitgeef-regio-waarschuwing').style.display = 'none';
 
-  var sel = document.getElementById('uitgeef-client');
-  var clients = (allClients || []).slice().sort(function(a, b) {
-    return (a.company_name || a.contact_person || '').localeCompare(b.company_name || b.contact_person || '');
-  });
-  sel.innerHTML = '<option value="">— Selecteer klant —</option>';
-  clients.forEach(function(c) {
-    var label = (c.company_name || c.contact_person || '—') + (c.city ? ' (' + c.city + ')' : '');
-    sel.innerHTML += '<option value="' + c.id + '" data-postcode="' + esc(c.postal_code || '') + '">' + esc(label) + '</option>';
-  });
+  // FlanccoClientCombobox — bedrijven gegroepeerd, particulieren in eigen sectie.
+  var ucWrap = document.getElementById('uitgeef-client-cb');
+  var ucHidden = document.getElementById('uitgeef-client');
+  if (ucWrap && window.FlanccoClientCombobox && window.FlanccoClientItems) {
+    var ucItems = window.FlanccoClientItems.build(allClients || []);
+    if (ucWrap.__fcb) {
+      ucWrap.__fcb.setItems(ucItems);
+      ucWrap.__fcb.clear();
+    } else {
+      ucWrap.__fcb = window.FlanccoClientCombobox.attach(ucWrap, {
+        items: ucItems,
+        placeholder: 'Selecteer klant…',
+        emptyText: 'Geen klanten beschikbaar',
+        onChange: function (value) {
+          if (ucHidden) {
+            ucHidden.value = value || '';
+            ucHidden.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      });
+    }
+    if (ucHidden) ucHidden.value = '';
+  }
 
   document.getElementById('modal-droger-uitgeven').classList.add('open');
 }
@@ -17627,8 +17651,9 @@ function uitgeefClientChanged() {
   var warnEl = document.getElementById('uitgeef-regio-waarschuwing');
   if (!d || !sel.value) { warnEl.style.display = 'none'; return; }
 
-  var opt = sel.options[sel.selectedIndex];
-  var postcode = opt ? opt.dataset.postcode : '';
+  // Postcode-lookup via allClients (combobox heeft geen option-elements meer)
+  var clientObj = (allClients || []).find(function(c) { return c.id === sel.value; });
+  var postcode = clientObj ? (clientObj.postal_code || '') : '';
   var clientRegio = postcodeToRegio(postcode);
 
   if (clientRegio && clientRegio !== d.regio) {
