@@ -2610,25 +2610,29 @@
     <!-- Info preview -->
     <div id="edit-beurt-info" style="background:var(--light);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px"></div>
 
-    <!-- UX optie B: per-dag context-banner + delete-keuze (multi-day only).
-         Verschijnt zodra de beurt 2+ dag-records heeft zodat de gebruiker
-         expliciet kan kiezen tussen "deze dag" of "hele opdracht" zonder
-         de footer-knop te raden. Single-day beurten verbergen deze rij
-         en vallen terug op de footer "Verwijderen"-knop. -->
+    <!-- UX optie B (Apr 28): per-dag context-banner met expliciete keuze tussen
+         3 acties: alleen één tech eraf, hele dag uit reeks, hele opdracht weg.
+         Verschijnt zodra de beurt 2+ dag-records heeft. Single-day beurten
+         verbergen deze rij en vallen terug op de footer "Verwijderen"-knop. -->
     <div id="edit-beurt-day-actions" style="display:none;margin-bottom:14px;padding:12px 14px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px">
-      <div id="edit-beurt-day-context-label" style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px">DAG &middot;</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button type="button" onclick="deleteCurrentDayFromModal()"
-          style="padding:7px 12px;background:#fff;border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:var(--red);cursor:pointer;font-family:inherit">
-          Verwijder enkel deze dag
+      <div id="edit-beurt-day-context-label" style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">DAG &middot;</div>
+      <div id="edit-beurt-day-tech-label" style="font-size:11px;color:#92400E;margin-bottom:10px;line-height:1.4"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" id="edit-beurt-del-tech-btn" onclick="removeTechFromCurrentDay()"
+          style="display:none;padding:7px 11px;background:#fff;border:1.5px solid #92400E;border-radius:6px;font-size:12px;font-weight:600;color:#92400E;cursor:pointer;font-family:inherit">
+          Haal &lt;tech&gt; van deze dag
+        </button>
+        <button type="button" id="edit-beurt-del-day-btn" onclick="deleteCurrentDayFromModal()"
+          style="padding:7px 11px;background:#fff;border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:var(--red);cursor:pointer;font-family:inherit">
+          Verwijder dag voor iedereen
         </button>
         <button type="button" onclick="deleteBeurtFromModal()"
-          style="padding:7px 12px;background:var(--red);border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit">
+          style="padding:7px 11px;background:var(--red);border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit">
           Verwijder hele opdracht
         </button>
       </div>
       <div style="font-size:11px;color:#92400E;margin-top:8px;line-height:1.4">
-        "Deze dag" haalt enkel deze datum uit de reeks en update de duur. "Hele opdracht" verwijdert alle dagen + uren + materialen.
+        Eerste knop: alleen jouw rij van deze dag halen (collega's blijven). Tweede: hele dag uit reeks. Derde: alle dagen + uren wissen.
       </div>
     </div>
 
@@ -5028,7 +5032,8 @@ function renderWeekView() {
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
           var dayInfo = getBeurtDayInfo(b, dayISO);
-          html += renderApptCard(b, info, dayInfo, dayISO);
+          // UX-fix Apr 28: tech.id meegeven zodat per-tech-uit-dag-actie weet welke rij geklikt is
+          html += renderApptCard(b, info, dayInfo, dayISO, tech.id);
         });
         // Duo-beurten: toon als volwaardige kaart met duo-indicator (+ multi-dag badge)
         ghostBeurten.forEach(function(b) {
@@ -5055,9 +5060,10 @@ function renderWeekView() {
             '<span class="appt-multidag-badge" title="Meerdaagse opdracht">Dag ' + ghostDayInfo.dayIndex + '/' + ghostDayInfo.totalDays + '</span>' : '';
           var ghostMultiClass = ghostDayInfo.isMultiDay ? ' is-multidag' : '';
           html += '<div class="appt-card ' + getSectorClass(info.sector) + ghostMultiClass + '" ' +
-            // UX-fix Apr 28: geef dayISO mee zodat de modal de correcte dag-context
-            // toont (DAG X VAN Y · <datum>) i.p.v. terug te vallen op plan_datum.
-            'onclick="openEditBeurtModal(\'' + b.id + '\', null, \'' + esc(dayISO) + '\', null)" ' +
+            // UX-fix Apr 28: geef dayISO + tech.id mee zodat de modal de correcte
+            // dag-context toont (DAG X VAN Y · <datum>) en weet welke tech-rij
+            // is geklikt voor de "Haal <tech> van deze dag"-actie.
+            'onclick="openEditBeurtModal(\'' + b.id + '\', null, \'' + esc(dayISO) + '\', null, \'' + esc(tech.id) + '\')" ' +
             'style="cursor:pointer;position:relative" ' +
             'title="Duo-beurt met ' + esc(hoofdNaam) + (ghostDayInfo.isMultiDay ? ' (dag ' + ghostDayInfo.dayIndex + '/' + ghostDayInfo.totalDays + ')' : '') + '">' +
             '<div class="appt-klant">' + esc(info.naam) + ghostMultiBadge + '</div>' +
@@ -5222,7 +5228,7 @@ function beurtRefHtml(b) {
   return ref ? '<span class="ref-chip">' + esc(ref) + '</span>' : '';
 }
 
-function renderApptCard(b, info, dayInfo, dateISO) {
+function renderApptCard(b, info, dayInfo, dateISO, contextTechId) {
   // Fix #6: dayInfo = { dayIndex, totalDays, isMultiDay } voor multi-dag beurten; default eendaags.
   dayInfo = dayInfo || { dayIndex: 1, totalDays: 1, isMultiDay: false };
   var isFirstDay = dayInfo.dayIndex === 1;
@@ -5309,11 +5315,17 @@ function renderApptCard(b, info, dayInfo, dateISO) {
   }
   var avatarStackClass = hasAvatarStack ? ' has-avatar-stack' : '';
 
-  // UX-fix Apr 28: geef dateISO mee zodat de modal de correcte dag-context toont
-  // (DAG X VAN Y · <datum>) i.p.v. terug te vallen op plan_datum.
-  var apptOnclick = dateISO
-    ? "openEditBeurtModal('" + b.id + "', null, '" + esc(dateISO) + "', null)"
-    : "openEditBeurtModal('" + b.id + "')";
+  // UX-fix Apr 28: geef dateISO + contextTechId mee zodat de modal de correcte
+  // dag-context toont (DAG X VAN Y · <datum>) én weet welke tech-rij is geklikt
+  // voor de "Haal <tech> van deze dag"-actie in de banner.
+  var apptOnclick;
+  if (dateISO && contextTechId) {
+    apptOnclick = "openEditBeurtModal('" + b.id + "', null, '" + esc(dateISO) + "', null, '" + esc(contextTechId) + "')";
+  } else if (dateISO) {
+    apptOnclick = "openEditBeurtModal('" + b.id + "', null, '" + esc(dateISO) + "', null)";
+  } else {
+    apptOnclick = "openEditBeurtModal('" + b.id + "')";
+  }
   return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + multiDagClass + certWarnClass + avatarStackClass + '" ' +
     'data-beurt-id="' + esc(b.id) + '" ' +
     dragAttr +
@@ -5420,7 +5432,8 @@ function renderDayView() {
         beurten.forEach(function(b) {
           var info = getClientInfo(b);
           var dayInfo = getBeurtDayInfo(b, dateStr);
-          html += renderApptCard(b, info, dayInfo, dateStr);
+          // UX-fix Apr 28: tech.id meegeven voor "Haal <tech> van deze dag"-actie
+          html += renderApptCard(b, info, dayInfo, dateStr, tech.id);
         });
         html += '</td>';
       }
@@ -7893,7 +7906,7 @@ async function deleteQuickVerlof() {
 // =============================================
 // BEURT EDIT MODAL
 // =============================================
-function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
+function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime, contextTechId) {
   // Don't open if we just finished dragging (click fires after dragend)
   if (isDragging && !dropTechId) return;
 
@@ -7904,6 +7917,12 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
   var isNew = !beurt.plan_datum && !beurt.technieker_id;
 
   document.getElementById('edit-beurt-id').value = beurtId;
+  // UX-fix Apr 28: tech-context voor de per-dag-actie-banner. Bij card-klik in
+  // week/dag-view wordt de tech.id van de geklikte rij doorgegeven zodat
+  // "Haal <tech> van deze dag" weet welke tech eruit moet. Bij drag-drop
+  // gebruikt de modal dropTechId zelf voor andere doeleinden — vandaar twee
+  // aparte parameters.
+  document.getElementById('edit-beurt-tech-id').value = contextTechId || dropTechId || '';
   document.getElementById('edit-beurt-title').textContent = isNew || dropTechId ? 'Beurt inplannen' : 'Beurt bewerken';
 
   // Info preview — gebruikt gedeelde Lucide-iconen + nette sector-labels
@@ -8143,37 +8162,170 @@ function closeEditBeurtModal() {
 }
 
 /**
- * UX optie B helper — toont de per-dag actie-banner met dag-context-label en
- * de twee delete-knoppen wanneer de actuele beurt 2+ dag-records heeft.
- * Single-day beurten: banner verbergen, footer "Verwijderen"-knop blijft staan.
+ * UX optie B helper — toont de per-dag actie-banner met dag-context-label,
+ * tech-toewijzing en de juiste delete-knoppen op basis van scenario:
+ *   - Scenario 'solo': 1 tech (geen extras) → tech-knop verbergen, dag-knop tonen
+ *   - Scenario 'multi-tech': 2+ techs op deze dag → tech-knop tonen "Haal <naam>
+ *     van deze dag", plus dag-knop voor totale dag-cleanup
+ * Single-day beurten: banner verbergen, footer-knop blijft.
  */
 function editBeurtUpdateDayActionsRow() {
   var actions = document.getElementById('edit-beurt-day-actions');
   var label = document.getElementById('edit-beurt-day-context-label');
+  var techLabel = document.getElementById('edit-beurt-day-tech-label');
+  var techBtn = document.getElementById('edit-beurt-del-tech-btn');
   var footerDelBtn = document.getElementById('edit-beurt-delete-btn');
   if (!actions || !label) return;
 
   var beurtId = document.getElementById('edit-beurt-id').value;
   var datumISO = document.getElementById('edit-beurt-datum').value
     || document.getElementById('edit-beurt-date').value;
+  var ctxTechId = document.getElementById('edit-beurt-tech-id').value || '';
 
   var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
   var isMultiDay = dagen && dagen.length > 1;
 
-  if (isMultiDay && datumISO) {
-    var dayInfo = (typeof getBeurtDayInfo === 'function')
-      ? getBeurtDayInfo((allBeurten || []).find(function(b) { return b.id === beurtId; }), datumISO)
-      : { dayIndex: 1, totalDays: dagen.length };
-    var datumLabel = (typeof formatDateFull === 'function')
-      ? formatDateFull(parseDate(datumISO))
-      : datumISO;
-    label.textContent = 'DAG ' + dayInfo.dayIndex + ' VAN ' + dayInfo.totalDays + ' · ' + datumLabel;
-    actions.style.display = '';
-    if (footerDelBtn) footerDelBtn.style.display = 'none';
-  } else {
+  if (!isMultiDay || !datumISO) {
     actions.style.display = 'none';
     if (footerDelBtn) footerDelBtn.style.display = '';
+    return;
   }
+
+  // Bepaal dag-info + tech-toewijzing voor deze datum
+  var beurt = (allBeurten || []).find(function(b) { return b.id === beurtId; });
+  var dayInfo = (typeof getBeurtDayInfo === 'function')
+    ? getBeurtDayInfo(beurt, datumISO)
+    : { dayIndex: 1, totalDays: dagen.length };
+  var datumLabel = (typeof formatDateFull === 'function')
+    ? formatDateFull(parseDate(datumISO))
+    : datumISO;
+  label.textContent = 'DAG ' + dayInfo.dayIndex + ' VAN ' + dayInfo.totalDays + ' · ' + datumLabel;
+
+  // Lees bpd-rij voor deze datum om tech-samenstelling te bepalen
+  var bpd = (typeof getDagForBeurtOnDate === 'function')
+    ? getDagForBeurtOnDate(beurtId, datumISO) : null;
+  var primaryTechId = bpd ? bpd.technieker_id : (beurt && beurt.technieker_id);
+  var extras = (bpd && Array.isArray(bpd.extra_technieker_ids))
+    ? bpd.extra_technieker_ids.slice() : [];
+
+  // Tech-toewijzing-regel + scenario-detectie
+  var allTechs = [primaryTechId].concat(extras).filter(Boolean);
+  var techNamen = allTechs.map(function(tid) {
+    var t = (allTechniekers || []).find(function(x) { return x.id === tid; });
+    return t ? (t.voornaam + ' ' + t.naam) : '?';
+  });
+  if (techLabel) {
+    techLabel.textContent = (techNamen.length > 0)
+      ? 'Toegewezen: ' + techNamen.join(', ')
+      : '';
+  }
+
+  // Bepaal of context-tech zinvol uit deze dag te halen valt:
+  //   - Hij moet effectief op deze dag staan (primary of extras)
+  //   - Er moet minstens 1 andere tech zijn die kan overblijven
+  var ctxOnThisDay = ctxTechId && allTechs.indexOf(ctxTechId) !== -1;
+  var canRemoveSingleTech = ctxOnThisDay && allTechs.length > 1;
+
+  if (techBtn) {
+    if (canRemoveSingleTech) {
+      var t = (allTechniekers || []).find(function(x) { return x.id === ctxTechId; });
+      var voornaam = t ? t.voornaam : 'tech';
+      techBtn.textContent = 'Haal ' + voornaam + ' van deze dag';
+      techBtn.style.display = '';
+    } else {
+      techBtn.style.display = 'none';
+    }
+  }
+
+  actions.style.display = '';
+  if (footerDelBtn) footerDelBtn.style.display = 'none';
+}
+
+/**
+ * Verwijder ÉÉN technieker van één dag van een meerdaagse beurt (preserveert
+ * de dag-rij voor de andere techs). Wordt aangeroepen door de "Haal <tech>
+ * van deze dag"-knop in de banner.
+ *   - Context-tech === primary + extras niet leeg → promote eerste extra naar
+ *     primary, behoud bpd-rij
+ *   - Context-tech in extras → pop uit array, behoud bpd-rij
+ *   - Anders: niet-toepasbaar (geen vervanger) — fallback op dag-delete.
+ */
+async function removeTechFromCurrentDay() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var datumISO = document.getElementById('edit-beurt-datum').value
+    || document.getElementById('edit-beurt-date').value;
+  var ctxTechId = document.getElementById('edit-beurt-tech-id').value || '';
+  if (!beurtId || !datumISO || !ctxTechId) {
+    showToast('Geen tech-context gevonden', 'error');
+    return;
+  }
+
+  var bpd = (typeof getDagForBeurtOnDate === 'function')
+    ? getDagForBeurtOnDate(beurtId, datumISO) : null;
+  if (!bpd) {
+    showToast('Geen dag-record gevonden — niets te verwijderen', 'error');
+    return;
+  }
+
+  var primaryTechId = bpd.technieker_id;
+  var extras = Array.isArray(bpd.extra_technieker_ids) ? bpd.extra_technieker_ids.slice() : [];
+  var allTechs = [primaryTechId].concat(extras).filter(Boolean);
+
+  if (allTechs.indexOf(ctxTechId) === -1) {
+    showToast('Deze tech staat niet op deze dag', 'error');
+    return;
+  }
+  if (allTechs.length <= 1) {
+    showToast('Dit is de enige technieker — gebruik "Verwijder dag voor iedereen"', 'error');
+    return;
+  }
+
+  var t = (allTechniekers || []).find(function(x) { return x.id === ctxTechId; });
+  var techNaam = t ? (t.voornaam + ' ' + t.naam) : 'deze technieker';
+  var datumLabel = (typeof formatDateFull === 'function')
+    ? formatDateFull(parseDate(datumISO)) : datumISO;
+
+  var bevestig = await confirmDialog({
+    title: 'Tech van deze dag halen?',
+    message: 'Wil je ' + techNaam + ' van ' + datumLabel + ' afhalen?\n\n' +
+      'De dag blijft bestaan voor de andere technieker(s).',
+    confirmLabel: 'Ja, halen',
+    cancelLabel: 'Annuleren',
+    variant: 'danger'
+  });
+  if (!bevestig) return;
+
+  var newPrimary = primaryTechId;
+  var newExtras = extras.slice();
+  if (ctxTechId === primaryTechId) {
+    // Promote eerste extra naar primary, rest blijft als extras
+    newPrimary = newExtras.shift() || null;
+  } else {
+    newExtras = newExtras.filter(function(id) { return id !== ctxTechId; });
+  }
+
+  var res = await sb.from('beurt_planning_dagen')
+    .update({ technieker_id: newPrimary, extra_technieker_ids: newExtras })
+    .eq('id', bpd.id);
+  if (res.error) {
+    showToast('Fout: ' + res.error.message, 'error');
+    return;
+  }
+
+  // Cache + parent-beurt sync
+  if (typeof refreshPlanningCacheForBeurt === 'function') {
+    await refreshPlanningCacheForBeurt(beurtId);
+  }
+  var fresh = await sb.from('onderhoudsbeurten').select('*').eq('id', beurtId).single();
+  if (!fresh.error && fresh.data) {
+    var idx = (allBeurten || []).findIndex(function(b) { return b.id === beurtId; });
+    if (idx >= 0) allBeurten[idx] = fresh.data;
+  }
+
+  showToast(techNaam + ' van deze dag gehaald');
+  closeEditBeurtModal();
+  renderView();
+  renderSidebar();
 }
 
 /**
