@@ -5599,6 +5599,19 @@ function renderSidebarCard(b) {
     werfHtml = '<div class="sc-detail" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--grey);margin-top:2px">' + werfIcon + '<span>' + werfText + '</span></div>';
   }
 
+  // Slot T-spoor B (Sarah feedback Apr 28): werklocatie heeft voorrang op
+  // facturatieklant-postcode, anders zijn 2 jobs op verschillende werven
+  // visueel ononderscheidbaar. Toon billing-adres alleen als fallback wanneer
+  // er geen werflocatie aan de beurt gekoppeld is.
+  var hasWerfDetail = !!werfHtml;
+  var fallbackPostcodeHtml = '';
+  if (!hasWerfDetail) {
+    fallbackPostcodeHtml = '<div class="sc-detail">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' +
+      esc(info.postcode) + ' ' + esc(info.gemeente) +
+    '</div>';
+  }
+
   var html = '<div class="sidebar-card ' + getSectorClass(info.sector) + overdueClass + losseClass + '" ' +
     'draggable="true" ondragstart="onDragStart(event, \'' + b.id + '\')"' + clickHandler + '>' +
     '<div class="sc-header">' +
@@ -5608,10 +5621,7 @@ function renderSidebarCard(b) {
     werfHtml +
     '<div><span class="sc-sector" style="background:' + sectorBg + '22; color:' + sectorBg + ';">' +
     getSectorIcon(info.sector) + ' ' + esc(getSectorLabel(info.sector)) + '</span></div>' +
-    '<div class="sc-detail">' +
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' +
-      esc(info.postcode) + ' ' + esc(info.gemeente) +
-    '</div>';
+    fallbackPostcodeHtml;
 
   if (info.sectorDetails) {
     html += '<div class="sc-detail">' + esc(info.sectorDetails) + '</div>';
