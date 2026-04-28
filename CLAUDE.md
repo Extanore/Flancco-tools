@@ -1,5 +1,18 @@
 # Flancco Partner Platform
 
+## Werkstijl-directive (geldt voor élke nieuwe taak)
+
+**Default: parallel agents, niet seriëel.**
+
+Wanneer een nieuwe taak meerdere onafhankelijke onderdelen heeft (research + bouw, of meerdere file-disjoint wijzigingen), launch dan meerdere agents in **één bericht** (multiple `Agent` tool-calls in één assistant turn) zodat ze écht parallel draaien. Doel: minimale wachttijd voor de gebruiker.
+
+Alleen seriëel als:
+- Onderdelen raken dezelfde file in overlappende regio's
+- Eén onderdeel is dependency van een ander
+- Schema-migraties die elkaar's effect nodig hebben
+
+Voor uitvoeren: kondig kort het parallel-plan aan ("ik launch X agents tegelijk voor Y/Z") en ga meteen door zonder te wachten op bevestiging.
+
 ## Project Overview
 Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onderhoud + reiniging zonnepanelen) om partnercontracten voor zonnepaneelreiniging te beheren. Gehost op **Cloudflare Pages** (repo: `Extanore/Flancco-tools`), backend via **Supabase**.
 
