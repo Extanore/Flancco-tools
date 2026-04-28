@@ -2725,8 +2725,10 @@ function _resolveContractduurConfig() {
 /**
  * Re-rendert de contractduur-radio-group adhv config-overrides. Houdt zich aan
  * dezelfde DOM-contracten als renderFrequentieOptions (input[name="duur"]).
- * Note v1.0: korting_pct override wordt NIET teruggekoppeld naar calculateAll()
- * — daar staat 5% nog hardcoded. Server kan opties wel uitzetten via available.
+ * Slot W v1.1: korting_pct override wordt nu wel doorgerekend in
+ * calculateAll() (var korting = _resolveContractduurConfig().korting[duur] / 100).
+ * Per-duur korting kan dus per partner of globaal afwijken van de 5%-default.
+ * Result-card / summary / contract-PDF tonen het effectieve % via s.korting.
  * Wordt opgevolgd in een v1.1 follow-up.
  */
 function renderContractduurOptions() {
@@ -4084,7 +4086,14 @@ function calculateAll() {
   var btwPct = btwEl ? parseInt(btwEl.value) : 21;
   var freq = freqEl ? parseInt(freqEl.value) : 1;
   var duur = duurEl ? parseInt(duurEl.value) : 0;
-  var korting = duur >= 3 ? 0.05 : 0;
+  // Slot W v1.1 — korting_pct uit sector_config (admin-instelbaar). Resolver
+  // intersect over selectedSectors; lege override → CONTRACTDUUR_DEFAULT
+  // (huidig {0:0, 3:5, 5:5}). Map-waardes zijn integer % → /100 voor fractie.
+  var _duurCfg = _resolveContractduurConfig();
+  var kortingPct = (_duurCfg && _duurCfg.korting && _duurCfg.korting[duur] != null)
+    ? Number(_duurCfg.korting[duur])
+    : 0;
+  var korting = (isFinite(kortingPct) ? kortingPct : 0) / 100;
   var freeKm = parseInt(partner.transport_gratis_km) || 30;
   var extraKm = Math.max(0, afst - freeKm);
 
@@ -4165,7 +4174,8 @@ function updateResultCard() {
 
   // Discount
   if (s.discountAmount > 0) {
-    linesHtml += '<div class="result-line"><span>Contractkorting (' + s.duur + ' jaar, -5%)</span><span>- ' + fmt(s.discountAmount * btwMult) + '</span></div>';
+    var _kPct = Math.round((s.korting || 0) * 100);
+    linesHtml += '<div class="result-line"><span>Contractkorting (' + s.duur + ' jaar, -' + _kPct + '%)</span><span>- ' + fmt(s.discountAmount * btwMult) + '</span></div>';
   }
 
   document.getElementById('result-lines').innerHTML = linesHtml;
@@ -5185,7 +5195,8 @@ function goToSummary() {
     html += '<div class="summary-line"><span>Verplaatsing (' + s.extraKm + ' km boven gratis zone)</span><span>' + fmt(s.transportExcl * btwMult) + '</span></div>';
   }
   if (s.discountAmount > 0) {
-    html += '<div class="summary-line"><span>Contractkorting (' + s.duur + ' jaar, &minus;5%)</span><span>&minus; ' + fmt(s.discountAmount * btwMult) + '</span></div>';
+    var _kPct = Math.round((s.korting || 0) * 100);
+    html += '<div class="summary-line"><span>Contractkorting (' + s.duur + ' jaar, &minus;' + _kPct + '%)</span><span>&minus; ' + fmt(s.discountAmount * btwMult) + '</span></div>';
   }
 
   html += '</div><hr class="summary-divider">';
@@ -5346,7 +5357,7 @@ function generateContract() {
     });
   });
   if (s.transportExcl > 0) html += '<p>Verplaatsing: ' + s.extraKm + ' km \u00D7 ' + fmtClean(transBedrag) + ' = ' + fmtClean(s.transportExcl * btwMult) + '</p>';
-  if (s.discountAmount > 0) html += '<p>Contractkorting (' + s.duur + ' jaar, -5%): - ' + fmtClean(s.discountAmount * btwMult) + '</p>';
+  if (s.discountAmount > 0) html += '<p>Contractkorting (' + s.duur + ' jaar, -' + Math.round((s.korting || 0) * 100) + '%): - ' + fmtClean(s.discountAmount * btwMult) + '</p>';
   html += '<p style="font-weight:700;font-size:15px;margin-top:8px">Totaal per beurt: ' + fmtCleanTotal(s.total) + ' incl. ' + s.btwPct + '% btw</p>';
   if (s.freq === 2) html += '<p style="font-weight:600">Per jaar (2 beurten): ' + fmtCleanTotal(s.total * 2) + '</p>';
   html += '</div>';
