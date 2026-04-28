@@ -5593,7 +5593,18 @@ function renderSidebarCard(b) {
   var urg = getUrgencyColor(b);
   var dueClass = urg === 'rood' ? 'due-overdue' : (urg === 'oranje' ? 'due-warning' : 'due-normal');
   var sectorBg = getSectorColor(info.sector);
-  var clickHandler = b._isInterventie ? ' onclick="openPlanInterventieModal(\'' + b._interventie.id + '\')"' : '';
+  // UX-feedback Apr 28: kaart-klik opent detail/edit-modal (zelfde flow als
+  // het potlood-knopje rechtsonder). De actie-knoppen onderaan de kaart
+  // (Bewerken/Verwijderen) gebruiken event.stopPropagation zodat ze niet
+  // dubbel de modal openen of een delete-actie misvertalen.
+  var clickHandler;
+  if (b._isInterventie && b._interventie) {
+    clickHandler = ' onclick="openPlanInterventieModal(\'' + b._interventie.id + '\')"';
+  } else if (b.id) {
+    clickHandler = ' onclick="sidebarEditBeurt(\'' + b.id + '\')"';
+  } else {
+    clickHandler = '';
+  }
   var overdueClass = b._overdue ? ' overdue-card' : '';
 
   var losseTag = (info && info.isLosseOpdracht) ? '<span class="appt-losse-tag" title="Losse opdracht">LO</span>' : '';
