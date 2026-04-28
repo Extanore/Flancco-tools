@@ -203,22 +203,24 @@
     },
     consent: {
       title: 'Communicatie-voorkeuren',
-      subtitle: 'U kunt deze voorkeuren altijd later aanpassen via de opt-out-link in elke communicatie.',
+      subtitle: 'Service-kanalen zijn nodig voor de uitvoering van uw contract. Marketing kunt u op elk moment uitschakelen via de opt-out-link.',
       email_service: {
         label: 'Service-mails (vereist voor uitvoering contract)',
         help: 'Bevestiging van uw afspraken, factuur, rapport na onderhoudsbeurt en service-meldingen.'
       },
+      whatsapp: {
+        label: 'WhatsApp-berichten (vereist voor uitvoering contract)',
+        help: 'Het werkrapport met foto\'s van uw installatie wordt na elke beurt via WhatsApp bezorgd, samen met directe contactmogelijkheid bij vragen.'
+      },
       email_marketing: {
         label: 'Marketing-mails (optioneel)',
-        help: 'Tips, nieuwsbrief en promo-acties. Maximaal eenmaal per maand.'
+        help: 'Tips, nieuwsbrief en promo-acties. Maximaal eenmaal per maand. U kunt zich op elk moment uitschrijven.'
       },
+      // Slot X — sms-keys behouden voor backward-compat met admin-side UI;
+      // niet meer gerendered in calculator.
       sms: {
         label: 'SMS-herinneringen (optioneel)',
         help: 'Korte herinnering 24u voor uw beurt + dag-zelf met aankomsttijd technieker.'
-      },
-      whatsapp: {
-        label: 'WhatsApp-berichten (optioneel)',
-        help: 'Interactieve berichten met foto\'s van het rapport en mogelijkheid tot directe vragen.'
       }
     },
     // Slot F — Klant-facing multi-kanaal notificaties (email/SMS/WhatsApp)

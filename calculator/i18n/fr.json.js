@@ -193,22 +193,24 @@
     },
     consent: {
       title: 'Pr\u00e9f\u00e9rences de communication',
-      subtitle: 'Vous pouvez modifier ces pr\u00e9f\u00e9rences \u00e0 tout moment via le lien de d\u00e9sinscription pr\u00e9sent dans chaque communication.',
+      subtitle: 'Les canaux de service sont n\u00e9cessaires \u00e0 l\'ex\u00e9cution de votre contrat. Vous pouvez d\u00e9sactiver le marketing \u00e0 tout moment via le lien de d\u00e9sinscription.',
       email_service: {
         label: 'E-mails de service (n\u00e9cessaires \u00e0 l\'ex\u00e9cution du contrat)',
         help: 'Confirmation de vos rendez-vous, facture, rapport apr\u00e8s entretien et messages de service.'
       },
+      whatsapp: {
+        label: 'Messages WhatsApp (n\u00e9cessaires \u00e0 l\'ex\u00e9cution du contrat)',
+        help: 'Le rapport d\'intervention avec photos de votre installation est envoy\u00e9 apr\u00e8s chaque entretien via WhatsApp, avec possibilit\u00e9 de contact direct en cas de questions.'
+      },
       email_marketing: {
         label: 'E-mails marketing (facultatif)',
-        help: 'Conseils, newsletter et offres promotionnelles. Au maximum une fois par mois.'
+        help: 'Conseils, newsletter et offres promotionnelles. Au maximum une fois par mois. Vous pouvez vous d\u00e9sinscrire \u00e0 tout moment.'
       },
+      // Slot X \u2014 cl\u00e9s sms conserv\u00e9es pour r\u00e9tro-compat admin-UI; plus rendues
+      // dans le calculator.
       sms: {
         label: 'Rappels SMS (facultatif)',
         help: 'Bref rappel 24 h avant votre entretien et le jour m\u00eame avec l\'heure d\'arriv\u00e9e du technicien.'
-      },
-      whatsapp: {
-        label: 'Messages WhatsApp (facultatif)',
-        help: 'Messages interactifs avec photos du rapport et possibilit\u00e9 de poser des questions directement.'
       }
     },
     // Slot F \u2014 Notifications client multi-canal (e-mail/SMS/WhatsApp)

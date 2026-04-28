@@ -831,19 +831,24 @@
     <!--
       Communicatie-voorkeuren (Slot Q — GDPR consent)
       ────────────────────────────────────────────────
-      Vier kanalen; elk gemapt op één rij in `klant_consents`. Wettelijke basis
+      Drie kanalen; elk gemapt op één rij in `klant_consents`. Wettelijke basis
       per kanaal verschilt (zie comment in migratie 20260425100000):
-        • email_service   — art. 6.1.b WER, default-aan toegestaan
+        • email_service   — art. 6.1.b WER (uitvoering contract), default-aan + niet uit te vinken
+        • whatsapp        — art. 6.1.b WER (uitvoering contract: rapport + foto's),
+                            default-aan + niet uit te vinken. Meta vereist nog steeds
+                            een opt-in audit-trail; die wordt vastgelegd via signing.
         • email_marketing — art. 6.1.a, expliciete opt-in vereist (default-uit)
-        • sms / whatsapp  — ePrivacy-richtlijn, expliciete opt-in vereist
+      SMS uit de UI gehaald — wordt operationeel niet meer aangeboden. De
+      onderliggende edge-function (send-klant-notification-sms) blijft staan
+      voor toekomstige heractivering.
     -->
     <div class="card" id="consent-card">
       <h3 style="margin:0 0 8px;font-size:15px;font-weight:600;color:var(--text)" data-i18n="consent.title">Communicatie-voorkeuren</h3>
-      <p style="margin:0 0 14px;font-size:12px;color:var(--grey)" data-i18n="consent.subtitle">U kunt deze voorkeuren altijd later aanpassen via de opt-out-link in elke communicatie.</p>
+      <p style="margin:0 0 14px;font-size:12px;color:var(--grey)" data-i18n="consent.subtitle">Service-kanalen zijn nodig voor de uitvoering van uw contract. Marketing kunt u op elk moment uitschakelen via de opt-out-link.</p>
 
       <div class="accept-box" style="border-color:var(--rule);background:var(--light);margin-bottom:8px">
         <label>
-          <input type="checkbox" id="consent-email-service" checked>
+          <input type="checkbox" id="consent-email-service" checked disabled>
           <div class="accept-text" style="font-size:12px;color:var(--grey)">
             <strong data-i18n="consent.email_service.label">Service-mails (vereist voor uitvoering contract)</strong>
             <div data-i18n="consent.email_service.help">Bevestiging van uw afspraken, factuur, rapport na onderhoudsbeurt en service-meldingen.</div>
@@ -853,30 +858,20 @@
 
       <div class="accept-box" style="border-color:var(--rule);background:var(--light);margin-bottom:8px">
         <label>
-          <input type="checkbox" id="consent-email-marketing">
+          <input type="checkbox" id="consent-whatsapp" checked disabled>
           <div class="accept-text" style="font-size:12px;color:var(--grey)">
-            <strong data-i18n="consent.email_marketing.label">Marketing-mails (optioneel)</strong>
-            <div data-i18n="consent.email_marketing.help">Tips, nieuwsbrief en promo-acties. Maximaal eenmaal per maand.</div>
-          </div>
-        </label>
-      </div>
-
-      <div class="accept-box" style="border-color:var(--rule);background:var(--light);margin-bottom:8px">
-        <label>
-          <input type="checkbox" id="consent-sms">
-          <div class="accept-text" style="font-size:12px;color:var(--grey)">
-            <strong data-i18n="consent.sms.label">SMS-herinneringen (optioneel)</strong>
-            <div data-i18n="consent.sms.help">Korte herinnering 24u voor uw beurt + dag-zelf met aankomsttijd technieker.</div>
+            <strong data-i18n="consent.whatsapp.label">WhatsApp-berichten (vereist voor uitvoering contract)</strong>
+            <div data-i18n="consent.whatsapp.help">Het werkrapport met foto's van uw installatie wordt na elke beurt via WhatsApp bezorgd, samen met directe contactmogelijkheid bij vragen.</div>
           </div>
         </label>
       </div>
 
       <div class="accept-box" style="border-color:var(--rule);background:var(--light)">
         <label>
-          <input type="checkbox" id="consent-whatsapp">
+          <input type="checkbox" id="consent-email-marketing">
           <div class="accept-text" style="font-size:12px;color:var(--grey)">
-            <strong data-i18n="consent.whatsapp.label">WhatsApp-berichten (optioneel)</strong>
-            <div data-i18n="consent.whatsapp.help">Interactieve berichten met foto's van het rapport en mogelijkheid tot directe vragen.</div>
+            <strong data-i18n="consent.email_marketing.label">Marketing-mails (optioneel)</strong>
+            <div data-i18n="consent.email_marketing.help">Tips, nieuwsbrief en promo-acties. Maximaal eenmaal per maand. U kunt zich op elk moment uitschrijven.</div>
           </div>
         </label>
       </div>
@@ -5769,11 +5764,14 @@ async function submitContract() {
       var consentEmail = (document.getElementById('klant-email').value || '').trim().toLowerCase();
       if (consentEmail) {
         var ua = (navigator && navigator.userAgent) ? navigator.userAgent.slice(0, 500) : null;
+        // Service-kanalen (email_service + whatsapp) zijn vereist voor
+        // contractuitvoering — opt_in altijd true. Defensive hardcoded i.p.v.
+        // DOM-read zodat een toekomstige UI-wijziging de consent-trail niet
+        // onverwacht corrumpeert. SMS is niet meer in scope (Slot X).
         var consentRows = [
-          { kanaal: 'email_service',   opt_in: !!document.getElementById('consent-email-service').checked },
-          { kanaal: 'email_marketing', opt_in: !!document.getElementById('consent-email-marketing').checked },
-          { kanaal: 'sms',             opt_in: !!document.getElementById('consent-sms').checked },
-          { kanaal: 'whatsapp',        opt_in: !!document.getElementById('consent-whatsapp').checked }
+          { kanaal: 'email_service',   opt_in: true },
+          { kanaal: 'whatsapp',        opt_in: true },
+          { kanaal: 'email_marketing', opt_in: !!document.getElementById('consent-email-marketing').checked }
         ].map(function(r) {
           return {
             contract_id: contractId,
