@@ -253,6 +253,42 @@
   font-size: 11px;
 }
 
+/* Slot T: company-header is klikbaar als bedrijf-zelf selectable is.
+   Override de default pointer-events:none + voeg hover/active/current states toe. */
+.fcb-group-company--selectable {
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0 4px;
+  padding: 8px 8px 6px;
+  transition: background 120ms ease;
+}
+.fcb-group-company--selectable:hover {
+  background: var(--light);
+}
+.fcb-group-company--selectable.fcb-option--active {
+  background: #E5E7EB;
+  outline: none;
+}
+.fcb-group-company--selectable.fcb-option--current {
+  background: rgba(26, 26, 46, 0.08);
+}
+.fcb-group-company--selectable.fcb-option--current.fcb-option--active {
+  background: rgba(26, 26, 46, 0.14);
+}
+.fcb-group-company--selectable::after {
+  content: '\2192';
+  margin-left: auto;
+  color: var(--grey);
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.fcb-group-company--selectable:hover::after,
+.fcb-group-company--selectable.fcb-option--active::after {
+  opacity: 0.6;
+}
+
 /* -- option ----------------------------------------------------------------- */
 
 .fcb-option {
