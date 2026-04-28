@@ -2610,6 +2610,28 @@
     <!-- Info preview -->
     <div id="edit-beurt-info" style="background:var(--light);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px"></div>
 
+    <!-- UX optie B: per-dag context-banner + delete-keuze (multi-day only).
+         Verschijnt zodra de beurt 2+ dag-records heeft zodat de gebruiker
+         expliciet kan kiezen tussen "deze dag" of "hele opdracht" zonder
+         de footer-knop te raden. Single-day beurten verbergen deze rij
+         en vallen terug op de footer "Verwijderen"-knop. -->
+    <div id="edit-beurt-day-actions" style="display:none;margin-bottom:14px;padding:12px 14px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px">
+      <div id="edit-beurt-day-context-label" style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px">DAG &middot;</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" onclick="deleteCurrentDayFromModal()"
+          style="padding:7px 12px;background:#fff;border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:var(--red);cursor:pointer;font-family:inherit">
+          Verwijder enkel deze dag
+        </button>
+        <button type="button" onclick="deleteBeurtFromModal()"
+          style="padding:7px 12px;background:var(--red);border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit">
+          Verwijder hele opdracht
+        </button>
+      </div>
+      <div style="font-size:11px;color:#92400E;margin-top:8px;line-height:1.4">
+        "Deze dag" haalt enkel deze datum uit de reeks en update de duur. "Hele opdracht" verwijdert alle dagen + uren + materialen.
+      </div>
+    </div>
+
     <div class="modal-field" id="edit-beurt-loc-wrap" style="display:none">
       <label>Werklocatie</label>
       <select id="edit-beurt-locatie" onchange="editBeurtLocatieChanged()"></select>
@@ -8098,11 +8120,98 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime) {
     }
   }
 
+  // UX optie B (Apr 28): toon de per-dag actie-rij bij multi-day beurten
+  // zodat de gebruiker meteen ziet dat hij óf alleen deze dag óf de hele
+  // opdracht kan verwijderen. Verbergt parallel de footer "Verwijderen"-knop
+  // bij multi-day om duplicate paden te vermijden.
+  if (typeof editBeurtUpdateDayActionsRow === 'function') {
+    editBeurtUpdateDayActionsRow();
+  }
+
   document.getElementById('modal-edit-beurt').classList.add('open');
 }
 
 function closeEditBeurtModal() {
   document.getElementById('modal-edit-beurt').classList.remove('open');
+}
+
+/**
+ * UX optie B helper — toont de per-dag actie-banner met dag-context-label en
+ * de twee delete-knoppen wanneer de actuele beurt 2+ dag-records heeft.
+ * Single-day beurten: banner verbergen, footer "Verwijderen"-knop blijft staan.
+ */
+function editBeurtUpdateDayActionsRow() {
+  var actions = document.getElementById('edit-beurt-day-actions');
+  var label = document.getElementById('edit-beurt-day-context-label');
+  var footerDelBtn = document.getElementById('edit-beurt-delete-btn');
+  if (!actions || !label) return;
+
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var datumISO = document.getElementById('edit-beurt-datum').value
+    || document.getElementById('edit-beurt-date').value;
+
+  var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
+  var isMultiDay = dagen && dagen.length > 1;
+
+  if (isMultiDay && datumISO) {
+    var dayInfo = (typeof getBeurtDayInfo === 'function')
+      ? getBeurtDayInfo((allBeurten || []).find(function(b) { return b.id === beurtId; }), datumISO)
+      : { dayIndex: 1, totalDays: dagen.length };
+    var datumLabel = (typeof formatDateFull === 'function')
+      ? formatDateFull(parseDate(datumISO))
+      : datumISO;
+    label.textContent = 'DAG ' + dayInfo.dayIndex + ' VAN ' + dayInfo.totalDays + ' · ' + datumLabel;
+    actions.style.display = '';
+    if (footerDelBtn) footerDelBtn.style.display = 'none';
+  } else {
+    actions.style.display = 'none';
+    if (footerDelBtn) footerDelBtn.style.display = '';
+  }
+}
+
+/**
+ * UX optie B handler — wordt aangeroepen door de "Verwijder enkel deze dag"-knop
+ * in de actie-banner. Delegeert naar de bestaande deleteDagFromBeurt-flow die
+ * confirm + DB-delete + cache-update + UI-refresh afhandelt.
+ */
+async function deleteCurrentDayFromModal() {
+  var beurtId = document.getElementById('edit-beurt-id').value;
+  var datumISO = document.getElementById('edit-beurt-datum').value
+    || document.getElementById('edit-beurt-date').value;
+  if (!beurtId || !datumISO) {
+    showToast('Geen actieve dag gevonden', 'error');
+    return;
+  }
+  if (typeof deleteDagFromBeurt === 'function') {
+    await deleteDagFromBeurt(beurtId, datumISO);
+  }
+}
+
+/**
+ * Defensieve refresh-helper: forceert dat lokale cache + index synchroon zijn
+ * met de DB-state voor een specifieke beurt. Wordt gebruikt na delete-acties
+ * om edge-cases te voorkomen waarbij window.allPlanningDagen niet correct werd
+ * gefilterd of waarbij _planningDagenByBeurt-index een stale array bevat.
+ */
+async function refreshPlanningCacheForBeurt(beurtId) {
+  if (!beurtId) return;
+  try {
+    var res = await sb.from('beurt_planning_dagen').select('*').eq('beurt_id', beurtId);
+    if (res.error) {
+      console.warn('[refreshPlanningCacheForBeurt] fetch failed:', res.error);
+      return;
+    }
+    var freshDagen = res.data || [];
+    // Vervang alle dag-records voor deze beurt in de globale cache
+    window.allPlanningDagen = (window.allPlanningDagen || [])
+      .filter(function(r) { return r.beurt_id !== beurtId; })
+      .concat(freshDagen);
+    if (typeof _rebuildPlanningDagenIndex === 'function') {
+      _rebuildPlanningDagenIndex();
+    }
+  } catch (e) {
+    console.warn('[refreshPlanningCacheForBeurt] error:', e);
+  }
 }
 
 // =============================================
@@ -8159,6 +8268,12 @@ function editBeurtDatumChanged() {
     var d = new Date(startInput.value);
     d.setDate(d.getDate() + 1);
     eindInput.value = formatDateISO(d);
+  }
+
+  // UX optie B: refresh dag-context-banner zodra de actieve datum wijzigt
+  // (bv. als gebruiker een andere dag uit de dagen-lijst selecteert)
+  if (typeof editBeurtUpdateDayActionsRow === 'function') {
+    editBeurtUpdateDayActionsRow();
   }
 }
 
@@ -8364,10 +8479,16 @@ async function deleteDagFromBeurt(beurtId, datumISO, skipConfirm) {
     return;
   }
 
-  // Lokale cache bijwerken
+  // Lokale cache bijwerken — twee-staps approach voor robuustheid:
+  // 1) Optimistische lokale filter (snel, geen netwerk)
   window.allPlanningDagen = (window.allPlanningDagen || [])
     .filter(function(r) { return !(r.beurt_id === beurtId && r.datum === datumISO); });
   if (typeof _rebuildPlanningDagenIndex === 'function') _rebuildPlanningDagenIndex();
+  // 2) Defensieve DB-resync zodat edge-cases (parallelle UI-tab, missed event)
+  //    niet een stale dag-record laten hangen die de week-view nog rendert.
+  if (typeof refreshPlanningCacheForBeurt === 'function') {
+    await refreshPlanningCacheForBeurt(beurtId);
+  }
 
   // Herlaad parent-beurt uit DB zodat we de door de trigger bijgewerkte plan_datum/eind_datum/duur krijgen
   var fresh = await sb.from('onderhoudsbeurten').select('*').eq('id', beurtId).single();
