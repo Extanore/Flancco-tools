@@ -972,6 +972,13 @@ var allPricing = {};           // { zonnepanelen: [...], warmtepomp: [...] }
 var allSupplements = {};       // { zonnepanelen: [...], warmtepomp: [...] }
 var allDuurInstellingen = [];  // Sprint 2.2 — rijen uit duur_instellingen (default + partner-overrides)
 
+// Slot W — server-side sector-config (globaal + partner-override) gefetcht via
+// RPC anon_get_calculator_config. Default leeg object → alle lookups vallen
+// stilzwijgend terug op code-defaults zodat een lege/falende config het
+// gedrag van de calculator nooit breekt. Shape per sector: zie helpers
+// getSectorCfg + renderMotivatieBlock + renderFrequentieOptions verderop.
+var calcConfig = {};
+
 /**
  * Resolver voor duur_instellingen.
  * @param {string} sector       Sector-key (bv. 'zonnepanelen', 'warmtepomp_lucht_lucht')
@@ -2411,6 +2418,489 @@ function expandFirstInfoBlock() {
   if (first) first.classList.add('open');
 }
 
+// ═══════════════════════════════════════════
+// SLOT W — SECTOR-CONFIG HELPERS
+// ═══════════════════════════════════════════
+// Deze block-laag laat admins server-side (via tabel sector_config + RPC
+// anon_get_calculator_config) per sector copy en commerciële knobs overriden
+// zonder de calculator te touchen. Code-defaults blijven de bron van waarheid;
+// config is puur additief. Lege/missende config = huidig gedrag identiek.
+
+/**
+ * Haalt de config voor één sector + key uit calcConfig. Returnt undefined
+ * als sector of key ontbreekt — caller moet dan code-default gebruiken.
+ */
+function getSectorCfg(sector, key) {
+  if (!calcConfig || !calcConfig[sector]) return undefined;
+  return calcConfig[sector][key];
+}
+
+/**
+ * Pakt de juiste taal-string uit een config-object met _nl/_fr suffixes.
+ * @param {object} obj    Config-object (mag null zijn → fallback).
+ * @param {string} baseKey  bv. 'title' (zoekt 'title_nl' / 'title_fr').
+ * @param {string} fallback Code-default die getoond wordt als geen
+ *                          override-string aanwezig is.
+ */
+function getLangText(obj, baseKey, fallback) {
+  if (!obj || typeof obj !== 'object') return fallback;
+  var lang = (window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl';
+  var langKey = baseKey + '_' + lang;
+  var nlKey = baseKey + '_nl';
+  if (obj[langKey] != null && String(obj[langKey]).length > 0) return obj[langKey];
+  if (obj[nlKey] != null && String(obj[nlKey]).length > 0) return obj[nlKey];
+  return fallback;
+}
+
+/**
+ * Per-sector code-defaults voor het motivatie-block. Worden gebruikt als
+ * fallback wanneer sector_config geen (volledige) override aanlevert.
+ * Mirror van de tekst die historisch in SECTORS[sec].renderInfoBlocks() zat.
+ */
+var MOTIVATIE_DEFAULTS = {
+  zonnepanelen: {
+    blockId: 'info-waarom-solar',
+    title_nl: 'Waarom uw zonnepanelen reinigen?',
+    subtitle_nl: 'Ontdek hoeveel rendement u misloopt zonder reiniging',
+    intro_nl: 'Regen spoelt oppervlakkig stof weg, maar hardnekkig vuil blijft vastzitten: vogeluitwerpselen, fijnstof, pollen, mos en algen vormen een film die het zonlicht blokkeert.',
+    highlight_nl: 'Een typische installatie van 20 panelen verliest jaarlijks tot 1.250 kWh bij 15% vervuiling. Na 3 jaar is dat 3.750 kWh gemist.',
+    outro_nl: 'Veel fabrikanten vereisen regelmatig onderhoud voor de garantie. Verwaarlozing kan uw productgarantie in het gedrang brengen.'
+  },
+  warmtepomp: {
+    blockId: 'info-waarom-wp',
+    title_nl: 'Waarom uw warmtepomp laten onderhouden?',
+    subtitle_nl: 'Bespaar tot 30% op energiekosten met regelmatig onderhoud',
+    intro_nl: 'Een warmtepomp zonder onderhoud verliest tot 30% aan efficiëntie door vervuilde filters, warmtewisselaars en condensafvoer. Regelmatig onderhoud houdt uw systeem op piekprestaties.',
+    highlight_nl: 'Regelmatig onderhoud verlengt de levensduur van uw warmtepomp met gemiddeld 5–10 jaar en voorkomt dure herstellingen.',
+    outro_nl: 'In vochtige omgevingen vormen zich al snel schimmels en bacteriën in uw binnenunit. Professioneel onderhoud verwijdert deze opbouw en zorgt voor een gezonder binnenklimaat. Bij sommige merken en types is periodiek onderhoud vereist om de fabrieksgarantie te behouden.'
+  },
+  ventilatie: {
+    blockId: 'info-waarom-vent',
+    title_nl: 'Waarom uw ventilatiesysteem onderhouden?',
+    subtitle_nl: 'Voorkom vuile filters, schimmel en hoge energiekosten',
+    intro_nl: 'Uw ventilatiesysteem draait 24 uur per dag, 365 dagen per jaar. Filters raken verstopt met stof, pollen en fijnstof. Zonder onderhoud daalt de luchtkwaliteit in uw woning en stijgt het energieverbruik.',
+    highlight_nl: 'Een vervuild ventilatiesysteem kan tot 30% meer energie verbruiken. Vuile filters en kanalen zijn bovendien een ideale voedingsbodem voor schimmel en bacteriën.',
+    outro_nl: 'Regelmatig onderhoud is verplicht volgens de EPB-regelgeving en zorgt ervoor dat uw systeem de vereiste debieten blijft leveren.'
+  },
+  verwarming: {
+    blockId: 'info-waarom-verw',
+    title_nl: 'Waarom uw verwarmingsketel onderhouden?',
+    subtitle_nl: 'Wettelijk verplicht én goed voor uw portemonnee',
+    intro_nl: 'In Vlaanderen is tweejaarlijks ketelonderhoud wettelijk verplicht. Bij een controle moet u een geldig verbrandingsattest kunnen voorleggen.',
+    highlight_nl: 'Een onderhouden ketel verbruikt tot 5% minder brandstof en stoot minder schadelijke gassen uit. Bovendien verkleint u het risico op CO-vergiftiging.',
+    outro_nl: 'De rookgasanalyse is inbegrepen bij elk onderhoud. U ontvangt een verbrandingsattest dat geldig is voor 2 jaar.'
+  }
+};
+
+/**
+ * Code-defaults voor de zonnepanelen klant-vragen (bereikbaarheid + buitenkraan).
+ * Andere sectoren tonen geen klant-vragen in renderForm — config kan dat in v1.1
+ * uitbreiden, maar v1.0 blijft zonnepanelen-only voor deze hook.
+ */
+var KLANT_VRAGEN_DEFAULTS = {
+  zonnepanelen: {
+    bereikbaarheid: {
+      label_nl: 'Hoe goed is uw woning bereikbaar voor onze servicewagen?',
+      helper_nl: 'We hebben circa 5 m parkeerruimte nodig binnen ongeveer 50 m van uw woning om materiaal en watertank vlot te lossen.',
+      options: [
+        { value: 'Goed',     label_nl: 'Goed bereikbaar — bestelwagen kan vlot tot bij de woning' },
+        { value: 'Beperkt',  label_nl: 'Beperkt bereikbaar — smalle straat, paaltjes of obstakels op de oprit' }
+      ]
+    },
+    buitenkraan: {
+      label_nl: 'Is er een werkende buitenkraan beschikbaar?',
+      helper_nl: 'Voor de reiniging met osmosewater verbruiken we ongeveer 100 liter water per beurt. Met een buitenkraan werken we sneller; zonder brengen we onze eigen watertank mee.',
+      options: [
+        { value: 'Ja',  label_nl: 'Ja, er is een werkende buitenkraan beschikbaar' },
+        { value: 'Nee', label_nl: 'Nee, breng zelf water mee' }
+      ]
+    }
+  }
+};
+
+/**
+ * Code-defaults voor frequentie en contractduur.
+ * Spiegelt de hardcoded HTML in stap 1 + het korting-percentage uit calculateAll().
+ */
+var FREQUENTIE_DEFAULT = {
+  available: [1, 2],
+  default: 1,
+  options: {
+    1: { label_nl: 'Jaarlijks',     sub_nl: '1 onderhoudsbeurt per jaar' },
+    2: { label_nl: 'Halfjaarlijks', sub_nl: '2 onderhoudsbeurten per jaar' }
+  }
+};
+var CONTRACTDUUR_DEFAULT = {
+  available: [0, 3, 5],
+  default: 3,
+  korting_pct: { 0: 0, 3: 5, 5: 5 },
+  options: {
+    0: { label_nl: 'Eenmalige interventie', sub_nl: 'Standaardtarief, geen doorlopend contract' },
+    3: { label_nl: '3 jaar',                sub_nl: '5% korting op alle tarieven' },
+    5: { label_nl: '5 jaar',                sub_nl: '5% korting op alle tarieven' }
+  }
+};
+
+/**
+ * Normaliseert één USP-item zodat zowel het code-default-shape ({icon, text})
+ * als het server-config-shape ({icon_svg, text_nl, text_fr}) dezelfde
+ * render-pad volgen.
+ */
+function _normalizeUspItem(item) {
+  if (!item) return null;
+  var icon = item.icon_svg || item.icon || '';
+  var text = item.text;
+  if (item.text_nl != null || item.text_fr != null) {
+    text = getLangText(item, 'text', item.text || '');
+  }
+  return { icon: icon, text: text || '' };
+}
+
+/**
+ * Bouwt de USP-bar voor een sector. Leest eerst sector_config.usps,
+ * fallback op SECTORS[sector].usps. Lege array → lege strook (geen render).
+ */
+function renderUspBar(sector) {
+  var cfg = SECTORS[sector];
+  if (!cfg) return '';
+  var override = getSectorCfg(sector, 'usps');
+  var source = (Array.isArray(override) && override.length > 0) ? override : (cfg.usps || []);
+  var items = source.map(_normalizeUspItem).filter(function(u) { return u && (u.icon || u.text); });
+  if (items.length === 0) return '';
+  return '<div class="usp-bar">' + items.map(function(u) {
+    return '<div class="usp-item"><div class="usp-icon">' + u.icon + '</div><div class="usp-text">' + u.text + '</div></div>';
+  }).join('') + '</div>';
+}
+
+/**
+ * Bouwt het motivatie-block voor een sector. Leest sector_config.motivatie
+ * (per leaf-key) met fallback op MOTIVATIE_DEFAULTS. CSS-klassen identiek
+ * aan de oorspronkelijke renderInfoBlocks-output zodat styling intact blijft.
+ */
+function renderMotivatieBlock(sector) {
+  var defaults = MOTIVATIE_DEFAULTS[sector];
+  if (!defaults) {
+    // Onbekende sector: val terug op de eventueel in SECTORS gedefinieerde
+    // renderInfoBlocks (defensief — schiet nooit in v1.0, alle 4 sectoren
+    // hebben defaults).
+    var sCfg = SECTORS[sector];
+    return (sCfg && typeof sCfg.renderInfoBlocks === 'function') ? sCfg.renderInfoBlocks() : '';
+  }
+  var override = getSectorCfg(sector, 'motivatie') || {};
+  var title    = getLangText(override, 'title',    defaults.title_nl);
+  var subtitle = getLangText(override, 'subtitle', defaults.subtitle_nl);
+  var intro    = getLangText(override, 'intro',    defaults.intro_nl);
+  var highlight = getLangText(override, 'highlight', defaults.highlight_nl);
+  var outro    = getLangText(override, 'outro',    defaults.outro_nl);
+
+  var html = '<div class="info-block" id="' + esc(defaults.blockId) + '">' +
+    '<div class="info-toggle" onclick="toggleInfo(\'' + esc(defaults.blockId) + '\')">' +
+    '<div class="info-toggle-left"><div class="info-toggle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>' +
+    '<div><h3>' + esc(title) + '</h3>' +
+    (subtitle ? '<div class="info-teaser">' + esc(subtitle) + '</div>' : '') +
+    '</div></div>' +
+    '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
+    '<div class="info-content"><div class="info-body">';
+  if (intro)     html += '<p>' + esc(intro) + '</p>';
+  if (highlight) html += '<div class="info-highlight"><p>' + esc(highlight) + '</p></div>';
+  if (outro)     html += '<p>' + esc(outro) + '</p>';
+  html += '</div></div></div>';
+  return html;
+}
+
+/**
+ * Resolveert de te tonen frequentie-set op basis van geselecteerde sectoren
+ * + sector_config.frequentie.available. Multi-sector → intersect (alleen wat
+ * elke sector toelaat). Returnt { available, defaultVal, optionsBySector }.
+ */
+function _resolveFrequentieConfig() {
+  var available = null;
+  var defaultVal = null;
+  var optionsBySector = {};
+  (selectedSectors || []).forEach(function(s) {
+    var sCfgCode = SECTORS[s];
+    var freqCfg = getSectorCfg(s, 'frequentie');
+    var sectorAvailable;
+    if (freqCfg && Array.isArray(freqCfg.available) && freqCfg.available.length > 0) {
+      sectorAvailable = freqCfg.available.slice();
+    } else if (sCfgCode && Array.isArray(sCfgCode.availableFrequencies)) {
+      sectorAvailable = sCfgCode.availableFrequencies.slice();
+    } else {
+      sectorAvailable = FREQUENTIE_DEFAULT.available.slice();
+    }
+    if (available === null) available = sectorAvailable.slice();
+    else available = available.filter(function(f) { return sectorAvailable.indexOf(f) >= 0; });
+
+    if (defaultVal === null && freqCfg && freqCfg.default != null) {
+      defaultVal = parseInt(freqCfg.default, 10);
+    }
+    if (freqCfg && freqCfg.options) optionsBySector[s] = freqCfg.options;
+  });
+  if (!available || available.length === 0) available = [1];
+  if (defaultVal === null || available.indexOf(defaultVal) < 0) defaultVal = available[0];
+  return { available: available, defaultVal: defaultVal, optionsBySector: optionsBySector };
+}
+
+/**
+ * Bouwt de frequentie-radio-group opnieuw zodra sector_config.frequentie.options
+ * van toepassing is. Laat de DOM-shape (input[name="freq"], wrapper .radio-option)
+ * exact gelijk zodat applyAvailableFrequencies + calculateAll-readers blijven werken.
+ * Als geen enkele sector een options-override geeft, behouden we de bestaande HTML
+ * (data-i18n-attributen blijven hun werk doen).
+ */
+function renderFrequentieOptions() {
+  var group = document.querySelector('input[name="freq"]');
+  if (!group) return;
+  var groupRoot = group.closest('.radio-group');
+  if (!groupRoot) return;
+
+  var resolved = _resolveFrequentieConfig();
+  var hasAnyOverride = false;
+  Object.keys(resolved.optionsBySector).forEach(function(k) {
+    if (resolved.optionsBySector[k] && Object.keys(resolved.optionsBySector[k]).length > 0) hasAnyOverride = true;
+  });
+  if (!hasAnyOverride) return; // niets te overriden — laat de native HTML staan
+
+  // Multi-sector: pak de eerste sector die options heeft als bron voor labels.
+  // Zo voorkomen we ambigue merging-logica; admin moet labels per sector consistent houden.
+  var firstSrc = null;
+  (selectedSectors || []).some(function(s) {
+    if (resolved.optionsBySector[s]) { firstSrc = resolved.optionsBySector[s]; return true; }
+    return false;
+  });
+
+  var checkedVal = null;
+  var existingChecked = document.querySelector('input[name="freq"]:checked');
+  if (existingChecked) checkedVal = parseInt(existingChecked.value, 10);
+  if (checkedVal === null || resolved.available.indexOf(checkedVal) < 0) checkedVal = resolved.defaultVal;
+
+  // Bouw radio's voor de UNION van [available + code-default-set] zodat bestaande
+  // applyAvailableFrequencies-filter (die op .style.display werkt) zijn werk kan
+  // blijven doen. Niet-available radios komen mee maar worden meteen verborgen.
+  var allKnown = FREQUENTIE_DEFAULT.available.slice();
+  resolved.available.forEach(function(v) { if (allKnown.indexOf(v) < 0) allKnown.push(v); });
+
+  var html = allKnown.map(function(val) {
+    var opt = (firstSrc && firstSrc[val]) || (FREQUENTIE_DEFAULT.options[val] || {});
+    var label = getLangText(opt, 'label', (FREQUENTIE_DEFAULT.options[val] || {}).label_nl || ('Frequentie ' + val));
+    var sub   = getLangText(opt, 'sub',   (FREQUENTIE_DEFAULT.options[val] || {}).sub_nl   || '');
+    var checked = val === checkedVal ? ' checked' : '';
+    return '<label class="radio-option"><input type="radio" name="freq" value="' + val + '"' + checked + ' onchange="calculateAll()">' +
+      '<div class="radio-text"><span>' + esc(label) + '</span>' +
+      (sub ? '<small>' + esc(sub) + '</small>' : '') +
+      '</div></label>';
+  }).join('');
+  groupRoot.innerHTML = html;
+}
+
+/**
+ * Resolveert contractduur-set + default + korting_pct map op basis van
+ * sector_config.contractduur. Multi-sector intersect op available, eerste
+ * sector met options/korting wint. Identieke shape als _resolveFrequentieConfig.
+ */
+function _resolveContractduurConfig() {
+  var available = null;
+  var defaultVal = null;
+  var korting = null;
+  var optionsBySector = {};
+  (selectedSectors || []).forEach(function(s) {
+    var dCfg = getSectorCfg(s, 'contractduur');
+    var sectorAvailable = (dCfg && Array.isArray(dCfg.available) && dCfg.available.length > 0)
+      ? dCfg.available.slice()
+      : CONTRACTDUUR_DEFAULT.available.slice();
+    if (available === null) available = sectorAvailable.slice();
+    else available = available.filter(function(v) { return sectorAvailable.indexOf(v) >= 0; });
+    if (defaultVal === null && dCfg && dCfg.default != null) defaultVal = parseInt(dCfg.default, 10);
+    if (korting === null && dCfg && dCfg.korting_pct) korting = dCfg.korting_pct;
+    if (dCfg && dCfg.options) optionsBySector[s] = dCfg.options;
+  });
+  if (!available || available.length === 0) available = CONTRACTDUUR_DEFAULT.available.slice();
+  if (defaultVal === null || available.indexOf(defaultVal) < 0) {
+    defaultVal = available.indexOf(CONTRACTDUUR_DEFAULT.default) >= 0 ? CONTRACTDUUR_DEFAULT.default : available[0];
+  }
+  if (korting === null) korting = CONTRACTDUUR_DEFAULT.korting_pct;
+  return { available: available, defaultVal: defaultVal, korting: korting, optionsBySector: optionsBySector };
+}
+
+/**
+ * Re-rendert de contractduur-radio-group adhv config-overrides. Houdt zich aan
+ * dezelfde DOM-contracten als renderFrequentieOptions (input[name="duur"]).
+ * Note v1.0: korting_pct override wordt NIET teruggekoppeld naar calculateAll()
+ * — daar staat 5% nog hardcoded. Server kan opties wel uitzetten via available.
+ * Wordt opgevolgd in een v1.1 follow-up.
+ */
+function renderContractduurOptions() {
+  var first = document.querySelector('input[name="duur"]');
+  if (!first) return;
+  var groupRoot = first.closest('.radio-group');
+  if (!groupRoot) return;
+
+  var resolved = _resolveContractduurConfig();
+  var hasAnyOverride = false;
+  Object.keys(resolved.optionsBySector).forEach(function(k) {
+    if (resolved.optionsBySector[k] && Object.keys(resolved.optionsBySector[k]).length > 0) hasAnyOverride = true;
+  });
+  // Als ook geen available-restrictie van toepassing is → laat native HTML staan.
+  var sameAsDefault = resolved.available.length === CONTRACTDUUR_DEFAULT.available.length &&
+    resolved.available.every(function(v) { return CONTRACTDUUR_DEFAULT.available.indexOf(v) >= 0; });
+  if (!hasAnyOverride && sameAsDefault && resolved.defaultVal === CONTRACTDUUR_DEFAULT.default) return;
+
+  var firstSrc = null;
+  (selectedSectors || []).some(function(s) {
+    if (resolved.optionsBySector[s]) { firstSrc = resolved.optionsBySector[s]; return true; }
+    return false;
+  });
+
+  var checkedVal = null;
+  var existingChecked = document.querySelector('input[name="duur"]:checked');
+  if (existingChecked) checkedVal = parseInt(existingChecked.value, 10);
+  if (checkedVal === null || resolved.available.indexOf(checkedVal) < 0) checkedVal = resolved.defaultVal;
+
+  var allKnown = CONTRACTDUUR_DEFAULT.available.slice();
+  resolved.available.forEach(function(v) { if (allKnown.indexOf(v) < 0) allKnown.push(v); });
+
+  var html = allKnown.map(function(val) {
+    var opt = (firstSrc && firstSrc[val]) || (CONTRACTDUUR_DEFAULT.options[val] || {});
+    var label = getLangText(opt, 'label', (CONTRACTDUUR_DEFAULT.options[val] || {}).label_nl || (val + ' jaar'));
+    var sub   = getLangText(opt, 'sub',   (CONTRACTDUUR_DEFAULT.options[val] || {}).sub_nl   || '');
+    var checked = val === checkedVal ? ' checked' : '';
+    var allowed = resolved.available.indexOf(val) >= 0;
+    var displayStyle = allowed ? '' : ' style="display:none"';
+    return '<label class="radio-option"' + displayStyle + '><input type="radio" name="duur" value="' + val + '"' + checked + (allowed ? '' : ' disabled') + ' onchange="calculateAll()">' +
+      '<div class="radio-text"><span>' + esc(label) + '</span>' +
+      (sub ? '<small>' + esc(sub) + '</small>' : '') +
+      '</div></label>';
+  }).join('');
+  groupRoot.innerHTML = html;
+}
+
+/**
+ * Past de zonnepanelen klant-vragen (bereikbaarheid + buitenkraan) aan op basis
+ * van sector_config.klant_vragen. Werkt op de bestaande #klant-bereik /
+ * #klant-water selects: alleen de wrapper-label, helper-tekst en options worden
+ * vervangen. IDs blijven onveranderd zodat readers in calculate/contract-flow
+ * blijven werken.
+ */
+function applyKlantVragen() {
+  if (selectedSectors.indexOf('zonnepanelen') < 0) return;
+  var defaults = KLANT_VRAGEN_DEFAULTS.zonnepanelen || {};
+  var override = getSectorCfg('zonnepanelen', 'klant_vragen') || {};
+
+  ['bereikbaarheid', 'buitenkraan'].forEach(function(slot) {
+    var selectId = slot === 'bereikbaarheid' ? 'klant-bereik' : 'klant-water';
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+    var wrapper = sel.closest('.field');
+    if (!wrapper) return;
+
+    var slotDefaults = defaults[slot] || {};
+    var slotOverride = override[slot] || {};
+
+    var label   = getLangText(slotOverride, 'label',  slotDefaults.label_nl  || '');
+    var helper  = getLangText(slotOverride, 'helper', slotDefaults.helper_nl || '');
+
+    // Options-array: server config overschrijft volledig (server is source of truth
+    // voor de keuzes; partial-override-per-option is over-engineering voor v1.0).
+    var optsSrc = (Array.isArray(slotOverride.options) && slotOverride.options.length > 0)
+      ? slotOverride.options
+      : (slotDefaults.options || []);
+
+    var prevValue = sel.value;
+    var optionsHtml = optsSrc.map(function(opt) {
+      var optLabel = getLangText(opt, 'label', opt.label_nl || opt.value || '');
+      return '<option value="' + esc(opt.value) + '">' + esc(optLabel) + '</option>';
+    }).join('');
+
+    // Vervang label-tekst (eerste <label> binnen wrapper)
+    var labelEl = wrapper.querySelector('label');
+    if (labelEl) labelEl.textContent = label;
+    // Vervang/voeg helper-<small> toe (eerste directe <small> ná label)
+    var smallEl = wrapper.querySelector('small');
+    if (helper) {
+      if (smallEl) {
+        smallEl.textContent = helper;
+      } else if (labelEl && labelEl.parentNode) {
+        var s = document.createElement('small');
+        s.style.cssText = 'display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45';
+        s.textContent = helper;
+        labelEl.parentNode.insertBefore(s, labelEl.nextSibling);
+      }
+    } else if (smallEl) {
+      smallEl.textContent = '';
+    }
+    // Vervang options
+    sel.innerHTML = optionsHtml;
+    // Bewaar selectie als die nog bestaat in de nieuwe set; anders eerste optie.
+    var hasPrev = false;
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === prevValue) { hasPrev = true; break; }
+    }
+    sel.value = hasPrev ? prevValue : (sel.options[0] ? sel.options[0].value : '');
+  });
+}
+
+/**
+ * Globale orchestrator: re-applied alle sector-config-driven UI-elementen voor
+ * de actieve sector(en). Wordt aangeroepen ná renderActiveSectorForm /
+ * switchSectorTab én bij elke flanccoI18n.onLangChange-event.
+ */
+function applyCalcConfigToUI() {
+  if (!partner) return;
+  if (typeof selectedSectors === 'undefined' || !selectedSectors.length) return;
+
+  // USPs + motivatie volgen de actieve sector-tab (of eerste sector als geen tab actief).
+  var sec = activeSectorTab || selectedSectors[0];
+  var uspContainer = document.getElementById('usp-container');
+  if (uspContainer && sec) uspContainer.innerHTML = renderUspBar(sec);
+
+  var infoContainer = document.getElementById('info-container');
+  if (infoContainer && sec) {
+    infoContainer.innerHTML = renderMotivatieBlock(sec);
+    expandFirstInfoBlock();
+  }
+
+  // Frequentie + contractduur zijn shared (één radio-group, multi-sector intersect).
+  renderFrequentieOptions();
+  renderContractduurOptions();
+  // Filter-helper moet hierna nog steeds een keer draaien — die hide't varianten
+  // die niet voor alle geselecteerde sectoren toelaatbaar zijn.
+  if (typeof applyAvailableFrequencies === 'function') applyAvailableFrequencies();
+
+  // Klant-vragen voor zonnepanelen.
+  applyKlantVragen();
+
+  // Re-apply data-i18n attributen die we mogelijk overschreven met config-text
+  // (radio-label spans hebben nu eigen text — geen data-i18n meer — maar als we
+  // dezelfde keys laten hangen op andere elementen blijft alles in sync).
+  if (window.flanccoI18n && typeof window.flanccoI18n.applyI18n === 'function') {
+    window.flanccoI18n.applyI18n();
+  }
+}
+
+/**
+ * Fetcht sector_config server-side via RPC anon_get_calculator_config.
+ * Vult globale calcConfig. Faalt stilzwijgend (warn) — calcConfig blijft {}
+ * zodat alle helpers terugvallen op code-defaults.
+ */
+async function loadCalcConfig() {
+  if (!partner || !partner.id) { calcConfig = {}; return; }
+  try {
+    var res = await sb.rpc('anon_get_calculator_config', { p_partner_id: partner.id });
+    if (res && res.error) {
+      console.warn('[calculator] sector_config RPC error — fallback op code-defaults:', res.error);
+      calcConfig = {};
+      return;
+    }
+    var data = (res && res.data) || {};
+    // Defensief: alleen object-shape accepteren (ondervangt edge-case waarbij
+    // RPC onverwacht een array of string returnt).
+    calcConfig = (data && typeof data === 'object' && !Array.isArray(data)) ? data : {};
+  } catch (err) {
+    console.warn('[calculator] sector_config fetch failed — fallback op code-defaults:', err);
+    calcConfig = {};
+  }
+}
+
 // Warmtepomp UI handlers — type-switch, vierweg-toggle, glycol-toggle
 function onWpTypeChange() {
   var typeEl = document.getElementById('wp-type');
@@ -2549,6 +3039,10 @@ async function init() {
 
     // Apply branding
     applyBranding(partner);
+
+    // Slot W — sector_config (globaal + partner-override) ophalen vóór de eerste
+    // render. Mislukken is non-fatal: helpers vallen terug op code-defaults.
+    await loadCalcConfig();
 
     // Determine if we need step 0
     if (sectorParam && partnerSectors.indexOf(sectorParam) !== -1) {
@@ -3460,21 +3954,23 @@ function switchSectorTab(sector) {
     if (el) el.style.display = s === sector ? 'block' : 'none';
   });
 
-  // Update USPs and info blocks for active tab
+  // Update USPs and info blocks for active tab — Slot W: via config-aware helpers
   var cfg = SECTORS[sector];
   if (cfg) {
-    var uspHtml = '<div class="usp-bar">' + cfg.usps.map(function(u) {
-      return '<div class="usp-item"><div class="usp-icon">' + u.icon + '</div><div class="usp-text">' + u.text + '</div></div>';
-    }).join('') + '</div>';
-    document.getElementById('usp-container').innerHTML = uspHtml;
-    document.getElementById('info-container').innerHTML = cfg.renderInfoBlocks();
+    document.getElementById('usp-container').innerHTML = renderUspBar(sector);
+    document.getElementById('info-container').innerHTML = renderMotivatieBlock(sector);
     // Motivatie-block default uitgeklapt — eindklant ziet meteen waarom
     // de dienst waardevol is, zonder extra klik.
     expandFirstInfoBlock();
   }
 
-  // Frequentie kan per sector verschillen — bij wisselen herevalueren.
+  // Frequentie + contractduur: re-render adhv config, dan filter toepassen.
+  renderFrequentieOptions();
+  renderContractduurOptions();
   applyAvailableFrequencies();
+
+  // Klant-vragen (zonnepanelen) updaten als we naar die sector wisselen.
+  applyKlantVragen();
 
   calculateAll();
 }
@@ -3484,14 +3980,9 @@ function renderActiveSectorForm() {
   var cfg = SECTORS[sec];
   if (!cfg) return;
 
-  // USPs (only for active tab)
-  var uspHtml = '<div class="usp-bar">' + cfg.usps.map(function(u) {
-    return '<div class="usp-item"><div class="usp-icon">' + u.icon + '</div><div class="usp-text">' + u.text + '</div></div>';
-  }).join('') + '</div>';
-  document.getElementById('usp-container').innerHTML = uspHtml;
-
-  // Info blocks (only for active tab)
-  document.getElementById('info-container').innerHTML = cfg.renderInfoBlocks();
+  // Slot W — USPs + motivatie-block via config-aware helpers (fallback op code).
+  document.getElementById('usp-container').innerHTML = renderUspBar(sec);
+  document.getElementById('info-container').innerHTML = renderMotivatieBlock(sec);
   // Motivatie-block default uitgeklapt — eindklant ziet meteen waarom
   // de dienst waardevol is, zonder extra klik.
   expandFirstInfoBlock();
@@ -3507,8 +3998,14 @@ function renderActiveSectorForm() {
   });
   document.getElementById('sector-form-container').innerHTML = formsHtml;
 
+  // Slot W — Frequentie + contractduur: server-config wint, anders code-default HTML.
+  renderFrequentieOptions();
+  renderContractduurOptions();
   // Verberg/toon frequentie-opties op basis van geselecteerde sectoren.
   applyAvailableFrequencies();
+
+  // Slot W — klant-vragen (zonnepanelen) post-render lokaal overschrijven.
+  applyKlantVragen();
 
   // Staffel table will be updated by calculateAll()
 }
@@ -3523,10 +4020,20 @@ function renderActiveSectorForm() {
  */
 function applyAvailableFrequencies() {
   if (!selectedSectors || selectedSectors.length === 0) return;
+  // Slot W — server-config kan de toegelaten frequenties per sector beperken;
+  // valt anders terug op SECTORS[s].availableFrequencies (code-default).
   var available = null;
   selectedSectors.forEach(function (s) {
     var cfg = SECTORS[s];
-    var freqs = (cfg && Array.isArray(cfg.availableFrequencies)) ? cfg.availableFrequencies : [1, 2];
+    var freqCfg = getSectorCfg(s, 'frequentie');
+    var freqs;
+    if (freqCfg && Array.isArray(freqCfg.available) && freqCfg.available.length > 0) {
+      freqs = freqCfg.available.slice();
+    } else if (cfg && Array.isArray(cfg.availableFrequencies)) {
+      freqs = cfg.availableFrequencies.slice();
+    } else {
+      freqs = [1, 2];
+    }
     if (available === null) available = freqs.slice();
     else available = available.filter(function (f) { return freqs.indexOf(f) >= 0; });
   });
@@ -5664,6 +6171,11 @@ init();
       });
     }
     window.flanccoI18n.onLangChange(refreshSwitcher);
+    // Slot W — bij taalwissel de sector-config-driven UI opnieuw applyen
+    // (USPs, motivatie, frequentie/contractduur-labels, klant-vragen).
+    window.flanccoI18n.onLangChange(function () {
+      if (typeof applyCalcConfigToUI === 'function') applyCalcConfigToUI();
+    });
     refreshSwitcher();
   }
 

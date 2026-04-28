@@ -1357,6 +1357,78 @@
   }
 
   /* =========================================================================
+     SLOT W — Calculator-instellingen
+     Sector-tabs (segmented), bilingual NL/FR field-grid, USP-cards,
+     motivatie-block met highlight-paragraaf, frequentie/contractduur-rijen.
+     Volgt design-template admin data-view (.dv-*); hergebruikt knop/select-stijl.
+     ========================================================================= */
+  .cc-sector-tabs { display:inline-flex; gap:0; border:1.5px solid var(--rule); border-radius:8px; overflow:hidden; background:#fff; }
+  .cc-sector-tab { padding:7px 14px; background:transparent; border:none; font-size:13px; font-weight:600; color:var(--grey); cursor:pointer; transition:background 0.15s, color 0.15s; font-family:inherit; min-width:96px; }
+  .cc-sector-tab:not(:last-child) { border-right:1.5px solid var(--rule); }
+  .cc-sector-tab:hover:not(.active) { background:#F9FAFB; color:var(--navy); }
+  .cc-sector-tab.active { background:var(--navy); color:#fff; }
+  .cc-sector-tab:focus-visible { outline:2px solid var(--navy); outline-offset:2px; }
+
+  .cc-banner { padding:12px 16px; border-radius:10px; font-size:13px; line-height:1.5; margin-bottom:18px; border:1px solid var(--rule); background:#F9FAFB; color:#4B5563; }
+  .cc-banner.info { border-color:#BFDBFE; background:#EFF6FF; color:#1E3A8A; }
+  .cc-banner strong { color:var(--navy); }
+
+  .cc-form { display:flex; flex-direction:column; gap:24px; }
+  .cc-section { border:1px solid var(--rule); border-radius:12px; padding:20px 22px; background:#fff; }
+  .cc-section-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:16px; }
+  .cc-section-title { font-size:16px; font-weight:700; color:var(--navy); margin:0; letter-spacing:-0.01em; }
+  .cc-section-subtitle { font-size:12px; color:var(--grey); margin:4px 0 0; line-height:1.5; }
+
+  .cc-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width: 800px) { .cc-grid-2 { grid-template-columns:1fr; } }
+
+  .cc-field { display:flex; flex-direction:column; gap:6px; }
+  .cc-field label { font-size:12px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:6px; }
+  .cc-field label .cc-lang { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:#EFF6FF; color:#1E3A8A; letter-spacing:0.02em; }
+  .cc-field label .cc-lang.fr { background:#FEF3C7; color:#92400E; }
+  .cc-field input[type="text"], .cc-field textarea, .cc-field input[type="number"] { width:100%; padding:9px 11px; border:1.5px solid var(--rule); border-radius:8px; font-size:13px; font-family:inherit; color:var(--navy); background:#fff; resize:vertical; box-sizing:border-box; }
+  .cc-field input[type="text"]:focus, .cc-field textarea:focus, .cc-field input[type="number"]:focus { outline:none; border-color:var(--navy); }
+  .cc-field textarea { min-height:64px; line-height:1.5; }
+  .cc-field textarea.cc-svg { min-height:90px; font-family:'SF Mono',Menlo,Consolas,monospace; font-size:12px; }
+  .cc-field-hint { font-size:11px; color:var(--grey); line-height:1.4; margin-top:2px; }
+
+  .cc-usp-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; }
+  @media (max-width: 1100px) { .cc-usp-grid { grid-template-columns:1fr; } }
+  .cc-usp-card { border:1px solid var(--rule); border-radius:10px; padding:14px 16px; background:#F9FAFB; display:flex; flex-direction:column; gap:10px; }
+  .cc-usp-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .cc-usp-num { font-size:11px; font-weight:700; color:var(--grey); text-transform:uppercase; letter-spacing:0.06em; }
+  .cc-usp-preview { display:flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:8px; background:#fff; border:1px solid var(--rule); color:var(--navy); }
+  .cc-usp-preview svg { width:28px; height:28px; }
+  .cc-usp-preview.empty { color:#D1D5DB; }
+
+  .cc-link-btn { background:none; border:none; color:var(--navy); font-size:11px; font-weight:600; cursor:pointer; padding:0; text-decoration:underline; font-family:inherit; }
+  .cc-link-btn:hover { color:var(--red); }
+
+  .cc-row-list { display:flex; flex-direction:column; gap:10px; }
+  .cc-row-item { display:grid; grid-template-columns:auto auto 1fr 1fr; gap:12px; align-items:start; padding:12px 14px; border:1px solid var(--rule); border-radius:10px; background:#F9FAFB; }
+  @media (max-width: 900px) { .cc-row-item { grid-template-columns:1fr; } }
+  .cc-row-toggles { display:flex; flex-direction:column; gap:6px; min-width:120px; }
+  .cc-row-toggle { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--navy); cursor:pointer; user-select:none; }
+  .cc-row-toggle input { margin:0; cursor:pointer; }
+  .cc-row-id { font-size:13px; font-weight:700; color:var(--navy); min-width:90px; padding-top:4px; }
+  .cc-row-fields { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width: 700px) { .cc-row-fields { grid-template-columns:1fr; } }
+  .cc-row-extra { display:flex; flex-direction:column; gap:6px; }
+  .cc-row-extra label { font-size:11px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.04em; }
+  .cc-row-extra input[type="number"] { width:100%; padding:8px 10px; border:1.5px solid var(--rule); border-radius:8px; font-size:13px; font-family:inherit; color:var(--navy); background:#fff; box-sizing:border-box; }
+
+  .cc-question { border:1px solid var(--rule); border-radius:10px; padding:16px 18px; background:#F9FAFB; margin-bottom:12px; }
+  .cc-question:last-child { margin-bottom:0; }
+  .cc-question-title { font-size:13px; font-weight:700; color:var(--navy); margin:0 0 4px; text-transform:uppercase; letter-spacing:0.04em; }
+  .cc-question-options { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .cc-option-row { display:grid; grid-template-columns:80px 1fr 1fr; gap:10px; align-items:start; padding:10px 12px; border:1px dashed var(--rule); border-radius:8px; background:#fff; }
+  @media (max-width: 800px) { .cc-option-row { grid-template-columns:1fr; } }
+  .cc-option-value { font-size:13px; font-weight:700; color:var(--navy); padding-top:6px; }
+
+  .cc-empty-state { text-align:center; padding:48px 24px; color:var(--grey); font-size:14px; }
+  .cc-loading { text-align:center; padding:48px 24px; color:var(--grey); font-size:14px; }
+
+  /* =========================================================================
      SLOT D — Partner-facturatie
      Periode-segmented + navigator + KPI-strip + datatabel + skeleton-loader.
      Volgt design-template admin data-view (.dv-*); hergebruikt knop/select-stijl.
@@ -1555,6 +1627,10 @@
     <a class="nav-item admin-only perm-pricing" onclick="showPage('pricing')" data-page="pricing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       <span>Prijsbeheer</span>
+    </a>
+    <a class="nav-item admin-only" onclick="showPage('calculator-config')" data-page="calculator-config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>
+      <span>Calculator</span>
     </a>
     <a class="nav-item admin-only" onclick="showPage('facturatie')" data-page="facturatie">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
@@ -1855,6 +1931,50 @@
         <p id="no-klanten" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen klanten gevonden.</p>
       </div>
       <div id="klant-dossier" style="display:none"></div>
+    </div>
+
+    <!-- CALCULATOR-INSTELLINGEN PAGE (Slot W) -->
+    <div class="page admin-only" id="page-calculator-config">
+      <div class="card">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Calculator-instellingen</h2>
+            <p class="dv-subtitle">Beheer USPs, motivatie-tekst, frequentie- en contractduur-opties + klantvragen per sector. Wijzigingen zijn direct zichtbaar voor klanten.</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" id="cc-btn-reset" onclick="resetCalcConfig()" title="Verwijder de override voor deze sector + scope; calculator gebruikt opnieuw de code-default.">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+              Herstel naar code-default
+            </button>
+            <button type="button" class="btn btn-primary" id="cc-btn-save" onclick="saveCalcConfig()" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Opslaan
+            </button>
+          </div>
+        </div>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-left">
+            <label style="font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Scope</label>
+            <select id="cc-scope" class="dv-select" onchange="onCalcConfigScopeChange()" style="min-width:240px">
+              <option value="global">Globaal (alle partners)</option>
+            </select>
+          </div>
+          <div class="dv-toolbar-right">
+            <div class="cc-sector-tabs" role="tablist">
+              <button type="button" class="cc-sector-tab active" data-cc-sector="zonnepanelen" onclick="onCalcConfigSectorChange('zonnepanelen')">Zonnepanelen</button>
+              <button type="button" class="cc-sector-tab" data-cc-sector="warmtepomp" onclick="onCalcConfigSectorChange('warmtepomp')">Warmtepomp</button>
+              <button type="button" class="cc-sector-tab" data-cc-sector="ventilatie" onclick="onCalcConfigSectorChange('ventilatie')">Ventilatie</button>
+              <button type="button" class="cc-sector-tab" data-cc-sector="verwarming" onclick="onCalcConfigSectorChange('verwarming')">Verwarming</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="cc-scope-banner" class="cc-banner" style="display:none"></div>
+
+        <div id="cc-form" class="cc-form">
+          <!-- Dynamisch gerenderd door renderCalcConfigForm() -->
+        </div>
+      </div>
     </div>
 
     <!-- PRICING PAGE -->
@@ -6234,7 +6354,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -6262,6 +6382,8 @@ function showPage(name) {
   // Slot G — Winstgevendheid: lazy data-load + render bij elke activatie van de pagina,
   // zodat verse data getoond wordt na nieuwe afgerond-beurten zonder full reload.
   if (name === 'forecast' && typeof activateWinstgevendheidPage === 'function') activateWinstgevendheidPage();
+  // Slot W — Calculator-instellingen (USPs / motivatie / frequentie / contractduur / klant-vragen)
+  if (name === 'calculator-config' && typeof initCalcConfigPage === 'function') initCalcConfigPage();
 }
 
 // =============================================
@@ -22168,6 +22290,764 @@ async function seedFeestdagenJaar() {
     if (typeof showToast === 'function') showToast(_fdT('toast_seed_failed', { reason: (e && e.message) || e }), 'error');
   } finally {
     btn.disabled = false; btn.innerHTML = oldHtml;
+  }
+}
+
+// =============================================
+// SLOT W — CALCULATOR-INSTELLINGEN
+// Beheert public.sector_config: USPs, motivatie, frequentie, contractduur,
+// klant_vragen — globaal of per partner. Partner-mode toont enkel USPs +
+// motivatie (whitelist); commerciële knoppen blijven globaal.
+// Schema-stabiel: omitted keys = code-default in calculator. Empty config {}
+// → DELETE de rij volledig.
+// =============================================
+
+var CC_SECTORS = ['zonnepanelen', 'warmtepomp', 'ventilatie', 'verwarming'];
+var CC_FREQ_IDS = [1, 2];
+var CC_DUUR_IDS = [0, 3, 5];
+var CC_PARTNER_WHITELIST = ['usps', 'motivatie']; // welke secties partner-overrides toestaan
+
+var ccState = {
+  scope: 'global',           // 'global' of partner-id (uuid)
+  sector: 'zonnepanelen',
+  rowId: null,               // bestaande sector_config.id voor (sector, scope) of null
+  config: {},                // huidige config-snapshot (form-source-of-truth)
+  initialConfig: {},         // snapshot bij laad — voor dirty-check
+  dirty: false,
+  loading: false,
+  initialized: false
+};
+
+function ccDeepClone(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function ccPartnersList() {
+  return (typeof allPartners !== 'undefined' ? allPartners : null) || partners || [];
+}
+
+function ccIsPartnerScope() {
+  return ccState.scope && ccState.scope !== 'global';
+}
+
+async function initCalcConfigPage() {
+  if (ccState.initialized) return;
+  ccState.initialized = true;
+  // Vul scope-dropdown met actieve partners
+  var sel = document.getElementById('cc-scope');
+  if (!sel) return;
+  // Reset naar enkel "Globaal" optie
+  sel.innerHTML = '<option value="global">Globaal (alle partners)</option>';
+  var pl = ccPartnersList().filter(function(p) { return p.actief !== false; });
+  pl.sort(function(a, b) {
+    var an = (a.bedrijfsnaam || a.naam || '').toLowerCase();
+    var bn = (b.bedrijfsnaam || b.naam || '').toLowerCase();
+    return an.localeCompare(bn);
+  });
+  for (var i = 0; i < pl.length; i++) {
+    var p = pl[i];
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = (p.bedrijfsnaam || p.naam || p.slug || '(zonder naam)');
+    sel.appendChild(opt);
+  }
+  // beforeunload guard
+  window.addEventListener('beforeunload', function(e) {
+    if (ccState.dirty) {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    }
+  });
+  await loadCalcConfigForCurrent();
+}
+
+async function onCalcConfigScopeChange() {
+  var sel = document.getElementById('cc-scope');
+  var nextScope = sel.value;
+  if (ccState.dirty) {
+    var ok = await confirmDialog({
+      title: 'Niet-opgeslagen wijzigingen',
+      message: 'Je hebt onopgeslagen wijzigingen voor deze sector. Wil je doorgaan en je wijzigingen verliezen?',
+      confirmLabel: 'Doorgaan zonder opslaan',
+      cancelLabel: 'Annuleren',
+      variant: 'danger'
+    });
+    if (!ok) {
+      sel.value = ccState.scope;
+      return;
+    }
+  }
+  ccState.scope = nextScope;
+  // Reset naar zonnepanelen-tab bij scope-wissel zodat de UI consistent is
+  ccState.sector = 'zonnepanelen';
+  document.querySelectorAll('.cc-sector-tab').forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-cc-sector') === 'zonnepanelen'); });
+  await loadCalcConfigForCurrent();
+}
+
+async function onCalcConfigSectorChange(sector) {
+  if (CC_SECTORS.indexOf(sector) < 0) return;
+  if (ccState.dirty) {
+    var ok = await confirmDialog({
+      title: 'Niet-opgeslagen wijzigingen',
+      message: 'Je hebt onopgeslagen wijzigingen voor deze sector. Wil je doorgaan en je wijzigingen verliezen?',
+      confirmLabel: 'Doorgaan zonder opslaan',
+      cancelLabel: 'Annuleren',
+      variant: 'danger'
+    });
+    if (!ok) return;
+  }
+  ccState.sector = sector;
+  document.querySelectorAll('.cc-sector-tab').forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-cc-sector') === sector); });
+  await loadCalcConfigForCurrent();
+}
+
+async function loadCalcConfigForCurrent() {
+  var formEl = document.getElementById('cc-form');
+  if (!formEl) return;
+  ccState.loading = true;
+  ccState.dirty = false;
+  ccUpdateSaveBtn();
+  ccUpdateScopeBanner();
+  formEl.innerHTML = '<div class="cc-loading">Bezig met laden…</div>';
+
+  try {
+    var query = sb.from('sector_config').select('*').eq('sector', ccState.sector);
+    if (ccIsPartnerScope()) {
+      query = query.eq('partner_id', ccState.scope);
+    } else {
+      query = query.is('partner_id', null);
+    }
+    var res = await query.maybeSingle();
+    if (res.error && res.error.code !== 'PGRST116') {
+      throw res.error;
+    }
+    var row = res.data;
+    if (row) {
+      ccState.rowId = row.id;
+      ccState.config = ccDeepClone(row.config || {});
+    } else {
+      ccState.rowId = null;
+      ccState.config = {};
+    }
+    ccState.initialConfig = ccDeepClone(ccState.config);
+  } catch (e) {
+    console.error('loadCalcConfigForCurrent error:', e);
+    formEl.innerHTML = '<div class="cc-empty-state">Fout bij laden: ' + esc((e && e.message) || String(e)) + '</div>';
+    ccState.loading = false;
+    return;
+  }
+  ccState.loading = false;
+  renderCalcConfigForm();
+}
+
+function ccUpdateScopeBanner() {
+  var el = document.getElementById('cc-scope-banner');
+  if (!el) return;
+  if (ccIsPartnerScope()) {
+    var p = ccPartnersList().find(function(x) { return x.id === ccState.scope; });
+    var pname = p ? (p.bedrijfsnaam || p.naam || p.slug) : 'partner';
+    el.style.display = 'block';
+    el.className = 'cc-banner info';
+    el.innerHTML = '<strong>Partner-override actief voor ' + esc(pname) + '.</strong> Je beheert hier enkel de partner-specifieke USPs en motivatie-tekst. Frequentie, contractduur en klantvragen blijven globaal beheerd (commerciële standaard).';
+  } else {
+    el.style.display = 'block';
+    el.className = 'cc-banner';
+    el.innerHTML = '<strong>Globale instellingen.</strong> Deze waarden gelden voor alle partners die geen eigen override hebben. Lege velden betekenen "gebruik code-default". Een lege sector-configuratie verwijdert de rij volledig.';
+  }
+}
+
+function ccUpdateSaveBtn() {
+  var btn = document.getElementById('cc-btn-save');
+  if (btn) btn.disabled = !ccState.dirty || ccState.loading;
+  var rbtn = document.getElementById('cc-btn-reset');
+  if (rbtn) rbtn.disabled = !ccState.rowId || ccState.loading;
+}
+
+function ccMarkDirty() {
+  ccState.dirty = true;
+  ccUpdateSaveBtn();
+}
+
+// ---------------------- RENDER ----------------------
+
+function renderCalcConfigForm() {
+  var formEl = document.getElementById('cc-form');
+  if (!formEl) return;
+  var html = '';
+  html += renderCcUspsSection();
+  html += renderCcMotivatieSection();
+  if (!ccIsPartnerScope()) {
+    html += renderCcFrequentieSection();
+    html += renderCcContractduurSection();
+    html += renderCcKlantVragenSection();
+  }
+  formEl.innerHTML = html;
+  ccUpdateSaveBtn();
+}
+
+function renderCcUspsSection() {
+  var usps = (ccState.config.usps && Array.isArray(ccState.config.usps)) ? ccState.config.usps : [];
+  var cards = '';
+  for (var i = 0; i < 3; i++) {
+    var u = usps[i] || {};
+    var hasIcon = !!(u.icon_svg && String(u.icon_svg).trim());
+    var preview = hasIcon ? '<div class="cc-usp-preview" aria-hidden="true">' + (u.icon_svg || '') + '</div>'
+                          : '<div class="cc-usp-preview empty" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/></svg></div>';
+    cards += '<div class="cc-usp-card">' +
+      '<div class="cc-usp-header">' +
+        '<span class="cc-usp-num">USP ' + (i + 1) + '</span>' +
+        preview +
+      '</div>' +
+      '<div class="cc-field">' +
+        '<label>Icoon (SVG-string)<span class="cc-field-hint" style="margin-left:auto;font-weight:400;text-transform:none">24×24 viewBox, Lucide-stijl</span></label>' +
+        '<textarea class="cc-svg" placeholder="<svg viewBox=&quot;0 0 24 24&quot;>…</svg>" oninput="ccUpdateUsp(' + i + ', \'icon_svg\', this.value)">' + esc(u.icon_svg || '') + '</textarea>' +
+      '</div>' +
+      '<div class="cc-grid-2">' +
+        '<div class="cc-field"><label>Tekst <span class="cc-lang">NL</span></label>' +
+          '<textarea placeholder="Gebruik \\n voor regel-einde" oninput="ccUpdateUsp(' + i + ', \'text_nl\', this.value)">' + esc(u.text_nl || '') + '</textarea></div>' +
+        '<div class="cc-field"><label>Tekst <span class="cc-lang fr">FR</span></label>' +
+          '<textarea placeholder="Utilisez \\n pour saut de ligne" oninput="ccUpdateUsp(' + i + ', \'text_fr\', this.value)">' + esc(u.text_fr || '') + '</textarea></div>' +
+      '</div>' +
+      '<div style="text-align:right"><button type="button" class="cc-link-btn" onclick="ccResetUsp(' + i + ')">Gebruik code-default</button></div>' +
+    '</div>';
+  }
+  return '<div class="cc-section" id="cc-section-usps">' +
+    '<div class="cc-section-header">' +
+      '<div><h3 class="cc-section-title">USPs</h3>' +
+      '<p class="cc-section-subtitle">Drie korte verkoopargumenten boven de calculator (icoon + 1–2 regels tekst). Lege velden = standaard zoals in de code.</p></div>' +
+    '</div>' +
+    '<div class="cc-usp-grid">' + cards + '</div>' +
+  '</div>';
+}
+
+function renderCcMotivatieSection() {
+  var m = ccState.config.motivatie || {};
+  function row(labelNl, labelFr, keyNl, keyFr, isTextarea, placeholderNl, placeholderFr) {
+    var tag = isTextarea ? 'textarea' : 'input type="text"';
+    var endTag = isTextarea ? '</textarea>' : '';
+    function field(lang, key, lbl, ph, val) {
+      var langCls = (lang === 'fr') ? ' fr' : '';
+      var inputAttrs = 'oninput="ccUpdateMotivatie(\'' + key + '\', this.value)"';
+      var placeholderAttr = ph ? ' placeholder="' + esc(ph) + '"' : '';
+      if (isTextarea) {
+        return '<div class="cc-field"><label>' + esc(lbl) + ' <span class="cc-lang' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
+          '<textarea ' + inputAttrs + placeholderAttr + '>' + esc(val || '') + '</textarea></div>';
+      } else {
+        return '<div class="cc-field"><label>' + esc(lbl) + ' <span class="cc-lang' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
+          '<input type="text" ' + inputAttrs + placeholderAttr + ' value="' + esc(val || '') + '"></div>';
+      }
+    }
+    return '<div class="cc-grid-2">' +
+      field('nl', keyNl, labelNl, placeholderNl, m[keyNl]) +
+      field('fr', keyFr, labelFr, placeholderFr, m[keyFr]) +
+    '</div>';
+  }
+  return '<div class="cc-section" id="cc-section-motivatie">' +
+    '<div class="cc-section-header">' +
+      '<div><h3 class="cc-section-title">Motivatie-block</h3>' +
+      '<p class="cc-section-subtitle">"Waarom …?" uitklapbaar tekstblok onder de USPs. Highlight-paragraaf wordt visueel benadrukt.</p></div>' +
+      '<button type="button" class="cc-link-btn" onclick="ccResetSection(\'motivatie\')">Gebruik code-default</button>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:14px">' +
+      row('Titel', 'Titre', 'title_nl', 'title_fr', false, 'Waarom uw zonnepanelen reinigen?', 'Pourquoi nettoyer…') +
+      row('Subtitel', 'Sous-titre', 'subtitle_nl', 'subtitle_fr', false, 'Ontdek hoeveel rendement…', '…') +
+      row('Intro-paragraaf', 'Introduction', 'intro_nl', 'intro_fr', true, 'Regen spoelt oppervlakkig stof weg…', '…') +
+      row('Highlight (visueel benadrukt)', 'Highlight (mis en avant)', 'highlight_nl', 'highlight_fr', true, 'Een typische installatie…', '…') +
+      row('Outro-paragraaf', 'Conclusion', 'outro_nl', 'outro_fr', true, 'Veel fabrikanten vereisen…', '…') +
+    '</div>' +
+  '</div>';
+}
+
+function renderCcFrequentieSection() {
+  var f = ccState.config.frequentie || {};
+  var available = Array.isArray(f.available) ? f.available.slice() : [];
+  var defaultId = (typeof f.default === 'number') ? f.default : null;
+  var options = f.options || {};
+  var rows = '';
+  for (var i = 0; i < CC_FREQ_IDS.length; i++) {
+    var id = CC_FREQ_IDS[i];
+    var o = options[String(id)] || {};
+    var isAvail = available.indexOf(id) >= 0;
+    var isDefault = (defaultId === id);
+    rows += '<div class="cc-row-item">' +
+      '<div class="cc-row-id">' + (id === 1 ? '1× / jaar' : '2× / jaar') + '</div>' +
+      '<div class="cc-row-toggles">' +
+        '<label class="cc-row-toggle"><input type="checkbox" ' + (isAvail ? 'checked' : '') + ' onchange="ccUpdateFreqAvailable(' + id + ', this.checked)"> Beschikbaar</label>' +
+        '<label class="cc-row-toggle"><input type="radio" name="cc-freq-default" ' + (isDefault ? 'checked' : '') + ' ' + (isAvail ? '' : 'disabled') + ' onchange="ccUpdateFreqDefault(' + id + ')"> Default</label>' +
+      '</div>' +
+      '<div class="cc-row-fields">' +
+        '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.label_nl || '') + '" placeholder="Jaarlijks" oninput="ccUpdateFreqOption(' + id + ', \'label_nl\', this.value)"></div>' +
+        '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.label_fr || '') + '" placeholder="Annuel" oninput="ccUpdateFreqOption(' + id + ', \'label_fr\', this.value)"></div>' +
+        '<div class="cc-field"><label>Sub <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.sub_nl || '') + '" placeholder="1 onderhoudsbeurt per jaar" oninput="ccUpdateFreqOption(' + id + ', \'sub_nl\', this.value)"></div>' +
+        '<div class="cc-field"><label>Sub <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.sub_fr || '') + '" placeholder="1 entretien par an" oninput="ccUpdateFreqOption(' + id + ', \'sub_fr\', this.value)"></div>' +
+      '</div>' +
+    '</div>';
+  }
+  return '<div class="cc-section" id="cc-section-frequentie">' +
+    '<div class="cc-section-header">' +
+      '<div><h3 class="cc-section-title">Frequentie</h3>' +
+      '<p class="cc-section-subtitle">Welke onderhoudsfrequenties biedt de calculator aan voor deze sector? Default = pre-selectie.</p></div>' +
+      '<button type="button" class="cc-link-btn" onclick="ccResetSection(\'frequentie\')">Gebruik code-default</button>' +
+    '</div>' +
+    '<div class="cc-row-list">' + rows + '</div>' +
+  '</div>';
+}
+
+function renderCcContractduurSection() {
+  var c = ccState.config.contractduur || {};
+  var available = Array.isArray(c.available) ? c.available.slice() : [];
+  var defaultId = (typeof c.default === 'number') ? c.default : null;
+  var korting = c.korting_pct || {};
+  var options = c.options || {};
+  var rows = '';
+  for (var i = 0; i < CC_DUUR_IDS.length; i++) {
+    var id = CC_DUUR_IDS[i];
+    var o = options[String(id)] || {};
+    var isAvail = available.indexOf(id) >= 0;
+    var isDefault = (defaultId === id);
+    var k = korting[String(id)];
+    var kVal = (typeof k === 'number') ? k : '';
+    var idLabel = id === 0 ? 'Eenmalig' : (id + ' jaar');
+    rows += '<div class="cc-row-item">' +
+      '<div class="cc-row-id">' + idLabel + '</div>' +
+      '<div class="cc-row-toggles">' +
+        '<label class="cc-row-toggle"><input type="checkbox" ' + (isAvail ? 'checked' : '') + ' onchange="ccUpdateDuurAvailable(' + id + ', this.checked)"> Beschikbaar</label>' +
+        '<label class="cc-row-toggle"><input type="radio" name="cc-duur-default" ' + (isDefault ? 'checked' : '') + ' ' + (isAvail ? '' : 'disabled') + ' onchange="ccUpdateDuurDefault(' + id + ')"> Default</label>' +
+        '<div class="cc-row-extra"><label>Korting %</label><input type="number" min="0" max="100" step="1" value="' + esc(String(kVal)) + '" placeholder="0" oninput="ccUpdateDuurKorting(' + id + ', this.value)"></div>' +
+      '</div>' +
+      '<div class="cc-row-fields">' +
+        '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.label_nl || '') + '" placeholder="3 jaar" oninput="ccUpdateDuurOption(' + id + ', \'label_nl\', this.value)"></div>' +
+        '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.label_fr || '') + '" placeholder="3 ans" oninput="ccUpdateDuurOption(' + id + ', \'label_fr\', this.value)"></div>' +
+        '<div class="cc-field"><label>Sub <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.sub_nl || '') + '" placeholder="5% korting op alle tarieven" oninput="ccUpdateDuurOption(' + id + ', \'sub_nl\', this.value)"></div>' +
+        '<div class="cc-field"><label>Sub <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.sub_fr || '') + '" placeholder="5% de réduction" oninput="ccUpdateDuurOption(' + id + ', \'sub_fr\', this.value)"></div>' +
+      '</div>' +
+    '</div>';
+  }
+  return '<div class="cc-section" id="cc-section-contractduur">' +
+    '<div class="cc-section-header">' +
+      '<div><h3 class="cc-section-title">Contractduur</h3>' +
+      '<p class="cc-section-subtitle">Beschikbare contractduur-opties + kortingspercentages. Default = pre-selectie.</p></div>' +
+      '<button type="button" class="cc-link-btn" onclick="ccResetSection(\'contractduur\')">Gebruik code-default</button>' +
+    '</div>' +
+    '<div class="cc-row-list">' + rows + '</div>' +
+  '</div>';
+}
+
+function renderCcKlantVragenSection() {
+  var kv = ccState.config.klant_vragen || {};
+  // Buitenkraan is enkel relevant voor zonnepanelen — tonen we ook alleen daar
+  var showBuitenkraan = (ccState.sector === 'zonnepanelen');
+  function questionBlock(qkey, title, defaultOptions) {
+    var q = kv[qkey] || {};
+    var opts = (q.options && Array.isArray(q.options)) ? q.options : defaultOptions.map(function(o){ return { value: o.value, label_nl: '', label_fr: '' }; });
+    // Houd waarden constant; admin kan enkel labels editeren
+    var optionsHtml = '';
+    for (var i = 0; i < defaultOptions.length; i++) {
+      var def = defaultOptions[i];
+      var existing = opts.find(function(x) { return x.value === def.value; }) || {};
+      optionsHtml += '<div class="cc-option-row">' +
+        '<div class="cc-option-value">' + esc(def.value) + '</div>' +
+        '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input type="text" value="' + esc(existing.label_nl || '') + '" placeholder="' + esc(def.placeholderNl || '') + '" oninput="ccUpdateKvOption(\'' + qkey + '\', \'' + def.value + '\', \'label_nl\', this.value)"></div>' +
+        '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(existing.label_fr || '') + '" placeholder="' + esc(def.placeholderFr || '') + '" oninput="ccUpdateKvOption(\'' + qkey + '\', \'' + def.value + '\', \'label_fr\', this.value)"></div>' +
+      '</div>';
+    }
+    return '<div class="cc-question">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h4 class="cc-question-title">' + esc(title) + '</h4>' +
+      '<button type="button" class="cc-link-btn" onclick="ccResetKvQuestion(\'' + qkey + '\')">Gebruik code-default</button></div>' +
+      '<div class="cc-grid-2" style="margin-top:10px">' +
+        '<div class="cc-field"><label>Vraaglabel <span class="cc-lang">NL</span></label><input type="text" value="' + esc(q.label_nl || '') + '" oninput="ccUpdateKv(\'' + qkey + '\', \'label_nl\', this.value)"></div>' +
+        '<div class="cc-field"><label>Vraaglabel <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(q.label_fr || '') + '" oninput="ccUpdateKv(\'' + qkey + '\', \'label_fr\', this.value)"></div>' +
+        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang">NL</span></label><textarea oninput="ccUpdateKv(\'' + qkey + '\', \'helper_nl\', this.value)">' + esc(q.helper_nl || '') + '</textarea></div>' +
+        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang fr">FR</span></label><textarea oninput="ccUpdateKv(\'' + qkey + '\', \'helper_fr\', this.value)">' + esc(q.helper_fr || '') + '</textarea></div>' +
+      '</div>' +
+      '<div class="cc-question-options">' + optionsHtml + '</div>' +
+    '</div>';
+  }
+  var bereikBlock = questionBlock('bereikbaarheid', 'Bereikbaarheid', [
+    { value: 'Goed',     placeholderNl: 'Goed bereikbaar — bestelwagen kan vlot tot bij de woning', placeholderFr: 'Bien accessible' },
+    { value: 'Beperkt',  placeholderNl: 'Beperkt bereikbaar — smalle straat, paaltjes of obstakels', placeholderFr: 'Accessibilité limitée' }
+  ]);
+  var buitenBlock = showBuitenkraan ? questionBlock('buitenkraan', 'Buitenkraan (enkel zonnepanelen)', [
+    { value: 'Ja',  placeholderNl: 'Ja, er is een werkende buitenkraan beschikbaar', placeholderFr: 'Oui, robinet extérieur disponible' },
+    { value: 'Nee', placeholderNl: 'Nee, breng zelf water mee', placeholderFr: 'Non, apportez votre propre eau' }
+  ]) : '';
+  return '<div class="cc-section" id="cc-section-klant-vragen">' +
+    '<div class="cc-section-header">' +
+      '<div><h3 class="cc-section-title">Klant-vragen</h3>' +
+      '<p class="cc-section-subtitle">Praktische vragen tijdens het invullen van de calculator. Optie-waarden (Goed/Beperkt, Ja/Nee) blijven vast — enkel labels zijn editeerbaar.</p></div>' +
+    '</div>' +
+    bereikBlock + buitenBlock +
+  '</div>';
+}
+
+// ---------------------- MUTATORS ----------------------
+
+function ccEnsureUsps() {
+  if (!Array.isArray(ccState.config.usps)) ccState.config.usps = [];
+  while (ccState.config.usps.length < 3) ccState.config.usps.push({});
+}
+
+function ccUpdateUsp(idx, key, val) {
+  ccEnsureUsps();
+  ccState.config.usps[idx] = ccState.config.usps[idx] || {};
+  if (val == null || val === '') {
+    delete ccState.config.usps[idx][key];
+  } else {
+    ccState.config.usps[idx][key] = val;
+  }
+  // Cleanup: als alle drie de keys leeg zijn, zet object terug op leeg {}
+  // (zo blijft de slot herkenbaar maar zonder data)
+  ccCleanupUspSlot(idx);
+  ccCleanupUspsArray();
+  ccMarkDirty();
+  // Refresh icoon-preview zonder volledige re-render (snappier UX)
+  ccRefreshUspPreview(idx);
+}
+
+function ccCleanupUspSlot(idx) {
+  var u = ccState.config.usps[idx];
+  if (u && !u.icon_svg && !u.text_nl && !u.text_fr) {
+    ccState.config.usps[idx] = {};
+  }
+}
+
+function ccCleanupUspsArray() {
+  // Als alle 3 USPs leeg zijn, verwijder usps-key volledig
+  var allEmpty = ccState.config.usps.every(function(u) { return !u.icon_svg && !u.text_nl && !u.text_fr; });
+  if (allEmpty) delete ccState.config.usps;
+}
+
+function ccRefreshUspPreview(idx) {
+  // Vind de specifieke usp-card (er staan er 3 in DOM-volgorde) en update preview-element
+  var cards = document.querySelectorAll('#cc-section-usps .cc-usp-card');
+  var card = cards[idx];
+  if (!card) return;
+  var preview = card.querySelector('.cc-usp-preview');
+  if (!preview) return;
+  var u = (ccState.config.usps && ccState.config.usps[idx]) || {};
+  var hasIcon = !!(u.icon_svg && String(u.icon_svg).trim());
+  if (hasIcon) {
+    preview.classList.remove('empty');
+    preview.innerHTML = u.icon_svg;
+  } else {
+    preview.classList.add('empty');
+    preview.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/></svg>';
+  }
+}
+
+function ccResetUsp(idx) {
+  if (!Array.isArray(ccState.config.usps)) return;
+  ccState.config.usps[idx] = {};
+  ccCleanupUspsArray();
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+function ccUpdateMotivatie(key, val) {
+  if (!ccState.config.motivatie) ccState.config.motivatie = {};
+  if (val == null || val === '') {
+    delete ccState.config.motivatie[key];
+  } else {
+    ccState.config.motivatie[key] = val;
+  }
+  if (ccState.config.motivatie && Object.keys(ccState.config.motivatie).length === 0) {
+    delete ccState.config.motivatie;
+  }
+  ccMarkDirty();
+}
+
+function ccResetSection(sectionKey) {
+  delete ccState.config[sectionKey];
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+function ccEnsureFreq() {
+  if (!ccState.config.frequentie) ccState.config.frequentie = { available: [], options: {} };
+  if (!Array.isArray(ccState.config.frequentie.available)) ccState.config.frequentie.available = [];
+  if (!ccState.config.frequentie.options) ccState.config.frequentie.options = {};
+}
+
+function ccUpdateFreqAvailable(id, checked) {
+  ccEnsureFreq();
+  var arr = ccState.config.frequentie.available;
+  var pos = arr.indexOf(id);
+  if (checked && pos < 0) arr.push(id);
+  if (!checked && pos >= 0) arr.splice(pos, 1);
+  arr.sort(function(a, b) { return a - b; });
+  // Als default niet meer in available, clear default
+  if (ccState.config.frequentie.default && arr.indexOf(ccState.config.frequentie.default) < 0) {
+    delete ccState.config.frequentie.default;
+  }
+  ccCleanupFreq();
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+function ccUpdateFreqDefault(id) {
+  ccEnsureFreq();
+  ccState.config.frequentie.default = id;
+  ccMarkDirty();
+}
+
+function ccUpdateFreqOption(id, key, val) {
+  ccEnsureFreq();
+  var opts = ccState.config.frequentie.options;
+  opts[String(id)] = opts[String(id)] || {};
+  if (val == null || val === '') {
+    delete opts[String(id)][key];
+  } else {
+    opts[String(id)][key] = val;
+  }
+  if (Object.keys(opts[String(id)]).length === 0) delete opts[String(id)];
+  ccCleanupFreq();
+  ccMarkDirty();
+}
+
+function ccCleanupFreq() {
+  var f = ccState.config.frequentie;
+  if (!f) return;
+  var emptyOpts = !f.options || Object.keys(f.options).length === 0;
+  var noAvail = !f.available || f.available.length === 0;
+  var noDefault = !f.default;
+  if (emptyOpts && noAvail && noDefault) delete ccState.config.frequentie;
+}
+
+function ccEnsureDuur() {
+  if (!ccState.config.contractduur) ccState.config.contractduur = { available: [], options: {}, korting_pct: {} };
+  var c = ccState.config.contractduur;
+  if (!Array.isArray(c.available)) c.available = [];
+  if (!c.options) c.options = {};
+  if (!c.korting_pct) c.korting_pct = {};
+}
+
+function ccUpdateDuurAvailable(id, checked) {
+  ccEnsureDuur();
+  var arr = ccState.config.contractduur.available;
+  var pos = arr.indexOf(id);
+  if (checked && pos < 0) arr.push(id);
+  if (!checked && pos >= 0) arr.splice(pos, 1);
+  arr.sort(function(a, b) { return a - b; });
+  if (ccState.config.contractduur.default != null && arr.indexOf(ccState.config.contractduur.default) < 0) {
+    delete ccState.config.contractduur.default;
+  }
+  ccCleanupDuur();
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+function ccUpdateDuurDefault(id) {
+  ccEnsureDuur();
+  ccState.config.contractduur.default = id;
+  ccMarkDirty();
+}
+
+function ccUpdateDuurKorting(id, val) {
+  ccEnsureDuur();
+  var k = ccState.config.contractduur.korting_pct;
+  var trimmed = (val == null) ? '' : String(val).trim();
+  if (trimmed === '') {
+    delete k[String(id)];
+  } else {
+    var num = parseInt(trimmed, 10);
+    if (isNaN(num) || num < 0) num = 0;
+    if (num > 100) num = 100;
+    k[String(id)] = num;
+  }
+  if (Object.keys(k).length === 0) delete ccState.config.contractduur.korting_pct;
+  ccCleanupDuur();
+  ccMarkDirty();
+}
+
+function ccUpdateDuurOption(id, key, val) {
+  ccEnsureDuur();
+  var opts = ccState.config.contractduur.options;
+  opts[String(id)] = opts[String(id)] || {};
+  if (val == null || val === '') {
+    delete opts[String(id)][key];
+  } else {
+    opts[String(id)][key] = val;
+  }
+  if (Object.keys(opts[String(id)]).length === 0) delete opts[String(id)];
+  ccCleanupDuur();
+  ccMarkDirty();
+}
+
+function ccCleanupDuur() {
+  var c = ccState.config.contractduur;
+  if (!c) return;
+  var emptyOpts = !c.options || Object.keys(c.options).length === 0;
+  var noAvail = !c.available || c.available.length === 0;
+  var noDefault = (c.default == null);
+  var noKorting = !c.korting_pct || Object.keys(c.korting_pct).length === 0;
+  if (emptyOpts && noAvail && noDefault && noKorting) delete ccState.config.contractduur;
+}
+
+function ccEnsureKv(qkey) {
+  if (!ccState.config.klant_vragen) ccState.config.klant_vragen = {};
+  if (!ccState.config.klant_vragen[qkey]) ccState.config.klant_vragen[qkey] = {};
+  return ccState.config.klant_vragen[qkey];
+}
+
+function ccUpdateKv(qkey, fieldKey, val) {
+  var q = ccEnsureKv(qkey);
+  if (val == null || val === '') {
+    delete q[fieldKey];
+  } else {
+    q[fieldKey] = val;
+  }
+  ccCleanupKv(qkey);
+  ccMarkDirty();
+}
+
+function ccUpdateKvOption(qkey, value, fieldKey, val) {
+  var q = ccEnsureKv(qkey);
+  if (!Array.isArray(q.options)) q.options = [];
+  var existing = null;
+  for (var i = 0; i < q.options.length; i++) {
+    if (q.options[i].value === value) { existing = q.options[i]; break; }
+  }
+  if (!existing) {
+    existing = { value: value };
+    q.options.push(existing);
+  }
+  if (val == null || val === '') {
+    delete existing[fieldKey];
+  } else {
+    existing[fieldKey] = val;
+  }
+  // Verwijder optie als enkel "value" overblijft (geen labels)
+  q.options = q.options.filter(function(o) {
+    return Object.keys(o).some(function(k) { return k !== 'value' && o[k]; });
+  });
+  if (q.options.length === 0) delete q.options;
+  ccCleanupKv(qkey);
+  ccMarkDirty();
+}
+
+function ccCleanupKv(qkey) {
+  var kv = ccState.config.klant_vragen;
+  if (!kv) return;
+  var q = kv[qkey];
+  if (q && Object.keys(q).length === 0) delete kv[qkey];
+  if (Object.keys(kv).length === 0) delete ccState.config.klant_vragen;
+}
+
+function ccResetKvQuestion(qkey) {
+  if (!ccState.config.klant_vragen) return;
+  delete ccState.config.klant_vragen[qkey];
+  if (Object.keys(ccState.config.klant_vragen).length === 0) delete ccState.config.klant_vragen;
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+// ---------------------- SAVE / RESET ----------------------
+
+function ccBuildPersistedConfig() {
+  // Bouwt config snapshot. Gerichte cleanup: lege containers verwijderen en in
+  // partner-mode strikt enkel whitelist-keys behouden.
+  var cfg = ccDeepClone(ccState.config) || {};
+  // Final cleanup: lege deep-objects → verwijder
+  if (cfg.usps && cfg.usps.length === 0) delete cfg.usps;
+  if (cfg.motivatie && Object.keys(cfg.motivatie).length === 0) delete cfg.motivatie;
+  if (ccIsPartnerScope()) {
+    var allowed = {};
+    for (var i = 0; i < CC_PARTNER_WHITELIST.length; i++) {
+      var k = CC_PARTNER_WHITELIST[i];
+      if (cfg[k] != null) allowed[k] = cfg[k];
+    }
+    return allowed;
+  }
+  return cfg;
+}
+
+async function saveCalcConfig() {
+  if (!ccState.dirty) return;
+  if (ccState.loading) return;
+  var btn = document.getElementById('cc-btn-save');
+  if (btn) { btn.disabled = true; btn.dataset.origLabel = btn.innerHTML; btn.innerHTML = 'Opslaan…'; }
+  try {
+    var persisted = ccBuildPersistedConfig();
+    var hasContent = persisted && Object.keys(persisted).length > 0;
+    var partnerId = ccIsPartnerScope() ? ccState.scope : null;
+    var oldSnapshot = ccDeepClone(ccState.initialConfig);
+
+    if (!hasContent) {
+      // Lege config → DELETE row indien bestaand, anders no-op
+      if (ccState.rowId) {
+        var del = await sb.from('sector_config').delete().eq('id', ccState.rowId);
+        if (del.error) throw del.error;
+        try { await auditLog('sector_config', ccState.rowId, 'verwijderd', oldSnapshot, null); } catch (_) {}
+        ccState.rowId = null;
+      }
+    } else if (ccState.rowId) {
+      // UPDATE bestaande rij
+      var upd = await sb.from('sector_config').update({
+        config: persisted,
+        updated_by: currentUser ? currentUser.id : null
+      }).eq('id', ccState.rowId).select('id').maybeSingle();
+      if (upd.error) throw upd.error;
+      try { await auditLog('sector_config', ccState.rowId, 'bijgewerkt', oldSnapshot, persisted); } catch (_) {}
+    } else {
+      // INSERT nieuwe rij
+      var ins = await sb.from('sector_config').insert({
+        sector: ccState.sector,
+        partner_id: partnerId,
+        config: persisted,
+        updated_by: currentUser ? currentUser.id : null
+      }).select('id').maybeSingle();
+      if (ins.error) throw ins.error;
+      ccState.rowId = ins.data ? ins.data.id : null;
+      try { await auditLog('sector_config', ccState.rowId, 'aangemaakt', null, persisted); } catch (_) {}
+    }
+
+    ccState.config = ccDeepClone(persisted);
+    ccState.initialConfig = ccDeepClone(persisted);
+    ccState.dirty = false;
+    showToast('Opgeslagen', 'success');
+  } catch (e) {
+    console.error('saveCalcConfig error:', e);
+    showToast('Fout bij opslaan: ' + ((e && e.message) || String(e)), 'error');
+  } finally {
+    if (btn) {
+      if (btn.dataset.origLabel) { btn.innerHTML = btn.dataset.origLabel; delete btn.dataset.origLabel; }
+      ccUpdateSaveBtn();
+    }
+    renderCalcConfigForm();
+  }
+}
+
+async function resetCalcConfig() {
+  if (!ccState.rowId) {
+    showToast('Geen override actief voor deze scope + sector', 'info');
+    return;
+  }
+  var ok = await confirmDialog({
+    title: 'Herstel naar code-default',
+    message: 'Weet je zeker dat je de configuratie voor "' + ccState.sector + '" (' + (ccIsPartnerScope() ? 'partner-override' : 'globaal') + ') volledig wil verwijderen?\n\nDe calculator gebruikt daarna opnieuw de standaardwaarden uit de code.',
+    confirmLabel: 'Verwijderen',
+    cancelLabel: 'Annuleren',
+    variant: 'danger'
+  });
+  if (!ok) return;
+  try {
+    var oldSnapshot = ccDeepClone(ccState.initialConfig);
+    var oldRowId = ccState.rowId;
+    var del = await sb.from('sector_config').delete().eq('id', ccState.rowId);
+    if (del.error) throw del.error;
+    try { await auditLog('sector_config', oldRowId, 'verwijderd', oldSnapshot, null); } catch (_) {}
+    ccState.rowId = null;
+    ccState.config = {};
+    ccState.initialConfig = {};
+    ccState.dirty = false;
+    showToast('Override verwijderd — calculator gebruikt code-default', 'success');
+    renderCalcConfigForm();
+    ccUpdateSaveBtn();
+  } catch (e) {
+    console.error('resetCalcConfig error:', e);
+    showToast('Fout bij verwijderen: ' + ((e && e.message) || String(e)), 'error');
   }
 }
 
