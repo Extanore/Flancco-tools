@@ -19557,7 +19557,7 @@ function renderVerlofKalender() {
     var d = new Date(van);
     while (d <= tot) {
       if (d.getFullYear() === jaar) {
-        var key = v.technieker_id + '_' + formatDateISO(d);
+        var key = v.technieker_id + '_' + formatDateISO_dash(d);
         verlofLookup[key] = { kleur: kleur, naam: naam, reden: v.reden };
       }
       d.setDate(d.getDate() + 1);
@@ -19587,7 +19587,7 @@ function renderVerlofKalender() {
       var dim = daysInMonth(jaar, m);
       for (var day = 1; day <= dim; day++) {
         var dateObj = new Date(jaar, m, day);
-        var iso = formatDateISO(dateObj);
+        var iso = formatDateISO_dash(dateObj);
         var dow = dateObj.getDay(); // 0=zo,6=za
         var cls = 'v-kal-cell';
         var style = '';
