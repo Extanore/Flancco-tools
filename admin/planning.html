@@ -2075,7 +2075,7 @@
 </div>
 
 <!-- QUICK-ADD MODAL -->
-<div class="modal-overlay" id="modal-quickadd">
+<div class="modal-overlay" id="modal-quickadd" data-dirty-track="true">
   <div class="modal" style="max-width:520px">
     <h2 id="qa-title">Taak toevoegen</h2>
     <p id="qa-info" style="color:var(--grey);font-size:12px;margin-bottom:16px"></p>
@@ -2208,7 +2208,7 @@
     <!-- Buttons: inline (single) vs deferrable (split-button met Opmaken-variant) -->
     <div class="modal-buttons">
       <div class="footer-right" style="margin-left:auto">
-        <button type="button" class="btn btn-ghost" onclick="closeQuickAdd()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-quickadd')">Annuleren</button>
         <div class="btn-split" id="qa-save-split">
           <button type="button" id="qa-btn-save" class="btn btn-primary btn-split-main" onclick="saveQuickAdd('inplannen')">Inplannen</button>
           <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer opties" onclick="toggleSplitMenu(this, event)" style="display:none">
@@ -2364,7 +2364,7 @@
 </div>
 
 <!-- INTERVENTIE INPLANNEN MODAL -->
-<div class="modal-overlay" id="modal-plan-interventie">
+<div class="modal-overlay" id="modal-plan-interventie" data-dirty-track="true">
   <div class="modal" style="max-width:520px">
     <h2>Interventie inplannen</h2>
     <input type="hidden" id="pi-interventie-id">
@@ -2393,7 +2393,7 @@
 
     <div class="modal-buttons">
       <div class="footer-right" style="margin-left:auto">
-        <button type="button" class="btn btn-ghost" onclick="closePlanInterventieModal()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-plan-interventie')">Annuleren</button>
         <button type="button" class="btn btn-primary" onclick="savePlanInterventie()">Inplannen</button>
       </div>
     </div>
@@ -2401,7 +2401,7 @@
 </div>
 
 <!-- NIEUWE INTERVENTIE MODAL -->
-<div class="modal-overlay" id="modal-nieuwe-interventie">
+<div class="modal-overlay" id="modal-nieuwe-interventie" data-dirty-track="true">
   <div class="modal" style="max-width:560px">
     <h2>Nieuwe interventie</h2>
     <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Meld een interventie aan zodat de planner ze kan inplannen.</p>
@@ -2541,7 +2541,7 @@
 
     <div class="modal-buttons">
       <div class="footer-right" style="margin-left:auto">
-        <button type="button" class="btn btn-ghost" onclick="closeNieuweInterventieModal()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-nieuwe-interventie')">Annuleren</button>
         <div class="btn-split" id="ni-save-split">
           <button type="button" id="ni-btn-save" class="btn btn-primary btn-split-main" onclick="saveNieuweInterventie('inplannen')">Nu inplannen</button>
           <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer opties" onclick="toggleSplitMenu(this, event)">
@@ -2562,7 +2562,7 @@
 <!-- INTERVENTIE BEWERKEN MODAL (Fix #9) -->
 <!-- Compacte edit-modal: enkel omschrijving/ernst/duur/gewenste-datum aanpasbaar.
      Klant/contract/sector zijn immutable na aanmaak (bij wijziging → delete + re-create). -->
-<div class="modal-overlay" id="modal-edit-interventie">
+<div class="modal-overlay" id="modal-edit-interventie" data-dirty-track="true">
   <div class="modal" style="max-width:520px">
     <h2>Interventie bewerken</h2>
     <p style="color:var(--grey);font-size:12px;margin-bottom:16px">Pas de details aan. Klant en contract zijn onveranderbaar — verwijder en maak opnieuw aan indien die moeten wijzigen.</p>
@@ -2609,7 +2609,7 @@
     <div class="modal-buttons" style="display:flex;justify-content:space-between;gap:8px;margin-top:16px">
       <button type="button" class="btn btn-danger-ghost" onclick="deleteInterventieFromEditModal()">Verwijderen</button>
       <div style="display:flex;gap:8px">
-        <button type="button" class="btn btn-ghost" onclick="closeEditInterventieModal()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-edit-interventie')">Annuleren</button>
         <button type="button" class="btn btn-primary" onclick="saveEditInterventie()">Opslaan</button>
       </div>
     </div>
@@ -4565,7 +4565,7 @@ window.flanccoModalDirty = (function() {
 // Mapping van overlay-id → bestaande close-functie. Wordt door
 // flanccoModalClose aangeroepen na een eventuele dirty-confirm.
 window.flanccoModalCloseMap = {
-  'modal-quickadd':              function() { if (typeof closeQuickAddModal === 'function') closeQuickAddModal(); },
+  'modal-quickadd':              function() { if (typeof closeQuickAdd === 'function') closeQuickAdd(); },
   'modal-dagplus':               function() { if (typeof closeDagPlusKiezer === 'function') closeDagPlusKiezer(); },
   'modal-werkbon':               function() { if (typeof closeWerkbonModal === 'function') closeWerkbonModal(); },
   'modal-werkplanning-export':   function() { if (typeof closeWerkplanningExport === 'function') closeWerkplanningExport(); },
@@ -6157,9 +6157,17 @@ function openEditInterventieModal(ivId) {
   }
 
   document.getElementById('modal-edit-interventie').classList.add('open');
+
+  // Dirty-state baseline (na alle late field-populaties)
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-edit-interventie'); }, 0);
+  }
 }
 
 function closeEditInterventieModal() {
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-edit-interventie');
+  }
   document.getElementById('modal-edit-interventie').classList.remove('open');
 }
 
@@ -6683,6 +6691,11 @@ function openNieuweInterventieModal() {
 
   niApplyStepVisibility();
   document.getElementById('modal-nieuwe-interventie').classList.add('open');
+
+  // Dirty-state baseline (na alle late field-populaties)
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-nieuwe-interventie'); }, 0);
+  }
 }
 
 function niSelectNewKlant() {
@@ -6699,6 +6712,9 @@ function niSelectNewKlant() {
 }
 
 function closeNieuweInterventieModal() {
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-nieuwe-interventie');
+  }
   document.getElementById('modal-nieuwe-interventie').classList.remove('open');
 }
 
@@ -6951,9 +6967,17 @@ function openPlanInterventieModal(ivId, techId, dateStr, startTijd) {
   document.getElementById('pi-duur').value = iv.geschatte_duur || resolveDuur(_piResolved.sector, _piResolved.grootte, contract && contract.partner_id);
 
   document.getElementById('modal-plan-interventie').classList.add('open');
+
+  // Dirty-state baseline (na alle late field-populaties)
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-plan-interventie'); }, 0);
+  }
 }
 
 function closePlanInterventieModal() {
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-plan-interventie');
+  }
   document.getElementById('modal-plan-interventie').classList.remove('open');
 }
 
@@ -11683,6 +11707,11 @@ function quickAdd(techId, datum, mode, opdrachtType) {
   qaApplyModeVisibility();
 
   document.getElementById('modal-quickadd').classList.add('open');
+
+  // Dirty-state baseline (na alle late field-populaties)
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-quickadd'); }, 0);
+  }
 }
 
 // Toon/verberg velden en knoppen o.b.v. mode + step
@@ -11998,6 +12027,9 @@ function toggleTechChip(el) {
 }
 
 function closeQuickAdd() {
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-quickadd');
+  }
   document.getElementById('modal-quickadd').classList.remove('open');
 }
 
