@@ -99,6 +99,16 @@ interface ContractRow {
   klant_gemeente: string | null;
   klant_adres: string | null;
   lang: string | null;
+  // Slot T — bedrijf-only-detectie + lookup-keys
+  client_id: string | null;
+  client_contact_id: string | null;
+}
+
+// Slot T — recipient + greeting resolution voor klant-notificaties
+interface RecipientResolution {
+  email: string;
+  greetingName: string;
+  isCompanyOnly: boolean;
 }
 
 interface PartnerRow {
@@ -281,7 +291,7 @@ Deno.serve(async (req: Request) => {
       if (br.contract_id) {
         const { data: cr } = await admin
           .from("contracten")
-          .select(`id, partner_id, klant_naam, klant_email, klant_postcode, klant_gemeente, klant_adres, lang`)
+          .select(`id, partner_id, klant_naam, klant_email, klant_postcode, klant_gemeente, klant_adres, lang, client_id, client_contact_id`)
           .eq("id", br.contract_id)
           .maybeSingle<ContractRow>();
         contract = cr;
@@ -289,7 +299,7 @@ Deno.serve(async (req: Request) => {
     } else if (contract_id) {
       const { data: cr } = await admin
         .from("contracten")
-        .select(`id, partner_id, klant_naam, klant_email, klant_postcode, klant_gemeente, klant_adres, lang`)
+        .select(`id, partner_id, klant_naam, klant_email, klant_postcode, klant_gemeente, klant_adres, lang, client_id, client_contact_id`)
         .eq("id", contract_id)
         .maybeSingle<ContractRow>();
       contract = cr;
@@ -321,8 +331,16 @@ Deno.serve(async (req: Request) => {
       technieker = tr;
     }
 
-    // 4) Resolve recipient
-    const recipient = override_email || contract?.klant_email || "";
+    // 4) Resolve recipient (Slot T: bedrijf-only support via client_contact_id)
+    const resolved = override_email
+      ? {
+          email: override_email,
+          greetingName: contract?.klant_naam || (lang_default(contract) === "fr" ? "Cher client" : "Beste klant"),
+          isCompanyOnly: false,
+        } as RecipientResolution
+      : await resolveRecipient(admin, contract);
+
+    const recipient = resolved.email;
     if (!recipient || !EMAIL_RE.test(recipient)) {
       await insertLog(admin, {
         beurt_id: beurt?.id ?? null,
@@ -381,7 +399,8 @@ Deno.serve(async (req: Request) => {
 
     const ctx: TemplateCtx = {
       branding, lang,
-      klantNaam: contract?.klant_naam ?? (lang === "fr" ? "Cher client" : "Beste klant"),
+      klantNaam: resolved.greetingName,
+      isCompanyOnly: resolved.isCompanyOnly,
       planDatum: beurt?.plan_datum ?? null,
       startTijd: beurt?.start_tijd ?? null,
       heleDag: beurt?.hele_dag === true,
@@ -538,6 +557,8 @@ interface TemplateCtx {
   branding: PartnerBranding;
   lang: Lang;
   klantNaam: string;
+  /** Slot T: true → bedrijf-only contract, gebruikt bedrijfs-aanhef. */
+  isCompanyOnly: boolean;
   planDatum: string | null;   // "YYYY-MM-DD"
   startTijd: string | null;   // "HH:MM:SS"
   heleDag: boolean;
@@ -546,6 +567,83 @@ interface TemplateCtx {
 }
 
 interface BuiltTemplate { subject: string; bodyHtml: string }
+
+/**
+ * Slot T — adapt aanhef voor bedrijf-only-contracten.
+ * Persoon: "Beste {naam}," / "Bonjour {naam},"
+ * Bedrijf: "Beste collega's van {bedrijf}," / "Chers collègues de {bedrijf},"
+ */
+function buildAanhef(c: TemplateCtx): string {
+  const isFr = c.lang === "fr";
+  if (c.isCompanyOnly) {
+    return isFr
+      ? `Chers collègues de ${c.klantNaam},`
+      : `Beste collega's van ${c.klantNaam},`;
+  }
+  return isFr ? `Bonjour ${c.klantNaam},` : `Beste ${c.klantNaam},`;
+}
+
+function lang_default(contract: ContractRow | null): Lang {
+  return contract?.lang === "fr" ? "fr" : "nl";
+}
+
+/**
+ * Slot T — resolve recipient + greeting name voor klant-notificatie email.
+ * Wanneer client_contact_id koppelt naar een specifieke persoon: gebruik
+ * client_contacts.email + first_name.
+ * Wanneer NULL en client_id bestaat: bedrijf-only mode → clients.email +
+ * company_name.
+ * Fallback: contracten.klant_email + klant_naam (legacy).
+ */
+async function resolveRecipient(
+  admin: SupabaseClient,
+  contract: ContractRow | null,
+): Promise<RecipientResolution> {
+  const lang = lang_default(contract);
+  const fallbackName = lang === "fr" ? "Cher client" : "Beste klant";
+
+  if (!contract) {
+    return { email: "", greetingName: fallbackName, isCompanyOnly: false };
+  }
+
+  // Path 1 — specifieke contactpersoon
+  if (contract.client_contact_id) {
+    const { data: cc } = await admin
+      .from("client_contacts")
+      .select("first_name, email")
+      .eq("id", contract.client_contact_id)
+      .maybeSingle();
+    return {
+      email: String(cc?.email || contract.klant_email || "").trim(),
+      greetingName: String(cc?.first_name || contract.klant_naam || fallbackName).trim(),
+      isCompanyOnly: false,
+    };
+  }
+
+  // Path 2 — bedrijf-only
+  if (contract.client_id) {
+    const { data: client } = await admin
+      .from("clients")
+      .select("company_name, email")
+      .eq("id", contract.client_id)
+      .maybeSingle();
+    const company = String(client?.company_name || "").trim();
+    if (company) {
+      return {
+        email: String(client?.email || contract.klant_email || "").trim(),
+        greetingName: company,
+        isCompanyOnly: true,
+      };
+    }
+  }
+
+  // Path 3 — legacy
+  return {
+    email: String(contract.klant_email || "").trim(),
+    greetingName: String(contract.klant_naam || fallbackName).trim(),
+    isCompanyOnly: false,
+  };
+}
 
 function fmtDate(iso: string | null, lang: Lang): string {
   if (!iso) return "";
@@ -579,7 +677,7 @@ function buildTemplate(event: EventType, c: TemplateCtx): BuiltTemplate {
         ? `${c.branding.name} — Rappel : entretien demain (${datum})`
         : `${c.branding.name} — Herinnering: onderhoud morgen (${datum})`,
       bodyHtml: `
-        <p style="font-size:16px;margin:0 0 20px">${escHtml(isFr ? `Bonjour ${c.klantNaam},` : `Beste ${c.klantNaam},`)}</p>
+        <p style="font-size:16px;margin:0 0 20px">${escHtml(buildAanhef(c))}</p>
         <p style="font-size:14px;line-height:1.7;margin:0 0 16px">${escHtml(isFr
           ? `Petit rappel : nous passons demain pour l'entretien de vos panneaux solaires.`
           : `Een korte herinnering: we komen morgen langs voor het onderhoud van uw zonnepanelen.`)}</p>
@@ -603,7 +701,7 @@ function buildTemplate(event: EventType, c: TemplateCtx): BuiltTemplate {
         ? `${c.branding.name} — Nous arrivons aujourd'hui (${tijd})`
         : `${c.branding.name} — We komen vandaag langs (${tijd})`,
       bodyHtml: `
-        <p style="font-size:16px;margin:0 0 20px">${escHtml(isFr ? `Bonjour ${c.klantNaam},` : `Beste ${c.klantNaam},`)}</p>
+        <p style="font-size:16px;margin:0 0 20px">${escHtml(buildAanhef(c))}</p>
         <p style="font-size:14px;line-height:1.7;margin:0 0 16px">${escHtml(isFr
           ? `Notre équipe passe aujourd'hui pour l'entretien de vos panneaux solaires.`
           : `Onze ploeg komt vandaag langs voor het onderhoud van uw zonnepanelen.`)}</p>
@@ -630,7 +728,7 @@ function buildTemplate(event: EventType, c: TemplateCtx): BuiltTemplate {
         ? `${c.branding.name} — Votre rapport d'entretien est prêt`
         : `${c.branding.name} — Uw onderhoudsrapport is klaar`,
       bodyHtml: `
-        <p style="font-size:16px;margin:0 0 20px">${escHtml(isFr ? `Bonjour ${c.klantNaam},` : `Beste ${c.klantNaam},`)}</p>
+        <p style="font-size:16px;margin:0 0 20px">${escHtml(buildAanhef(c))}</p>
         <p style="font-size:14px;line-height:1.7;margin:0 0 16px">${escHtml(isFr
           ? `L'entretien de vos panneaux solaires est terminé. Le rapport digital, avec photos avant/après et observations techniques, est disponible.`
           : `Het onderhoud van uw zonnepanelen is uitgevoerd. Het digitale rapport, met foto's voor/na en technische bevindingen, is beschikbaar.`)}</p>

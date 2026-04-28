@@ -1851,6 +1851,10 @@
 <link rel="stylesheet" href="shared/client-combobox.css">
 <script src="shared/client-combobox.js"></script>
 <script src="shared/client-combobox-items.js"></script>
+<script src="shared/client-combobox-resolver.js"></script>
+<!-- Slot T C3: Flancco Werklocatie Picker (shared) — kaarten-grid radiogroup + auto-select bij 1 locatie. -->
+<link rel="stylesheet" href="shared/werklocatie-picker.css">
+<script src="shared/werklocatie-picker.js"></script>
 </head>
 <body>
 
@@ -2106,7 +2110,10 @@
     <input type="hidden" id="qa-forfait-bedrag" value="">
     <div class="modal-field" id="qa-loc-wrap" style="display:none">
       <label>Werklocatie</label>
-      <select id="qa-locatie" onchange="qaLocatieChanged()"></select>
+      <!-- Slot T C3: shared werklocatie-picker (FlanccoWerklocatiePicker).
+           Hidden input bewaart geselecteerde client_location_id voor save-handler. -->
+      <div class="fwp" id="qa-locatie-wrap"></div>
+      <input type="hidden" id="qa-locatie" onchange="qaLocatieChanged()">
       <small id="qa-loc-hint" style="display:block;margin-top:4px;font-size:11px;color:var(--grey)"></small>
     </div>
     <div class="modal-field">
@@ -2400,7 +2407,10 @@
 
     <div class="modal-field" id="ni-loc-wrap" style="display:none">
       <label>Werklocatie *</label>
-      <select id="ni-locatie" onchange="niLocatieChanged()"></select>
+      <!-- Slot T C3: shared werklocatie-picker (FlanccoWerklocatiePicker).
+           Hidden input bewaart geselecteerde client_location_id voor save-handler. -->
+      <div class="fwp" id="ni-locatie-wrap"></div>
+      <input type="hidden" id="ni-locatie" onchange="niLocatieChanged()">
       <small style="color:var(--grey);font-size:11px">Kies op welke werf de interventie moet plaatsvinden.</small>
     </div>
     <input type="hidden" id="ni-po-number">
@@ -2935,6 +2945,9 @@ var allTechCertificeringen = [];
 var allAfwezigheden = [];
 var allContracten = [];
 var allClients = [];
+// Slot T: cache van client_contacts — gevoed in loadPlanningData() als results[17],
+// gebruikt door FlanccoClientResolver om 'contact:'-prefixen naar client_id te resolven.
+var allClientContacts = [];
 var allDuurInstellingen = [];
 var allPartners = [];
 var allVerlofTypes = [];
@@ -4080,7 +4093,10 @@ async function loadPlanningData() {
     // Planning-dagen (per-dag instantie van een opdracht). Eén onderhoudsbeurt kan
     // N dagen hebben met elk eigen datum + techs + duur. Fallback op lege array
     // zodat legacy DB (zonder tabel) de pagina niet blokkeert.
-    sb.from('beurt_planning_dagen').select('*').then(function(r) { return r; }, function() { return { data: [] }; })
+    sb.from('beurt_planning_dagen').select('*').then(function(r) { return r; }, function() { return { data: [] }; }),
+    // Slot T: client_contacts cache — voedt FlanccoClientItems (bedrijven-grouping)
+    // en FlanccoClientResolver (contact:UUID → client_id lookup).
+    sb.from('client_contacts').select('*').order('client_id, last_name').then(function(r) { return r; }, function() { return { data: [] }; })
   ]);
 
   allBeurten = results[0].data || [];
@@ -4110,6 +4126,8 @@ async function loadPlanningData() {
   // Parent onderhoudsbeurten.plan_datum/eind_datum/technieker_id zijn gecachte
   // samenvattingen die door een DB-trigger bijgewerkt worden wanneer dagen wijzigen.
   window.allPlanningDagen = (results[16] && results[16].data) || [];
+  // Slot T: client_contacts cache voor combobox bedrijven-grouping + resolver
+  allClientContacts = (results[17] && results[17].data) || [];
   _rebuildPlanningDagenIndex();
 
   populateFilterDropdowns();
@@ -6111,17 +6129,18 @@ var FLANCCO_PARTNER_ID = '93679849-afb0-4a69-8bd5-b74afdf22cad';
 
 function fillNiKlantDropdown(preselectId) {
   // FlanccoClientCombobox — bedrijven gegroepeerd, particulieren apart, legacy
-  // contracten in eigen sectie via extraItems. Value-prefix 'client:UUID' /
-  // 'contract:UUID' bewaard voor backwards-compat met onNiKlantChange.
+  // contracten in eigen sectie via extraItems. Slot T: items-builder geeft nu
+  // 'bedrijf:UUID' / 'contact:UUID'-prefixen native; legacy 'contract:UUID'
+  // wordt door deze functie als extra sectie aangevuld.
   var cbWrap = document.getElementById('ni-klant-cb');
   var hidden = document.getElementById('ni-klant');
   if (!cbWrap || !window.FlanccoClientCombobox || !window.FlanccoClientItems) return;
 
-  // Bouw items met value-prefix 'client:' (post-process op build-output).
-  var clientItems = window.FlanccoClientItems.build(allClients || []);
-  // Re-prefix alle item.value met 'client:'
-  clientItems.forEach(function (it) {
-    if (it.type === 'item' && it.value) it.value = 'client:' + it.value;
+  // Slot T: bedrijven-grouping — selectableHeaders + clientContacts laat user kiezen
+  // tussen "het bedrijf zelf" of "specifieke contactpersoon".
+  var clientItems = window.FlanccoClientItems.build(allClients || [], {
+    selectableHeaders: true,
+    clientContacts: allClientContacts || []
   });
 
   // Legacy contracten zonder client_id → eigen sectie 'Legacy contracten'
@@ -6202,15 +6221,27 @@ function onNiKlantChange() {
     return;
   }
 
+  // Slot T: resolver splitst prefix in client_id / client_contact_id / contract_id.
+  // 'bedrijf:' + 'contact:' → klant-flow (resolved.client_id truthy).
+  // 'contract:' → legacy contract-flow (resolved.contract_id truthy).
+  var resolved = window.FlanccoClientResolver
+    ? window.FlanccoClientResolver.resolve(val, allClientContacts)
+    : { client_id: null, contract_id: null };
+
   // Legacy: contract-keuze direct (klant zonder client_id)
-  if (val.indexOf('contract:') === 0) {
+  if (resolved.contract_id) {
     contractWrap.style.display = 'none';
     sectorWrap.style.display = 'none';
     return;
   }
 
   // Client-keuze: filter contracten voor deze klant
-  var clientId = val.replace('client:', '');
+  var clientId = resolved.client_id;
+  if (!clientId) {
+    contractWrap.style.display = 'none';
+    sectorWrap.style.display = 'block';
+    return;
+  }
   var klantContracten = (allContracten || []).filter(function(c) {
     return c.client_id === clientId && !c.is_eenmalig && c.status !== 'verlopen';
   });
@@ -6234,69 +6265,75 @@ function onNiKlantChange() {
  */
 function niRenderLocaties(clientId) {
   var wrap = document.getElementById('ni-loc-wrap');
-  var sel = document.getElementById('ni-locatie');
+  var pickerWrap = document.getElementById('ni-locatie-wrap');
+  var locHidden = document.getElementById('ni-locatie');
   var hiddenPo = document.getElementById('ni-po-number');
-  if (!wrap || !sel || !hiddenPo) return;
+  if (!wrap || !pickerWrap || !locHidden || !hiddenPo) return;
 
   // Hint van vorige render altijd opruimen
   var existingHint = wrap.querySelector('.loc-hint');
   if (existingHint) existingHint.remove();
 
+  // Slot T C3: reset bestaande picker-instance bij elke klant-wissel
+  if (pickerWrap.__fwp) { pickerWrap.__fwp.destroy(); pickerWrap.__fwp = null; }
+  locHidden.value = '';
+
   if (!clientId) {
     wrap.style.display = 'none';
-    sel.innerHTML = '';
     hiddenPo.value = '';
     return;
   }
 
   var locaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === clientId; });
 
-  // ≤1 locatie: geen picker nodig, val terug op enige locatie-PO of klant-PO.
+  // ≤1 locatie: geen picker tonen, val terug op enige locatie-PO of klant-PO.
+  // Save-handler valt sole-locatie-id zelf in (zie saveNieuweInterventie).
   if (locaties.length <= 1) {
     wrap.style.display = 'none';
-    sel.innerHTML = '';
     var client = (allClients || []).find(function(c) { return c.id === clientId; });
     hiddenPo.value = (locaties[0] && locaties[0].po_number) || (client && client.po_number) || '';
     return;
   }
 
-  // >1 locaties: render picker met primary-first volgorde.
-  sel.removeAttribute('disabled');
-  locaties.sort(function(a, b) { return (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0); });
-  sel.innerHTML = locaties.map(function(l) {
-    var adres = [l.street, l.house_number].filter(Boolean).join(' ');
-    var plaats = [l.postal_code, l.city].filter(Boolean).join(' ');
-    var labelParts = [l.label || 'Werklocatie'];
-    if (l.is_primary) labelParts[0] += ' (hoofdlocatie)';
-    if (adres || plaats) labelParts.push([adres, plaats].filter(Boolean).join(', '));
-    return '<option value="' + l.id + '" data-po="' + esc(l.po_number || '') + '">' + esc(labelParts.join(' — ')) + '</option>';
-  }).join('');
-
-  var primary = locaties.find(function(l) { return l.is_primary; }) || locaties[0];
-  sel.value = primary.id;
-
+  // Slot T C3: >1 locaties: render kaarten-grid via FlanccoWerklocatiePicker.
+  // Hidden input syncs voor save-handler validatie + insert.
+  if (window.FlanccoWerklocatiePicker) {
+    pickerWrap.__fwp = window.FlanccoWerklocatiePicker.attach(pickerWrap, {
+      clientId: clientId,
+      allClientLocations: window._allClientLocations || [],
+      onChange: function (locId /*, loc */) {
+        locHidden.value = locId || '';
+        locHidden.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  }
   wrap.style.display = 'block';
-  niLocatieChanged();
 }
 
 /**
  * PO-cascade bij locatie-wijziging: locatie-PO > klant-PO > leeg.
  */
 function niLocatieChanged() {
-  var sel = document.getElementById('ni-locatie');
+  // Slot T C3: hidden input bevat client_location_id; PO-lookup via cache i.p.v. <option> dataset.
+  var locHidden = document.getElementById('ni-locatie');
   var hiddenPo = document.getElementById('ni-po-number');
-  if (!sel || !hiddenPo) return;
+  if (!locHidden || !hiddenPo) return;
 
-  var opt = sel.options[sel.selectedIndex];
-  var locPo = opt ? opt.dataset.po : '';
+  var locId = locHidden.value || '';
+  var locObj = locId ? (window._allClientLocations || []).find(function(l) { return l.id === locId; }) : null;
+  var locPo = locObj ? (locObj.po_number || '') : '';
   if (locPo) {
     hiddenPo.value = locPo;
     return;
   }
 
+  // Slot T: resolver pareert 'bedrijf:' / 'contact:' / 'contract:' / legacy raw UUID.
   var val = document.getElementById('ni-klant').value;
-  var clientId = val.replace('client:', '');
-  var client = (allClients || []).find(function(c) { return c.id === clientId; });
+  var resolvedNi = window.FlanccoClientResolver
+    ? window.FlanccoClientResolver.resolve(val, allClientContacts)
+    : { client_id: null };
+  var clientId = resolvedNi.client_id;
+  var client = clientId ? (allClients || []).find(function(c) { return c.id === clientId; }) : null;
   hiddenPo.value = (client && client.po_number) || '';
 }
 
@@ -6324,11 +6361,13 @@ function openNieuweInterventieModal() {
   niDuurEl.value = '60';
   niDuurEl.disabled = false;
   niDuurEl.dataset.userEdited = 'false';
-  // Sectie H: werklocatie-state resetten
+  // Slot T C3: werklocatie-state resetten — destroy FWP-instance + clear hidden input
   var locWrap = document.getElementById('ni-loc-wrap');
   if (locWrap) locWrap.style.display = 'none';
-  var locSel = document.getElementById('ni-locatie');
-  if (locSel) locSel.innerHTML = '';
+  var niPickerWrap = document.getElementById('ni-locatie-wrap');
+  if (niPickerWrap && niPickerWrap.__fwp) { niPickerWrap.__fwp.destroy(); niPickerWrap.__fwp = null; }
+  var locHidden = document.getElementById('ni-locatie');
+  if (locHidden) locHidden.value = '';
   var hiddenPo = document.getElementById('ni-po-number');
   if (hiddenPo) hiddenPo.value = '';
 
@@ -6830,6 +6869,11 @@ async function _saveNieuweInterventieInner(action) {
     return;
   }
 
+  // Slot T: resolver geeft één bron-of-truth voor klant-keuze (bedrijf/contact/contract).
+  var resolvedNiKlant = window.FlanccoClientResolver
+    ? window.FlanccoClientResolver.resolve(klantVal, allClientContacts)
+    : { client_id: null, client_contact_id: null, contract_id: null };
+
   // Sectie H: werklocatie-validatie bij >1 locaties.
   // Bij ≤1 locatie blijft de wrap verborgen — fallback op de enige locatie indien aanwezig
   // zodat de beurt toch een client_location_id meekrijgt voor rapport/facturatie.
@@ -6845,10 +6889,7 @@ async function _saveNieuweInterventieInner(action) {
     }
   } else {
     // Picker verborgen: probeer enige locatie van de gekozen klant te gebruiken
-    var fallbackClientId = null;
-    if (klantVal && klantVal.indexOf('client:') === 0) {
-      fallbackClientId = klantVal.replace('client:', '');
-    }
+    var fallbackClientId = resolvedNiKlant.client_id || null;
     if (fallbackClientId) {
       var soleLoc = (window._allClientLocations || []).filter(function(l) { return l.client_id === fallbackClientId; });
       if (soleLoc.length === 1) clientLocationId = soleLoc[0].id;
@@ -6922,11 +6963,12 @@ async function _saveNieuweInterventieInner(action) {
     allClients = allClients || [];
     allClients.push(newClientRes.data);
     clientId = newClientRes.data.id;
-  } else if (klantVal.indexOf('contract:') === 0) {
+  } else if (resolvedNiKlant.contract_id) {
     // Legacy: klant zonder client_id — gebruik dat contract rechtstreeks
-    contractId = klantVal.replace('contract:', '');
-  } else if (klantVal.indexOf('client:') === 0) {
-    clientId = klantVal.replace('client:', '');
+    contractId = resolvedNiKlant.contract_id;
+  } else if (resolvedNiKlant.client_id) {
+    // Slot T: 'bedrijf:' OF 'contact:' → resolver levert client_id ongeacht prefix.
+    clientId = resolvedNiKlant.client_id;
   }
 
   // Als geen contract gekozen EN we hebben een client_id → maak eenmalig contract
@@ -6941,6 +6983,8 @@ async function _saveNieuweInterventieInner(action) {
     var contractPayload = {
       partner_id: FLANCCO_PARTNER_ID,
       client_id: clientId,
+      // Slot T: contactpersoon-koppeling alleen bij 'contact:'-prefix; bij 'bedrijf:' of nieuwe klant blijft null.
+      client_contact_id: (resolvedNiKlant && resolvedNiKlant.client_contact_id) || null,
       klant_naam: klant.company_name || klant.contact_person || '—',
       klant_adres: [klant.street, klant.house_number].filter(Boolean).join(' ') || null,
       klant_postcode: klant.postal_code || null,
@@ -6961,6 +7005,12 @@ async function _saveNieuweInterventieInner(action) {
     } catch(e) {}
 
     var cRes = await sb.from('contracten').insert([contractPayload]).select().single();
+    // Slot T: forward-compat — drop client_contact_id als oude schema's de kolom nog niet hebben.
+    if (cRes.error && /client_contact_id/i.test(cRes.error.message || '')) {
+      var contractRetry = Object.assign({}, contractPayload);
+      delete contractRetry.client_contact_id;
+      cRes = await sb.from('contracten').insert([contractRetry]).select().single();
+    }
     if (cRes.error) { await infoDialog('Fout bij aanmaken eenmalig contract: ' + cRes.error.message, 'Opslaan mislukt'); return; }
     contractId = cRes.data.id;
     allContracten = allContracten || [];
@@ -7093,6 +7143,8 @@ async function _saveNieuweInterventieInner(action) {
         var row = matrixRows[di] || { primaryTechId: planTech, extraTechIds: [] };
         var beurtPayload = {
           contract_id: contractId,
+          // Slot T: client_contact_id propageert naar elke dag-beurt voor accurate facturatie/rapportage.
+          client_contact_id: (resolvedNiKlant && resolvedNiKlant.client_contact_id) || null,
           sector: sector,
           technieker_id: row.primaryTechId,
           plan_datum: datumISO,
@@ -7165,6 +7217,8 @@ async function _saveNieuweInterventieInner(action) {
       // Single-day pad — bestaande flow, backward-compat
       var beurtPayload = {
         contract_id: contractId,
+        // Slot T: contactpersoon-koppeling overerven uit klant-keuze.
+        client_contact_id: (resolvedNiKlant && resolvedNiKlant.client_contact_id) || null,
         sector: sector,
         technieker_id: planTech,
         plan_datum: planDatum,
@@ -7177,10 +7231,12 @@ async function _saveNieuweInterventieInner(action) {
         po_number: poNumber
       };
       var bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select().single();
-      // Forward-compat: schema zonder extra kolommen
+      // Forward-compat: schema zonder extra kolommen — insertBeurtWithRetry-pattern dekt client_contact_id
+      // hier niet op, dus we droppen handmatig bij column-not-exist.
       if (bRes.error && /column .* does not exist/i.test(bRes.error.message || '')) {
         delete beurtPayload.client_location_id;
         delete beurtPayload.po_number;
+        delete beurtPayload.client_contact_id;
         bRes = await sb.from('onderhoudsbeurten').insert([beurtPayload]).select().single();
       }
       if (bRes.error) { await infoDialog(formatBeurtInsertError(bRes.error, 'Fout bij aanmaken beurt'), 'Opslaan mislukt'); return; }
@@ -10949,7 +11005,12 @@ function quickAdd(techId, datum, mode, opdrachtType) {
   var qaCbWrap = document.getElementById('qa-client-cb');
   var qaHidden = document.getElementById('qa-client');
   if (qaCbWrap && window.FlanccoClientCombobox && window.FlanccoClientItems) {
-    var items = window.FlanccoClientItems.build(allClients || []);
+    // Slot T: bedrijven-grouping — selectableHeaders + clientContacts laat user kiezen
+    // tussen "het bedrijf zelf" (bedrijf:UUID) of "specifieke contactpersoon" (contact:UUID).
+    var items = window.FlanccoClientItems.build(allClients || [], {
+      selectableHeaders: true,
+      clientContacts: allClientContacts || []
+    });
     var existing = qaCbWrap.__fcb;
     if (existing) {
       existing.setItems(items);
@@ -11014,9 +11075,11 @@ function quickAdd(techId, datum, mode, opdrachtType) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
 
-  // Reset locatie-picker + PO
+  // Slot T C3: Reset locatie-picker (FWP destroy) + hidden input + PO + hint
   var locWrap = document.getElementById('qa-loc-wrap'); if (locWrap) locWrap.style.display = 'none';
-  var locSel = document.getElementById('qa-locatie'); if (locSel) locSel.innerHTML = '';
+  var locPickerWrap = document.getElementById('qa-locatie-wrap');
+  if (locPickerWrap && locPickerWrap.__fwp) { locPickerWrap.__fwp.destroy(); locPickerWrap.__fwp = null; }
+  var locHidden = document.getElementById('qa-locatie'); if (locHidden) locHidden.value = '';
   var poEl = document.getElementById('qa-po-number'); if (poEl) poEl.value = '';
   var hintEl = document.getElementById('qa-loc-hint'); if (hintEl) hintEl.textContent = '';
 
@@ -11158,16 +11221,20 @@ function qaContractChanged() {
     }
   }
 
-  // Populate locatie-picker + PO-cascade
+  // Slot T C3: Populate locatie-picker via FlanccoWerklocatiePicker + PO-cascade
   var locWrap = document.getElementById('qa-loc-wrap');
-  var locSel = document.getElementById('qa-locatie');
+  var locPickerWrap = document.getElementById('qa-locatie-wrap');
+  var locHidden = document.getElementById('qa-locatie');
   var poEl = document.getElementById('qa-po-number');
   var hintEl = document.getElementById('qa-loc-hint');
-  if (!locWrap || !locSel) return;
+  if (!locWrap || !locPickerWrap || !locHidden) return;
+
+  // Reset bestaande picker-instance bij elke contract-wissel
+  if (locPickerWrap.__fwp) { locPickerWrap.__fwp.destroy(); locPickerWrap.__fwp = null; }
+  locHidden.value = '';
 
   if (!val) {
     locWrap.style.display = 'none';
-    locSel.innerHTML = '';
     if (poEl) poEl.value = '';
     return;
   }
@@ -11177,13 +11244,11 @@ function qaContractChanged() {
   var client = allClients.find(function(c) { return c.id === contract.client_id; });
   if (!client) { locWrap.style.display = 'none'; return; }
 
-  // Haal client_locations via globale cache of lazy-load
+  // Haal client_locations via globale cache
   var clientLocaties = (window._allClientLocations || []).filter(function(l) { return l.client_id === client.id; });
 
   if (clientLocaties.length === 0) {
-    // Geen locaties: toon info-melding zodat planner weet waarom er geen keuze is
-    locSel.innerHTML = '';
-    locSel.setAttribute('disabled', 'disabled');
+    // Slot T C3: geen locaties — toon info-melding zodat planner weet waarom er geen keuze is
     locWrap.style.display = 'block';
     var hintNoLoc = locWrap.querySelector('.loc-hint-empty');
     if (!hintNoLoc) {
@@ -11198,51 +11263,46 @@ function qaContractChanged() {
     return;
   }
 
-  // Altijd tonen, ook bij 1 locatie (planner wil expliciet zien op welke werf de beurt valt).
-  locSel.removeAttribute('disabled');
+  // Slot T C3: ruim eventueel oude empty-hint op alvorens de picker te renderen
   var existingEmptyHint = locWrap.querySelector('.loc-hint-empty');
   if (existingEmptyHint) existingEmptyHint.remove();
 
-  locSel.innerHTML = '';
-  var primary = clientLocaties.find(function(l) { return l.is_primary; });
-  var sorted = clientLocaties.slice().sort(function(a, b) {
-    if (a.is_primary && !b.is_primary) return -1;
-    if (!a.is_primary && b.is_primary) return 1;
-    return (a.label || '').localeCompare(b.label || '');
-  });
-  sorted.forEach(function(l) {
-    var adres = [l.street, l.house_number].filter(Boolean).join(' ');
-    var plaats = [l.postal_code, l.city].filter(Boolean).join(' ');
-    var labelParts = [l.label || 'Werklocatie'];
-    if (l.is_primary) labelParts[0] += ' (hoofdlocatie)';
-    if (adres || plaats) labelParts.push([adres, plaats].filter(Boolean).join(', '));
-    var opt = document.createElement('option');
-    opt.value = l.id;
-    opt.textContent = labelParts.join(' — ');
-    opt.dataset.po = l.po_number || '';
-    locSel.appendChild(opt);
-  });
-  if (primary) locSel.value = primary.id;
-  else locSel.value = sorted[0].id;
+  // Slot T C3: FlanccoWerklocatiePicker rendert kaarten-grid bij multi-locatie
+  // klanten en auto-selecteert primary bij single-locatie.
+  if (window.FlanccoWerklocatiePicker) {
+    locPickerWrap.__fwp = window.FlanccoWerklocatiePicker.attach(locPickerWrap, {
+      clientId: client.id,
+      allClientLocations: window._allClientLocations || [],
+      onChange: function (locId /*, loc */) {
+        locHidden.value = locId || '';
+        locHidden.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  }
   locWrap.style.display = 'block';
-  qaLocatieChanged();
 }
 
 function qaLocatieChanged() {
   var opdrachtType = (document.getElementById('qa-opdracht-type') || {}).value || 'contract';
   // Voor losse opdracht: cascade vanuit geselecteerde klant, niet vanuit contract
   if (opdrachtType === 'losse_opdracht') {
-    var clientId = document.getElementById('qa-client').value;
-    qaLocatieChangedFromClient(clientId);
+    // Slot T C3: resolve client_id via combobox-prefix-resolver (bedrijf:UUID / contact:UUID).
+    var rawClientVal = document.getElementById('qa-client').value;
+    var resolvedClient = window.FlanccoClientResolver
+      ? window.FlanccoClientResolver.resolve(rawClientVal, allClientContacts)
+      : { client_id: rawClientVal || null };
+    qaLocatieChangedFromClient(resolvedClient.client_id);
     return;
   }
-  var locSel = document.getElementById('qa-locatie');
+  // Slot T C3: hidden input bevat client_location_id; PO komt uit cache, niet uit <option>.
+  var locHidden = document.getElementById('qa-locatie');
   var poEl = document.getElementById('qa-po-number');
   var hintEl = document.getElementById('qa-loc-hint');
   var contractSel = document.getElementById('qa-contract');
-  if (!locSel || !poEl) return;
-  var selOpt = locSel.options[locSel.selectedIndex];
-  var locPo = selOpt ? (selOpt.dataset.po || '') : '';
+  if (!locHidden || !poEl) return;
+  var locId = locHidden.value || '';
+  var locObj = locId ? (window._allClientLocations || []).find(function(l) { return l.id === locId; }) : null;
+  var locPo = locObj ? (locObj.po_number || '') : '';
   var contract = allContracten.find(function(c) { return c.id === (contractSel ? contractSel.value : null); });
   var client = contract ? allClients.find(function(c) { return c.id === contract.client_id; }) : null;
   var clientPo = client ? (client.po_number || '') : '';
@@ -11264,17 +11324,26 @@ function qaSelectNewKlant() {
   var qaCb = document.getElementById('qa-client-cb');
   if (qaCb && qaCb.__fcb) qaCb.__fcb.clear();
   document.getElementById('qa-new-client-fields').style.display = 'block';
-  // Reset locatie-picker bij "+ Nieuwe klant"
+  // Slot T C3: Reset locatie-picker (FWP destroy) + hidden input bij "+ Nieuwe klant"
   var locWrap = document.getElementById('qa-loc-wrap'); if (locWrap) locWrap.style.display = 'none';
-  var locSel = document.getElementById('qa-locatie'); if (locSel) locSel.innerHTML = '';
+  var locPickerWrap = document.getElementById('qa-locatie-wrap');
+  if (locPickerWrap && locPickerWrap.__fwp) { locPickerWrap.__fwp.destroy(); locPickerWrap.__fwp = null; }
+  var locHidden = document.getElementById('qa-locatie'); if (locHidden) locHidden.value = '';
   var poEl = document.getElementById('qa-po-number'); if (poEl) poEl.value = '';
 }
 
 // Losse opdracht — klant gekozen: populate locatie-picker direct vanuit client_locations.
 function qaClientChanged() {
-  var clientId = document.getElementById('qa-client').value;
+  // Slot T: hidden input bevat nu prefixed value ('bedrijf:UUID' / 'contact:UUID') —
+  // resolver geeft client_id terug ongeacht prefix, zodat locatie-lookup correct werkt.
+  var rawValue = document.getElementById('qa-client').value;
+  var resolved = window.FlanccoClientResolver
+    ? window.FlanccoClientResolver.resolve(rawValue, allClientContacts)
+    : { client_id: rawValue || null, client_contact_id: null };
+  var clientId = resolved.client_id;
   var locWrap = document.getElementById('qa-loc-wrap');
-  var locSel = document.getElementById('qa-locatie');
+  var locPickerWrap = document.getElementById('qa-locatie-wrap');
+  var locHidden = document.getElementById('qa-locatie');
   var poEl = document.getElementById('qa-po-number');
   var hintEl = document.getElementById('qa-loc-hint');
 
@@ -11283,9 +11352,12 @@ function qaClientChanged() {
     document.getElementById('qa-new-client-fields').style.display = 'none';
   }
 
+  // Slot T C3: reset bestaande picker-instance bij elke klant-wissel
+  if (locPickerWrap && locPickerWrap.__fwp) { locPickerWrap.__fwp.destroy(); locPickerWrap.__fwp = null; }
+  if (locHidden) locHidden.value = '';
+
   if (!clientId) {
     if (locWrap) locWrap.style.display = 'none';
-    if (locSel) locSel.innerHTML = '';
     if (poEl) poEl.value = '';
     if (hintEl) hintEl.textContent = '';
     return;
@@ -11297,34 +11369,25 @@ function qaClientChanged() {
   if (clientLocaties.length === 0) {
     // Geen geregistreerde locatie — val terug op klant-PO
     if (locWrap) locWrap.style.display = 'none';
-    if (locSel) locSel.innerHTML = '';
     if (poEl) poEl.value = (client && client.po_number) || '';
     if (hintEl) hintEl.textContent = (client && client.po_number) ? 'PO vooraf-ingevuld vanuit klantprofiel' : '';
     return;
   }
 
-  if (locSel) locSel.removeAttribute('disabled');
-  var primary = clientLocaties.find(function(l) { return l.is_primary; });
-  var sorted = clientLocaties.slice().sort(function(a, b) {
-    if (a.is_primary && !b.is_primary) return -1;
-    if (!a.is_primary && b.is_primary) return 1;
-    return (a.label || '').localeCompare(b.label || '');
-  });
-  locSel.innerHTML = '';
-  sorted.forEach(function(l) {
-    var adres = [l.street, l.house_number].filter(Boolean).join(' ');
-    var plaats = [l.postal_code, l.city].filter(Boolean).join(' ');
-    var labelParts = [l.label || 'Werklocatie'];
-    if (l.is_primary) labelParts[0] += ' (hoofdlocatie)';
-    if (adres || plaats) labelParts.push([adres, plaats].filter(Boolean).join(', '));
-    var opt = document.createElement('option');
-    opt.value = l.id;
-    opt.textContent = labelParts.join(' — ');
-    opt.dataset.po = l.po_number || '';
-    locSel.appendChild(opt);
-  });
-  if (primary) locSel.value = primary.id;
-  else locSel.value = sorted[0].id;
+  // Slot T C3: FlanccoWerklocatiePicker — auto-select primary bij single-locatie,
+  // kaarten-grid bij multi-locatie. Hidden input syncs voor save-handler.
+  if (locPickerWrap && window.FlanccoWerklocatiePicker) {
+    locPickerWrap.__fwp = window.FlanccoWerklocatiePicker.attach(locPickerWrap, {
+      clientId: clientId,
+      allClientLocations: window._allClientLocations || [],
+      onChange: function (locId /*, loc */) {
+        if (locHidden) {
+          locHidden.value = locId || '';
+          locHidden.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    });
+  }
   locWrap.style.display = 'block';
   // PO-cascade: locatie-PO → klant-PO → leeg (hergebruik qaLocatieChanged maar zonder contract-check)
   qaLocatieChangedFromClient(clientId);
@@ -11332,12 +11395,14 @@ function qaClientChanged() {
 
 // Variant van qaLocatieChanged die klant-PO als fallback gebruikt i.p.v. contract→client.
 function qaLocatieChangedFromClient(clientId) {
-  var locSel = document.getElementById('qa-locatie');
+  // Slot T C3: hidden input bevat client_location_id; PO-lookup via cache i.p.v. <option> dataset.
+  var locHidden = document.getElementById('qa-locatie');
   var poEl = document.getElementById('qa-po-number');
   var hintEl = document.getElementById('qa-loc-hint');
-  if (!locSel || !poEl) return;
-  var selOpt = locSel.options[locSel.selectedIndex];
-  var locPo = selOpt ? (selOpt.dataset.po || '') : '';
+  if (!locHidden || !poEl) return;
+  var locId = locHidden.value || '';
+  var locObj = locId ? (window._allClientLocations || []).find(function(l) { return l.id === locId; }) : null;
+  var locPo = locObj ? (locObj.po_number || '') : '';
   var client = (allClients || []).find(function(c) { return c.id === clientId; });
   var clientPo = client ? (client.po_number || '') : '';
   poEl.value = locPo || clientPo || '';
@@ -11401,7 +11466,12 @@ async function saveQuickAdd(action) {
 
   // Lees form-waarden
   var contractVal = document.getElementById('qa-contract').value;
-  var clientVal = document.getElementById('qa-client').value;
+  // Slot T: hidden input bevat nu prefixed value — resolver splitst naar client_id + client_contact_id.
+  var rawClientVal = document.getElementById('qa-client').value;
+  var resolvedKlant = window.FlanccoClientResolver
+    ? window.FlanccoClientResolver.resolve(rawClientVal, allClientContacts)
+    : { client_id: rawClientVal || null, client_contact_id: null };
+  var clientVal = resolvedKlant.client_id;
   var newClientActive = document.getElementById('qa-new-client-fields').style.display === 'block';
 
   if (isLosse) {
@@ -11616,6 +11686,8 @@ async function saveQuickAdd(action) {
   var payload = {
     contract_id: contractId,           // null bij losse opdracht
     client_id: clientId,               // altijd meegeven wanneer bekend
+    // Slot T: client_contact_id alleen ingevuld bij 'contact:'-prefix; bij 'bedrijf:' of nieuwe klant blijft null.
+    client_contact_id: (resolvedKlant && !newClientActive) ? (resolvedKlant.client_contact_id || null) : null,
     opdracht_type: opdrachtType,       // 'contract' of 'losse_opdracht'
     sector: sector,
     technieker_id: techId,
@@ -11636,12 +11708,14 @@ async function saveQuickAdd(action) {
 
   var res = await sb.from('onderhoudsbeurten').insert([payload]).select();
   // Forward-compat: retry zonder nieuwe kolommen als schema nog niet gemigreerd is
-  if (res.error && /opdracht_type|tarief_type|forfait_bedrag|client_id|po_number|client_location_id/i.test(res.error.message || '')) {
+  if (res.error && /opdracht_type|tarief_type|forfait_bedrag|client_id|client_contact_id|po_number|client_location_id/i.test(res.error.message || '')) {
     var retryPayload = Object.assign({}, payload);
     delete retryPayload.opdracht_type;
     delete retryPayload.tarief_type;
     delete retryPayload.forfait_bedrag;
     delete retryPayload.client_id;
+    // Slot T: forward-compat — drop client_contact_id als oude schema's de kolom nog niet hebben.
+    delete retryPayload.client_contact_id;
     delete retryPayload.po_number;
     delete retryPayload.client_location_id;
     // Als het een losse opdracht is en contract_id null — dan moet er toch een contract zijn op oude schema's.

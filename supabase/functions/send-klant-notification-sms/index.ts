@@ -79,6 +79,16 @@ interface ContractRow {
   klant_email: string | null;
   klant_telefoon: string | null;
   lang: string | null;
+  // Slot T — bedrijf-only-detectie + lookup-keys
+  client_id: string | null;
+  client_contact_id: string | null;
+}
+
+// Slot T — phone-resolution result
+interface PhoneResolution {
+  rawPhone: string;
+  klantEmail: string;
+  isCompanyOnly: boolean;
 }
 
 interface PartnerRow {
@@ -258,7 +268,7 @@ Deno.serve(async (req: Request) => {
       if (br.contract_id) {
         const { data: cr } = await admin
           .from("contracten")
-          .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang`)
+          .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang, client_id, client_contact_id`)
           .eq("id", br.contract_id)
           .maybeSingle<ContractRow>();
         contract = cr;
@@ -266,7 +276,7 @@ Deno.serve(async (req: Request) => {
     } else if (contract_id) {
       const { data: cr } = await admin
         .from("contracten")
-        .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang`)
+        .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang, client_id, client_contact_id`)
         .eq("id", contract_id)
         .maybeSingle<ContractRow>();
       contract = cr;
@@ -294,8 +304,11 @@ Deno.serve(async (req: Request) => {
       technieker = tr;
     }
 
-    // 5) Recipient + normalization
-    const rawPhone = override_phone || contract?.klant_telefoon || "";
+    // 5) Recipient + normalization (Slot T: bedrijf-only support)
+    const phoneRes: PhoneResolution = override_phone
+      ? { rawPhone: override_phone, klantEmail: contract?.klant_email?.toLowerCase() || "", isCompanyOnly: false }
+      : await resolvePhone(admin, contract);
+    const rawPhone = phoneRes.rawPhone;
     const phoneE164 = normalizePhone(rawPhone);
 
     if (!phoneE164) {
@@ -322,8 +335,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // 7) Consent-check (kanaal='sms' vereist expliciete opt-in via ePrivacy)
+    // Slot T: gebruik resolved klantEmail (kan client_contact.email of clients.email zijn).
     if (event_type !== "test") {
-      const klantEmail = contract?.klant_email?.toLowerCase() || "";
+      const klantEmail = phoneRes.klantEmail;
       if (klantEmail) {
         const { data: cons } = await admin
           .from("v_klant_consent_actief")
@@ -376,8 +390,9 @@ Deno.serve(async (req: Request) => {
     // 9) Build SMS body
     const lang: Lang = contract?.lang === "fr" ? "fr" : "nl";
     const partnerName = partner?.bedrijfsnaam || partner?.naam || "Flancco";
-    const optOutToken = (event_type !== "test" && contract?.id && contract?.klant_email)
-      ? await fetchOptOutToken(admin, contract.id, contract.klant_email, "sms")
+    // Slot T: gebruik resolved klantEmail (bedrijf-only of persoon) als consent-koppel.
+    const optOutToken = (event_type !== "test" && contract?.id && phoneRes.klantEmail)
+      ? await fetchOptOutToken(admin, contract.id, phoneRes.klantEmail, "sms")
       : null;
     const message = buildSmsMessage({
       event: event_type,
@@ -468,6 +483,62 @@ interface LogEntry {
 async function insertLog(admin: SupabaseClient, entry: LogEntry): Promise<void> {
   try { await admin.from("klant_notification_log").insert(entry); }
   catch (e) { logJson({ event: "log_insert_failed", err: e instanceof Error ? e.message : "unknown" }); }
+}
+
+/**
+ * Slot T — resolve phone-number + consent-email voor klant-notificatie SMS.
+ * Wanneer client_contact_id koppelt: gebruik client_contacts.phone + email.
+ * Wanneer NULL en client_id bestaat: bedrijf-only → clients.phone + email.
+ * Fallback: contracten.klant_telefoon + klant_email (legacy).
+ *
+ * Het email-veld wordt gebruikt als consent-koppel in v_klant_consent_actief
+ * (klant_consents heeft geen telefoon-koppel kolom).
+ */
+async function resolvePhone(
+  admin: SupabaseClient,
+  contract: ContractRow | null,
+): Promise<PhoneResolution> {
+  if (!contract) {
+    return { rawPhone: "", klantEmail: "", isCompanyOnly: false };
+  }
+
+  // Path 1 — specifieke contactpersoon
+  if (contract.client_contact_id) {
+    const { data: cc } = await admin
+      .from("client_contacts")
+      .select("phone, email")
+      .eq("id", contract.client_contact_id)
+      .maybeSingle();
+    return {
+      rawPhone: String(cc?.phone || contract.klant_telefoon || "").trim(),
+      klantEmail: String(cc?.email || contract.klant_email || "").trim().toLowerCase(),
+      isCompanyOnly: false,
+    };
+  }
+
+  // Path 2 — bedrijf-only
+  if (contract.client_id) {
+    const { data: client } = await admin
+      .from("clients")
+      .select("company_name, phone, email")
+      .eq("id", contract.client_id)
+      .maybeSingle();
+    const company = String(client?.company_name || "").trim();
+    if (company) {
+      return {
+        rawPhone: String(client?.phone || contract.klant_telefoon || "").trim(),
+        klantEmail: String(client?.email || contract.klant_email || "").trim().toLowerCase(),
+        isCompanyOnly: true,
+      };
+    }
+  }
+
+  // Path 3 — legacy fallback
+  return {
+    rawPhone: String(contract.klant_telefoon || "").trim(),
+    klantEmail: String(contract.klant_email || "").trim().toLowerCase(),
+    isCompanyOnly: false,
+  };
 }
 
 async function fetchOptOutToken(

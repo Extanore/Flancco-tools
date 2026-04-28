@@ -399,6 +399,11 @@
 <link rel="stylesheet" href="shared/client-combobox.css">
 <script src="shared/client-combobox.js"></script>
 <script src="shared/client-combobox-items.js"></script>
+<script src="shared/client-combobox-resolver.js"></script>
+<!-- Slot T C3: shared werklocatie-picker (kaarten-grid voor multi-locatie klanten,
+     auto-select primary voor single-locatie klanten). -->
+<link rel="stylesheet" href="shared/werklocatie-picker.css">
+<script src="shared/werklocatie-picker.js"></script>
 </head>
 <body>
 
@@ -603,6 +608,14 @@
           </div>
         </div>
       </div>
+      <!-- Slot T C3 — Werklocatie-keuze. Verschijnt enkel bij bestaande klant.
+           Picker auto-select primary voor single-locatie klanten; multi-locatie krijgt 2-kolom kaarten-grid. -->
+      <div class="card" id="wiz-werklocatie-card" style="display:none">
+        <div class="card-title">Werklocatie</div>
+        <p style="font-size:12px;color:var(--grey);margin-bottom:12px">Adres waar het werk fysiek wordt uitgevoerd. Kan verschillen van de facturatieklant-adres.</p>
+        <div class="fwp" id="wiz-werklocatie-wrap"></div>
+        <input type="hidden" id="wiz-werklocatie-id">
+      </div>
       <div class="wizard-footer">
         <button class="btn btn-ghost" onclick="goStep(1)">&larr; Vorige</button>
         <button class="btn btn-primary" id="btn-step2-next" onclick="goStep(3)">Volgende &rarr;</button>
@@ -782,6 +795,10 @@ let userRole = '';
 let userPartner = null;
 let partners = [];
 let clients = [];
+let clientContacts = [];
+// Slot T C3: client_locations gecached per partner (gevuld in loadPartnerData).
+// Wordt gebruikt door FlanccoWerklocatiePicker om de juiste locaties te tonen voor de gekozen klant.
+let clientLocations = [];
 let allPricing = {};
 let allSupplements = {};
 
@@ -791,6 +808,8 @@ let wizState = {
   contractType: 'standaard',
   partnerId: null,
   clientId: null,
+  clientContactId: null,
+  clientLocationId: null,           // Slot T C3 — gekozen client_locations.id (UUID) voor het contract
   newClient: null,
   selectedSectors: [],
   sectorConfigs: {},   // { zonnepanelen: [{ pan: 12, ... }], ... }
@@ -1002,10 +1021,12 @@ function applyClientFromUrl() {
   if (!sel) return;
   var exists = (clients || []).some(function(c) { return c.id === clientId; });
   if (!exists) return;
-  // Sync zowel hidden input als combobox-UI voor deep-link consistentie
-  sel.value = clientId;
+  // Slot T: nieuw prefixed-mode honoreert deep-link via 'bedrijf:<UUID>' (selecteert
+  // het bedrijfs-header-item, geen specifieke contactpersoon).
+  var prefixedVal = 'bedrijf:' + clientId;
+  sel.value = prefixedVal;
   var cbWrap = document.getElementById('wiz-client-cb');
-  if (cbWrap && cbWrap.__fcb) cbWrap.__fcb.setValue(clientId);
+  if (cbWrap && cbWrap.__fcb) cbWrap.__fcb.setValue(prefixedVal);
   if (typeof onClientSelect === 'function') onClientSelect();
 }
 
@@ -1453,7 +1474,10 @@ function goStep(n) {
         postal_code: document.getElementById('nc-postcode').value.trim(),
         city: document.getElementById('nc-gemeente').value.trim(),
         client_type: ncSubtype,
-        vat_number: (ncSubtype === 'bedrijf' && ncBtwRaw) ? ncBtwRaw : null
+        vat_number: (ncSubtype === 'bedrijf' && ncBtwRaw) ? ncBtwRaw : null,
+        // Slot T: bewaar first_name/last_name afzonderlijk voor primary client_contacts-row insert
+        _first_name: ncVoornaam,
+        _last_name: ncAchternaam
       };
       // Bewaar VIES-resultaat afzonderlijk in wizState voor contract-payload
       wizState._ncBtwValidated = !!(ncVies && ncVies.valid === true);
@@ -1537,6 +1561,26 @@ async function loadPartnerData(partnerId) {
   // Load clients for this partner
   const { data: clientData } = await sb.from('clients').select('*').eq('partner_id', partnerId).order('company_name,contact_person');
   clients = clientData || [];
+
+  // Slot T: laad client_contacts voor de gekozen partner (via JOIN op clients.partner_id).
+  // Filter via client_id-list want client_contacts heeft geen partner_id-FK.
+  var clientIds = (clients || []).map(function(c) { return c.id; });
+  var contactsList = [];
+  if (clientIds.length) {
+    var { data: contactsData } = await sb.from('client_contacts').select('*').in('client_id', clientIds).order('last_name');
+    contactsList = contactsData || [];
+  }
+  clientContacts = contactsList;
+
+  // Slot T C3: laad client_locations voor de gekozen partner (filter via client_id-list).
+  // Wordt gebruikt door FlanccoWerklocatiePicker bij klantkeuze in stap 2.
+  var locationsList = [];
+  if (clientIds.length) {
+    var { data: locData } = await sb.from('client_locations').select('*').in('client_id', clientIds);
+    locationsList = locData || [];
+  }
+  clientLocations = locationsList;
+
   renderClientDropdown();
 
   // Load pricing + supplements
@@ -1567,7 +1611,10 @@ function renderClientDropdown() {
   var hidden = document.getElementById('wiz-client');
   if (!cbWrap || !window.FlanccoClientCombobox || !window.FlanccoClientItems) return;
 
-  var baseItems = window.FlanccoClientItems.build(clients || []);
+  var baseItems = window.FlanccoClientItems.build(clients || [], {
+    selectableHeaders: true,
+    clientContacts: clientContacts || []
+  });
   var items = [
     { type: 'group', kind: 'header', label: 'Acties' },
     {
@@ -1599,29 +1646,77 @@ function renderClientDropdown() {
 }
 
 function onClientSelect() {
-  var val = document.getElementById('wiz-client').value;
+  var rawVal = document.getElementById('wiz-client').value;
+  var resolved = window.FlanccoClientResolver
+    ? window.FlanccoClientResolver.resolve(rawVal, clientContacts)
+    : { client_id: rawVal, client_contact_id: null, isNew: rawVal === '__new', raw: rawVal };
+
   var preview = document.getElementById('klant-preview');
   var form = document.getElementById('new-client-form');
 
-  if (val === '__new') {
+  // Slot T C3 — werklocatie-picker refs. Voor elke branch sturen we de picker UI.
+  var wlCard = document.getElementById('wiz-werklocatie-card');
+  var wlWrap = document.getElementById('wiz-werklocatie-wrap');
+  var wlHidden = document.getElementById('wiz-werklocatie-id');
+
+  if (resolved.isNew) {
     preview.style.display = 'none';
     form.classList.add('visible');
     wizState.clientId = null;
+    wizState.clientContactId = null;
+    wizState.clientLocationId = null;
     wizState.newClient = null;
-  } else if (val) {
-    var client = clients.find(c => c.id === val);
+    // Slot T C3 — geen bestaande locaties bij nieuwe klant; werklocatie wordt later
+    // afgeleid uit het new-client-form (factuuradres = werklocatie default).
+    if (wlCard) wlCard.style.display = 'none';
+    if (wlHidden) wlHidden.value = '';
+    if (wlWrap && wlWrap.__fwp) { wlWrap.__fwp.destroy(); wlWrap.__fwp = null; }
+  } else if (resolved.client_id) {
+    var client = clients.find(c => c.id === resolved.client_id);
     if (client) {
-      document.getElementById('kp-naam').textContent = (client.company_name ? client.company_name + ' — ' : '') + (client.contact_person || '');
+      // Indien een specifieke contactpersoon gekozen is, toon deze; anders fallback naar bedrijfs-contact.
+      var contact = resolved.client_contact_id
+        ? (clientContacts || []).find(function(ct) { return ct.id === resolved.client_contact_id; })
+        : null;
+      var displayNaam = contact
+        ? ((client.company_name ? client.company_name + ' — ' : '') + [contact.first_name, contact.last_name].filter(Boolean).join(' '))
+        : ((client.company_name ? client.company_name + ' — ' : '') + (client.contact_person || ''));
+      var displayEmail = contact && contact.email ? contact.email : client.email;
+      var displayPhone = contact && contact.phone ? contact.phone : client.phone;
+
+      document.getElementById('kp-naam').textContent = displayNaam;
       document.getElementById('kp-adres').textContent = [client.street, client.house_number, client.postal_code, client.city].filter(Boolean).join(' ');
-      document.getElementById('kp-contact').textContent = [client.email, client.phone].filter(Boolean).join(' — ');
+      document.getElementById('kp-contact').textContent = [displayEmail, displayPhone].filter(Boolean).join(' — ');
       preview.style.display = 'block';
       form.classList.remove('visible');
       wizState.clientId = client.id;
+      wizState.clientContactId = resolved.client_contact_id || null;
+      wizState.clientLocationId = null;
       wizState.newClient = null;
+
+      // Slot T C3 — render werklocatie-picker. Picker auto-select primary bij single-locatie,
+      // toont kaarten-grid bij multi-locatie. onChange muteert hidden input + wizState.
+      if (wlCard && wlWrap && window.FlanccoWerklocatiePicker) {
+        wlCard.style.display = 'block';
+        if (wlWrap.__fwp) { wlWrap.__fwp.destroy(); wlWrap.__fwp = null; }
+        wlWrap.__fwp = window.FlanccoWerklocatiePicker.attach(wlWrap, {
+          clientId: client.id,
+          allClientLocations: clientLocations || [],
+          onChange: function (locId) {
+            if (wlHidden) wlHidden.value = locId || '';
+            wizState.clientLocationId = locId || null;
+          }
+        });
+      }
     }
   } else {
     preview.style.display = 'none';
     form.classList.remove('visible');
+    wizState.clientContactId = null;
+    wizState.clientLocationId = null;
+    if (wlCard) wlCard.style.display = 'none';
+    if (wlHidden) wlHidden.value = '';
+    if (wlWrap && wlWrap.__fwp) { wlWrap.__fwp.destroy(); wlWrap.__fwp = null; }
   }
 }
 
@@ -2349,11 +2444,36 @@ async function saveContract() {
 
     // Create new client if needed
     var clientId = wizState.clientId;
+    var clientContactId = wizState.clientContactId;
     if (!clientId && wizState.newClient) {
+      // Slot T: strip wizard-only meta-velden (_first_name, _last_name) uit clients-payload
       var clientPayload = Object.assign({}, wizState.newClient, { partner_id: wizState.partnerId });
+      delete clientPayload._first_name;
+      delete clientPayload._last_name;
       var { data: newClient, error: clientErr } = await sb.from('clients').insert([clientPayload]).select();
       if (clientErr) throw clientErr;
       clientId = newClient[0].id;
+
+      // Slot T: ook primaire client_contacts-row aanmaken zodat bedrijf↔contact-relatie blijft kloppen.
+      // Faalt-stil zodat bestaande UX nooit breekt; contract-insert kan nog steeds succesvol zijn.
+      try {
+        var contactPayload = {
+          client_id: clientId,
+          first_name: wizState.newClient._first_name || null,
+          last_name: wizState.newClient._last_name || null,
+          email: wizState.newClient.email || null,
+          phone: wizState.newClient.phone || null,
+          is_primary: true
+        };
+        var { data: newContact, error: contactErr } = await sb.from('client_contacts').insert([contactPayload]).select();
+        if (contactErr) {
+          console.warn('client_contacts insert failed (non-fatal):', contactErr);
+        } else if (newContact && newContact[0]) {
+          clientContactId = newContact[0].id;
+        }
+      } catch (e) {
+        console.warn('client_contacts insert exception (non-fatal):', e);
+      }
     }
 
     // Get client data for contract fields
@@ -2403,6 +2523,9 @@ async function saveContract() {
     var payload = {
       partner_id: wizState.partnerId,
       client_id: clientId,
+      client_contact_id: clientContactId || null,
+      // Slot T C3 — werklocatie (FK naar client_locations.id). Bij nieuwe klant of geen keuze: NULL.
+      client_location_id: wizState.clientLocationId || null,
       contract_type: wizState.contractType,
       klant_type: wizState.klantType,
       klant_subtype: klantSubtype,

@@ -1,0 +1,275 @@
+/*
+ * Flancco Werklocatie Picker — kies-kaart UI voor multi-locatie klanten.
+ *
+ * Slot T Spoor C: wanneer een klant meerdere werklocaties heeft, MOET de
+ * gebruiker er één kiezen vóór save (losse opdracht / interventie / contract /
+ * bouwdroger uitgeven). Single-locatie klanten: auto-select primary, geen UI-
+ * prompt.
+ *
+ * Vanilla JS, geen build-tooling. Laad via:
+ *   <link rel="stylesheet" href="/admin/shared/werklocatie-picker.css">
+ *   <script src="/admin/shared/werklocatie-picker.js"></script>
+ *
+ * Alle selectors prefixed met `.fwp-` om collisie met host pagina te voorkomen.
+ * Standalone-demo werkt dankzij :root fallbacks hieronder.
+ */
+
+:root {
+  --navy:  #1A1A2E;
+  --grey:  #6B7280;
+  --light: #F3F4F6;
+  --rule:  #E5E7EB;
+  --red:   #E74C3C;
+}
+
+/* -- wrapper ---------------------------------------------------------------- */
+
+.fwp {
+  display: block;
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px;
+  color: var(--navy);
+  box-sizing: border-box;
+}
+.fwp *,
+.fwp *::before,
+.fwp *::after {
+  box-sizing: border-box;
+}
+
+/* -- screen-reader only ----------------------------------------------------- */
+
+.fwp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -- single-locatie summary ------------------------------------------------- */
+
+.fwp-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--light);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--navy);
+}
+.fwp-summary-icon {
+  flex: 0 0 auto;
+  color: var(--grey);
+  margin-top: 1px;
+}
+.fwp-summary-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.fwp-summary-label {
+  font-weight: 600;
+  color: var(--navy);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fwp-summary-address {
+  display: block;
+  color: var(--grey);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -- grid (multi-locatie) --------------------------------------------------- */
+
+.fwp-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 600px) {
+  .fwp-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* -- card ------------------------------------------------------------------- */
+
+.fwp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  min-height: 88px;
+  padding: 12px;
+  background: #FFFFFF;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.fwp-card:hover {
+  background: var(--light);
+}
+.fwp-card:focus {
+  outline: none;
+}
+.fwp-card:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+.fwp-card[aria-checked="true"] {
+  border: 2px solid var(--navy);
+  background: rgba(26, 26, 46, 0.04);
+  /* Compensate the +1px border so layout doesn't shift */
+  padding: 11px;
+}
+.fwp-card[aria-checked="true"] .fwp-card-label {
+  font-weight: 600;
+}
+
+.fwp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fwp-card-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--navy);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fwp-card-address {
+  display: block;
+  color: var(--grey);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fwp-card-place {
+  display: block;
+  color: var(--grey);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fwp-card-empty {
+  color: var(--grey);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* -- "Primair" badge -------------------------------------------------------- */
+
+.fwp-badge-primary {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--navy);
+  background: rgba(26, 26, 46, 0.08);
+  border-radius: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* -- "Nieuwe werklocatie"-card --------------------------------------------- */
+
+.fwp-card-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px;
+  background: transparent;
+  border: 1.5px dashed var(--rule);
+  border-radius: 8px;
+  color: var(--grey);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fwp-card-add:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+  background: var(--light);
+}
+.fwp-card-add:focus {
+  outline: none;
+}
+.fwp-card-add:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+.fwp-card-add-icon {
+  flex: 0 0 auto;
+}
+
+/* -- empty state (geen werklocaties) --------------------------------------- */
+
+.fwp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  background: #FFFFFF;
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  text-align: center;
+}
+.fwp-empty-icon {
+  color: var(--grey);
+}
+.fwp-empty-text {
+  margin: 0;
+  color: var(--grey);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 340px;
+}
+.fwp-empty .fwp-card-add {
+  max-width: 280px;
+}
+
+/* -- responsive tweaks ------------------------------------------------------ */
+
+@media (max-width: 480px) {
+  .fwp-card {
+    min-height: 80px;
+  }
+}

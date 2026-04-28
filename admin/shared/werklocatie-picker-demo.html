@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flancco Werklocatie Picker — Demo</title>
+  <link rel="stylesheet" href="./werklocatie-picker.css">
+  <style>
+    :root {
+      --navy:  #1A1A2E;
+      --grey:  #6B7280;
+      --light: #F3F4F6;
+      --rule:  #E5E7EB;
+      --red:   #E74C3C;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--light);
+      color: var(--navy);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+    }
+    .lead {
+      color: var(--grey);
+      margin: 0 0 32px;
+      font-size: 13px;
+    }
+    .scenario {
+      background: #FFFFFF;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .scenario h2 {
+      margin: 0 0 4px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+    .scenario p.desc {
+      margin: 0 0 14px;
+      color: var(--grey);
+      font-size: 12px;
+    }
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--grey);
+      margin: 0 0 6px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--rule);
+      background: #FFFFFF;
+      color: var(--navy);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      min-height: 36px;
+    }
+    .btn:hover { background: var(--light); }
+    .btn--primary {
+      background: var(--navy);
+      color: #FFFFFF;
+      border-color: var(--navy);
+    }
+    .btn--primary:hover { background: #2d2d4a; }
+    .status {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: var(--light);
+      border-radius: 6px;
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 11px;
+      color: var(--navy);
+      word-break: break-all;
+    }
+    .status strong { color: var(--grey); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Werklocatie Picker — Demo</h1>
+    <p class="lead">
+      Drie scenario's voor Slot T Spoor C. Open de browser-console om
+      <code>onChange</code>- en <code>onAddNew</code>-events live te zien.
+    </p>
+
+    <!-- Scenario A: single locatie -->
+    <section class="scenario">
+      <h2>A · Single locatie (auto-select)</h2>
+      <p class="desc">Klant met 1 werklocatie — auto-select primary, kaart-grid wordt niet getoond, enkel een inline summary.</p>
+      <span class="field-label" id="lbl-a">Werklocatie</span>
+      <div id="picker-a" aria-labelledby="lbl-a"></div>
+      <div class="status" id="status-a"><strong>geen selectie</strong></div>
+    </section>
+
+    <!-- Scenario B: multi locatie (3 cards) -->
+    <section class="scenario">
+      <h2>B · Multi locatie (3 kaarten)</h2>
+      <p class="desc">
+        Klant met 3 werklocaties. Klik om te selecteren of gebruik
+        Up/Down/Left/Right + Enter / Space voor keyboard-navigatie.
+      </p>
+      <span class="field-label" id="lbl-b">Werklocatie</span>
+      <div id="picker-b" aria-labelledby="lbl-b"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="btn-set-b">Zet op Magazijn</button>
+        <button type="button" class="btn" id="btn-clear-b">Wissen</button>
+        <button type="button" class="btn btn--primary" id="btn-get-b">getValue()</button>
+      </div>
+      <div class="status" id="status-b"><strong>geen selectie</strong></div>
+    </section>
+
+    <!-- Scenario C: lege lijst -->
+    <section class="scenario">
+      <h2>C · Geen werklocaties</h2>
+      <p class="desc">
+        Klant zonder geregistreerde werklocaties — toont empty-state met
+        "+ Nieuwe werklocatie"-knop (host handelt het formulier af; hier
+        enkel <code>console.log</code>).
+      </p>
+      <span class="field-label" id="lbl-c">Werklocatie</span>
+      <div id="picker-c" aria-labelledby="lbl-c"></div>
+      <div class="status" id="status-c"><strong>geen items</strong></div>
+    </section>
+  </main>
+
+  <script src="./werklocatie-picker.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      // ---- Data ------------------------------------------------------------
+
+      var allLocations = [
+        // Klant A — single locatie
+        {
+          id: 'loc-a-1',
+          client_id: 'client-a',
+          label: 'Hoofdadres',
+          street: 'Lange Steenstraat',
+          house_number: '14',
+          postal_code: '9000',
+          city: 'Gent',
+          country: 'BE',
+          is_primary: true,
+          po_number: null
+        },
+
+        // Klant B — multi locatie (3 sites)
+        {
+          id: 'loc-b-1',
+          client_id: 'client-b',
+          label: 'Hoofdkantoor',
+          street: 'Industrieweg',
+          house_number: '42',
+          postal_code: '8500',
+          city: 'Kortrijk',
+          country: 'BE',
+          is_primary: true,
+          po_number: 'PO-2026-001'
+        },
+        {
+          id: 'loc-b-2',
+          client_id: 'client-b',
+          label: 'Filiaal Sluiskil',
+          street: 'Havenlaan',
+          house_number: '7B',
+          postal_code: '4541',
+          city: 'Sluiskil',
+          country: 'NL',
+          is_primary: false,
+          po_number: null
+        },
+        {
+          id: 'loc-b-3',
+          client_id: 'client-b',
+          label: 'Magazijn West',
+          street: null,
+          house_number: null,
+          postal_code: '9100',
+          city: 'Sint-Niklaas',
+          country: 'BE',
+          is_primary: false,
+          po_number: null
+        }
+        // Klant C — geen rijen, opzettelijk weggelaten
+      ];
+
+      // ---- Helpers ---------------------------------------------------------
+
+      function setStatus(elId, value, location) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        if (value == null) {
+          el.innerHTML = '';
+          var s = document.createElement('strong');
+          s.textContent = 'geen selectie';
+          el.appendChild(s);
+          return;
+        }
+        el.innerHTML = '';
+        var t1 = document.createElement('strong');
+        t1.textContent = 'value: ';
+        el.appendChild(t1);
+        el.appendChild(document.createTextNode(value));
+        if (location && location.label) {
+          el.appendChild(document.createElement('br'));
+          var t2 = document.createElement('strong');
+          t2.textContent = 'label: ';
+          el.appendChild(t2);
+          el.appendChild(document.createTextNode(location.label));
+        }
+        if (location) {
+          var addr = [
+            [location.street, location.house_number].filter(Boolean).join(' '),
+            [location.postal_code, location.city].filter(Boolean).join(' ')
+          ].filter(Boolean).join(', ');
+          if (addr) {
+            el.appendChild(document.createElement('br'));
+            var t3 = document.createElement('strong');
+            t3.textContent = 'adres: ';
+            el.appendChild(t3);
+            el.appendChild(document.createTextNode(addr));
+          }
+        }
+      }
+
+      // ---- Scenario A ------------------------------------------------------
+
+      window.FlanccoWerklocatiePicker.attach(
+        document.getElementById('picker-a'),
+        {
+          clientId: 'client-a',
+          allClientLocations: allLocations,
+          onChange: function (id, loc) {
+            console.log('[Scenario A] onChange:', id, loc);
+            setStatus('status-a', id, loc);
+          }
+        }
+      );
+
+      // ---- Scenario B ------------------------------------------------------
+
+      var pickerB = window.FlanccoWerklocatiePicker.attach(
+        document.getElementById('picker-b'),
+        {
+          clientId: 'client-b',
+          allClientLocations: allLocations,
+          allowNew: true,
+          onAddNew: function () {
+            console.log('[Scenario B] onAddNew clicked — host zou form openen.');
+          },
+          onChange: function (id, loc) {
+            console.log('[Scenario B] onChange:', id, loc);
+            setStatus('status-b', id, loc);
+          }
+        }
+      );
+
+      document.getElementById('btn-set-b').addEventListener('click', function () {
+        pickerB.setValue('loc-b-3'); // Magazijn West
+      });
+      document.getElementById('btn-clear-b').addEventListener('click', function () {
+        pickerB.clear();
+        setStatus('status-b', null, null);
+      });
+      document.getElementById('btn-get-b').addEventListener('click', function () {
+        var v = pickerB.getValue();
+        console.log('[Scenario B] getValue() ->', v);
+        window.alert('Huidige waarde: ' + (v == null ? '(null)' : v));
+      });
+
+      // ---- Scenario C ------------------------------------------------------
+
+      window.FlanccoWerklocatiePicker.attach(
+        document.getElementById('picker-c'),
+        {
+          clientId: 'client-c', // bestaat niet in cache → empty-state
+          allClientLocations: allLocations,
+          allowNew: true,
+          onAddNew: function () {
+            console.log('[Scenario C] onAddNew clicked — host zou form openen.');
+          },
+          onChange: function (id, loc) {
+            console.log('[Scenario C] onChange:', id, loc);
+            setStatus('status-c', id, loc);
+          }
+        }
+      );
+
+      // ---- Console hint ----------------------------------------------------
+      console.log('Flancco Werklocatie Picker demo geladen. Tab door de scenario\'s en open de console om events te zien.');
+    })();
+  </script>
+</body>
+</html>

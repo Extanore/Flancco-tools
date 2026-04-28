@@ -1,4 +1,4 @@
-// invite-partner-member — Slot I (rol-gebaseerd partner-team)
+// invite-partner-member — Slot I + Slot U (rol-gebaseerd partner-team)
 // -------------------------------------------------------------
 // Doel: laat een partner-eigenaar (role='partner', permissions.manage_users=true)
 // teamleden toevoegen aan zijn tenant met een gedefinieerde permissie-set.
@@ -8,6 +8,10 @@
 //      (betere onboarding-UX — gebruiker kiest zelf eerste wachtwoord).
 //   3. Re-invite-pad: bestaande user (zonder user_role) krijgt enkel role+techniekers-rij.
 //      Bestaande user MET user_role van andere partner → 409 (anti-hijack).
+//      Slot U: bij re-invite van een eerder uit-dienst gezette tech wordt
+//      uit_dienst_sinds op NULL gezet (trigger trg_techniekers_sync_actief
+//      synct actief=true). Bij re-invite < 30 dagen na uit-dienst wordt
+//      `recently_exited: true` mee teruggegeven als waarschuwing.
 //   4. In-memory rate limit per partner_id (10 invites / uur).
 //   5. Branded invite-mail (NL/FR per partner of body.lang) via Resend, fallback naar
 //      manuele credentials wanneer Resend ongeconfigureerd is.
@@ -445,14 +449,26 @@ Deno.serve(async (req: Request) => {
 
     // 8) techniekers-rij (type='bediende', tenant-scoped).
     // Eerst kijken of er al een techniekers-rij bestaat met deze email + partner_id (re-invite-pad).
+    // Slot U: laad ook uit_dienst_sinds zodat we recent-uit-dienst kunnen detecteren
+    // en de inviter een waarschuwing kunnen meegeven (geen blokkade).
     const { data: existingTech } = await admin
       .from("techniekers")
-      .select("id")
+      .select("id, uit_dienst_sinds")
       .eq("partner_id", partner_id)
       .eq("email", email)
       .maybeSingle();
 
+    let recentlyExited = false;
+    if (existingTech?.uit_dienst_sinds) {
+      const exitedAt = new Date(existingTech.uit_dienst_sinds);
+      if (!isNaN(exitedAt.getTime())) {
+        const daysSinceExit = (Date.now() - exitedAt.getTime()) / (1000 * 60 * 60 * 24);
+        recentlyExited = daysSinceExit < 30;
+      }
+    }
+
     if (!existingTech) {
+      // Nieuwe techniekers-rij — uit_dienst_sinds NULL (trigger zet actief=true).
       const { error: techErr } = await admin.from("techniekers").insert({
         partner_id,
         voornaam,
@@ -460,7 +476,7 @@ Deno.serve(async (req: Request) => {
         email,
         type_personeel: "bediende",
         user_id: userId,
-        actief: true,
+        uit_dienst_sinds: null,
       });
       if (techErr) {
         // Best-effort rollback: alleen rol verwijderen wanneer wij hem hier creëerden.
@@ -470,8 +486,18 @@ Deno.serve(async (req: Request) => {
         return json(500, { error: "Aanmaken techniekers-rij mislukt: " + techErr.message }, corsHeaders);
       }
     } else {
-      // Bestaande tech-rij — sync user_id (kan NULL geweest zijn vroeger).
-      await admin.from("techniekers").update({ user_id: userId, actief: true }).eq("id", existingTech.id);
+      // Slot U: bij re-invite zet uit_dienst_sinds NULL — de trigger
+      // trg_techniekers_sync_actief synct actief=true automatisch.
+      const { error: techUpdateErr } = await admin
+        .from("techniekers")
+        .update({ user_id: userId, uit_dienst_sinds: null })
+        .eq("id", existingTech.id);
+      if (techUpdateErr) {
+        await admin.from("user_roles").delete().eq("user_id", userId);
+        if (createdNewUser) await admin.auth.admin.deleteUser(userId);
+        console.error("invite-partner-member: techniekers re-invite update failed", techUpdateErr);
+        return json(500, { error: "Heractiveren techniekers-rij mislukt: " + techUpdateErr.message }, corsHeaders);
+      }
     }
 
     // 9) Branded invite-mail via Resend (best-effort — niet fataal als faalt).
@@ -525,6 +551,7 @@ Deno.serve(async (req: Request) => {
       fn: "invite-partner-member",
       partner_id,
       created_new_user: createdNewUser,
+      recently_exited: recentlyExited,
       email_sent: emailSent,
       perms_count: Object.values(permissions).filter(Boolean).length,
     }));
@@ -533,6 +560,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       user_id: userId,
       created_new_user: createdNewUser,
+      recently_exited: recentlyExited,
       email_sent: emailSent,
       email_error: emailError,
       partner_slug: brand.slug,

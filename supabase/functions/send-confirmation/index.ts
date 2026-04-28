@@ -97,6 +97,9 @@ interface ContractRow {
   created_at: string | null;
   verzonden_bevestiging_op: string | null;
   lang: string | null;
+  // Slot T — bedrijf-only-detectie + lookup-keys
+  client_id: string | null;
+  client_contact_id: string | null;
   partners: {
     id: string;
     slug: string;
@@ -110,6 +113,18 @@ interface ContractRow {
     website: string | null;
     actief: boolean | null;
   } | null;
+}
+
+// Slot T — recipient + aanhef-resolution
+interface RecipientResolution {
+  /** Email-adres waar de bevestiging naartoe gaat. */
+  email: string;
+  /** Aanhef-naam ("Beste {first_name}" of "Beste collega's van {company_name}"). */
+  greetingName: string;
+  /** True wanneer geen specifieke contactpersoon → bedrijf-only. */
+  isCompanyOnly: boolean;
+  /** Bedrijfsnaam (clients.company_name) — voor metadata. */
+  companyName: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -203,19 +218,23 @@ Deno.serve(async (req: Request) => {
         id, klant_naam, klant_email, klant_telefoon, klant_adres, klant_postcode, klant_gemeente,
         totaal_incl_btw, btw_type, frequentie, contractduur, contract_nummer, datum_ondertekening,
         pdf_url, status, created_at, verzonden_bevestiging_op, lang,
+        client_id, client_contact_id,
         partners ( id, slug, naam, bedrijfsnaam, kleur_primair, kleur_donker, logo_url, email, telefoon, website, actief )
       `)
       .eq("id", contract_id)
       .maybeSingle<ContractRow>();
 
     if (cErr || !contract) throw new Error("Contract niet gevonden");
-    if (!contract.klant_email) throw new Error("Geen klant email");
     if (contract.status && contract.status !== "getekend" && contract.status !== "actief") {
       throw new Error("Contract is niet getekend");
     }
     if (!contract.partners || contract.partners.actief === false) {
       throw new Error("Partner niet actief");
     }
+
+    // Slot T — resolve recipient: contact-FK → client → contracten-snapshot
+    const recipient = await resolveRecipient(sb, contract);
+    if (!recipient.email) throw new Error("Geen klant email");
 
     const createdAt = contract.created_at ? new Date(contract.created_at).getTime() : 0;
     const ageMin = (Date.now() - createdAt) / 60000;
@@ -236,7 +255,7 @@ Deno.serve(async (req: Request) => {
     const lang: Lang = (langFromPayload
       ?? (contract.lang === "fr" || contract.lang === "nl" ? (contract.lang as Lang) : "nl"));
 
-    const opt_out_token = await fetchOptOutToken(sb, contract_id, contract.klant_email!);
+    const opt_out_token = await fetchOptOutToken(sb, contract_id, recipient.email);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Build email content
@@ -255,8 +274,8 @@ Deno.serve(async (req: Request) => {
     const eerstePeriode = computeFirstWindow(lang);
 
     const content = lang === "fr"
-      ? frContent({ branding, klantNaam: contract.klant_naam, contractNr, datum, freq, duur, totaal, btwType, eerstePeriode })
-      : nlContent({ branding, klantNaam: contract.klant_naam, contractNr, datum, freq, duur, totaal, btwType, eerstePeriode });
+      ? frContent({ branding, klantNaam: recipient.greetingName, isCompanyOnly: recipient.isCompanyOnly, contractNr, datum, freq, duur, totaal, btwType, eerstePeriode })
+      : nlContent({ branding, klantNaam: recipient.greetingName, isCompanyOnly: recipient.isCompanyOnly, contractNr, datum, freq, duur, totaal, btwType, eerstePeriode });
 
     const optOutFooter = opt_out_token
       ? renderOptOutFooter(branding, lang, OPT_OUT_BASE_URL + "?token=" + encodeURIComponent(opt_out_token))
@@ -336,7 +355,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: `${afzenderNaam} <${FROM_ADDRESS}>`,
         reply_to: [replyTo],
-        to: [contract.klant_email],
+        to: [recipient.email],
         subject,
         html: emailHtml,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -357,6 +376,7 @@ Deno.serve(async (req: Request) => {
         partner_slug: branding.slug,
         lang,
         attachments_count: attachments.length,
+        company_only: recipient.isCompanyOnly,
         ...(attachmentWarnings.length > 0 ? { attachment_warnings: attachmentWarnings } : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -468,6 +488,8 @@ function renderOptOutFooter(branding: PartnerBranding, lang: Lang, optOutUrl: st
 interface BodyContext {
   branding: PartnerBranding;
   klantNaam: string;
+  /** Slot T: true → bedrijf-only contract, gebruikt bedrijfs-aanhef. */
+  isCompanyOnly: boolean;
   contractNr: string;
   datum: string;
   freq: string;
@@ -486,11 +508,15 @@ interface BodyPayload {
 function nlContent(c: BodyContext): BodyPayload {
   const accent = sanitizeHex(c.branding.secondaryColor, "#E74C3C");
   const primary = sanitizeHex(c.branding.primaryColor, "#1A1A2E");
+  // Slot T — bedrijfs-aanhef bij bedrijf-only contracten (geen specifieke contactpersoon).
+  const aanhef = c.isCompanyOnly
+    ? `Beste collega's van ${escHtml(c.klantNaam)}`
+    : `Beste ${escHtml(c.klantNaam)}`;
   return {
     headerTitle: "Bevestiging overeenkomst",
     headerSubtitle: "Bevestiging overeenkomst",
     bodyHtml: `
-      <p style="font-size:16px;margin:0 0 20px">Beste ${escHtml(c.klantNaam)},</p>
+      <p style="font-size:16px;margin:0 0 20px">${aanhef},</p>
       <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Hartelijk dank voor uw vertrouwen in <strong>${escHtml(c.branding.name)}</strong>. Uw overeenkomst voor professioneel onderhoud van uw zonnepanelen is succesvol ondertekend.</p>
       <p style="font-size:14px;line-height:1.7;margin:0 0 16px">In bijlage vindt u:</p>
       <ul style="font-size:14px;line-height:1.8;color:#374151;margin:0 0 16px;padding-left:20px">
@@ -524,11 +550,15 @@ function nlContent(c: BodyContext): BodyPayload {
 function frContent(c: BodyContext): BodyPayload {
   const accent = sanitizeHex(c.branding.secondaryColor, "#E74C3C");
   const primary = sanitizeHex(c.branding.primaryColor, "#1A1A2E");
+  // Slot T — adresse à l'entreprise pour les contrats sans personne de contact.
+  const aanhef = c.isCompanyOnly
+    ? `Chers collègues de ${escHtml(c.klantNaam)}`
+    : `Bonjour ${escHtml(c.klantNaam)}`;
   return {
     headerTitle: "Confirmation de l'accord",
     headerSubtitle: "Confirmation de l'accord",
     bodyHtml: `
-      <p style="font-size:16px;margin:0 0 20px">Bonjour ${escHtml(c.klantNaam)},</p>
+      <p style="font-size:16px;margin:0 0 20px">${aanhef},</p>
       <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Merci de votre confiance en <strong>${escHtml(c.branding.name)}</strong>. Votre accord pour l'entretien professionnel de vos panneaux solaires a \u00E9t\u00E9 sign\u00E9 avec succ\u00E8s.</p>
       <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Vous trouverez en pi\u00E8ce jointe :</p>
       <ul style="font-size:14px;line-height:1.8;color:#374151;margin:0 0 16px;padding-left:20px">
@@ -600,6 +630,73 @@ async function downloadContractPdf(
     console.error("downloadContractPdf error:", e);
     return null;
   }
+}
+
+/**
+ * Slot T — resolve recipient email + greeting based on whether the contract
+ * is bedrijf-only (no specific contact person) or has a linked contact.
+ *
+ * Resolution order:
+ *   1. client_contact_id IS NOT NULL → look up client_contacts → use first_name + email
+ *   2. client_contact_id IS NULL + client_id → look up clients → use company_name + email
+ *   3. fallback → contracten.klant_email + contracten.klant_naam (legacy)
+ *
+ * Bedrijf-only is true only when path (2) is hit AND there is a non-empty company_name.
+ */
+async function resolveRecipient(
+  // deno-lint-ignore no-explicit-any
+  sb: any,
+  contract: ContractRow,
+): Promise<RecipientResolution> {
+  // Path 1 — specifieke contactpersoon
+  if (contract.client_contact_id) {
+    const { data: cc } = await sb
+      .from("client_contacts")
+      .select("first_name, last_name, email")
+      .eq("id", contract.client_contact_id)
+      .maybeSingle();
+    const email = (cc?.email || contract.klant_email || "").trim();
+    const greeting = (cc?.first_name || contract.klant_naam || "").trim() || "klant";
+
+    // Optional: ook company_name ophalen voor metadata (niet strict noodzakelijk)
+    let companyName: string | null = null;
+    if (contract.client_id) {
+      const { data: client } = await sb
+        .from("clients")
+        .select("company_name")
+        .eq("id", contract.client_id)
+        .maybeSingle();
+      companyName = client?.company_name ?? null;
+    }
+    return { email, greetingName: greeting, isCompanyOnly: false, companyName };
+  }
+
+  // Path 2 — bedrijf-only (geen contact-FK, wel client_id)
+  if (contract.client_id) {
+    const { data: client } = await sb
+      .from("clients")
+      .select("company_name, email")
+      .eq("id", contract.client_id)
+      .maybeSingle();
+    const company = (client?.company_name || "").trim();
+    if (company) {
+      const email = (client?.email || contract.klant_email || "").trim();
+      return {
+        email,
+        greetingName: company,
+        isCompanyOnly: true,
+        companyName: company,
+      };
+    }
+  }
+
+  // Path 3 — legacy fallback (geen client_id koppeling)
+  return {
+    email: (contract.klant_email || "").trim(),
+    greetingName: contract.klant_naam || "klant",
+    isCompanyOnly: false,
+    companyName: null,
+  };
 }
 
 /**

@@ -141,7 +141,14 @@
       viesValidating: 'BTW-nummer valideren\u2026',
       viesValid: 'Geverifieerd via VIES \u2014 gegevens automatisch ingevuld',
       viesInvalid: 'Ongeldig BTW-nummer (formaat of niet bekend in VIES-register)',
-      viesError: 'Validatie tijdelijk niet beschikbaar \u2014 u kunt doorgaan, we valideren later'
+      viesError: 'Validatie tijdelijk niet beschikbaar \u2014 u kunt doorgaan, we valideren later',
+      // Slot T A5 \u2014 bedrijf-only sub-toggle
+      bedrijfOnlyTitle: 'Wie tekent dit contract?',
+      bedrijfOnlyContactTitle: 'Specifieke contactpersoon',
+      bedrijfOnlyContactSub: 'contractuele ondertekenaar met voor- en achternaam',
+      bedrijfOnlyCompanyTitle: 'Het bedrijf zelf',
+      bedrijfOnlyCompanySub: 'geen vaste contactpersoon, ondertekening \u00abnamens [bedrijfsnaam]\u00bb',
+      bedrijfOnlyDisclaimer: 'Door te ondertekenen verklaart u gemachtigd te zijn om namens dit bedrijf contractuele verbintenissen aan te gaan. Onder Belgisch recht is een ondertekening \u00abnamens [bedrijfsnaam]\u00bb door een gemachtigde rechtsgeldig mits bevoegdheid kan worden aangetoond.'
     },
     step2b: {
       title: 'Uw offerte samengevat',

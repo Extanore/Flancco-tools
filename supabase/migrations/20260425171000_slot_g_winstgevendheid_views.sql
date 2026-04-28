@@ -207,6 +207,9 @@ SELECT
   t.voornaam                                                          AS technieker_voornaam,
   t.uurtarief                                                         AS uurtarief,
   t.contract_uren_week                                                AS contract_uren_week,
+  -- Slot U: ex-techs blijven zichtbaar voor historische YTD-aggregaten;
+  -- frontend toont uit_dienst_sinds als suffix bij tab-naam.
+  t.uit_dienst_sinds                                                  AS uit_dienst_sinds,
   COUNT(tb.id)                                                        AS aantal_beurten,
   COALESCE(SUM(tb.forfait_bedrag * tb.share_pct), 0)::numeric         AS omzet_aandeel,
   COALESCE(SUM(
@@ -250,14 +253,15 @@ SELECT
   CURRENT_DATE                                                        AS periode_eind
 FROM public.techniekers t
 LEFT JOIN tech_beurten tb ON tb.tech_id = t.id
-WHERE t.actief = true
-  AND COALESCE(t.type_personeel, 'technieker') = 'technieker'
+-- Slot U: GEEN t.actief=true filter — ex-techs blijven zichtbaar voor
+-- historische YTD-aggregaten (zie 20260428114500_slot_u_winstgevendheid_per_technieker_include_ex.sql).
+WHERE COALESCE(t.type_personeel, 'technieker') = 'technieker'
 GROUP BY
-  t.id, t.naam, t.voornaam, t.uurtarief, t.contract_uren_week
+  t.id, t.naam, t.voornaam, t.uurtarief, t.contract_uren_week, t.uit_dienst_sinds
 ORDER BY brutomarge_aandeel DESC;
 
 COMMENT ON VIEW public.v_winstgevendheid_per_technieker IS
-  'Slot G — YTD per technieker met equal-share allocatie over multi-tech beurten. Bezettingsgraad is v1-simplificatie: trekt verlof/feestdagen NOG niet af. security_invoker=on.';
+  'Slot G + Slot U — YTD per technieker met equal-share allocatie over multi-tech beurten. Bevat alle techs incl. uit-dienst voor historische completeness. Bezettingsgraad is v1-simplificatie: trekt verlof/feestdagen NOG niet af. security_invoker=on.';
 
 -- =============================================================================
 -- 5) GRANTS — least privilege

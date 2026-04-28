@@ -97,6 +97,10 @@ Deno.serve(async (req: Request) => {
   // kan tonen voor extra friction).
   let token: string | null = null;
   let confirm = false;
+  // Slot T CC2 — optionele vrije tekst over wie de opt-out triggered.
+  // Bij bedrijf-klanten typisch "Naam X namens [bedrijfsnaam]". Optioneel veld;
+  // niet meegegeven → blijft NULL in de DB-rij.
+  let optOutDoor: string | null = null;
 
   if (req.method === "GET") {
     const url = new URL(req.url);
@@ -107,6 +111,13 @@ Deno.serve(async (req: Request) => {
       const body = await req.json();
       token = typeof body?.token === "string" ? body.token : null;
       confirm = body?.confirm === true;
+      // Slot T CC2 — accepteer opt_out_door (sanitize + clip op 200 chars)
+      if (typeof body?.opt_out_door === "string") {
+        const trimmed = body.opt_out_door.trim();
+        if (trimmed.length > 0) {
+          optOutDoor = trimmed.slice(0, 200);
+        }
+      }
     } catch {
       return new Response(
         JSON.stringify({ success: false, error: "invalid_body" }),
@@ -177,13 +188,21 @@ Deno.serve(async (req: Request) => {
     }
 
     // POST + confirm=true → muteren
+    // Slot T CC2: opt_out_door wordt enkel meegestuurd als hij echt aanwezig is,
+    // anders weglaten zodat een eventueel bestaande waarde niet per ongeluk
+    // op NULL gezet wordt door een herhaling. (idempotent gedrag blijft behouden)
+    const updatePayload: Record<string, unknown> = {
+      opt_out_ts: new Date().toISOString(),
+      opt_out_bron: "email_link",
+      opt_out_ip: ip !== "unknown" ? ip : null,
+    };
+    if (optOutDoor !== null) {
+      updatePayload.opt_out_door = optOutDoor;
+    }
+
     const { error: updateErr } = await sb
       .from("klant_consents")
-      .update({
-        opt_out_ts: new Date().toISOString(),
-        opt_out_bron: "email_link",
-        opt_out_ip: ip !== "unknown" ? ip : null,
-      })
+      .update(updatePayload)
       .eq("id", consent.id);
 
     if (updateErr) {
