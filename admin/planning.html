@@ -5055,7 +5055,9 @@ function renderWeekView() {
             '<span class="appt-multidag-badge" title="Meerdaagse opdracht">Dag ' + ghostDayInfo.dayIndex + '/' + ghostDayInfo.totalDays + '</span>' : '';
           var ghostMultiClass = ghostDayInfo.isMultiDay ? ' is-multidag' : '';
           html += '<div class="appt-card ' + getSectorClass(info.sector) + ghostMultiClass + '" ' +
-            'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
+            // UX-fix Apr 28: geef dayISO mee zodat de modal de correcte dag-context
+            // toont (DAG X VAN Y · <datum>) i.p.v. terug te vallen op plan_datum.
+            'onclick="openEditBeurtModal(\'' + b.id + '\', null, \'' + esc(dayISO) + '\', null)" ' +
             'style="cursor:pointer;position:relative" ' +
             'title="Duo-beurt met ' + esc(hoofdNaam) + (ghostDayInfo.isMultiDay ? ' (dag ' + ghostDayInfo.dayIndex + '/' + ghostDayInfo.totalDays + ')' : '') + '">' +
             '<div class="appt-klant">' + esc(info.naam) + ghostMultiBadge + '</div>' +
@@ -5307,10 +5309,15 @@ function renderApptCard(b, info, dayInfo, dateISO) {
   }
   var avatarStackClass = hasAvatarStack ? ' has-avatar-stack' : '';
 
+  // UX-fix Apr 28: geef dateISO mee zodat de modal de correcte dag-context toont
+  // (DAG X VAN Y · <datum>) i.p.v. terug te vallen op plan_datum.
+  var apptOnclick = dateISO
+    ? "openEditBeurtModal('" + b.id + "', null, '" + esc(dateISO) + "', null)"
+    : "openEditBeurtModal('" + b.id + "')";
   return '<div class="appt-card ' + getSectorClass(info.sector) + (info && info.isLosseOpdracht ? ' is-losse' : '') + multiDagClass + certWarnClass + avatarStackClass + '" ' +
     'data-beurt-id="' + esc(b.id) + '" ' +
     dragAttr +
-    'onclick="openEditBeurtModal(\'' + b.id + '\')" ' +
+    'onclick="' + apptOnclick + '" ' +
     'oncontextmenu="onCardContext(event, \'' + b.id + '\')" ' +
     'style="cursor:pointer;position:relative" ' +
     'title="' + esc(info.naam) + ' - ' + esc(info.sector) + (info && info.isLosseOpdracht ? ' (losse opdracht)' : '') + titleSuffix + '">' +
