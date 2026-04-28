@@ -1435,6 +1435,9 @@
 <link rel="stylesheet" href="shared/client-combobox.css">
 <script src="shared/client-combobox.js"></script>
 <script src="shared/client-combobox-items.js"></script>
+<script src="shared/client-combobox-resolver.js"></script>
+<link rel="stylesheet" href="shared/werklocatie-picker.css">
+<script src="shared/werklocatie-picker.js"></script>
 </head>
 <body>
 
@@ -2841,6 +2844,11 @@
           <div class="dv-toolbar">
             <div class="dv-toolbar-left">
               <input type="text" id="tech-search" placeholder="Zoek op naam, functie, email..." oninput="renderTechniekers()" style="padding:8px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;width:260px">
+              <!-- Slot U U2: toggle om ex-collega's mee te tonen in de lijst -->
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--grey);cursor:pointer;user-select:none;margin-left:14px">
+                <input type="checkbox" id="tech-show-ex" onchange="renderTechniekers()" style="width:14px;height:14px;accent-color:var(--navy)">
+                Toon ex-collega's
+              </label>
             </div>
           </div>
           <table class="expandable-table">
@@ -4138,6 +4146,13 @@
           <input id="kl-bedrijf" placeholder="Naam van de organisatie">
         </div>
 
+        <!-- Slot T A4: bedrijf-only-toggle (verberg contactpersonen-velden bij bedrijf zonder vaste contact) -->
+        <label class="kl-bedrijf-only-toggle" id="kl-bedrijf-only-wrap" style="display:none;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;background:var(--light);margin:14px 0 12px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="kl-bedrijf-only" style="width:16px;height:16px;accent-color:var(--navy)" onchange="onBedrijfOnlyToggle()">
+          <span style="font-size:13px;font-weight:500;color:var(--navy)">Bedrijf zonder vaste contactpersoon</span>
+          <span style="font-size:11px;color:var(--grey);margin-left:auto">Verberg contactpersonen-velden — facturatie naar bedrijfs-email</span>
+        </label>
+
         <!-- Contactpersonen -->
         <div class="modal-field" id="kl-contacts-wrap" style="margin-top:14px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -4454,8 +4469,23 @@
       <textarea id="tech-notities" rows="2" placeholder="Optionele notities..." style="width:100%;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
     </div>
 
+    <!-- Slot U U2: uit-dienst-pane (verschijnt na klik op "Uit dienst zetten") -->
+    <div id="kl-uit-dienst-pane" style="display:none;margin:12px 0;padding:14px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px">
+      <div style="font-size:12px;font-weight:600;color:#92400E;margin-bottom:8px">Technieker uit dienst zetten</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:12px;color:var(--navy)">Uit dienst sinds:</label>
+        <input type="date" id="tech-uit-dienst-datum" style="padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+        <button type="button" class="btn btn-primary" onclick="confirmTechUitDienst()" style="padding:6px 12px;font-size:13px">Bevestigen</button>
+        <button type="button" class="btn btn-ghost" onclick="cancelTechUitDienst()" style="padding:6px 12px;font-size:13px">Annuleren</button>
+      </div>
+      <p style="font-size:11px;color:#92400E;margin-top:8px;line-height:1.4">Technieker verdwijnt uit actieve planning, maar blijft beschikbaar voor historische data (rapporten, audit-log, winstgevendheid).</p>
+    </div>
+
     <div class="modal-buttons">
-      <button class="btn btn-danger" id="tech-delete-btn" style="display:none;margin-right:auto" onclick="deleteTechnieker()">Verwijderen</button>
+      <!-- Slot U U2: drie knoppen i.p.v. één hard-delete: uit dienst / reactiveren / definitief verwijderen -->
+      <button class="btn" id="tech-uit-dienst-btn" style="display:none;margin-right:auto;background:#F59E0B;color:#fff;border:none" onclick="openTechUitDienstPane()">Uit dienst zetten</button>
+      <button class="btn btn-primary" id="tech-reactivate-btn" style="display:none;margin-right:auto" onclick="reactivateTech()">Reactiveren</button>
+      <button class="btn btn-danger" id="tech-delete-btn" style="display:none;margin-right:auto" onclick="deleteTechnieker()">Definitief verwijderen</button>
       <button class="btn btn-ghost" onclick="closeTechModal()">Annuleren</button>
       <button class="btn btn-primary" onclick="saveTechnieker()">Opslaan</button>
     </div>
@@ -4580,6 +4610,14 @@
       <small style="color:var(--grey);font-size:11px">Regio wordt automatisch vergeleken met de droger — je krijgt een waarschuwing bij cross-regio.</small>
     </div>
     <div id="uitgeef-regio-waarschuwing" style="display:none;padding:8px 12px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;font-size:12px;color:#92400E;margin-bottom:12px"></div>
+    <div class="modal-field" id="uitgeef-locatie-wrap" style="display:none">
+      <label>Werklocatie</label>
+      <!-- Slot T C3: shared werklocatie-picker (FlanccoWerklocatiePicker).
+           Hidden input bewaart client_location_id voor save-flow. -->
+      <div class="fwp" id="uitgeef-locatie-fwp"></div>
+      <input type="hidden" id="uitgeef-locatie-id">
+      <small style="color:var(--grey);font-size:11px;margin-top:4px;display:block">Plaats waar de droger wordt uitgegeven (kan verschillen van facturatie-adres)</small>
+    </div>
     <div class="modal-row">
       <div class="modal-field"><label>Uitgegeven op *</label><input type="date" id="uitgeef-datum"></div>
       <div class="modal-field"><label>Verwacht terug op</label><input type="date" id="uitgeef-terug"></div>
@@ -4730,6 +4768,8 @@ let allSupplementen = [];
 let allPartnerWpConfig = []; // partner_warmtepomp_config rows (lucht_lucht + lucht_water)
 let allContracten = [];
 let allClients = [];
+let allClientContacts = [];
+let allClientLocations = [];
 let allTechniekers = [];
 let allTechSectoren = [];
 let allTechCertificeringen = [];
@@ -6033,7 +6073,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // DATA LOADING
 // =============================================
 async function loadAllData() {
-  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob, locAll, bUrenReg, loonR, feestR, pwpc, bdr, techCerts] = await Promise.all([
+  const [p, pr, s, c, cl, tech, techSec, voert, intv, rpt, vt, vaf, vsa, ob, locAll, bUrenReg, loonR, feestR, pwpc, bdr, techCerts, clContacts] = await Promise.all([
     sb.from('partners').select('*').order('naam'),
     sb.from('pricing').select('*').order('sort_order').order('staffel_min'),
     sb.from('supplementen').select('*'),
@@ -6054,7 +6094,8 @@ async function loadAllData() {
     sb.from('feestdagen').select('*').order('datum', { ascending: true }).then(function(r){return r;}, function(_){return {data:[]};}),
     sb.from('partner_warmtepomp_config').select('*').then(function(r){return r;}, function(_){return {data:[]};}),
     sb.from('bouwdrogers').select('*').order('serienummer').then(function(r){return r;}, function(_){return {data:[]};}),
-    sb.from('technieker_certificeringen').select('*').then(function(r){return r;}, function(_){return {data:[]};})
+    sb.from('technieker_certificeringen').select('*').then(function(r){return r;}, function(_){return {data:[]};}),
+    sb.from('client_contacts').select('*').order('client_id, last_name').then(function(r){return r;}, function(_){return {data:[]};})
   ]);
   partners = p.data || [];
   allPricing = pr.data || [];
@@ -6062,6 +6103,7 @@ async function loadAllData() {
   allPartnerWpConfig = (pwpc && pwpc.data) ? pwpc.data : [];
   allContracten = c.data || [];
   allClients = cl.data || [];
+  allClientContacts = (clContacts && clContacts.data) ? clContacts.data : [];
   allTechniekers = tech.data || [];
   allTechSectoren = techSec.data || [];
   allVoertuigen = voert.data || [];
@@ -6075,6 +6117,8 @@ async function loadAllData() {
   allTechCertificeringen = (techCerts && techCerts.data) ? techCerts.data : [];
   window._allTechCertificeringen = allTechCertificeringen;
   window._allClientLocations = (locAll && locAll.data) ? locAll.data : [];
+  // Slot T C3: globale cache voor FlanccoWerklocatiePicker (uitgeef-modal e.a.).
+  allClientLocations = window._allClientLocations;
   window._allBeurten = allOnderhoudsbeurten;
   // Nieuwe uren-bronnen (sectie I migraties)
   window._allBeurtUrenReg = (bUrenReg && bUrenReg.data) ? bUrenReg.data : [];
@@ -13231,11 +13275,17 @@ function klTypeChanged() {
   var btnAddContact  = document.getElementById('btn-add-contact');
   var algemeenTitle  = document.getElementById('kl-algemeen-title');
   var algemeenHint   = document.getElementById('kl-algemeen-hint');
+  // Slot T A4: bedrijf-only-toggle wrapper (alleen relevant bij type=bedrijf)
+  var bedrijfOnlyWrap = document.getElementById('kl-bedrijf-only-wrap');
+  var bedrijfOnlyCb   = document.getElementById('kl-bedrijf-only');
 
   if (type === 'particulier') {
     // Bedrijfsnaam verbergen + input leegmaken zodat die bij save als null gaat
     bedrijfWrap.style.display = 'none';
     bedrijfInput.value = '';
+    // Slot T A4: toggle is irrelevant voor particulier — verberg + reset
+    if (bedrijfOnlyWrap) bedrijfOnlyWrap.style.display = 'none';
+    if (bedrijfOnlyCb) bedrijfOnlyCb.checked = false;
     // Particulier = exact 1 contactpersoon (geen "meerdere")
     if (contactsLabel) contactsLabel.textContent = 'Persoonsgegevens';
     if (contactsHint) contactsHint.textContent = 'Naam en gegevens van de klant.';
@@ -13253,6 +13303,8 @@ function klTypeChanged() {
     }
   } else {
     bedrijfWrap.style.display = '';
+    // Slot T A4: toon de toggle bij bedrijf-mode
+    if (bedrijfOnlyWrap) bedrijfOnlyWrap.style.display = 'flex';
     if (contactsLabel) contactsLabel.textContent = 'Contactpersonen';
     if (contactsHint) contactsHint.textContent = 'Een primair contact is verplicht — andere contacten zijn optioneel.';
     if (btnAddContact) btnAddContact.style.display = '';
@@ -13265,6 +13317,32 @@ function klTypeChanged() {
   renderKlantContacts();
   // Werklocatie-contact-picker ververst ook
   if (typeof renderKlantLocaties === 'function') renderKlantLocaties();
+  // Slot T A4: synchroniseer zichtbaarheid contactpersonen-sectie met toggle-state
+  if (typeof onBedrijfOnlyToggle === 'function') onBedrijfOnlyToggle();
+}
+
+// Slot T A4: bedrijf-only-toggle — verberg/toon de contactpersonen-repeater +
+// pas het hint-label aan zodat de admin weet dat facturatie naar bedrijfs-email
+// gestuurd wordt. Geen mutatie van klantContactsBuffer hier — pas tijdens save
+// wordt beslist of contact_person=null + insert wordt overgeslagen.
+function onBedrijfOnlyToggle() {
+  var cb       = document.getElementById('kl-bedrijf-only');
+  var contacts = document.getElementById('kl-contacts-wrap');
+  var algHint  = document.getElementById('kl-algemeen-hint');
+  if (!cb || !contacts) return;
+  // Toggle is enkel zinvol bij bedrijf-mode; bij particulier laten we het pane gewoon zichtbaar
+  var type = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
+  if (type !== 'bedrijf') {
+    contacts.style.display = '';
+    return;
+  }
+  if (cb.checked) {
+    contacts.style.display = 'none';
+    if (algHint) algHint.textContent = 'Verplicht — facturen en alle communicatie gaan naar dit adres (geen vaste contactpersoon ingesteld).';
+  } else {
+    contacts.style.display = '';
+    if (algHint) algHint.textContent = 'Voor facturen en algemene communicatie. Laat leeg om de gegevens van de primaire contactpersoon te gebruiken.';
+  }
 }
 
 function emptyContact(isPrimary) {
@@ -13601,6 +13679,16 @@ async function openKlantModal(editData) {
     });
   }
 
+  // Slot T A4: bedrijf-only-toggle pre-fill — bestaande klant met contact_person=null
+  // én client_type=bedrijf is een bedrijf-only-record. Voor nieuwe klanten of
+  // particulieren staat de toggle altijd uit.
+  var bedrijfOnlyCb = document.getElementById('kl-bedrijf-only');
+  if (bedrijfOnlyCb) {
+    var existingBedrijfOnly = !!(editData && klType === 'bedrijf'
+      && (editData.contact_person === null || (typeof editData.contact_person === 'string' && editData.contact_person.trim() === '')));
+    bedrijfOnlyCb.checked = existingBedrijfOnly;
+  }
+
   // Render type-afhankelijke UI + repeaters
   klTypeChanged();
   renderKlantLocaties();
@@ -13692,50 +13780,77 @@ async function saveKlant() {
     return;
   }
 
+  // Slot T A4: bedrijf-only-mode — geen vaste contactpersoon, facturatie naar bedrijfs-email.
+  // We slaan de primary-contact-validatie over en zetten contact_person=NULL bij save.
+  // Actief enkel bij type=bedrijf (toggle is verborgen voor particulier en zou daar geen
+  // effect mogen hebben).
+  var isBedrijfOnly = klType === 'bedrijf'
+    && document.getElementById('kl-bedrijf-only')
+    && document.getElementById('kl-bedrijf-only').checked;
+
   // Validatie: primaire contactpersoon is verplicht (voor- en achternaam)
   var primary = klantContactsBuffer.find(function(c) { return c.is_primary; }) || klantContactsBuffer[0];
-  if (!primary) {
-    switchKlantTab('basis');
-    showToast('Voeg minstens één contactpersoon toe.', 'error');
-    var addBtn = document.getElementById('btn-add-contact'); if (addBtn) addBtn.focus();
-    return;
-  }
-  primary.first_name = (primary.first_name || '').trim();
-  primary.last_name  = (primary.last_name  || '').trim();
-  primary.email      = (primary.email      || '').trim();
-  if (!primary.first_name || !primary.last_name) {
-    switchKlantTab('basis');
-    showToast(klType === 'particulier'
-      ? 'Vul voor- en achternaam van de klant in.'
-      : 'Vul voor- en achternaam van de primaire contactpersoon in.', 'error');
-    return;
-  }
-  // Email verplicht voor zowel bedrijf als particulier (primaire contact)
-  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!primary.email) {
-    switchKlantTab('basis');
-    showToast(klType === 'particulier'
-      ? 'Email is verplicht voor de klant.'
-      : 'Email is verplicht voor de primaire contactpersoon.', 'error');
-    var emInput = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
-               || document.querySelector('input[data-contact-field="email"]');
-    if (emInput) emInput.focus();
-    return;
-  }
-  if (!emailRegex.test(primary.email)) {
-    switchKlantTab('basis');
-    showToast('Vul een geldig emailadres in (bv. naam@bedrijf.be).', 'error');
-    var emInput2 = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
-                || document.querySelector('input[data-contact-field="email"]');
-    if (emInput2) emInput2.focus();
-    return;
+  if (!isBedrijfOnly) {
+    if (!primary) {
+      switchKlantTab('basis');
+      showToast('Voeg minstens één contactpersoon toe.', 'error');
+      var addBtn = document.getElementById('btn-add-contact'); if (addBtn) addBtn.focus();
+      return;
+    }
+    primary.first_name = (primary.first_name || '').trim();
+    primary.last_name  = (primary.last_name  || '').trim();
+    primary.email      = (primary.email      || '').trim();
+    if (!primary.first_name || !primary.last_name) {
+      switchKlantTab('basis');
+      showToast(klType === 'particulier'
+        ? 'Vul voor- en achternaam van de klant in.'
+        : 'Vul voor- en achternaam van de primaire contactpersoon in.', 'error');
+      return;
+    }
+    // Email verplicht voor zowel bedrijf als particulier (primaire contact)
+    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!primary.email) {
+      switchKlantTab('basis');
+      showToast(klType === 'particulier'
+        ? 'Email is verplicht voor de klant.'
+        : 'Email is verplicht voor de primaire contactpersoon.', 'error');
+      var emInput = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
+                 || document.querySelector('input[data-contact-field="email"]');
+      if (emInput) emInput.focus();
+      return;
+    }
+    if (!emailRegex.test(primary.email)) {
+      switchKlantTab('basis');
+      showToast('Vul een geldig emailadres in (bv. naam@bedrijf.be).', 'error');
+      var emInput2 = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
+                  || document.querySelector('input[data-contact-field="email"]');
+      if (emInput2) emInput2.focus();
+      return;
+    }
+  } else {
+    // Slot T A4: bedrijf-only — algemene email is dan verplicht (facturatie-kanaal).
+    var emailRegexBO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!algEmail) {
+      switchKlantTab('basis');
+      showToast('Algemene email is verplicht voor een bedrijf zonder vaste contactpersoon.', 'error');
+      var algEmEl = document.getElementById('kl-email'); if (algEmEl) algEmEl.focus();
+      return;
+    }
+    if (!emailRegexBO.test(algEmail)) {
+      switchKlantTab('basis');
+      showToast('Vul een geldig algemeen emailadres in (bv. facturatie@bedrijf.be).', 'error');
+      var algEmEl2 = document.getElementById('kl-email'); if (algEmEl2) algEmEl2.focus();
+      return;
+    }
   }
 
   // Legacy display-cache: contact_person, email en phone op clients-niveau
   // Primair contact is bron; algemene email/tel overrulen indien ingevuld.
-  var primaryFullName = (primary.first_name + ' ' + primary.last_name).trim();
-  var finalEmail = algEmail || (primary.email || '').trim();
-  var finalTelefoon = algTelefoon || (primary.phone || '').trim();
+  // Slot T A4: bij bedrijf-only is er geen vaste contactpersoon → contact_person=null
+  // en algEmail/algTelefoon zijn de enige bron voor clients-niveau.
+  var primaryFullName = isBedrijfOnly ? null : (primary.first_name + ' ' + primary.last_name).trim();
+  var finalEmail = algEmail || (isBedrijfOnly ? null : (primary && primary.email ? primary.email.trim() : ''));
+  var finalTelefoon = algTelefoon || (isBedrijfOnly ? null : (primary && primary.phone ? primary.phone.trim() : ''));
 
   // Factuuradres verplicht
   if (!straat || !huisnr || !postcode || !gemeente) {
@@ -13759,6 +13874,7 @@ async function saveKlant() {
   var payload = {
     partner_id: partnerId,
     client_type: klType,
+    // Slot T A4: contact_person mag NULL zijn voor bedrijf-only-klanten (DB-migratie liet kolom nullable worden)
     contact_person: primaryFullName,
     company_name: (klType === 'bedrijf' ? (bedrijfsnaam || null) : null),
     email: finalEmail || null,
@@ -13797,7 +13913,19 @@ async function saveKlant() {
   // Map van buffer-index → DB-uuid (gevuld na insert) zodat werklocaties
   // verwijzingen naar "buffer:<idx>" kunnen vervangen door een echte uuid.
   var bufferIdxToDbId = {};
-  if (clientId) {
+  // Slot T A4: bij bedrijf-only-mode worden alle contacten van deze klant verwijderd
+  // (toggle van "met contactpersonen" → "zonder" mag niet stille legacy-rijen achterlaten)
+  // en de upsert-loop wordt overgeslagen — clients.contact_person = null is voldoende.
+  if (clientId && isBedrijfOnly) {
+    try {
+      if (klantContactsInitialIds && klantContactsInitialIds.length > 0) {
+        await sb.from('client_contacts').delete().in('id', klantContactsInitialIds);
+      }
+    } catch (err) {
+      console.warn('Contact-purge bij bedrijf-only faalde:', err);
+      showToast('Klant opgeslagen, maar bestaande contactpersonen konden niet verwijderd worden: ' + (err.message || err), 'error');
+    }
+  } else if (clientId) {
     try {
       // Verwijder contacten die niet meer in buffer zitten
       var bufferExistingIds = klantContactsBuffer.map(function(c) { return c._id; }).filter(Boolean);
@@ -15992,9 +16120,15 @@ function renderTechniekers() {
   var search = (document.getElementById('tech-search').value || '').toLowerCase();
   var tbody = document.getElementById('tech-tbody');
   var isPartnerViewer = userRole === 'partner' && userPartner;
+  // Slot U U2: standaard verbergen we ex-collega's; toggle "Toon ex-collega's" haalt
+  // ze er bij. Filter werkt op uit_dienst_sinds (autoriteits-kolom) — actief is een
+  // synced spiegel die door de DB-trigger consistent gehouden wordt.
+  var showExEl = document.getElementById('tech-show-ex');
+  var showEx = !!(showExEl && showExEl.checked);
   var filtered = allTechniekers.filter(function(t) {
     if (t.type_personeel === 'bediende') return false; // enkel techs op deze tab
     if (isPartnerViewer && t.partner_id !== userPartner.id) return false; // tenant-scope
+    if (!showEx && t.uit_dienst_sinds) return false; // verberg ex-collega's tenzij toggle aan
     var name = ((t.voornaam || '') + ' ' + t.naam).toLowerCase();
     return !search || name.includes(search) || (t.email || '').toLowerCase().includes(search);
   });
@@ -16017,10 +16151,16 @@ function renderTechniekers() {
     var rol = t.rol || 'technieker';
     var uren = t.contract_uren_week || 38;
     var isExpanded = expandedTechId === t.id;
+    // Slot U U2: ex-collega visualisatie — 50% opacity op de hele rij + grijze badge na de naam
+    var isEx = !!t.uit_dienst_sinds;
+    var rowStyle = isEx ? ' style="opacity:0.5"' : '';
+    var exBadge = isEx
+      ? ' <span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB">Uit dienst sinds ' + esc(t.uit_dienst_sinds) + '</span>'
+      : '';
 
-    var mainRow = '<tr class="exp-main' + (isExpanded ? ' expanded' : '') + '" data-tech="' + t.id + '" onclick="toggleTechDetail(\'' + t.id + '\')">' +
+    var mainRow = '<tr class="exp-main' + (isExpanded ? ' expanded' : '') + '" data-tech="' + t.id + '"' + rowStyle + ' onclick="toggleTechDetail(\'' + t.id + '\')">' +
       '<td class="exp-chevron-cell"><button type="button" class="exp-chevron-btn" onclick="event.stopPropagation();toggleTechDetail(\'' + t.id + '\')" aria-label="Details tonen">' + chevronSvg + '</button></td>' +
-      '<td><strong>' + esc((t.voornaam || '') + ' ' + t.naam) + '</strong></td>' +
+      '<td><strong>' + esc((t.voornaam || '') + ' ' + t.naam) + '</strong>' + exBadge + '</td>' +
       '<td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:' + (rolColors[rol] || '#6B7280') + '18;color:' + (rolColors[rol] || '#6B7280') + ';font-weight:600">' + (rolLabels[rol] || rol) + '</span></td>' +
       '<td onclick="event.stopPropagation()">' + (t.telefoon ? '<a href="tel:' + esc(t.telefoon) + '">' + esc(t.telefoon) + '</a>' : '—') + '</td>' +
       '<td onclick="event.stopPropagation()">' + (t.email ? '<a href="mailto:' + esc(t.email) + '">' + esc(t.email) + '</a>' : '—') + '</td>' +
@@ -16487,7 +16627,46 @@ function openTechModal(editData) {
   document.getElementById('tech-uren-dag-label').textContent = '= ' + (urenWeek / 5).toFixed(2) + ' uur/dag';
   document.getElementById('tech-startdatum').value = editData ? editData.start_datum || '' : '';
   document.getElementById('tech-notities').value = editData ? editData.notities || '' : '';
-  document.getElementById('tech-delete-btn').style.display = editData ? 'inline-flex' : 'none';
+
+  // Slot U U2: footer-knoppen worden aangestuurd door uit_dienst_sinds-status.
+  // - Nieuwe medewerker: alle knoppen verborgen
+  // - Actief: enkel "Uit dienst zetten" zichtbaar
+  // - Uit dienst < 7 jaar: enkel "Reactiveren" zichtbaar
+  // - Uit dienst >= 7 jaar: "Reactiveren" + "Definitief verwijderen" zichtbaar
+  var uitBtn   = document.getElementById('tech-uit-dienst-btn');
+  var reactBtn = document.getElementById('tech-reactivate-btn');
+  var delBtn   = document.getElementById('tech-delete-btn');
+  var pane     = document.getElementById('kl-uit-dienst-pane');
+  if (pane) pane.style.display = 'none';
+  if (!editData) {
+    if (uitBtn)   uitBtn.style.display = 'none';
+    if (reactBtn) reactBtn.style.display = 'none';
+    if (delBtn)   delBtn.style.display = 'none';
+  } else {
+    var uds = editData.uit_dienst_sinds || null;
+    if (!uds) {
+      if (uitBtn)   uitBtn.style.display = 'inline-flex';
+      if (reactBtn) reactBtn.style.display = 'none';
+      if (delBtn)   delBtn.style.display = 'none';
+    } else {
+      // Bereken leeftijd in jaren (UTC, dag-precisie volstaat — wettelijke 7 jaar marge)
+      var udsDate = new Date(uds);
+      var now = new Date();
+      var ageYears = (now - udsDate) / (1000 * 60 * 60 * 24 * 365.25);
+      if (uitBtn)   uitBtn.style.display = 'none';
+      if (reactBtn) reactBtn.style.display = 'inline-flex';
+      if (delBtn)   delBtn.style.display = ageYears >= 7 ? 'inline-flex' : 'none';
+    }
+  }
+  // Pre-fill datum-input op vandaag wanneer het pane geopend wordt
+  var udsInput = document.getElementById('tech-uit-dienst-datum');
+  if (udsInput) {
+    var t = new Date();
+    var yyyy = t.getFullYear();
+    var mm = String(t.getMonth() + 1).padStart(2, '0');
+    var dd = String(t.getDate()).padStart(2, '0');
+    udsInput.value = yyyy + '-' + mm + '-' + dd;
+  }
 
   // Conditionele secties
   onTechRolChange();
@@ -16724,18 +16903,134 @@ async function saveTechnieker() {
 }
 
 async function deleteTechnieker() {
+  // Slot U U2: hard-delete is voortaan enkel toegelaten voor ex-techniekers > 7 jaar uit dienst.
+  // Voor actieve techs (uit_dienst_sinds IS NULL) routeren we automatisch naar de uit-dienst-flow
+  // — onbedoelde data-verlies door een verkeerde knop is niet acceptabel.
   var editId = document.getElementById('tech-edit-id').value;
   if (!editId) return;
-  if (!(await confirmDialog({ title: 'Medewerker verwijderen?', message: 'Weet u zeker dat u deze medewerker wilt verwijderen?\n\nAlle gekoppelde certificeringen worden ook verwijderd.', variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
+  var t = (allTechniekers || []).find(function(x) { return x.id === editId; });
+  if (!t) { showToast('Medewerker niet gevonden', 'error'); return; }
+
+  if (!t.uit_dienst_sinds) {
+    showToast('Zet de medewerker eerst uit dienst voordat je definitief verwijdert.', 'error');
+    return;
+  }
+  // Veiligheidscheck: minstens 7 jaar uit dienst (boekhoudkundige bewaarplicht voorbij)
+  var udsDate = new Date(t.uit_dienst_sinds);
+  var ageYears = (new Date() - udsDate) / (1000 * 60 * 60 * 24 * 365.25);
+  if (ageYears < 7) {
+    showToast('Definitief verwijderen kan pas 7 jaar na uit dienst (' + udsDate.getFullYear() + ' + 7 = ' + (udsDate.getFullYear() + 7) + ').', 'error');
+    return;
+  }
+
+  // Dubbele bevestiging — eerste klik
+  if (!(await confirmDialog({
+    title: 'Ex-technieker definitief verwijderen?',
+    message: 'Weet je zeker dat je deze ex-technieker definitief wil verwijderen?\n\nHistorische data referenties (rapporten, audit-log) tonen voortaan geen naam meer. Dit kan niet ongedaan gemaakt worden.',
+    variant: 'danger',
+    confirmLabel: 'Volgende stap'
+  }))) return;
+  // Tweede bevestiging — typ-naam-of-bevestig
+  if (!(await confirmDialog({
+    title: 'Laatste bevestiging',
+    message: 'Bevestig de definitieve verwijdering van "' + ((t.voornaam || '') + ' ' + (t.naam || '')).trim() + '". Deze actie is onomkeerbaar.',
+    variant: 'danger',
+    confirmLabel: 'Definitief verwijderen'
+  }))) return;
 
   await sb.from('technieker_certificeringen').delete().eq('technieker_id', editId);
   await sb.from('technieker_sectoren').delete().eq('technieker_id', editId);
   await sb.from('technieker_afwezigheden').delete().eq('technieker_id', editId);
   var res = await sb.from('techniekers').delete().eq('id', editId);
   if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+  if (typeof auditLog === 'function') {
+    auditLog('techniekers', editId, 'verwijderd_post_uitdienst',
+      JSON.stringify({ voornaam: t.voornaam, naam: t.naam, partner_id: t.partner_id || null, uit_dienst_sinds: t.uit_dienst_sinds, bron: 'tech_hard_delete_7yr' }), null);
+  }
 
   closeTechModal();
-  showToast('Medewerker verwijderd');
+  showToast('Ex-medewerker definitief verwijderd');
+  await loadAllData();
+}
+
+// Slot U U2: open het uit-dienst-pane (datum-picker) voor een actieve technieker.
+function openTechUitDienstPane() {
+  var pane = document.getElementById('kl-uit-dienst-pane');
+  if (pane) pane.style.display = 'block';
+  var udsInput = document.getElementById('tech-uit-dienst-datum');
+  if (udsInput) udsInput.focus();
+}
+
+// Slot U U2: bevestig uit-dienst-actie. UPDATE techniekers.uit_dienst_sinds (BEFORE-trigger
+// synct automatisch actief=false), audit-log entry, refresh + sluit modal.
+async function confirmTechUitDienst() {
+  var editId = document.getElementById('tech-edit-id').value;
+  if (!editId) return;
+  var input = document.getElementById('tech-uit-dienst-datum');
+  var dateStr = input ? input.value : '';
+  if (!dateStr) {
+    showToast('Kies een datum waarop de technieker uit dienst gaat.', 'error');
+    if (input) input.focus();
+    return;
+  }
+  // Sanity-check: niet in de verre toekomst (>1 jaar) — typo-bescherming
+  var picked = new Date(dateStr);
+  var oneYearAhead = new Date(); oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
+  if (picked > oneYearAhead) {
+    showToast('Datum mag niet meer dan 1 jaar in de toekomst liggen.', 'error');
+    return;
+  }
+  var t = (allTechniekers || []).find(function(x) { return x.id === editId; });
+  var fullName = t ? ((t.voornaam || '') + ' ' + (t.naam || '')).trim() : 'Medewerker';
+
+  if (!(await confirmDialog({
+    title: 'Technieker uit dienst zetten?',
+    message: '"' + fullName + '" wordt vanaf ' + dateStr + ' uit dienst gezet.\n\nDe technieker verdwijnt uit de actieve planning, maar blijft beschikbaar voor historische data en kan later gereactiveerd worden.',
+    variant: 'warning',
+    confirmLabel: 'Bevestigen'
+  }))) return;
+
+  var res = await sb.from('techniekers').update({ uit_dienst_sinds: dateStr }).eq('id', editId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+  if (typeof auditLog === 'function' && t) {
+    auditLog('techniekers', editId, 'uit_dienst',
+      JSON.stringify({ voornaam: t.voornaam, naam: t.naam, partner_id: t.partner_id || null }),
+      JSON.stringify({ uit_dienst_sinds: dateStr }));
+  }
+  closeTechModal();
+  showToast('Technieker uit dienst gezet vanaf ' + dateStr);
+  await loadAllData();
+}
+
+// Slot U U2: sluit het pane zonder mutatie.
+function cancelTechUitDienst() {
+  var pane = document.getElementById('kl-uit-dienst-pane');
+  if (pane) pane.style.display = 'none';
+}
+
+// Slot U U2: reactiveren — UPDATE uit_dienst_sinds=NULL (BEFORE-trigger zet actief=true).
+async function reactivateTech() {
+  var editId = document.getElementById('tech-edit-id').value;
+  if (!editId) return;
+  var t = (allTechniekers || []).find(function(x) { return x.id === editId; });
+  var fullName = t ? ((t.voornaam || '') + ' ' + (t.naam || '')).trim() : 'Medewerker';
+
+  if (!(await confirmDialog({
+    title: 'Technieker reactiveren?',
+    message: '"' + fullName + '" terug in dienst nemen?\n\nDe medewerker wordt weer beschikbaar voor planning en zichtbaar in alle actieve overzichten.',
+    variant: 'info',
+    confirmLabel: 'Reactiveren'
+  }))) return;
+
+  var res = await sb.from('techniekers').update({ uit_dienst_sinds: null }).eq('id', editId);
+  if (res.error) { showToast('Fout: ' + res.error.message, 'error'); return; }
+  if (typeof auditLog === 'function' && t) {
+    auditLog('techniekers', editId, 'gereactiveerd',
+      JSON.stringify({ uit_dienst_sinds: t.uit_dienst_sinds || null }),
+      JSON.stringify({ uit_dienst_sinds: null, voornaam: t.voornaam, naam: t.naam }));
+  }
+  closeTechModal();
+  showToast('Technieker gereactiveerd');
   await loadAllData();
 }
 
@@ -17613,11 +17908,25 @@ function openUitgeefModal(drogerId) {
   document.getElementById('uitgeef-notitie').value = '';
   document.getElementById('uitgeef-regio-waarschuwing').style.display = 'none';
 
+  // Slot T C3: reset werklocatie-picker bij open (pas zichtbaar na klant-keuze).
+  var ulocWrapInit = document.getElementById('uitgeef-locatie-wrap');
+  var ulocPickerInit = document.getElementById('uitgeef-locatie-fwp');
+  var ulocHiddenInit = document.getElementById('uitgeef-locatie-id');
+  if (ulocPickerInit && ulocPickerInit.__fwp) {
+    try { ulocPickerInit.__fwp.destroy(); } catch (_) {}
+    ulocPickerInit.__fwp = null;
+  }
+  if (ulocWrapInit) ulocWrapInit.style.display = 'none';
+  if (ulocHiddenInit) ulocHiddenInit.value = '';
+
   // FlanccoClientCombobox — bedrijven gegroepeerd, particulieren in eigen sectie.
   var ucWrap = document.getElementById('uitgeef-client-cb');
   var ucHidden = document.getElementById('uitgeef-client');
   if (ucWrap && window.FlanccoClientCombobox && window.FlanccoClientItems) {
-    var ucItems = window.FlanccoClientItems.build(allClients || []);
+    var ucItems = window.FlanccoClientItems.build(allClients || [], {
+      selectableHeaders: true,
+      clientContacts: allClientContacts || []
+    });
     if (ucWrap.__fcb) {
       ucWrap.__fcb.setItems(ucItems);
       ucWrap.__fcb.clear();
@@ -17649,10 +17958,20 @@ function uitgeefClientChanged() {
   var d = (allBouwdrogers || []).find(function(x) { return x.id === drogerId; });
   var sel = document.getElementById('uitgeef-client');
   var warnEl = document.getElementById('uitgeef-regio-waarschuwing');
-  if (!d || !sel.value) { warnEl.style.display = 'none'; return; }
+  var rawValue = sel.value;
+  if (!d || !rawValue) {
+    warnEl.style.display = 'none';
+    // Reset werklocatie-picker als klant gewist wordt.
+    var ulocWrapEmpty = document.getElementById('uitgeef-locatie-wrap');
+    var ulocHiddenEmpty = document.getElementById('uitgeef-locatie-id');
+    if (ulocWrapEmpty) ulocWrapEmpty.style.display = 'none';
+    if (ulocHiddenEmpty) ulocHiddenEmpty.value = '';
+    return;
+  }
 
   // Postcode-lookup via allClients (combobox heeft geen option-elements meer)
-  var clientObj = (allClients || []).find(function(c) { return c.id === sel.value; });
+  var resolved = window.FlanccoClientResolver ? window.FlanccoClientResolver.resolve(rawValue, allClientContacts) : { client_id: rawValue, client_contact_id: null };
+  var clientObj = (allClients || []).find(function(c) { return c.id === resolved.client_id; });
   var postcode = clientObj ? (clientObj.postal_code || '') : '';
   var clientRegio = postcodeToRegio(postcode);
 
@@ -17664,11 +17983,32 @@ function uitgeefClientChanged() {
   } else {
     warnEl.style.display = 'none';
   }
+
+  // Slot T C3: render werklocatie-picker zodra klant is gekozen.
+  var ulocWrap = document.getElementById('uitgeef-locatie-wrap');
+  var ulocPicker = document.getElementById('uitgeef-locatie-fwp');
+  var ulocHidden = document.getElementById('uitgeef-locatie-id');
+  if (resolved.client_id && ulocPicker && window.FlanccoWerklocatiePicker) {
+    if (ulocPicker.__fwp) ulocPicker.__fwp.destroy();
+    ulocPicker.__fwp = window.FlanccoWerklocatiePicker.attach(ulocPicker, {
+      clientId: resolved.client_id,
+      allClientLocations: allClientLocations || [],
+      onChange: function(locId) {
+        if (ulocHidden) ulocHidden.value = locId || '';
+      }
+    });
+    if (ulocWrap) ulocWrap.style.display = '';
+  } else {
+    if (ulocWrap) ulocWrap.style.display = 'none';
+    if (ulocHidden) ulocHidden.value = '';
+  }
 }
 
 async function saveUitgeefDroger() {
   var drogerId = document.getElementById('uitgeef-droger-id').value;
-  var clientId = document.getElementById('uitgeef-client').value;
+  var rawClientVal = document.getElementById('uitgeef-client').value;
+  var resolvedKlant = window.FlanccoClientResolver ? window.FlanccoClientResolver.resolve(rawClientVal, allClientContacts) : { client_id: rawClientVal || null, client_contact_id: null };
+  var clientId = resolvedKlant.client_id;
   var uitgegevenOp = document.getElementById('uitgeef-datum').value;
   var terug = document.getElementById('uitgeef-terug').value;
   var notitie = document.getElementById('uitgeef-notitie').value.trim();
@@ -17686,9 +18026,16 @@ async function saveUitgeefDroger() {
     ? existing.notitie + (notitie ? '\n---\n' + uitgegevenOp + ': ' + notitie : '')
     : (notitie ? uitgegevenOp + ': ' + notitie : null);
 
+  // Slot T C3: bouwdrogers.client_location_id-kolom is nu live (migratie
+  // 20260428114200_slot_t_bouwdrogers_client_location_id). Werklocatie-keuze
+  // uit FlanccoWerklocatiePicker wordt nu wél persistent opgeslagen.
+  var locatieIdEl = document.getElementById('uitgeef-locatie-id');
+  var werklocatieId = (locatieIdEl && locatieIdEl.value) ? locatieIdEl.value : null;
   var payload = {
     status: 'in_gebruik',
     huidige_client_id: clientId,
+    huidige_client_contact_id: resolvedKlant.client_contact_id,
+    client_location_id: werklocatieId,
     huidige_locatie: locatieStr,
     uitgegeven_op: uitgegevenOp,
     verwacht_terug_op: terug || null

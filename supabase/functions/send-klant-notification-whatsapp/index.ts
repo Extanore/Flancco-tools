@@ -70,6 +70,16 @@ interface ContractRow {
   klant_email: string | null;
   klant_telefoon: string | null;
   lang: string | null;
+  // Slot T — bedrijf-only-detectie + lookup-keys
+  client_id: string | null;
+  client_contact_id: string | null;
+}
+
+// Slot T — phone-resolution result
+interface PhoneResolution {
+  rawPhone: string;
+  klantEmail: string;
+  isCompanyOnly: boolean;
 }
 
 interface PartnerRow {
@@ -241,7 +251,7 @@ Deno.serve(async (req: Request) => {
       if (br.contract_id) {
         const { data: cr } = await admin
           .from("contracten")
-          .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang`)
+          .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang, client_id, client_contact_id`)
           .eq("id", br.contract_id)
           .maybeSingle<ContractRow>();
         contract = cr;
@@ -249,7 +259,7 @@ Deno.serve(async (req: Request) => {
     } else if (contract_id) {
       const { data: cr } = await admin
         .from("contracten")
-        .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang`)
+        .select(`id, partner_id, klant_naam, klant_email, klant_telefoon, lang, client_id, client_contact_id`)
         .eq("id", contract_id)
         .maybeSingle<ContractRow>();
       contract = cr;
@@ -277,8 +287,11 @@ Deno.serve(async (req: Request) => {
       technieker = tr;
     }
 
-    // 5) Phone normalization
-    const rawPhone = override_phone || contract?.klant_telefoon || "";
+    // 5) Phone normalization (Slot T: bedrijf-only support)
+    const phoneRes: PhoneResolution = override_phone
+      ? { rawPhone: override_phone, klantEmail: contract?.klant_email?.toLowerCase() || "", isCompanyOnly: false }
+      : await resolvePhone(admin, contract);
+    const rawPhone = phoneRes.rawPhone;
     const phoneE164 = normalizePhone(rawPhone);
     if (!phoneE164) {
       await insertLog(admin, {
@@ -306,8 +319,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // 7) Consent-check (kanaal='whatsapp' vereist expliciete opt-in)
+    // Slot T: gebruik resolved klantEmail (kan client_contact.email of clients.email zijn).
     if (event_type !== "test") {
-      const klantEmail = contract?.klant_email?.toLowerCase() || "";
+      const klantEmail = phoneRes.klantEmail;
       if (klantEmail) {
         const { data: cons } = await admin
           .from("v_klant_consent_actief")
@@ -452,6 +466,56 @@ interface LogEntry {
 async function insertLog(admin: SupabaseClient, entry: LogEntry): Promise<void> {
   try { await admin.from("klant_notification_log").insert(entry); }
   catch { /* swallow — log-failures shouldn't block */ }
+}
+
+/**
+ * Slot T — resolve phone-number + consent-email voor klant-notificatie WhatsApp.
+ * Wanneer client_contact_id koppelt: gebruik client_contacts.phone + email.
+ * Wanneer NULL en client_id bestaat: bedrijf-only → clients.phone + email.
+ * Fallback: contracten.klant_telefoon + klant_email (legacy).
+ */
+async function resolvePhone(
+  admin: SupabaseClient,
+  contract: ContractRow | null,
+): Promise<PhoneResolution> {
+  if (!contract) {
+    return { rawPhone: "", klantEmail: "", isCompanyOnly: false };
+  }
+
+  if (contract.client_contact_id) {
+    const { data: cc } = await admin
+      .from("client_contacts")
+      .select("phone, email")
+      .eq("id", contract.client_contact_id)
+      .maybeSingle();
+    return {
+      rawPhone: String(cc?.phone || contract.klant_telefoon || "").trim(),
+      klantEmail: String(cc?.email || contract.klant_email || "").trim().toLowerCase(),
+      isCompanyOnly: false,
+    };
+  }
+
+  if (contract.client_id) {
+    const { data: client } = await admin
+      .from("clients")
+      .select("company_name, phone, email")
+      .eq("id", contract.client_id)
+      .maybeSingle();
+    const company = String(client?.company_name || "").trim();
+    if (company) {
+      return {
+        rawPhone: String(client?.phone || contract.klant_telefoon || "").trim(),
+        klantEmail: String(client?.email || contract.klant_email || "").trim().toLowerCase(),
+        isCompanyOnly: true,
+      };
+    }
+  }
+
+  return {
+    rawPhone: String(contract.klant_telefoon || "").trim(),
+    klantEmail: String(contract.klant_email || "").trim().toLowerCase(),
+    isCompanyOnly: false,
+  };
 }
 
 interface PayloadCtx {

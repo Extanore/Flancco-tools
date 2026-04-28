@@ -730,6 +730,21 @@
           </span>
         </label>
       </div>
+
+      <!-- Slot T A5: sub-toggle voor bedrijf-only ondertekenaar (geen vaste contactpersoon) -->
+      <div id="kt-bedrijf-only-wrap" style="display:none;margin-top:12px;padding:12px 14px;background:var(--light);border-radius:8px;border:1px solid var(--rule)">
+        <div id="kt-bedrijf-only-label" style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:8px" data-i18n="klantType.bedrijfOnlyTitle">Wie tekent dit contract?</div>
+        <div role="radiogroup" aria-labelledby="kt-bedrijf-only-label">
+          <label class="kt-mode-chip" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer;margin-bottom:8px">
+            <input type="radio" name="bedrijf-only-mode" value="contactpersoon" checked onchange="onBedrijfOnlyModeChange()">
+            <span style="font-size:13px;color:var(--primary)"><strong data-i18n="klantType.bedrijfOnlyContactTitle">Specifieke contactpersoon</strong> &mdash; <span data-i18n="klantType.bedrijfOnlyContactSub">contractuele ondertekenaar met voor- en achternaam</span></span>
+          </label>
+          <label class="kt-mode-chip" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--rule);border-radius:6px;background:#fff;cursor:pointer">
+            <input type="radio" name="bedrijf-only-mode" value="bedrijf" onchange="onBedrijfOnlyModeChange()">
+            <span style="font-size:13px;color:var(--primary)"><strong data-i18n="klantType.bedrijfOnlyCompanyTitle">Het bedrijf zelf</strong> &mdash; <span data-i18n="klantType.bedrijfOnlyCompanySub">geen vaste contactpersoon, ondertekening &laquo;namens [bedrijfsnaam]&raquo;</span></span>
+          </label>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -3957,7 +3972,11 @@ function listRequiredFieldsStep2() {
   var subtype = (typeof getKlantSubtype === 'function') ? getKlantSubtype() : 'particulier';
   var ids = ['klant-naam', 'klant-straat', 'klant-huisnr', 'klant-postcode', 'klant-gemeente', 'klant-tel', 'klant-email'];
   if (subtype === 'bedrijf') {
-    ids.push('klant-bedrijfsnaam', 'klant-btw-validated', 'klant-contact');
+    ids.push('klant-bedrijfsnaam', 'klant-btw-validated');
+    // Slot T A5: contactpersoon enkel verplicht bij contactpersoon-mode (default).
+    // In bedrijf-only mode tekent het bedrijf zelf — geen vaste contactpersoon nodig.
+    var bedrijfOnlyMode = (typeof getBedrijfOnlyMode === 'function') ? getBedrijfOnlyMode() : 'contactpersoon';
+    if (bedrijfOnlyMode !== 'bedrijf') ids.push('klant-contact');
   }
   return ids;
 }
@@ -4026,6 +4045,8 @@ function onKlantSubtypeChange() {
   var naamInput = document.getElementById('klant-naam');
   var btwInput = document.getElementById('klant-btw-validated');
   var bedrijfsnaamInput = document.getElementById('klant-bedrijfsnaam');
+  // Slot T A5: sub-toggle voor bedrijf-only ondertekenaar
+  var bedrijfOnlyWrap = document.getElementById('kt-bedrijf-only-wrap');
 
   if (subtype === 'bedrijf') {
     if (bedrijfFields) { bedrijfFields.classList.add('is-open'); bedrijfFields.setAttribute('aria-hidden', 'false'); }
@@ -4037,6 +4058,9 @@ function onKlantSubtypeChange() {
     if (naamInput) naamInput.setAttribute('placeholder', (window.t ? window.t('step2.naamPh') : naamInput.getAttribute('placeholder') || ''));
     if (btwInput) btwInput.setAttribute('required', 'required');
     if (bedrijfsnaamInput) bedrijfsnaamInput.setAttribute('required', 'required');
+    // Slot T A5: sub-toggle tonen + huidige mode toepassen
+    if (bedrijfOnlyWrap) bedrijfOnlyWrap.style.display = '';
+    if (typeof onBedrijfOnlyModeChange === 'function') { try { onBedrijfOnlyModeChange(); } catch (_) {} }
   } else {
     if (bedrijfFields) { bedrijfFields.classList.remove('is-open'); bedrijfFields.setAttribute('aria-hidden', 'true'); }
     if (contactField) contactField.style.display = 'none';
@@ -4055,11 +4079,71 @@ function onKlantSubtypeChange() {
     }
     // Reset VIES status UI maar bewaar values (state behoud bij toggle-flip-flop)
     setViesStatus('', null);
+    // Slot T A5: sub-toggle verbergen + reset naar default 'contactpersoon' + disclaimer wegnemen
+    if (bedrijfOnlyWrap) bedrijfOnlyWrap.style.display = 'none';
+    var defaultMode = document.querySelector('input[name="bedrijf-only-mode"][value="contactpersoon"]');
+    if (defaultMode) defaultMode.checked = true;
+    if (typeof updateBedrijfOnlyDisclaimer === 'function') { try { updateBedrijfOnlyDisclaimer(false); } catch (_) {} }
   }
 
   // Slot 0 — track toggle-switch (geen PII)
   if (typeof window.flanccoTrack === 'function') {
     try { window.flanccoTrack('Calculator Klant Type', { type: subtype }); } catch (_) {}
+  }
+}
+
+// Slot T A5: helper — leest huidige bedrijf-only mode (alleen relevant bij subtype=bedrijf)
+function getBedrijfOnlyMode() {
+  var checked = document.querySelector('input[name="bedrijf-only-mode"]:checked');
+  return (checked && checked.value === 'bedrijf') ? 'bedrijf' : 'contactpersoon';
+}
+
+// Slot T A5: handler — past contactpersoon-veld aan op basis van mode + toont disclaimer
+function onBedrijfOnlyModeChange() {
+  // Alleen actief bij bedrijf-subtype; bij particulier negeer
+  if (getKlantSubtype() !== 'bedrijf') return;
+  var mode = getBedrijfOnlyMode();
+  var isBedrijfOnly = (mode === 'bedrijf');
+  var contactField = document.getElementById('contact-naam-field');
+  var contactInput = document.getElementById('klant-contact');
+
+  if (contactField) contactField.style.display = isBedrijfOnly ? 'none' : '';
+  if (contactInput) {
+    if (isBedrijfOnly) {
+      contactInput.removeAttribute('required');
+      contactInput.classList.remove('field-error');
+      contactInput.value = '';
+    } else {
+      contactInput.setAttribute('required', 'required');
+    }
+  }
+
+  // Disclaimer onder handtekening-canvas (verschijnt enkel als canvas reeds gerenderd is — stap 3)
+  if (typeof updateBedrijfOnlyDisclaimer === 'function') updateBedrijfOnlyDisclaimer(isBedrijfOnly);
+
+  // Refresh CTA-progress (klant-contact niet meer required → telling muteert)
+  if (typeof refreshCtaProgress === 'function') { try { refreshCtaProgress(); } catch (_) {} }
+
+  // Slot 0 — track sub-toggle (geen PII)
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Calculator Bedrijf Only Mode', { mode: mode }); } catch (_) {}
+  }
+}
+
+// Slot T A5: rechtsgeldigheids-disclaimer onder handtekening-canvas (BE recht: ondertekening "namens X")
+function updateBedrijfOnlyDisclaimer(showDisclaimer) {
+  var existing = document.getElementById('bedrijf-only-disclaimer');
+  if (showDisclaimer) {
+    if (existing) return;
+    var wrap = document.getElementById('sig-wrap');
+    if (!wrap || !wrap.parentElement) return;
+    var disclaimer = document.createElement('p');
+    disclaimer.id = 'bedrijf-only-disclaimer';
+    disclaimer.style.cssText = 'font-size:11px;color:var(--grey);margin-top:8px;padding:8px 10px;background:#FEF3C7;border-radius:6px;border-left:3px solid #F59E0B;line-height:1.5';
+    disclaimer.textContent = (window.t ? window.t('klantType.bedrijfOnlyDisclaimer') : 'Door te ondertekenen verklaart u gemachtigd te zijn om namens dit bedrijf contractuele verbintenissen aan te gaan. Onder Belgisch recht is een ondertekening "namens [bedrijfsnaam]" door een gemachtigde rechtsgeldig mits bevoegdheid kan worden aangetoond.');
+    wrap.parentElement.appendChild(disclaimer);
+  } else {
+    if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
   }
 }
 
@@ -4085,6 +4169,11 @@ function syncKlantSubtypeToFields() {
     // (contract, summary) niet leeg loopt.
     if (naamInput && bedrijfsnaamInput && !naamInput.value.trim() && bedrijfsnaamInput.value.trim()) {
       naamInput.value = bedrijfsnaamInput.value.trim();
+    }
+    // Slot T A5: bij bedrijf-only zonder vaste contactpersoon → contact-veld leegmaken
+    // zodat downstream payload geen verouderde naam toont. Bedrijfsnaam blijft de identiteit.
+    if (typeof getBedrijfOnlyMode === 'function' && getBedrijfOnlyMode() === 'bedrijf') {
+      if (contactInput) contactInput.value = '';
     }
   }
 }
@@ -4285,7 +4374,12 @@ function goToSummary() {
 
   // Validate required fields
   var subtype = getKlantSubtype();
-  var reqFields = ['klant-naam', 'klant-straat', 'klant-huisnr', 'klant-postcode', 'klant-gemeente', 'klant-contact', 'klant-tel', 'klant-email'];
+  // Slot T A5: bij bedrijf-only mode is klant-contact NIET verplicht (bedrijf tekent zelf).
+  var bedrijfOnlyModeSummary = (subtype === 'bedrijf' && typeof getBedrijfOnlyMode === 'function') ? getBedrijfOnlyMode() : 'contactpersoon';
+  var reqFields = ['klant-naam', 'klant-straat', 'klant-huisnr', 'klant-postcode', 'klant-gemeente', 'klant-tel', 'klant-email'];
+  if (!(subtype === 'bedrijf' && bedrijfOnlyModeSummary === 'bedrijf')) {
+    reqFields.push('klant-contact');
+  }
   if (subtype === 'bedrijf') {
     reqFields.push('klant-bedrijfsnaam');
     reqFields.push('klant-btw-validated');
@@ -4468,7 +4562,8 @@ function generateContract() {
     '<div class="data-row"><span class="data-label">Adres</span><span class="data-value">' + adres + '</span></div>' +
     '<div class="data-row"><span class="data-label">Postcode + Gemeente</span><span class="data-value">' + pc + ' ' + gem + '</span></div>' +
     '<div class="data-row"><span class="data-label">BTW-nummer</span><span class="data-value">' + btw + '</span></div>' +
-    '<div class="data-row"><span class="data-label">Contactpersoon</span><span class="data-value">' + contact + '</span></div>' +
+    // Slot T A5: contactpersoon-rij alleen tonen als ingevuld (in bedrijf-only mode is dit veld leeg)
+    (contact ? '<div class="data-row"><span class="data-label">Contactpersoon</span><span class="data-value">' + contact + '</span></div>' : '') +
     '<div class="data-row"><span class="data-label">Telefoon</span><span class="data-value">' + tel + '</span></div>' +
     '<div class="data-row"><span class="data-label">E-mail</span><span class="data-value">' + email + '</span></div></div>' +
     '<p style="font-size:13px;color:var(--grey)">hierna "de Klant", gezamenlijk "de Partijen".</p>';
@@ -4598,13 +4693,23 @@ function generateContract() {
     '<p>De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU. Het herroepingsformulier wordt meegestuurd met de bevestigingsmail.</p>';
   artNum++;
 
+  // Slot T A5: bedrijf-only mode → "namens [bedrijfsnaam]" wording in accept-text + naam-regel
+  var subtypeForSig = (typeof getKlantSubtype === 'function') ? getKlantSubtype() : 'particulier';
+  var bedrijfOnlyForSig = (subtypeForSig === 'bedrijf' && typeof getBedrijfOnlyMode === 'function' && getBedrijfOnlyMode() === 'bedrijf');
+  var sigNaamLine = bedrijfOnlyForSig
+    ? '<div class="sig-line">Namens: <strong>' + naam + '</strong></div>'
+    : '<div class="sig-line">Naam: <strong>' + naam + '</strong></div>';
+  var acceptText = bedrijfOnlyForSig
+    ? 'Ondergetekende verklaart gemachtigd te zijn om namens <strong>' + naam + '</strong> deze overeenkomst aan te gaan, deze gelezen te hebben en akkoord te gaan met alle hierin vermelde voorwaarden en tarieven. Deze digitale ondertekening is rechtsgeldig conform de EU eIDAS-verordening.'
+    : 'Ik, <strong>' + naam + '</strong>, verklaar deze overeenkomst gelezen te hebben en ga akkoord met alle hierin vermelde voorwaarden en tarieven. Ik begrijp dat deze digitale ondertekening rechtsgeldig is conform de EU eIDAS-verordening.';
+
   // Signature
   html += '<h2>Ondertekening</h2><p>Door ondertekening verklaart de Klant akkoord te gaan met alle bepalingen van deze Overeenkomst.</p>' +
     '<div class="sig-grid"><div class="sig-box"><h3>' + pNaam + '</h3>' +
     '<div class="sig-line">Vertegenwoordigd door de Dienstverlener</div>' +
     '<div class="sig-line">Datum: <span>' + today + '</span></div></div>' +
     '<div class="sig-box"><h3>De Klant</h3>' +
-    '<div class="sig-line">Naam: <strong>' + naam + '</strong></div>' +
+    sigNaamLine +
     '<div class="sig-line" style="margin-top:8px"><label style="font-size:13px;font-weight:500">Datum:</label>' +
     '<input type="date" class="sig-input" id="sig-datum" value="' + new Date().toISOString().split('T')[0] + '"></div>' +
     '<div class="sig-line" style="margin-top:16px"><label style="font-size:13px;font-weight:500">Handtekening: <small style="color:var(--grey);font-weight:400">teken met uw muis of vinger</small></label>' +
@@ -4612,13 +4717,17 @@ function generateContract() {
     '<div class="sig-placeholder">Teken hier uw handtekening</div></div>' +
     '<span class="sig-clear" onclick="clearSig()">Wissen</span></div></div></div>' +
     '<div class="accept-box"><label><input type="checkbox" id="accept-check" onchange="checkAccept()">' +
-    '<div class="accept-text">Ik, <strong>' + naam + '</strong>, verklaar deze overeenkomst gelezen te hebben en ga akkoord met alle hierin vermelde voorwaarden en tarieven. Ik begrijp dat deze digitale ondertekening rechtsgeldig is conform de EU eIDAS-verordening.</div></label></div>' +
+    '<div class="accept-text">' + acceptText + '</div></label></div>' +
     '<p style="text-align:center;font-size:11px;color:var(--grey);margin-top:32px;padding-top:16px;border-top:1px solid var(--rule)">' +
     esc(getPartnerDisplayName(partner, selectedSectors[0] || null)) + (pAdres ? ' \u00B7 ' + pAdres : '') + (pBtw ? ' \u00B7 ' + pBtw : '') + '</p>';
 
   document.getElementById('contract-body').innerHTML = html;
   goToStep(3);
   initSignaturePad();
+  // Slot T A5: render rechtsgeldigheids-disclaimer onder canvas indien bedrijf-only modus actief
+  if (typeof updateBedrijfOnlyDisclaimer === 'function') {
+    try { updateBedrijfOnlyDisclaimer(bedrijfOnlyForSig); } catch (_) {}
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -4726,11 +4835,18 @@ async function submitContract() {
       // a client-generated UUID (no RETURNING needed). De-duplication gebeurt admin-side.
       clientId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
       if (clientId) {
+        // Slot T A5: bij bedrijf-only mode → contact_person = NULL (schema A1: nullable),
+        // client_type='bedrijf', company_name = bedrijfsnaam (klant-naam-mirror).
+        var subtypeForClient = (typeof getKlantSubtype === 'function') ? getKlantSubtype() : 'particulier';
+        var bedrijfOnlyForClient = (subtypeForClient === 'bedrijf' && typeof getBedrijfOnlyMode === 'function' && getBedrijfOnlyMode() === 'bedrijf');
         var clientPayload = {
           id: clientId,
           partner_id: partner.id,
-          contact_person: klantContact || klantNaam,
-          company_name: klantNaam !== klantContact ? klantNaam : null,
+          // Slot T A5: contact_person mag NULL zijn voor bedrijf-only klanten (schema migratie A1)
+          contact_person: bedrijfOnlyForClient ? null : (klantContact || klantNaam),
+          company_name: bedrijfOnlyForClient ? klantNaam : (klantNaam !== klantContact ? klantNaam : null),
+          // Slot T A5: client_type semantisch consistent met klant-subtype-toggle (Slot O1)
+          client_type: subtypeForClient,
           email: klantEmail,
           phone: klantTel,
           street: klantStraat,
@@ -4740,7 +4856,17 @@ async function submitContract() {
           country: klantPostcode && parseInt(klantPostcode) >= 1000 && parseInt(klantPostcode) <= 9999 ? 'BE' : 'NL'
         };
         var clientRes = await sb.from('clients').insert([clientPayload]);
-        if (clientRes.error) { console.warn('Client aanmaken mislukt:', clientRes.error); clientId = null; }
+        if (clientRes.error) {
+          // Slot T A5: client_type kolom bestaat mogelijk nog niet → retry zonder die kolom
+          if (clientRes.error.code === 'PGRST204' || (clientRes.error.message || '').toLowerCase().indexOf('client_type') !== -1) {
+            console.warn('clients.client_type kolom nog niet aanwezig — retry zonder kolom');
+            delete clientPayload.client_type;
+            var clientRes2 = await sb.from('clients').insert([clientPayload]);
+            if (clientRes2.error) { console.warn('Client aanmaken mislukt:', clientRes2.error); clientId = null; }
+          } else {
+            console.warn('Client aanmaken mislukt:', clientRes.error); clientId = null;
+          }
+        }
       }
     } catch (clientErr) { console.warn('Client aanmaken mislukt:', clientErr); clientId = null; }
 
@@ -4800,7 +4926,8 @@ async function submitContract() {
       klant_postcode: document.getElementById('klant-postcode').value,
       klant_gemeente: document.getElementById('klant-gemeente').value,
       klant_btw: document.getElementById('klant-btw').value || null,
-      klant_contact: document.getElementById('klant-contact').value,
+      // Slot T A5: bij bedrijf-only mode is klant_contact leeg → expliciet NULL
+      klant_contact: (document.getElementById('klant-contact').value || '').trim() || null,
       klant_telefoon: document.getElementById('klant-tel').value,
       klant_email: document.getElementById('klant-email').value,
       frequentie: freqTxt,

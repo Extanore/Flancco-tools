@@ -1,13 +1,20 @@
-// remove-partner-member — Slot I (rol-gebaseerd partner-team)
+// remove-partner-member — Slot I + Slot U (rol-gebaseerd partner-team)
 // -------------------------------------------------------------
 // Doel: laat een partner-eigenaar (role='partner', permissions.manage_users=true)
-// een teamlid uit zijn tenant verwijderen. Verschilt van het bestaande
+// een teamlid uit zijn tenant uit dienst zetten. Verschilt van het bestaande
 // `delete-user` door:
 //   1. Anti-self-delete (caller mag zichzelf niet verwijderen).
 //   2. Anti-last-owner: als verwijderen tot 0 owners (manage_users=true) zou
 //      leiden binnen die tenant → 400 (lockout-protectie).
-//   3. Cleanup van techniekers-rij, user_roles-rij, en optioneel auth.users
-//      (alleen als de gebruiker geen andere user_roles in andere tenants heeft).
+//   3. Cleanup van user_roles-rij (autorisatie-record) en soft-delete van
+//      techniekers-rij (zie Slot U-noot hieronder).
+//
+// Slot U: soft-delete via uit_dienst_sinds. De actief-flag wordt automatisch
+// op false gezet via DB-trigger trg_techniekers_sync_actief. Historische
+// FK-referenties (onderhoudsbeurten, audit_log, contract-PDFs) blijven intact.
+// auth.users wordt NIET verwijderd — de tech kan bij re-aanwerving direct
+// weer inloggen. Definitieve account-verwijdering is een aparte GDPR-actie
+// (out-of-scope hier).
 //
 // Auth-model:
 //   - verify_jwt=false (custom auth in handler).
@@ -18,6 +25,7 @@
 //   POST /functions/v1/remove-partner-member
 //   Authorization: Bearer <user-JWT>
 //   Body: { user_id_to_remove: uuid, partner_id: uuid }
+//   Response 200: { success, soft_deleted, uit_dienst_sinds, message }
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -168,20 +176,27 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 7) Cleanup techniekers-rij van DEZE tenant (anderen niet aanraken).
-    //    Tenant-scope houdt re-use van het auth-account in andere tenants safe.
+    // 7) Slot U — soft-delete techniekers-rij van DEZE tenant via uit_dienst_sinds.
+    //    De DB-trigger trg_techniekers_sync_actief zet actief=false automatisch.
+    //    Historische FK-referenties (onderhoudsbeurten, audit_log, contract-PDFs,
+    //    werkbonnen) blijven intact zodat YTD-aggregaten en compliance-trail kloppen.
+    //    Tenant-scope (partner_id-match) zorgt dat een tech die in meerdere tenants
+    //    werkt enkel uit DEZE tenant wordt geweerd.
+    const today = new Date().toISOString().slice(0, 10);
     const { error: techErr } = await admin
       .from("techniekers")
-      .delete()
+      .update({ uit_dienst_sinds: today })
       .eq("user_id", userIdToRemove)
       .eq("partner_id", partner_id);
 
     if (techErr) {
-      console.error("remove-partner-member: techniekers delete failed", techErr);
-      return json(500, { error: "Verwijderen techniekers-rij mislukt: " + techErr.message }, corsHeaders);
+      console.error("remove-partner-member: techniekers soft-delete failed", techErr);
+      return json(500, { error: "Uit-dienst-zetten techniekers-rij mislukt: " + techErr.message }, corsHeaders);
     }
 
-    // 8) user_roles-rij verwijderen.
+    // 8) user_roles-rij verwijderen — dit is een autorisatie-record, geen historisch
+    //    bewijsstuk. Verwijdering blokkeert directe platform-toegang; bij re-aanwerving
+    //    moet er opnieuw via invite-partner-member een rol-rij gecreëerd worden.
     const { error: roleDelErr } = await admin
       .from("user_roles")
       .delete()
@@ -192,38 +207,24 @@ Deno.serve(async (req: Request) => {
       return json(500, { error: "Verwijderen user_roles mislukt: " + roleDelErr.message }, corsHeaders);
     }
 
-    // 9) auth.users — alleen verwijderen als de user geen andere user_roles heeft.
-    //    (User_roles heeft UNIQUE(user_id), dus na vorige delete is hij overal weg.)
-    //    Bij Supabase delete cascadeert dit veilig; maar techniekers in ANDERE tenants
-    //    blijven bestaan zonder user_id (FK SET NULL via delete-cascade niet altijd
-    //    geconfigureerd). Defensief checken voor rij-restanten.
-    const { count: techCount } = await admin
-      .from("techniekers")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userIdToRemove);
-
-    let authDeleted = false;
-    if ((techCount || 0) === 0) {
-      const { error: authErr } = await admin.auth.admin.deleteUser(userIdToRemove);
-      if (authErr) {
-        // Niet fataal — user_roles is weg, dus toegang is geblokkeerd. Loggen + doorgaan.
-        console.warn("remove-partner-member: auth.users delete failed (non-fatal):", authErr.message);
-      } else {
-        authDeleted = true;
-      }
-    }
+    // 9) Slot U: auth.users-rij blijft staan zodat technieker bij re-aanwerving
+    //    direct kan inloggen (dezelfde inlog-credentials, geen wachtwoord-reset nodig).
+    //    GDPR-verwijdering ("right to be forgotten") vereist een aparte actie via
+    //    de gdpr-delete-klant flow (out-of-scope voor uit-dienst).
 
     console.log(JSON.stringify({
       fn: "remove-partner-member",
       partner_id,
-      auth_deleted: authDeleted,
+      soft_deleted: true,
+      uit_dienst_sinds: today,
       target_was_owner: targetIsOwner,
     }));
 
     return json(200, {
       success: true,
-      auth_deleted: authDeleted,
-      message: "Teamlid verwijderd",
+      soft_deleted: true,
+      uit_dienst_sinds: today,
+      message: "Technieker uit dienst gezet (historische data behouden)",
     }, corsHeaders);
   } catch (err) {
     console.error("remove-partner-member exception:", err);

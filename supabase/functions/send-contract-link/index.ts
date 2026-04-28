@@ -98,7 +98,11 @@ serve(async (req) => {
       });
     }
 
-    if (!contract.klant_email) {
+    // Slot T — resolve recipient: contact-FK → client → contracten-snapshot.
+    // Bedrijf-only contract (client_contact_id IS NULL) gebruikt clients.email
+    // als koppel-adres en aanhef "Beste collega's van <bedrijfsnaam>".
+    const recipient = await resolveRecipient(sb, contract);
+    if (!recipient.email) {
       return new Response(JSON.stringify({ error: "Klant heeft geen emailadres" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -154,7 +158,7 @@ serve(async (req) => {
     <tr>
       <td style="padding:32px;">
         <h2 style="color:#1a1a2e;margin-top:0;">Uw onderhoudscontract ter ondertekening</h2>
-        <p>Beste ${escHtml(contract.klant_naam || "klant")},</p>
+        <p>${escHtml(recipient.greeting)},</p>
         <p>${escHtml(partnerNaam)} heeft een onderhoudscontract voor u opgesteld. Hieronder vindt u een beknopt overzicht:</p>
 
         <table style="width:100%;background:#f8f9fa;border-radius:8px;padding:16px;margin:20px 0;">
@@ -267,7 +271,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: `${partnerNaam} <${FROM_ADDRESS}>`,
         reply_to: [REPLY_TO],
-        to: [contract.klant_email],
+        to: [recipient.email],
         subject: `Uw onderhoudscontract van ${partnerNaam} ter ondertekening`,
         html: emailHtml,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -288,8 +292,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Email verzonden naar " + contract.klant_email,
+        message: "Email verzonden naar " + recipient.email,
         attachments_count: attachments.length,
+        company_only: recipient.isCompanyOnly,
         ...(attachmentWarnings.length > 0 ? { attachment_warnings: attachmentWarnings } : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -339,6 +344,58 @@ async function downloadContractPdf(
     console.error("downloadContractPdf error:", e);
     return null;
   }
+}
+
+/**
+ * Slot T — resolve recipient + greeting voor de contract-link mail.
+ *
+ * Resolution order:
+ *   1. client_contact_id IS NOT NULL → look up client_contacts → use first_name + email
+ *   2. client_contact_id IS NULL + client_id → look up clients → bedrijfs-aanhef
+ *   3. fallback → contracten.klant_email + contracten.klant_naam (legacy)
+ */
+async function resolveRecipient(
+  // deno-lint-ignore no-explicit-any
+  sb: any,
+  // deno-lint-ignore no-explicit-any
+  contract: any,
+): Promise<{ email: string; greeting: string; isCompanyOnly: boolean }> {
+  // Path 1 — specifieke contactpersoon
+  if (contract.client_contact_id) {
+    const { data: cc } = await sb
+      .from("client_contacts")
+      .select("first_name, email")
+      .eq("id", contract.client_contact_id)
+      .maybeSingle();
+    const email = String(cc?.email || contract.klant_email || "").trim();
+    const firstName = String(cc?.first_name || contract.klant_naam || "klant").trim();
+    return { email, greeting: `Beste ${firstName}`, isCompanyOnly: false };
+  }
+
+  // Path 2 — bedrijf-only (geen contact-FK, wel client_id)
+  if (contract.client_id) {
+    const { data: client } = await sb
+      .from("clients")
+      .select("company_name, email")
+      .eq("id", contract.client_id)
+      .maybeSingle();
+    const company = String(client?.company_name || "").trim();
+    if (company) {
+      const email = String(client?.email || contract.klant_email || "").trim();
+      return {
+        email,
+        greeting: `Beste collega's van ${company}`,
+        isCompanyOnly: true,
+      };
+    }
+  }
+
+  // Path 3 — legacy fallback
+  return {
+    email: String(contract.klant_email || "").trim(),
+    greeting: `Beste ${String(contract.klant_naam || "klant").trim()}`,
+    isCompanyOnly: false,
+  };
 }
 
 /** HTML-escape voor user-controlled velden in de email body. */

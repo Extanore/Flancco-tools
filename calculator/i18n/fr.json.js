@@ -131,7 +131,14 @@
       viesValidating: 'V\u00e9rification du num\u00e9ro de TVA\u2026',
       viesValid: 'V\u00e9rifi\u00e9 via VIES \u2014 donn\u00e9es remplies automatiquement',
       viesInvalid: 'Num\u00e9ro de TVA invalide (format ou inconnu dans le registre VIES)',
-      viesError: 'V\u00e9rification temporairement indisponible \u2014 vous pouvez continuer, nous validerons plus tard'
+      viesError: 'V\u00e9rification temporairement indisponible \u2014 vous pouvez continuer, nous validerons plus tard',
+      // Slot T A5 \u2014 sous-toggle entreprise-uniquement
+      bedrijfOnlyTitle: 'Qui signe ce contrat ?',
+      bedrijfOnlyContactTitle: 'Personne de contact sp\u00e9cifique',
+      bedrijfOnlyContactSub: 'signataire contractuel avec pr\u00e9nom et nom',
+      bedrijfOnlyCompanyTitle: 'L\'entreprise elle-m\u00eame',
+      bedrijfOnlyCompanySub: 'pas de personne de contact fixe, signature \u00abau nom de [raison sociale]\u00bb',
+      bedrijfOnlyDisclaimer: 'En signant, vous d\u00e9clarez \u00eatre habilit\u00e9(e) \u00e0 engager contractuellement cette entreprise. En droit belge, une signature \u00abau nom de [raison sociale]\u00bb par un mandataire est juridiquement valable \u00e0 condition que le pouvoir puisse \u00eatre d\u00e9montr\u00e9.'
     },
     step2b: {
       title: 'R\u00e9capitulatif de votre offre',

@@ -36,7 +36,11 @@ Flancco-tools/
 │   ├── client-combobox.js         — Searchable klant-picker (vervangt native <select>, bedrijven-grouping)
 │   ├── client-combobox.css        — Styles voor de combobox (.fcb- prefix)
 │   ├── client-combobox-items.js   — Helper: clients-array → combobox-items (DRY voor 4 call-sites)
-│   └── client-combobox-demo.html  — Standalone test-pagina met 3 scenario's
+│   ├── client-combobox-resolver.js — Slot T: parser voor value-prefixes 'bedrijf:UUID' / 'contact:UUID' / 'contract:UUID' / '__new'
+│   ├── client-combobox-demo.html  — Standalone test-pagina met 3 scenario's
+│   ├── werklocatie-picker.js      — Slot T C2: kaarten-grid voor multi-locatie klanten (auto-select primary bij single)
+│   ├── werklocatie-picker.css     — Styles (.fwp- prefix)
+│   └── werklocatie-picker-demo.html — Standalone test 3 scenarios
 ├── novectra/index.html            — Calculator voor partner Novectra
 ├── cwsolar/index.html             — Calculator voor partner CW Solar
 ├── DEPLOY.sh                      — Git deploy script
@@ -54,6 +58,18 @@ Searchable klant-picker met bedrijven gegroepeerd, contactpersonen ingesprongen 
 
 Pattern: native hidden input behoudt waarde voor backwards-compat met bestaande save-handlers. Initialisatie via `window.FlanccoClientCombobox.attach(wrapperEl, {items, onChange, ...})`. Items-shape gebouwd door `window.FlanccoClientItems.build(allClients, options)`. ARIA combobox pattern, keyboard-navigatie, accent-insensitive search, XSS-defensief.
 
+**Slot T value-prefix conventie** (vanaf 2026-04-28): combobox emits prefixed values zodat save-handlers bedrijf-vs-persoon kunnen onderscheiden:
+- `bedrijf:<client_id>` → "het bedrijf zelf, geen specifieke contactpersoon" → save met `client_contact_id = NULL`
+- `contact:<client_contact_id>` → specifieke persoon binnen bedrijf → resolver lookt `client_id` op via cache, save met beide
+- `contract:<contract_id>` → legacy ni-klant flow voor contracten zonder client_id
+- `__new` → contract-wizard magic item ("+ Nieuwe klant aanmaken")
+- `<UUID>` zonder prefix → legacy mode (default behavior)
+
+Resolver-helper: `window.FlanccoClientResolver.resolve(value, allClientContacts)` returns `{client_id, client_contact_id, contract_id, isNew, raw}`. Items-builder ontvangt `{selectableHeaders: true, clientContacts: <array>}` om bedrijf-headers selectable te maken + multi-contact rendering.
+
+### Shared component: FlanccoWerklocatiePicker
+Kaarten-grid radiogroup voor werklocatie-keuze bij multi-locatie klanten. Single-locatie klanten: auto-select primary, geen UI-prompt. Multi-locatie: 2-column kaarten met label + adres + "Primair"-badge. Init via `window.FlanccoWerklocatiePicker.attach(wrapperEl, {clientId, allClientLocations, onChange, autoSelectIfSingle, allowNew, onAddNew})`. Verschijnt onder klant-keuze in: losse opdracht (`qa-locatie`), interventie (`ni-locatie`), contract-wizard (`wiz-werklocatie-card`), bouwdroger uitgeven (`uitgeef-locatie-fwp`). ARIA radiogroup, keyboard-nav, XSS-defensief.
+
 ## Supabase Configuratie
 - **Project URL**: `https://dhuqpxwwavqyxaelxuzl.supabase.co`
 - **Anon key**: staat in elk HTML-bestand als `SUPA_KEY`
@@ -67,6 +83,25 @@ Pattern: native hidden input behoudt waarde voor backwards-compat met bestaande 
 - `klant_consents` (Slot Q) — GDPR consent-trail per klant per kanaal: id, contract_id (FK), klant_email, kanaal ('email_service'|'email_marketing'|'sms'|'whatsapp'), opt_in, opt_in_ts/bron/ip/ua, opt_out_ts/bron/ip, opt_out_token (UNIQUE), notitie. View `v_klant_consent_actief` toont laatste status per email/kanaal voor send-* functions.
 - `klant_notification_log` (Slot F) — append-only audit-trail voor elke klant-notificatie poging: id, beurt_id (FK), contract_id (FK), partner_id (FK), kanaal ('email'|'sms'|'whatsapp'), event_type ('reminder_24h'|'reminder_day'|'rapport_klaar'|'test'), recipient (gemaskeerd), status ('sent'|'failed'|'skipped_no_consent'|'skipped_already_sent'|'skipped_missing_contact'|'skipped_daily_cap'), provider_message_id, error_detail, created_at. RLS: admin full SELECT, partner SELECT enkel eigen `partner_id`. Idempotency wordt afgedwongen via 7 timestamp-kolommen op `onderhoudsbeurten` (`reminder_24h_email_ts`, `reminder_day_email_ts`, `_sms_ts` × 2, `_whatsapp_ts` × 2, `rapport_klaar_email_ts`).
 - `audit_log` (Slot H + v2) — business-kritieke mutatie-trail voor compliance, incidentonderzoek, klacht-verdediging: id, tabel, record_id, actie, oude_waarde (TEXT, JSON-string of scalar), nieuwe_waarde (TEXT, idem), user_id (nullable), created_at, **ip (INET)**, **user_agent (TEXT, max 500)**. Slot H v2 voegt `ip` + `user_agent` toe via `BEFORE INSERT` trigger `trg_audit_log_stamp_request_meta` die `current_setting('request.headers')` parst (cf-connecting-ip → x-forwarded-for first hop → x-real-ip). Service-role + pg_cron inserts → NULL (correcte system-vs-end-user-onderscheiding). Client-side helper `auditLog()` in `admin/index.html` past **PII-redactie** toe via `_auditSerializeSnapshot` + `AUDIT_PII_KEYS` whitelist (email/naam/adres/telefoon/handtekening/tokens → `[REDACTED:str:<len>]`, type-hint behouden voor zinvolle diff). Onder 7-jarige boekhoudkundige bewaarplicht — niet selectief purgeable. Partial index `audit_log_ip_idx WHERE ip IS NOT NULL` voor security-forensics.
+
+### Slot T schema-additions (2026-04-28)
+- `clients.contact_person` is **nullable** geworden — bedrijf-only-klanten (geen vaste contactpersoon). `client_type='bedrijf' AND contact_person IS NULL` = bedrijf-only mode.
+- `clients` werkt al samen met aparte tabel `client_contacts` (id, client_id FK, first_name, last_name, email, phone, role, is_primary). Multi-contact per bedrijf wordt ondersteund.
+- **Nieuwe FK-kolommen** op child-tabellen, allen UUID nullable, FK → `client_contacts(id)` ON DELETE SET NULL:
+  - `onderhoudsbeurten.client_contact_id`
+  - `contracten.client_contact_id`
+  - `bouwdrogers.huidige_client_contact_id`
+- Semantiek: `client_id NOT NULL + client_contact_id NULL` = "het bedrijf zelf, geen specifieke persoon"; `client_contact_id NOT NULL` = specifieke persoon binnen bedrijf
+- Backfill: bestaande rijen krijgen `client_contact_id` van primary contact (is_primary=true)
+- Partial indexen `WHERE client_contact_id IS NOT NULL` (sparse-friendly)
+- Aanvullend: `bouwdrogers.client_location_id` UUID FK → `client_locations(id)` ON DELETE SET NULL — werklocatie-uitgifte i.p.v. alleen huidige_locatie-string
+- `klant_consents.opt_out_door` TEXT (vrije input, "Naam X namens [bedrijf]") — voor bedrijf-only opt-out audit-trail
+
+### Slot U schema-additions (2026-04-28)
+- `techniekers.uit_dienst_sinds` DATE nullable. Trigger `trg_techniekers_sync_actief` synct `actief = (uit_dienst_sinds IS NULL OR > today)`. Cron-job `slot_u_techniekers_actief_daily` (00:05 UTC) deactiveert toekomstige uit-dienst-techs.
+- `actief` boolean blijft bestaan voor backward-compat — alle 9+ filter-queries werken zonder code-wijziging
+- View `v_winstgevendheid_per_technieker` herwerkt: filter `WHERE t.actief = true` weggehaald → ex-techs blijven zichtbaar in YTD-aggregaten met `uit_dienst_sinds`-suffix
+- Hard-delete-pad enkel beschikbaar na 7 jaar bewaarplicht (boekhoudkundige eis); default flow is soft-delete via `uit_dienst_sinds`
 
 ### Database Views
 - `v_winstgevendheid_per_partner` (Slot G) — YTD-aggregatie per actieve partner: aantal afgewerkte beurten, omzet_excl_btw, planning_fee_kost, arbeids-/reis-/materiaalkost, brutomarge. `security_invoker=on`; admin ziet alle rijen, partner enkel eigen contracten via RLS.
