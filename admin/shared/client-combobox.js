@@ -543,6 +543,22 @@
           lastGroupKind = 'header';
         } else if (item.kind === 'company') {
           li.className = 'fcb-group-company';
+          // Slot T: company-headers kunnen selectable zijn (bedrijf-zelf-keuze).
+          // Activatie: item.selectable=true + item.value gezet. Item krijgt dan
+          // ook .fcb-option class zodat de event-delegated click-handler hem
+          // oppakt, en role wordt option i.p.v. presentation.
+          var isCompanySelectable = !!item.selectable && item.value != null;
+          if (isCompanySelectable) {
+            li.classList.add('fcb-option');
+            li.classList.add('fcb-group-company--selectable');
+            li.setAttribute('role', 'option');
+            li.removeAttribute('aria-disabled');
+            li.id = 'fcb-opt-' + this._uid + '-' + optionIndex;
+            li.setAttribute('aria-selected', 'false');
+            if (item.value === this._value && this._value != null) {
+              li.classList.add('fcb-option--current');
+            }
+          }
           li.appendChild(buildingSvg());
           var companyLabel = document.createElement('span');
           companyLabel.className = 'fcb-group-company-label';
@@ -555,6 +571,9 @@
             li.appendChild(companyMeta);
           }
           lastGroupKind = 'company';
+          listbox.appendChild(li);
+          this._optionEls.push({ el: li, item: item, isSelectable: isCompanySelectable, origIdx: origIdx });
+          continue;
         } else {
           // Unknown group kind; skip silently to avoid breaking layout.
           continue;

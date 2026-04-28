@@ -21,6 +21,16 @@
  *   - extraItems: array van extra-items (bv. legacy contracten) — toegevoegd
  *                 als eigen sectie onderaan met header 'extraHeaderLabel'
  *   - extraHeaderLabel: header-tekst voor extraItems (default 'Andere')
+ *   - selectableHeaders: bool — als true, krijgen company-headers value=
+ *                       'bedrijf:<client_id>' zodat ze selectable worden in
+ *                       FlanccoClientCombobox (bedrijf-zelf-keuze, Slot T)
+ *   - clientContacts: array van rauwe `client_contacts`-rijen. Wanneer
+ *                     aanwezig, worden de contactpersonen-sub-items gebouwd
+ *                     uit deze array i.p.v. uit clients.contact_person.
+ *                     Sub-item value-prefix wordt 'contact:<client_contact_id>'
+ *                     wanneer selectableHeaders=true (bedrijf-vs-persoon
+ *                     onderscheid in resolver). Zonder selectableHeaders blijft
+ *                     value=client.id voor backwards-compat.
  */
 (function (global) {
   'use strict';
@@ -60,6 +70,34 @@
   function build(clients, opts) {
     opts = opts || {};
     var list = Array.isArray(clients) ? clients.slice() : [];
+    var contacts = Array.isArray(opts.clientContacts) ? opts.clientContacts : null;
+    var selectableHeaders = !!opts.selectableHeaders;
+
+    // Index client_contacts per client_id voor snelle lookup
+    var contactsByClient = {};
+    if (contacts) {
+      contacts.forEach(function (cc) {
+        if (!cc || !cc.client_id) return;
+        if (!contactsByClient[cc.client_id]) contactsByClient[cc.client_id] = [];
+        contactsByClient[cc.client_id].push(cc);
+      });
+      // Sorteer per bedrijf: primary eerst, dan alfabetisch op last_name
+      Object.keys(contactsByClient).forEach(function (cid) {
+        contactsByClient[cid].sort(function (a, b) {
+          if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
+          var an = ((a.last_name || '') + ' ' + (a.first_name || '')).trim();
+          var bn = ((b.last_name || '') + ' ' + (b.first_name || '')).trim();
+          return an.localeCompare(bn, 'nl', { sensitivity: 'base' });
+        });
+      });
+    }
+
+    function contactDisplayName(cc) {
+      var fn = (cc.first_name || '').trim();
+      var ln = (cc.last_name || '').trim();
+      var name = (fn + ' ' + ln).trim();
+      return name || (cc.email || 'Contact ' + String(cc.id).slice(0, 6));
+    }
 
     // Optionele partner-filter (gebruikt door wiz-client)
     if (opts.filterPartnerId) {
@@ -107,29 +145,74 @@
 
       sortedCompanyKeys.forEach(function (key) {
         var bucket = byCompany[key];
-        // Company-group header (niet-selectable, visuele grouping)
-        items.push({
+        // Hoeveel echte contactpersonen heeft dit bedrijf? Wanneer client_contacts
+        // beschikbaar is, gebruiken we die count; anders fallback op clients-rij-aantal.
+        var contactList = null;
+        var contactCount = bucket.contacts.length;
+        if (contacts) {
+          // Verzamel client_contacts voor alle clients-rijen onder deze bedrijfsnaam
+          var ccCollected = [];
+          bucket.contacts.forEach(function (cl) {
+            (contactsByClient[cl.id] || []).forEach(function (cc) { ccCollected.push(cc); });
+          });
+          contactList = ccCollected;
+          contactCount = ccCollected.length || bucket.contacts.length;
+        }
+
+        var primaryClient = bucket.contacts[0];
+        var headerMeta = contactCount === 1
+          ? clientCity(primaryClient)
+          : (contactCount + ' contactpersonen');
+
+        // Company-group header — selectable als bedrijf-zelf-keuze gewenst is.
+        // value-prefix 'bedrijf:' onderscheidt later in de save-resolver van 'contact:'.
+        var headerItem = {
           type: 'group',
           kind: 'company',
           label: bucket.name,
-          meta: bucket.contacts.length === 1 ? clientCity(bucket.contacts[0]) : (bucket.contacts.length + ' contactpersonen')
-        });
+          meta: headerMeta
+        };
+        if (selectableHeaders) {
+          headerItem.selectable = true;
+          headerItem.value = 'bedrijf:' + primaryClient.id;
+          headerItem.searchText = (bucket.name + ' bedrijf').toLowerCase();
+        }
+        items.push(headerItem);
 
-        // Sorteer contactpersonen binnen het bedrijf
-        bucket.contacts.sort(function (a, b) {
-          return clientLabel(a).localeCompare(clientLabel(b), 'nl', { sensitivity: 'base' });
-        });
-
-        bucket.contacts.forEach(function (c) {
-          items.push({
-            type: 'item',
-            label: clientLabel(c),
-            value: c.id,
-            meta: clientCity(c),
-            companyName: bucket.name,
-            searchText: [clientLabel(c), bucket.name, clientCity(c), c.email || '', c.phone || ''].join(' ').toLowerCase()
+        if (contactList && contactList.length) {
+          // Render contact_contacts-rijen als sub-items (juiste multi-contact pad)
+          contactList.forEach(function (cc) {
+            var dn = contactDisplayName(cc);
+            // Bedrijf-stad als fallback voor meta wanneer contact zelf geen stad heeft
+            var srcClient = bucket.contacts.find(function (cl) { return cl.id === cc.client_id; }) || primaryClient;
+            var meta = clientCity(srcClient);
+            if (cc.role) meta = (meta ? cc.role + ' · ' + meta : cc.role);
+            items.push({
+              type: 'item',
+              label: dn,
+              value: selectableHeaders ? ('contact:' + cc.id) : srcClient.id,
+              meta: meta,
+              companyName: bucket.name,
+              searchText: [dn, cc.role || '', bucket.name, meta, cc.email || '', cc.phone || ''].join(' ').toLowerCase()
+            });
           });
-        });
+        } else {
+          // Fallback: gebruik clients.contact_person als display (legacy mode,
+          // geen client_contacts opgegeven door caller)
+          bucket.contacts.sort(function (a, b) {
+            return clientLabel(a).localeCompare(clientLabel(b), 'nl', { sensitivity: 'base' });
+          });
+          bucket.contacts.forEach(function (c) {
+            items.push({
+              type: 'item',
+              label: clientLabel(c),
+              value: c.id,
+              meta: clientCity(c),
+              companyName: bucket.name,
+              searchText: [clientLabel(c), bucket.name, clientCity(c), c.email || '', c.phone || ''].join(' ').toLowerCase()
+            });
+          });
+        }
       });
 
       // Bedrijven zonder bedrijfsnaam (data-inconsistentie: client_type=bedrijf
