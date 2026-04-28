@@ -2624,16 +2624,14 @@
         </button>
         <button type="button" id="edit-beurt-del-day-btn" onclick="deleteCurrentDayFromModal()"
           style="padding:7px 11px;background:#fff;border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:var(--red);cursor:pointer;font-family:inherit">
-          Verwijder dag voor iedereen
+          Verwijder deze dag
         </button>
         <button type="button" onclick="deleteBeurtFromModal()"
           style="padding:7px 11px;background:var(--red);border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit">
           Verwijder hele opdracht
         </button>
       </div>
-      <div style="font-size:11px;color:#92400E;margin-top:8px;line-height:1.4">
-        Eerste knop: alleen jouw rij van deze dag halen (collega's blijven). Tweede: hele dag uit reeks. Derde: alle dagen + uren wissen.
-      </div>
+      <div id="edit-beurt-day-actions-help" style="font-size:11px;color:#92400E;margin-top:8px;line-height:1.4"></div>
     </div>
 
     <div class="modal-field" id="edit-beurt-loc-wrap" style="display:none">
@@ -8316,6 +8314,28 @@ function editBeurtUpdateDayActionsRow() {
       techBtn.style.display = '';
     } else {
       techBtn.style.display = 'none';
+    }
+  }
+
+  // Adaptieve label + uitleg-tekst voor de "Verwijder deze dag"-knop:
+  //   solo-tech (1 tech, geen extras) → "Verwijder deze dag" zonder
+  //     "voor iedereen"-suffix (er is geen iedereen, alleen deze ene tech)
+  //   multi-tech (2+ techs) → "Verwijder dag voor iedereen" maakt expliciet
+  //     dat dit ook collega's raakt
+  var dayBtn = document.getElementById('edit-beurt-del-day-btn');
+  var helpText = document.getElementById('edit-beurt-day-actions-help');
+  if (dayBtn) {
+    dayBtn.textContent = (allTechs.length > 1)
+      ? 'Verwijder dag voor iedereen'
+      : 'Verwijder deze dag uit reeks';
+  }
+  if (helpText) {
+    if (canRemoveSingleTech) {
+      // 3 knoppen zichtbaar: tech-eraf + dag-voor-iedereen + hele opdracht
+      helpText.textContent = 'Eerste knop: alleen jouw rij van deze dag halen (collega\'s blijven ingepland). Tweede: dag uit reeks voor iedereen. Derde: alle dagen + uren wissen.';
+    } else {
+      // 2 knoppen: dag-uit-reeks + hele opdracht (geen tech-keuze want solo)
+      helpText.textContent = 'Eerste knop: deze dag uit de meerdaagse reeks halen. Tweede: alle dagen + uren wissen (volledige opdracht).';
     }
   }
 
