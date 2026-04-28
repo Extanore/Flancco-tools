@@ -692,8 +692,8 @@
       <div class="card">
         <div class="card-title" data-i18n="step1.cards.duur">Contractduur</div>
         <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="duur" value="0" checked onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duurEenmalig">Eenmalige interventie</span><small data-i18n="step1.cards.duurEenmaligSub">Standaardtarief, geen doorlopend contract</small></div></label>
-          <label class="radio-option"><input type="radio" name="duur" value="3" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duur3">3 jaar</span><small data-i18n="step1.cards.duurKortingSub">5% korting op alle tarieven</small></div></label>
+          <label class="radio-option"><input type="radio" name="duur" value="0" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duurEenmalig">Eenmalige interventie</span><small data-i18n="step1.cards.duurEenmaligSub">Standaardtarief, geen doorlopend contract</small></div></label>
+          <label class="radio-option"><input type="radio" name="duur" value="3" checked onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duur3">3 jaar</span><small data-i18n="step1.cards.duurKortingSub">5% korting op alle tarieven</small></div></label>
           <label class="radio-option"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duur5">5 jaar</span><small data-i18n="step1.cards.duurKortingSub">5% korting op alle tarieven</small></div></label>
         </div>
       </div>
@@ -1419,6 +1419,11 @@ var SECTORS = {
     icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
     seizoenMaanden: [3,4,5,6,7,8,9,10],
     seizoenLabel: 'maart\u2013oktober',
+    // Zonnepanelen worden in de praktijk maximaal 1\u00d7 per jaar gereinigd;
+    // halfjaarlijkse reiniging brengt geen meeropbrengst en kan
+    // beschermlagen op het glas vroegtijdig aantasten. Daarom: alleen
+    // jaarlijks. (Andere sectoren laten halfjaarlijks gewoon toe.)
+    availableFrequencies: [1],
 
     usps: [
       { icon: '<svg viewBox="0 0 24 24"><path d="M12 2C6.5 8 4 12.5 4 15.5a8 8 0 0 0 16 0C20 12.5 17.5 8 12 2Z"/></svg>', text: 'Osmosewater<br>zonder chemie' },
@@ -1452,7 +1457,25 @@ var SECTORS = {
         '</div></div>' +
         '<div class="card"><div class="card-title">Bijzonderheden</div>' +
         '<label class="toggle-group" for="solar-vervuiling"><div class="toggle-label">Hevige vervuiling of mosvorming<small id="solar-verv-label">' + vervLabel + '</small></div>' +
-        '<div class="switch"><input type="checkbox" id="solar-vervuiling" onchange="calculateAll()"><span class="slider"></span></div></label></div>';
+        '<div class="switch"><input type="checkbox" id="solar-vervuiling" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+        // Verplaatst van stap 2 naar stap 1 — eindklant beslist over deze
+        // installatie-praktische zaken vóór de prijs (bereikbaarheid + water
+        // beïnvloeden mogelijk later het transport- of materiaal-supplement).
+        // Vraagstelling herwerkt voor B2C-eindklant met expliciete uitleg
+        // waarom we het vragen.
+        '<div class="field" style="margin-top:22px"><label>Hoe goed is uw woning bereikbaar voor onze servicewagen?</label>' +
+          '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">We hebben circa 5 m parkeerruimte nodig binnen ongeveer 50 m van uw woning om materiaal en watertank vlot te lossen.</small>' +
+          '<select id="klant-bereik">' +
+            '<option value="Goed">Goed bereikbaar — bestelwagen kan vlot tot bij de woning</option>' +
+            '<option value="Beperkt">Beperkt bereikbaar — smalle straat, paaltjes of obstakels op de oprit</option>' +
+          '</select></div>' +
+        '<div class="field"><label>Is er een werkende buitenkraan beschikbaar?</label>' +
+          '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Voor de reiniging met osmosewater verbruiken we ongeveer 100 liter water per beurt. Met een buitenkraan werken we sneller; zonder brengen we onze eigen watertank mee.</small>' +
+          '<select id="klant-water">' +
+            '<option value="Ja">Ja, er is een werkende buitenkraan beschikbaar</option>' +
+            '<option value="Nee">Nee, breng zelf water mee</option>' +
+          '</select></div>' +
+        '</div>';
     },
 
     readInputs: function() {
@@ -1516,9 +1539,10 @@ var SECTORS = {
     },
 
     renderCustomerFields: function() {
-      return '<div class="card"><div class="card-title">Installatiedetails &mdash; Zonnepanelen</div>' +
-        '<div class="field"><label>Bereikbaarheid</label><select id="klant-bereik"><option value="Goed">Goed</option><option value="Beperkt">Beperkt</option></select></div>' +
-        '<div class="field"><label>Wateraansluiting aanwezig?</label><select id="klant-water"><option value="Ja">Ja</option><option value="Nee">Nee</option></select></div></div>';
+      // Bereikbaarheid + wateraansluiting zijn verhuisd naar renderForm
+      // (stap 1, "Bijzonderheden") zodat de eindklant ze al beantwoordt
+      // tijdens de configuratie i.p.v. pas op stap 2 (klantgegevens).
+      return '';
     },
 
     summaryBenefits: function() {
@@ -3449,6 +3473,9 @@ function switchSectorTab(sector) {
     expandFirstInfoBlock();
   }
 
+  // Frequentie kan per sector verschillen — bij wisselen herevalueren.
+  applyAvailableFrequencies();
+
   calculateAll();
 }
 
@@ -3480,7 +3507,49 @@ function renderActiveSectorForm() {
   });
   document.getElementById('sector-form-container').innerHTML = formsHtml;
 
+  // Verberg/toon frequentie-opties op basis van geselecteerde sectoren.
+  applyAvailableFrequencies();
+
   // Staffel table will be updated by calculateAll()
+}
+
+/**
+ * Past de frequentie-radio's aan op basis van wat de geselecteerde
+ * sector(en) toelaten. Per-sector via SECTORS[s].availableFrequencies
+ * (default [1, 2]). Bij multi-sector intersect: alleen frequenties die
+ * ALLE sectoren toelaten blijven over.
+ *
+ * Voorbeeld: bij zonnepanelen-only blijft enkel "Jaarlijks" zichtbaar.
+ */
+function applyAvailableFrequencies() {
+  if (!selectedSectors || selectedSectors.length === 0) return;
+  var available = null;
+  selectedSectors.forEach(function (s) {
+    var cfg = SECTORS[s];
+    var freqs = (cfg && Array.isArray(cfg.availableFrequencies)) ? cfg.availableFrequencies : [1, 2];
+    if (available === null) available = freqs.slice();
+    else available = available.filter(function (f) { return freqs.indexOf(f) >= 0; });
+  });
+  if (!available || available.length === 0) available = [1];
+
+  var radios = document.querySelectorAll('input[name="freq"]');
+  radios.forEach(function (input) {
+    var wrapper = input.closest('.radio-option');
+    var allowed = available.indexOf(parseInt(input.value, 10)) >= 0;
+    if (wrapper) wrapper.style.display = allowed ? '' : 'none';
+    input.disabled = !allowed;
+  });
+
+  // Als de huidige selectie niet meer toegelaten is → switch naar de eerste
+  // beschikbare. Triggert calculateAll() voor een correcte herberekening.
+  var checked = document.querySelector('input[name="freq"]:checked');
+  if (!checked || available.indexOf(parseInt(checked.value, 10)) < 0) {
+    var first = document.querySelector('input[name="freq"][value="' + available[0] + '"]');
+    if (first) {
+      first.checked = true;
+      if (typeof calculateAll === 'function') calculateAll();
+    }
+  }
 }
 
 function renderCustomerSectorFields() {
