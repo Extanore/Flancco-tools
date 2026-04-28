@@ -556,8 +556,30 @@
       <p id="step1-sub" data-i18n="step1.subtitle">Vul hieronder uw installatiegegevens in en ontdek direct uw persoonlijke prijs.</p>
     </div>
 
+    <!-- Partner intro text (optional) -->
+    <div id="partner-intro" style="display:none" class="card">
+      <p id="partner-intro-text" style="font-size:14px;color:var(--dark);line-height:1.7"></p>
+    </div>
+
+    <!-- Sector tabs (hidden if single sector) -->
+    <div class="sector-tabs" id="sector-tabs" style="display:none"></div>
+
     <!--
-      Slot O2 — Postcode card (first thing in step 1)
+      USP-bar + motivatie-block staan BOVEN de postcode-card.
+      Reden: zodra de eindklant de sector heeft bevestigd, willen we eerst
+      de waarde-propositie tonen (icoontjes + uitgeklapte motivatie) zodat
+      hij begrijpt wát hij gaat configureren — dan pas vragen we postcode-
+      en BTW-data. Het info-block wordt default `.open` gezet via JS na
+      injectie (zie renderActiveSectorForm / switchSectorTab).
+    -->
+    <!-- USP bar (rendered per sector) -->
+    <div id="usp-container"></div>
+
+    <!-- Info blocks (rendered per sector) -->
+    <div id="info-container"></div>
+
+    <!--
+      Slot O2 — Postcode card
       ──────────────────────────────────────────────────
       Bepaalt:
         • Welke BTW-tarieven beschikbaar zijn (6% enkel BE)
@@ -602,20 +624,6 @@
         <select id="pc-deelgemeente-select" onchange="onPcDeelgemeenteChange()"></select>
       </div>
     </div>
-
-    <!-- Partner intro text (optional) -->
-    <div id="partner-intro" style="display:none" class="card">
-      <p id="partner-intro-text" style="font-size:14px;color:var(--dark);line-height:1.7"></p>
-    </div>
-
-    <!-- Sector tabs (hidden if single sector) -->
-    <div class="sector-tabs" id="sector-tabs" style="display:none"></div>
-
-    <!-- USP bar (rendered per sector) -->
-    <div id="usp-container"></div>
-
-    <!-- Info blocks (rendered per sector) -->
-    <div id="info-container"></div>
 
     <!-- Sector-specific form (rendered by JS) -->
     <div id="sector-form-container"></div>
@@ -2357,6 +2365,14 @@ function getSectorSupplement(sector, type) {
 
 function toggleInfo(id) { document.getElementById(id).classList.toggle('open'); }
 
+// Klapt het eerste motivatie-block in #info-container automatisch open zodat
+// de eindklant de inhoud ziet zonder extra klik. Wordt aangeroepen na elke
+// (re-)injectie van renderInfoBlocks() — bij sectorwissel of initial render.
+function expandFirstInfoBlock() {
+  var first = document.querySelector('#info-container .info-block');
+  if (first) first.classList.add('open');
+}
+
 // Warmtepomp UI handlers — type-switch, vierweg-toggle, glycol-toggle
 function onWpTypeChange() {
   var typeEl = document.getElementById('wp-type');
@@ -3414,6 +3430,9 @@ function switchSectorTab(sector) {
     }).join('') + '</div>';
     document.getElementById('usp-container').innerHTML = uspHtml;
     document.getElementById('info-container').innerHTML = cfg.renderInfoBlocks();
+    // Motivatie-block default uitgeklapt — eindklant ziet meteen waarom
+    // de dienst waardevol is, zonder extra klik.
+    expandFirstInfoBlock();
   }
 
   calculateAll();
@@ -3432,6 +3451,9 @@ function renderActiveSectorForm() {
 
   // Info blocks (only for active tab)
   document.getElementById('info-container').innerHTML = cfg.renderInfoBlocks();
+  // Motivatie-block default uitgeklapt — eindklant ziet meteen waarom
+  // de dienst waardevol is, zonder extra klik.
+  expandFirstInfoBlock();
 
   // Form fields — render ALL selected sectors, hide non-active ones
   // This ensures readInputs() works for all sectors during calculateAll()
