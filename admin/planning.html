@@ -1277,7 +1277,24 @@
   .modal {
     background: var(--white); border-radius: 16px; padding: 28px; width: 90%;
     box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;
+    position: relative;
   }
+  /* Universele × sluit-knop rechtsboven in elke modal. Via .modal-close-x
+     class op een <button> binnen de modal. JS-handler in window.modalClose()
+     respecteert dirty-state-tracking (waarschuwing bij niet-opgeslagen
+     wijzigingen) wanneer de modal gemarkeerd is met data-dirty-trackable. */
+  .modal-close-x {
+    position: absolute; top: 14px; right: 14px;
+    width: 32px; height: 32px; padding: 0;
+    border: none; background: transparent;
+    border-radius: 8px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--grey); transition: background 0.15s ease, color 0.15s ease;
+    z-index: 2;
+  }
+  .modal-close-x:hover { background: var(--light); color: var(--navy); }
+  .modal-close-x:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .modal-close-x svg { width: 18px; height: 18px; }
   .modal h2 { font-size: 18px; color: var(--navy); margin-bottom: 4px; }
   .modal h3 { font-size: 14px; color: var(--navy); margin-bottom: 8px; }
   .modal-row { display: flex; gap: 12px; margin-bottom: 12px; }
@@ -2599,8 +2616,9 @@
   </div>
 </div>
 
-<!-- BEURT BEWERKEN MODAL -->
-<div class="modal-overlay" id="modal-edit-beurt">
+<!-- BEURT BEWERKEN MODAL — dirty-track aan: × of Annuleren met onopgeslagen
+     wijzigingen toont een waarschuwing dialog (zie flanccoModalClose). -->
+<div class="modal-overlay" id="modal-edit-beurt" data-dirty-track="true">
   <div class="modal" style="max-width:480px">
     <h2 id="edit-beurt-title">Beurt inplannen</h2>
     <input type="hidden" id="edit-beurt-id">
@@ -2756,7 +2774,7 @@
         </button>
       </div>
       <div class="footer-right">
-        <button type="button" class="btn btn-ghost" onclick="closeEditBeurtModal()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-edit-beurt')">Annuleren</button>
         <div class="btn-split" id="edit-beurt-save-split">
           <button type="button" id="edit-beurt-main-btn" class="btn btn-primary btn-split-main" onclick="editBeurtMainAction()">Opslaan</button>
           <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer acties" onclick="toggleSplitMenu(this, event)">
@@ -4493,6 +4511,117 @@ function closeFeestdagWarningModal(decision) {
   var p = document.getElementById('fdw-proceed-btn');
   if (c) c.addEventListener('click', function() { closeFeestdagWarningModal('cancel'); });
   if (p) p.addEventListener('click', function() { closeFeestdagWarningModal('proceed'); });
+})();
+
+// =============================================
+// UNIVERSELE MODAL-CLOSE × + DIRTY-STATE FRAMEWORK
+// =============================================
+// Geeft elke .modal-overlay automatisch een × sluit-knop rechtsboven.
+// Modals die data-dirty-track="true" hebben krijgen ook een waarschuwing
+// wanneer je sluit terwijl er onopgeslagen wijzigingen zijn.
+// Snapshot bij modal-open via flanccoModalDirty.snapshot(id), clear bij
+// successvolle save via flanccoModalDirty.clear(id).
+window.flanccoModalDirty = (function() {
+  var snapshots = {};
+  function gatherState(modalEl) {
+    var state = {};
+    if (!modalEl) return state;
+    modalEl.querySelectorAll('input, select, textarea').forEach(function(el) {
+      var key = el.id || el.name;
+      if (!key) return;
+      if (el.type === 'checkbox' || el.type === 'radio') state[key] = el.checked;
+      else state[key] = el.value;
+    });
+    return state;
+  }
+  return {
+    snapshot: function(overlayId) {
+      var ov = document.getElementById(overlayId);
+      if (!ov) return;
+      var modal = ov.querySelector(':scope > .modal') || ov;
+      snapshots[overlayId] = gatherState(modal);
+    },
+    isDirty: function(overlayId) {
+      var snap = snapshots[overlayId];
+      if (!snap) return false;
+      var ov = document.getElementById(overlayId);
+      if (!ov) return false;
+      var modal = ov.querySelector(':scope > .modal') || ov;
+      var current = gatherState(modal);
+      var seen = {};
+      var allKeys = Object.keys(snap).concat(Object.keys(current));
+      for (var i = 0; i < allKeys.length; i++) {
+        var k = allKeys[i];
+        if (seen[k]) continue;
+        seen[k] = true;
+        if (snap[k] !== current[k]) return true;
+      }
+      return false;
+    },
+    clear: function(overlayId) { delete snapshots[overlayId]; }
+  };
+})();
+
+// Mapping van overlay-id → bestaande close-functie. Wordt door
+// flanccoModalClose aangeroepen na een eventuele dirty-confirm.
+window.flanccoModalCloseMap = {
+  'modal-quickadd':              function() { if (typeof closeQuickAddModal === 'function') closeQuickAddModal(); },
+  'modal-dagplus':               function() { if (typeof closeDagPlusKiezer === 'function') closeDagPlusKiezer(); },
+  'modal-werkbon':               function() { if (typeof closeWerkbonModal === 'function') closeWerkbonModal(); },
+  'modal-werkplanning-export':   function() { if (typeof closeWerkplanningExport === 'function') closeWerkplanningExport(); },
+  'modal-plan-interventie':      function() { if (typeof closePlanInterventieModal === 'function') closePlanInterventieModal(); },
+  'modal-nieuwe-interventie':    function() { if (typeof closeNieuweInterventieModal === 'function') closeNieuweInterventieModal(); },
+  'modal-edit-interventie':      function() { if (typeof closeEditInterventieModal === 'function') closeEditInterventieModal(); },
+  'modal-edit-beurt':            function() { if (typeof closeEditBeurtModal === 'function') closeEditBeurtModal(); },
+  'modal-uren-bevestigen':       function() { if (typeof closeUrenBevestigenModal === 'function') closeUrenBevestigenModal(); },
+  'modal-quick-verlof':          function() { if (typeof closeQuickVerlofModal === 'function') closeQuickVerlofModal(); }
+};
+
+window.flanccoModalClose = async function(overlayId) {
+  var ov = document.getElementById(overlayId);
+  if (ov && ov.dataset.dirtyTrack === 'true' && window.flanccoModalDirty.isDirty(overlayId)) {
+    var ok = await confirmDialog({
+      title: 'Niet-opgeslagen wijzigingen?',
+      message: 'Je hebt aanpassingen gemaakt die nog niet zijn opgeslagen. Sluiten zal deze verwerpen.',
+      confirmLabel: 'Sluiten zonder opslaan',
+      cancelLabel: 'Terug',
+      variant: 'danger'
+    });
+    if (!ok) return;
+  }
+  window.flanccoModalDirty.clear(overlayId);
+  var fn = window.flanccoModalCloseMap[overlayId];
+  if (typeof fn === 'function') fn();
+  else if (ov) ov.classList.remove('open');
+};
+
+// Auto-injecteer × button in elke .modal-overlay zodra de DOM klaar is.
+(function _injectModalCloseButtons() {
+  var X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+  function inject() {
+    document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+      if (!overlay.id) return;
+      var modal = overlay.querySelector(':scope > .modal');
+      if (!modal) return;
+      if (modal.querySelector(':scope > .modal-close-x')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'modal-close-x';
+      btn.setAttribute('aria-label', 'Sluiten');
+      btn.innerHTML = X_SVG;
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.flanccoModalClose(overlay.id);
+      });
+      modal.insertBefore(btn, modal.firstChild);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inject);
+  } else {
+    inject();
+  }
 })();
 
 // Convenience-wrapper: check beide types in volgorde, toon modal indien match.
@@ -8235,9 +8364,23 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime, contextTech
   }
 
   document.getElementById('modal-edit-beurt').classList.add('open');
+
+  // Dirty-state snapshot: na open zijn alle inputs in baseline-state, dus
+  // elke wijziging daarna wordt als "dirty" gedetecteerd door
+  // flanccoModalDirty.isDirty(). Save-handlers clearen de snapshot.
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    // setTimeout 0 zodat alle late field-populaties (renderLocaties, picker
+    // attaches, defaults) eerst klaar zijn voor we snapshotten.
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-edit-beurt'); }, 0);
+  }
 }
 
 function closeEditBeurtModal() {
+  // Dirty-snapshot opruimen om memory-leak + spurious dirty-detectie bij
+  // volgende open te voorkomen.
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-edit-beurt');
+  }
   document.getElementById('modal-edit-beurt').classList.remove('open');
 }
 
@@ -8760,13 +8903,10 @@ async function deleteDagFromBeurt(beurtId, datumISO, skipConfirm) {
 
   showToast('Dag verwijderd');
 
-  // Herrender lijst + hoofdvelden; kies de eerste overgebleven dag als focus
-  var resterend = (window._planningDagenByBeurt[beurtId] || []);
-  if (resterend.length) {
-    openEditBeurtModal(beurtId, null, resterend[0].datum, null);
-  } else {
-    closeEditBeurtModal();
-  }
+  // UX-feedback Apr 28: na delete altijd modal sluiten — gebruiker verwacht
+  // niet dat de modal opnieuw opent met een andere dag (verwarrend), en de
+  // operatie is succesvol afgerond.
+  closeEditBeurtModal();
   renderView();
   renderSidebar();
 }
