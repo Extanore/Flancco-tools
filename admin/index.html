@@ -1139,6 +1139,10 @@
   .exp-alert-green { background:#D1FAE5; color:#065F46; }
   .exp-notitie { white-space:pre-wrap; font-size:13px; color:var(--navy); line-height:1.5; background:#fff; border:1px solid var(--rule); border-radius:6px; padding:10px 12px; }
   .exp-empty-note { color:var(--grey); font-size:12px; font-style:italic; }
+  /* Personeel — sub-section header (bv. "Onderaannemers" onder de techniekers) */
+  .tech-subsection-header td { padding:14px 16px 8px !important; background:transparent; border-top:1px solid var(--rule); }
+  .tech-subsection-header td > span { display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--grey); }
+  .tech-subsection-header td > span::before { content:''; width:14px; height:1px; background:var(--rule); display:inline-block; }
   .verlof-type-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; color:#fff; }
   .verlof-type-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
 
@@ -16141,7 +16145,7 @@ function renderTechniekers() {
   var rolColors = { technieker: '#1A1A2E', projectleider: '#10B981', leerling: '#3B82F6', onderaannemer: '#8B5CF6' };
   var chevronSvg = '<svg class="exp-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
 
-  tbody.innerHTML = filtered.map(function(t) {
+  function buildTechRow(t) {
     var secs = allTechSectoren.filter(function(s) { return s.technieker_id === t.id; });
     var secBadges = secs.map(function(s) {
       var colors = { zonnepanelen: '#F39C12', warmtepomp: '#E74C3C', ventilatie: '#1A1A2E', verwarming: '#6B7280', ic: '#10B981', klussen: '#D97706' };
@@ -16178,7 +16182,19 @@ function renderTechniekers() {
       '</tr>';
 
     return mainRow + detailRow;
-  }).join('');
+  }
+
+  // Splits eigen personeel (technieker/projectleider/leerling) en onderaannemers
+  // zodat onderaannemers visueel onderaan komen onder een eigen sub-header.
+  var ownStaff = filtered.filter(function(t) { return (t.rol || 'technieker') !== 'onderaannemer'; });
+  var subcontractors = filtered.filter(function(t) { return t.rol === 'onderaannemer'; });
+
+  var html = ownStaff.map(buildTechRow).join('');
+  if (subcontractors.length > 0) {
+    html += '<tr class="tech-subsection-header" aria-hidden="true"><td colspan="8"><span>Onderaannemers</span></td></tr>';
+    html += subcontractors.map(buildTechRow).join('');
+  }
+  tbody.innerHTML = html;
 }
 
 /**
@@ -16607,7 +16623,10 @@ async function deleteBediende(bedId, naam) {
   renderPersoneelCounts();
 }
 
-var FIELD_ROLES = ['technieker', 'projectleider'];
+// Rollen waarvoor sectoren/kwalificaties/certificeringen relevant zijn.
+// Onderaannemers leveren technische arbeid en moeten dus per sector/kwalificatie
+// gematcht kunnen worden aan opdrachten — net als interne techniekers.
+var FIELD_ROLES = ['technieker', 'projectleider', 'onderaannemer'];
 
 function onTechRolChange() {
   var rol = document.getElementById('tech-rol').value;
