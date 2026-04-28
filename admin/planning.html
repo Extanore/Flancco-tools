@@ -3795,6 +3795,88 @@ function confirmDeleteScopeDialog(ctx) {
   });
 }
 
+/**
+ * Scope-dialog voor "+ plusje → kies lopende opdracht" (Slot B / Pattern A).
+ * Wanneer de gekozen opdracht al een dag-record heeft op de geklikte datum,
+ * vraagt deze dialog wat de gebruiker wil:
+ *   - 'vervang' (default) = nieuwe tech wordt primary, oude tech(s) verdwijnen
+ *   - 'extra' = oude primary blijft, nieuwe tech wordt extra (collaboratief)
+ * Resolve null bij annuleren.
+ */
+function confirmAddTechScopeDialog(ctx) {
+  return new Promise(function(resolve) {
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.style.zIndex = '2147482000';
+    overlay.innerHTML =
+      '<div class="modal" style="max-width:520px;padding:28px" role="alertdialog" aria-modal="true">' +
+        '<h2 style="margin:0 0 6px;font-size:18px;color:var(--navy)">Hoe wil je deze opdracht oppakken?</h2>' +
+        '<p style="margin:0 0 18px;color:#6B7280;font-size:13px">' +
+          esc(ctx.klantNaam) + ' — ' + esc(ctx.datumLabel) +
+          '<br>Op deze dag staat al ingeplant: <strong>' + esc(ctx.bestaandeTechs) + '</strong>' +
+        '</p>' +
+        '<div class="segmented-control" style="display:flex;width:100%;margin-bottom:14px" role="radiogroup" aria-label="Toewijzing-bereik">' +
+          '<button type="button" class="seg-btn is-active" data-scope="vervang" style="flex:1" role="radio" aria-checked="true">Alleen ' + esc(ctx.nieuweTechVoornaam) + '</button>' +
+          '<button type="button" class="seg-btn" data-scope="extra" style="flex:1" role="radio" aria-checked="false">Toevoegen als extra</button>' +
+        '</div>' +
+        '<div data-scope-info="vervang" style="margin:0 0 22px;padding:12px 14px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;font-size:13px;color:#92400E;line-height:1.5">' +
+          '<strong>' + esc(ctx.nieuweTechNaam) + '</strong> wordt de enige technieker op deze dag.<br>' +
+          esc(ctx.bestaandeTechs) + ' wordt van deze dag gehaald (andere dagen ongewijzigd).' +
+        '</div>' +
+        '<div data-scope-info="extra" style="display:none;margin:0 0 22px;padding:12px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:13px;color:#14532D;line-height:1.5">' +
+          '<strong>Collaboratief</strong>: ' + esc(ctx.bestaandeTechs) + ' blijft primary, ' +
+          esc(ctx.nieuweTechNaam) + ' komt erbij als extra.' +
+        '</div>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+          '<button type="button" class="btn btn-ghost" data-role="cancel">Annuleren</button>' +
+          '<button type="button" class="btn btn-primary" data-role="confirm">Bevestigen</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    var selected = 'vervang';
+    var segBtns = overlay.querySelectorAll('.seg-btn');
+    var infoBlocks = overlay.querySelectorAll('[data-scope-info]');
+
+    function setScope(scope) {
+      selected = scope;
+      segBtns.forEach(function(b) {
+        var on = (b.dataset.scope === scope);
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      infoBlocks.forEach(function(el) {
+        el.style.display = (el.getAttribute('data-scope-info') === scope) ? 'block' : 'none';
+      });
+    }
+    segBtns.forEach(function(b) {
+      b.addEventListener('click', function() { setScope(b.dataset.scope); });
+    });
+
+    function finish(result) {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(result);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); finish(null); }
+      else if (e.key === 'Enter') { e.preventDefault(); finish(selected); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        setScope(selected === 'vervang' ? 'extra' : 'vervang');
+      }
+    }
+    overlay.querySelector('[data-role=cancel]').addEventListener('click', function() { finish(null); });
+    overlay.querySelector('[data-role=confirm]').addEventListener('click', function() { finish(selected); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) finish(null); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(function() {
+      var firstSeg = overlay.querySelector('.seg-btn.is-active');
+      if (firstSeg) firstSeg.focus();
+    }, 0);
+  });
+}
+
 (function overrideAlert() {
   if (window.__flanccoAlertOverridden) return;
   window.__flanccoAlertOverridden = true;
@@ -10956,9 +11038,10 @@ async function slotB_pickBeurt(beurtId, source) {
   }
 
   var payload;
-  var operation; // 'insert' | 'update'
+  var operation; // 'insert' | 'update-vervang' | 'update-extra'
   if (!existing) {
-    // INSERT — overneem defaults uit andere dag van deze beurt of uit beurt
+    // INSERT — overneem defaults uit andere dag van deze beurt of uit beurt.
+    // Geen tech-erfenis: extras altijd leeg zodat default = solo-toewijzing.
     var siblingDagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
     var sibling = siblingDagen[0];
     payload = {
@@ -10971,18 +11054,63 @@ async function slotB_pickBeurt(beurtId, source) {
     };
     operation = 'insert';
   } else {
-    // UPDATE — voeg toe als extra technieker
-    var extras = Array.isArray(existing.extra_technieker_ids) ? existing.extra_technieker_ids.slice() : [];
-    extras.push(techId);
-    payload = {
-      beurt_id: beurtId,
-      datum: datum,
-      start_tijd: existing.start_tijd,
-      duur_minuten: existing.duur_minuten,
-      technieker_id: existing.technieker_id,
-      extra_technieker_ids: extras
-    };
-    operation = 'update';
+    // UPDATE — vraag scope: vervang oude tech(s) of toevoegen als extra.
+    // Default = vervang (UX-feedback Apr 28: oude flow plaatste automatisch
+    // extra tech, wat verwarrend was wanneer de gebruiker enkel deze rij
+    // wilde toewijzen).
+    var oudePrimaryTech = (allTechniekers || []).find(function(t) { return t.id === existing.technieker_id; });
+    var oudePrimaryNaam = oudePrimaryTech ? (oudePrimaryTech.voornaam + ' ' + oudePrimaryTech.naam) : 'onbekende technieker';
+    var oudeExtras = Array.isArray(existing.extra_technieker_ids) ? existing.extra_technieker_ids.slice() : [];
+    var oudeExtraNamen = oudeExtras.map(function(tid) {
+      var t = (allTechniekers || []).find(function(x) { return x.id === tid; });
+      return t ? (t.voornaam + ' ' + t.naam) : '?';
+    });
+    var bestaandeTechs = [oudePrimaryNaam].concat(oudeExtraNamen).join(', ');
+
+    var nieuweTech = (allTechniekers || []).find(function(t) { return t.id === techId; });
+    var nieuweTechNaam = nieuweTech ? (nieuweTech.voornaam + ' ' + nieuweTech.naam) : 'deze technieker';
+    var nieuweTechVoornaam = nieuweTech ? nieuweTech.voornaam : 'mij';
+    var datumLabel = (typeof formatDateFull === 'function') ? formatDateFull(parseDate(datum)) : datum;
+
+    var info_clt = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : { naam: '' };
+    var clientNaam = info_clt.naam || 'opdracht';
+
+    var scope = await confirmAddTechScopeDialog({
+      klantNaam: clientNaam,
+      datumLabel: datumLabel,
+      bestaandeTechs: bestaandeTechs,
+      nieuweTechNaam: nieuweTechNaam,
+      nieuweTechVoornaam: nieuweTechVoornaam
+    });
+    if (!scope) {
+      slotB_track('Smart Picker Pick', { source: source || 'unknown', has_existing_dag: true, result: 'cancelled' });
+      return;
+    }
+
+    if (scope === 'vervang') {
+      payload = {
+        beurt_id: beurtId,
+        datum: datum,
+        start_tijd: existing.start_tijd,
+        duur_minuten: existing.duur_minuten,
+        technieker_id: techId,
+        extra_technieker_ids: []
+      };
+      operation = 'update-vervang';
+    } else {
+      // 'extra' — collaboratief, oude blijft primary, nieuwe wordt extra
+      var extras = oudeExtras.slice();
+      extras.push(techId);
+      payload = {
+        beurt_id: beurtId,
+        datum: datum,
+        start_tijd: existing.start_tijd,
+        duur_minuten: existing.duur_minuten,
+        technieker_id: existing.technieker_id,
+        extra_technieker_ids: extras
+      };
+      operation = 'update-extra';
+    }
   }
 
   try {
@@ -11007,9 +11135,14 @@ async function slotB_pickBeurt(beurtId, source) {
 
   var info = (typeof getClientInfo === 'function') ? getClientInfo(beurt) : { naam: '' };
   var clientLabel = info.naam || 'opdracht';
-  var msg = (operation === 'insert')
-    ? ('Nieuwe planning-dag aangemaakt voor ' + clientLabel)
-    : ('Toegevoegd als extra technieker bij ' + clientLabel);
+  var msg;
+  if (operation === 'insert') {
+    msg = 'Nieuwe planning-dag aangemaakt voor ' + clientLabel;
+  } else if (operation === 'update-vervang') {
+    msg = 'Toewijzing voor ' + clientLabel + ' overgenomen — oude technieker(s) verwijderd';
+  } else {
+    msg = 'Toegevoegd als extra technieker bij ' + clientLabel;
+  }
   if (typeof showToast === 'function') showToast(msg, 'success');
 
   slotB_track('Smart Picker Pick', {
