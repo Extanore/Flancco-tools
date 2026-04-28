@@ -2155,10 +2155,10 @@
         <label>Duur (min)</label>
         <input type="number" id="qa-duur" value="60" min="15" max="1440" step="15" oninput="this.dataset.userEdited='true'">
       </div>
-      <div id="qa-hele-dag-badge" style="display:none;flex:0 0 auto;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
-      <label id="qa-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
-        <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
-        <span style="font-size:13px;font-weight:500;color:var(--navy)">Hele dag (7,6u)</span>
+      <div id="qa-hele-dag-badge" class="hele-dag-display" style="display:none;flex:0 0 auto">7u 36min</div>
+      <label id="qa-hele-dag-toggle" class="pill-toggle" style="margin-left:auto;flex:0 0 auto">
+        <input type="checkbox" id="qa-hele-dag" onchange="qaHeleDagChanged()">
+        <span class="pill-toggle-label">Hele dag (7,6u)</span>
       </label>
     </div>
     <!-- Notities -->
@@ -2471,10 +2471,10 @@
         <label>Geschatte duur (min)</label>
         <input type="number" id="ni-duur" value="60" min="15" max="1440" step="15" oninput="this.dataset.userEdited='true'">
       </div>
-      <div id="ni-hele-dag-badge" style="display:none;flex:0 0 auto;align-self:flex-end;margin-bottom:0;padding:10px 14px;background:var(--navy);color:#fff;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap">7u 36min</div>
-      <label id="ni-hele-dag-toggle" style="margin-left:auto;flex:0 0 auto;align-self:flex-end;margin-bottom:0;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;user-select:none;background:#fff;transition:all .15s;white-space:nowrap">
-        <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()" style="width:15px;height:15px;padding:0;border:1px solid var(--rule);margin:0;flex-shrink:0;accent-color:var(--navy)">
-        <span style="font-size:13px;font-weight:500;color:var(--navy)">Hele dag (7,6u)</span>
+      <div id="ni-hele-dag-badge" class="hele-dag-display" style="display:none;flex:0 0 auto;align-self:flex-end;margin-bottom:0">7u 36min</div>
+      <label id="ni-hele-dag-toggle" class="pill-toggle" style="margin-left:auto;flex:0 0 auto;align-self:flex-end;margin-bottom:0">
+        <input type="checkbox" id="ni-hele-dag" onchange="niHeleDagChanged()">
+        <span class="pill-toggle-label">Hele dag (7,6u)</span>
       </label>
     </div>
 
@@ -6385,9 +6385,13 @@ function openNieuweInterventieModal() {
   var hiddenPo = document.getElementById('ni-po-number');
   if (hiddenPo) hiddenPo.value = '';
 
-  // Hele dag + stap-state resetten
+  // Hele dag + stap-state resetten. Roep handler aan zodat de pill-toggle
+  // is-active class + badge-display synchroon resetten met checkbox-state.
   var heleDag = document.getElementById('ni-hele-dag');
-  if (heleDag) heleDag.checked = false;
+  if (heleDag) {
+    heleDag.checked = false;
+    if (typeof niHeleDagChanged === 'function') niHeleDagChanged();
+  }
   document.getElementById('ni-step').value = 'input';
   document.getElementById('ni-plan-datum').value = '';
   document.getElementById('ni-plan-start').value = '09:00';
@@ -6500,25 +6504,15 @@ function niHeleDagChanged() {
     if (parseInt(duurEl.value, 10) === 456) duurEl.value = 60;
   }
 
-  // Visuele state: duur-wrap + badge + pill-toggle
+  // Visuele state: duur-wrap + badge + pill-toggle.
+  // Active-state via .is-active class (CSS .pill-toggle.is-active). Geen inline
+  // style-mutaties meer — voorkomt drift met de shared CSS-classes.
   var duurWrap = document.getElementById('ni-duur-wrap');
   var badge = document.getElementById('ni-hele-dag-badge');
   var toggle = document.getElementById('ni-hele-dag-toggle');
   if (duurWrap) duurWrap.style.display = heleDag ? 'none' : '';
   if (badge) badge.style.display = heleDag ? 'inline-flex' : 'none';
-  if (toggle) {
-    if (heleDag) {
-      toggle.style.background = 'var(--navy)';
-      toggle.style.borderColor = 'var(--navy)';
-      var spanEl = toggle.querySelector('span');
-      if (spanEl) spanEl.style.color = '#fff';
-    } else {
-      toggle.style.background = '#fff';
-      toggle.style.borderColor = 'var(--rule)';
-      var spanEl2 = toggle.querySelector('span');
-      if (spanEl2) spanEl2.style.color = 'var(--navy)';
-    }
-  }
+  if (toggle) toggle.classList.toggle('is-active', heleDag);
 
   niApplyStepVisibility();
 }
@@ -11074,8 +11068,11 @@ function quickAdd(techId, datum, mode, opdrachtType) {
   // Reset datum-input (visible in deferrable stap 2)
   document.getElementById('qa-datum-input').value = (mode === 'inline') ? (datum || '') : '';
 
-  // Reset hele-dag + duur + startuur
+  // Reset hele-dag + duur + startuur. Eerst checkbox uncheck, dan handler
+  // aanroepen zodat de pill-toggle is-active class + badge-display synchroon
+  // resetten met de checkbox-state (geen drift).
   document.getElementById('qa-hele-dag').checked = false;
+  qaHeleDagChanged();
   var qaDuurEl = document.getElementById('qa-duur');
   qaDuurEl.value = 60;
   qaDuurEl.disabled = false;
@@ -11186,25 +11183,15 @@ function qaHeleDagChanged() {
     if (parseInt(duurEl.value, 10) === QA_HELE_DAG_MIN) duurEl.value = 60;
   }
 
-  // Visuele state: duur-wrap + badge + pill-toggle
+  // Visuele state: duur-wrap + badge + pill-toggle.
+  // Active-state via .is-active class (CSS .pill-toggle.is-active). Geen inline
+  // style-mutaties meer — voorkomt drift met de shared CSS-classes.
   var duurWrap = document.getElementById('qa-duur-wrap');
   var badge = document.getElementById('qa-hele-dag-badge');
   var toggle = document.getElementById('qa-hele-dag-toggle');
   if (duurWrap) duurWrap.style.display = heleDag ? 'none' : '';
   if (badge) badge.style.display = heleDag ? 'inline-flex' : 'none';
-  if (toggle) {
-    if (heleDag) {
-      toggle.style.background = 'var(--navy)';
-      toggle.style.borderColor = 'var(--navy)';
-      var spanEl = toggle.querySelector('span');
-      if (spanEl) spanEl.style.color = '#fff';
-    } else {
-      toggle.style.background = '#fff';
-      toggle.style.borderColor = 'var(--rule)';
-      var spanEl2 = toggle.querySelector('span');
-      if (spanEl2) spanEl2.style.color = 'var(--navy)';
-    }
-  }
+  if (toggle) toggle.classList.toggle('is-active', heleDag);
 
   qaApplyModeVisibility();
 }
