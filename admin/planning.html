@@ -5258,7 +5258,8 @@ function renderWeekView() {
     var fdMarkup = (typeof getFeestdagHeaderMarkup === 'function')
       ? getFeestdagHeaderMarkup(formatDateISO(dates[d])) : { thClass: '', markerHtml: '' };
     if (isCollapsed) {
-      var expandIcon = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      // Chevron-left op smalle kolom — visueel "duw open naar links"
+      var expandIcon = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
       html += '<th class="' + (cls + fdMarkup.thClass).trim() + '">' +
         '<button type="button" class="weekend-expand-btn" onclick="expandWeekendCol(' + d + ')" ' +
           'title="' + esc(dayNames[d]) + ' uitklappen — geen taken ingepland">' + expandIcon + '</button>' +
@@ -5271,7 +5272,8 @@ function renderWeekView() {
       var showCollapseBtn = isWeekend && window._weekendExpanded && window._weekendExpanded[d];
       var collapseBtnHtml = '';
       if (showCollapseBtn) {
-        var collapseIcon = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        // Chevron-right op uitgeklapte kolom — visueel "duw dicht naar rechts"
+        var collapseIcon = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
         collapseBtnHtml = '<button type="button" class="weekend-collapse-btn" onclick="collapseWeekendCol(' + d + ')" ' +
           'title="' + esc(dayNames[d]) + ' weer dichtklappen">' + collapseIcon + '</button>';
       }
