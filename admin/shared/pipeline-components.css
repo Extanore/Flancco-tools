@@ -789,6 +789,60 @@
   }
 }
 
+/* -- prefilter-banner (Slot V/W dashboard-tegel) --------------------------- */
+
+.flp-prefilter-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: var(--flp-shadow-sm);
+  font-size: 14px;
+  color: #78350F;
+}
+
+.flp-prefilter-banner[hidden] {
+  display: none;
+}
+
+.flp-prefilter-banner__label {
+  flex: 1 1 auto;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.flp-prefilter-banner__clear {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #78350F;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.flp-prefilter-banner__clear:hover {
+  background: rgba(231, 76, 60, 0.08);
+  color: var(--red);
+  border-color: rgba(231, 76, 60, 0.25);
+}
+
+.flp-prefilter-banner__clear:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
 /* -- prefers-reduced-motion ------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
@@ -796,7 +850,8 @@
   .flp-tab,
   .flp-aging-bucket,
   .flp-action-btn,
-  .flp-aging-badge--breach {
+  .flp-aging-badge--breach,
+  .flp-prefilter-banner__clear {
     transition: none;
     animation: none;
   }

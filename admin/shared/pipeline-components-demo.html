@@ -83,6 +83,21 @@
   </div>
 </div>
 
+<div class="demo-section">
+  <h2>Scenario 4 — Pipeline met initialBucketFilter='wacht_rapport'</h2>
+  <p>Simuleert dashboard-tegel "Pipeline-status vandaag" → klik op bucket "Wacht op rapport". Pagina opent met fase 4 actief + visuele banner. Klik × om te wissen.</p>
+  <div class="demo-toggle">
+    <button id="prefilter-wacht_rapport" class="active">wacht_rapport</button>
+    <button id="prefilter-overdue">overdue</button>
+    <button id="prefilter-sla_breach">sla_breach (cross-fase)</button>
+    <button id="prefilter-vandaag_plan">vandaag_plan</button>
+    <button id="prefilter-clear">clear</button>
+  </div>
+  <div class="demo-section__output">
+    <div id="page-4"></div>
+  </div>
+</div>
+
 <script src="/admin/shared/pipeline-components.js"></script>
 <script>
   // --- Mock data -----------------------------------------------------------
@@ -259,6 +274,35 @@
 
   // --- Scenario 3: empty state -------------------------------------------
   window.FlanccoPipeline.renderEmptyState(document.getElementById('empty-3'), 'rapportage', 'onderhoud');
+
+  // --- Scenario 4: initialBucketFilter (Slot V/W dashboard-tegel) --------
+  var page4El = document.getElementById('page-4');
+  var page4 = window.FlanccoPipeline.attachPage(page4El, {
+    mode: 'onderhoud',
+    initialRecords: mockRecords,
+    partnerSlaMap: partnerSlaMap,
+    initialBucketFilter: 'wacht_rapport',
+    onAction: function (k, r) { window.alert('Actie: ' + k + ' op ' + r.referentie); }
+  });
+
+  function rebuildPage4(prefilter) {
+    page4.destroy();
+    page4 = window.FlanccoPipeline.attachPage(page4El, {
+      mode: 'onderhoud',
+      initialRecords: mockRecords,
+      partnerSlaMap: partnerSlaMap,
+      initialBucketFilter: prefilter,
+      onAction: function (k, r) { window.alert('Actie: ' + k + ' op ' + r.referentie); }
+    });
+  }
+  ['wacht_rapport', 'overdue', 'sla_breach', 'vandaag_plan'].forEach(function (key) {
+    document.getElementById('prefilter-' + key).addEventListener('click', function () {
+      rebuildPage4(key);
+    });
+  });
+  document.getElementById('prefilter-clear').addEventListener('click', function () {
+    page4.setPrefilter(null);
+  });
 </script>
 
 </body>

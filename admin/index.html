@@ -4947,6 +4947,48 @@
   </div>
 </div>
 
+<!-- ===== Slot V/W — Snooze-modal (fase 1 — vervangt native prompt()) ===== -->
+<div class="modal-overlay" id="modal-pipeline-snooze" style="display:none" onclick="if(event.target===this)closePipelineSnoozeModal()">
+  <div class="modal" style="max-width:520px;padding:28px 28px 0">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0">
+        <h3>Record snoozen</h3>
+        <small style="display:block;color:var(--grey);font-size:12px;margin-top:2px">Tijdelijk verbergen uit fase 1. Documenteer de reden &mdash; collega's hebben context nodig bij invalbeurt.</small>
+      </div>
+      <button class="modal-close" type="button" aria-label="Sluiten" onclick="closePipelineSnoozeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field form-field-full" style="margin-bottom:14px">
+        <label for="snooze-aantal-dagen">Aantal dagen snooze</label>
+        <select id="snooze-aantal-dagen" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:#fff">
+          <option value="3">3 dagen</option>
+          <option value="7" selected>1 week</option>
+          <option value="14">2 weken</option>
+          <option value="30">30 dagen (max)</option>
+          <option value="custom">Custom datum&hellip;</option>
+        </select>
+      </div>
+      <div class="form-field form-field-full" id="snooze-custom-datum-row" style="display:none;margin-bottom:14px">
+        <label for="snooze-custom-datum">Snooze tot datum</label>
+        <input type="date" id="snooze-custom-datum" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+      </div>
+      <div class="form-field form-field-full">
+        <label for="snooze-reden">Reden voor snooze (verplicht)</label>
+        <textarea id="snooze-reden" rows="3" placeholder="Bv. Sophie op reis tot 3/5; herhaal bel-poging na 2/5; vraagt voormiddag-afspraak." style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+        <small style="display:block;color:var(--grey);font-size:11px;margin-top:4px">Min. 5 karakters. Geen GDPR-gevoelige info (geen medische/financiële details).</small>
+      </div>
+    </div>
+    <div class="modal-footer" style="margin:24px -28px 0;padding:16px 28px">
+      <div class="footer-left">
+        <button class="btn btn-ghost" type="button" onclick="closePipelineSnoozeModal()">Annuleer</button>
+      </div>
+      <div class="footer-right">
+        <button class="btn btn-primary" type="button" id="snooze-confirm-btn" onclick="confirmPipelineSnooze()">Snooze</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // =============================================
 // SUPABASE INIT
@@ -9299,11 +9341,20 @@ async function showOnderhoudPage() {
     // Slot V = recurrent partner-werk: contract bestaat én is_eenmalig === false
     var dataFilter = function(r) { return !!(r.contract && r.contract.is_eenmalig === false); };
 
+    // Bucket-prefilter consume — gezet door dashboard-tegel "Pipeline-status vandaag".
+    // One-shot: clear na consume zodat refresh niet opnieuw filtert.
+    var prefilter = null;
+    try {
+      prefilter = localStorage.getItem('flancco_pipeline_prefilter');
+      if (prefilter) localStorage.removeItem('flancco_pipeline_prefilter');
+    } catch (_lsErr) { /* private mode / disabled storage — geen prefilter */ }
+
     _onderhoudPipelineInstance = window.FlanccoPipeline.attachPage(wrapper, {
       mode: 'onderhoud',
       supabase: sb,
       records: records.filter(dataFilter),
       partnerSlaMap: partnerSlaMap,
+      initialBucketFilter: prefilter || undefined,
       onAction: function(actionKey, record) { return onPipelineAction(actionKey, record, 'onderhoud'); }
     });
   } catch (e) {
@@ -9340,11 +9391,19 @@ async function showFlanccoWerkPage() {
       return r.contract.is_eenmalig === true;
     };
 
+    // Bucket-prefilter consume — zelfde pattern als showOnderhoudPage.
+    var prefilter = null;
+    try {
+      prefilter = localStorage.getItem('flancco_pipeline_prefilter');
+      if (prefilter) localStorage.removeItem('flancco_pipeline_prefilter');
+    } catch (_lsErr) { /* ignore */ }
+
     _flanccoWerkPipelineInstance = window.FlanccoPipeline.attachPage(wrapper, {
       mode: 'flancco',
       supabase: sb,
       records: records.filter(dataFilter),
       partnerSlaMap: partnerSlaMap,
+      initialBucketFilter: prefilter || undefined,
       onAction: function(actionKey, record) { return onPipelineAction(actionKey, record, 'flancco'); }
     });
   } catch (e) {
@@ -9380,8 +9439,8 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'snooze':
-        await onPipelineSnooze(record);
-        await refreshCurrentPipeline(mode);
+        // Modal opent zelf de snooze-flow + refresht na confirm; geen await + refresh hier.
+        onPipelineSnooze(record, mode);
         break;
 
       case 'annuleer':
@@ -9463,39 +9522,139 @@ async function onPipelineAction(actionKey, record, mode) {
   }
 }
 
-async function onPipelineSnooze(record) {
-  try {
-    var dagenRaw = prompt('Aantal dagen snooze (1-30):', '7');
-    if (dagenRaw === null) return;
-    var dagen = parseInt(dagenRaw, 10);
-    if (!isFinite(dagen) || dagen < 1 || dagen > 30) {
-      alert('Ongeldig aantal dagen. Geef een waarde tussen 1 en 30.');
+// Snooze-flow gebruikt een modal i.p.v. native prompt() — UX-arm + niet mobile-friendly.
+// Modal-elementen: #modal-pipeline-snooze, dropdown #snooze-aantal-dagen, custom-datum-row,
+// textarea #snooze-reden, confirm-knop #snooze-confirm-btn.
+window._snoozeContext = window._snoozeContext || { record: null, mode: null };
+
+function onPipelineSnooze(record, mode) {
+  openPipelineSnoozeModal(record, mode);
+}
+
+function openPipelineSnoozeModal(record, mode) {
+  if (!record || !record.id) return;
+  window._snoozeContext = { record: record, mode: mode || 'onderhoud' };
+
+  // Reset velden naar defaults
+  var select = document.getElementById('snooze-aantal-dagen');
+  if (select) select.value = '7';
+  var customRow = document.getElementById('snooze-custom-datum-row');
+  if (customRow) customRow.style.display = 'none';
+  var customInput = document.getElementById('snooze-custom-datum');
+  if (customInput) customInput.value = '';
+  var redenEl = document.getElementById('snooze-reden');
+  if (redenEl) redenEl.value = '';
+  var btn = document.getElementById('snooze-confirm-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Snooze'; }
+
+  var modal = document.getElementById('modal-pipeline-snooze');
+  if (!modal) {
+    console.warn('[openPipelineSnoozeModal] Modal niet gevonden in DOM');
+    return;
+  }
+  modal.style.display = 'flex';
+
+  // Focus textarea voor onmiddellijke input — context is meestal het belangrijkste
+  setTimeout(function() {
+    if (redenEl && typeof redenEl.focus === 'function') redenEl.focus();
+  }, 50);
+}
+
+function closePipelineSnoozeModal() {
+  var modal = document.getElementById('modal-pipeline-snooze');
+  if (modal) modal.style.display = 'none';
+  window._snoozeContext = { record: null, mode: null };
+}
+
+async function confirmPipelineSnooze() {
+  var ctx = window._snoozeContext || {};
+  var record = ctx.record;
+  var mode = ctx.mode || 'onderhoud';
+  if (!record || !record.id) { showToast('Geen snooze-context', 'error'); return; }
+
+  var select = document.getElementById('snooze-aantal-dagen');
+  var redenEl = document.getElementById('snooze-reden');
+  var reden = (redenEl ? redenEl.value : '').trim();
+
+  if (reden.length < 5) {
+    showToast('Reden vereist (minstens 5 karakters)', 'error');
+    if (redenEl) redenEl.focus();
+    return;
+  }
+
+  var snoozeTotIso;
+  if (select && select.value === 'custom') {
+    var customInput = document.getElementById('snooze-custom-datum');
+    snoozeTotIso = customInput ? customInput.value : '';
+    if (!snoozeTotIso) {
+      showToast('Custom datum vereist', 'error');
+      if (customInput) customInput.focus();
       return;
     }
-    var redenRaw = prompt('Reden voor snooze (verplicht — komt in dispatch-log):', '');
-    if (redenRaw === null) return;
-    var reden = (redenRaw || '').trim();
-    if (!reden) { alert('Reden is verplicht.'); return; }
+    // Validatie: custom-datum moet in toekomst liggen + max 90 dagen
+    var customMs = new Date(snoozeTotIso + 'T00:00:00').getTime();
+    var nowMs = Date.now();
+    if (!isFinite(customMs) || customMs <= nowMs) {
+      showToast('Custom datum moet in de toekomst liggen', 'error');
+      return;
+    }
+    if (customMs - nowMs > 90 * 24 * 3600 * 1000) {
+      showToast('Snooze max 90 dagen vooruit', 'error');
+      return;
+    }
+  } else {
+    var dagen = parseInt(select ? select.value : '7', 10);
+    if (!isFinite(dagen) || dagen < 1 || dagen > 30) {
+      showToast('Ongeldige snooze-periode (1-30 dagen)', 'error');
+      return;
+    }
+    var d = new Date();
+    d.setDate(d.getDate() + dagen);
+    snoozeTotIso = d.toISOString().slice(0, 10);
+  }
 
-    var snoozeTot = new Date();
-    snoozeTot.setDate(snoozeTot.getDate() + dagen);
-    var snoozeIso = snoozeTot.toISOString().slice(0, 10);
+  var btn = document.getElementById('snooze-confirm-btn');
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = 'Snoozen…'; }
 
     if (window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.addSnoozeWithReason === 'function') {
-      await window.FlanccoPipelineToolkit.addSnoozeWithReason(record.id, snoozeIso, reden, sb);
+      await window.FlanccoPipelineToolkit.addSnoozeWithReason(record.id, snoozeTotIso, reden, sb);
     } else {
       // Fallback: direct schrijven naar onderhoudsbeurten zonder dispatch-log entry
       var resp = await sb.from('onderhoudsbeurten')
-        .update({ snooze_tot: snoozeIso })
+        .update({ snooze_tot: snoozeTotIso })
         .eq('id', record.id);
       if (resp.error) throw resp.error;
     }
-    showToast('Snooze ingesteld tot ' + snoozeIso, 'info');
+
+    closePipelineSnoozeModal();
+    showToast('Snooze ingesteld tot ' + snoozeTotIso, 'info');
+    await refreshCurrentPipeline(mode);
   } catch (e) {
-    console.error('[onPipelineSnooze]', e);
+    console.error('[confirmPipelineSnooze]', e);
     showToast('Snooze mislukt: ' + (e.message || String(e)), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Snooze'; }
   }
 }
+
+// Custom-datum row toggle — luistert op change van de dropdown.
+// Idempotente init: voorkom dubbele listeners als script meerdere keren executeert.
+(function initSnoozeModalListeners() {
+  function bind() {
+    var select = document.getElementById('snooze-aantal-dagen');
+    if (!select || select._snoozeBound) return;
+    select._snoozeBound = true;
+    select.addEventListener('change', function() {
+      var customRow = document.getElementById('snooze-custom-datum-row');
+      if (customRow) customRow.style.display = (select.value === 'custom') ? '' : 'none';
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
+  }
+})();
 
 // --- Modal-uren-controle (Slot V — fase 5: Uitgestuurd ter facturatie) -----
 window._urenControleContext = window._urenControleContext || { beurtId: null, mode: null };
@@ -9570,6 +9729,64 @@ async function openUrenControleModal(beurtId, mode) {
   }
 }
 
+/**
+ * Vind of maak een open facturatie_records-rij voor (partner_id, maand-bucket).
+ * Maand-bucket = year-month van plan_datum (of vandaag als fallback).
+ * Returns: facturatie_records.id (UUID) of throws bij DB-error.
+ *
+ * Schema-noot: facturatie_records heeft GEEN `periode`-kolom. Wel `periode_van` + `periode_tot`
+ * (DATE) + verplichte `referentie` (TEXT NOT NULL). Status-CHECK: open|te_factureren|gefactureerd|geexporteerd.
+ * We bucketen per (partner, maand) op `periode_van = first-of-month` + status='open'.
+ */
+async function _ensureFacturatieRecord(partnerId, planDatumIso) {
+  if (!partnerId) throw new Error('partner_id ontbreekt voor facturatie-record');
+  // Bucket op kalendermaand van plan_datum (of vandaag als fallback)
+  var basisIso = (planDatumIso && /^\d{4}-\d{2}-\d{2}/.test(planDatumIso))
+    ? planDatumIso.slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+  var ymd = basisIso.split('-');
+  var year = parseInt(ymd[0], 10);
+  var month = parseInt(ymd[1], 10); // 1-12
+  // first-of-month
+  var periodeVan = year + '-' + String(month).padStart(2, '0') + '-01';
+  // last-of-month: ga naar volgende-1ste minus 1 dag
+  var nextMonth = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 };
+  var lastDay = new Date(Date.UTC(nextMonth.y, nextMonth.m - 1, 0)).getUTCDate();
+  var periodeTot = year + '-' + String(month).padStart(2, '0') + '-' + String(lastDay).padStart(2, '0');
+
+  // 1. Probeer bestaande open-record te vinden voor (partner, maand)
+  var existing = await sb.from('facturatie_records')
+    .select('id')
+    .eq('partner_id', partnerId)
+    .eq('periode_van', periodeVan)
+    .eq('status', 'open')
+    .maybeSingle();
+  if (existing.error) throw existing.error;
+  if (existing.data && existing.data.id) return existing.data.id;
+
+  // 2. Anders nieuwe aanmaken. Referentie is verplicht — bouw deterministisch:
+  // <YYYY-MM>-<partner_slug_first6>-<random4>. Onthoud: partner_slug niet altijd in scope.
+  var partnerSlugLookup = await sb.from('partners')
+    .select('slug, naam')
+    .eq('id', partnerId)
+    .maybeSingle();
+  if (partnerSlugLookup.error) throw partnerSlugLookup.error;
+  var slug = (partnerSlugLookup.data && partnerSlugLookup.data.slug) || 'partner';
+  var slugSafe = String(slug).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'partner';
+  var random4 = Math.random().toString(36).slice(2, 6).toUpperCase();
+  var referentie = year + '-' + String(month).padStart(2, '0') + '-' + slugSafe + '-' + random4;
+
+  var created = await sb.from('facturatie_records').insert({
+    partner_id: partnerId,
+    referentie: referentie,
+    periode_van: periodeVan,
+    periode_tot: periodeTot,
+    status: 'open'
+  }).select('id').single();
+  if (created.error) throw created.error;
+  return created.data.id;
+}
+
 async function saveUrenControle() {
   try {
     var ctx = window._urenControleContext || {};
@@ -9581,6 +9798,9 @@ async function saveUrenControle() {
     if (rows.length === 0) { showToast('Geen uren-rijen om op te slaan', 'error'); return; }
 
     var nowIso = new Date().toISOString();
+    var goedgekeurdeUrenIds = []; // ids van rijen die we in deze save goedgekeurd hebben
+    var sumExclBtw = 0;            // totaal voor facturatie-regel (som eindprijzen client-side)
+
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
       var urenId = row.getAttribute('data-uren-id');
@@ -9609,6 +9829,77 @@ async function saveUrenControle() {
       };
       var resp = await sb.from('beurt_uren_registraties').update(payload).eq('id', urenId);
       if (resp.error) throw resp.error;
+
+      goedgekeurdeUrenIds.push(urenId);
+      // GENERATED eindprijs = uren * tarief (DB-formule); zelfde berekening client-side
+      sumExclBtw += Math.round(urenVal * tariefVal * 100) / 100;
+    }
+
+    // ---- Facturatie-regel insert (Slot V/W follow-up #2) -----------------
+    // Defensief: als facturatie-flow faalt, blijven uren-goedkeuringen al opgeslagen.
+    // Beurt → contract → partner; eindbedrag = som van eindprijzen van zojuist goedgekeurde rijen.
+    if (sumExclBtw > 0) {
+      try {
+        var beurtMeta = await sb.from('onderhoudsbeurten')
+          .select('id, plan_datum, sector, contract:contracten(id, partner_id, klant_naam)')
+          .eq('id', beurtId)
+          .single();
+        if (beurtMeta.error) throw beurtMeta.error;
+        var beurt = beurtMeta.data;
+        var partnerId = beurt && beurt.contract ? beurt.contract.partner_id : null;
+        var contractId = beurt && beurt.contract ? beurt.contract.id : null;
+        var klantNaam = beurt && beurt.contract ? beurt.contract.klant_naam : null;
+        var sectorLbl = beurt && beurt.sector ? beurt.sector : null;
+        var planDatum = beurt && beurt.plan_datum ? beurt.plan_datum : null;
+
+        if (!partnerId) {
+          console.warn('[saveUrenControle] Geen partner_id op contract — facturatie-regel overgeslagen');
+        } else {
+          var facturatieRecordId = await _ensureFacturatieRecord(partnerId, planDatum);
+
+          var btwPct = 21; // default; sector-specifieke 6% kan in later iteratie via contract.btw_pct
+          var bedragInclBtw = Math.round(sumExclBtw * (1 + btwPct / 100) * 100) / 100;
+          var omschrijving = 'Onderhoudsbeurt ' + (planDatum || '') + (sectorLbl ? ' — ' + sectorLbl : '') + (klantNaam ? ' — ' + klantNaam : '');
+          omschrijving = omschrijving.trim().replace(/^—\s*/, '');
+
+          var regelInsert = await sb.from('facturatie_regels').insert({
+            facturatie_record_id: facturatieRecordId,
+            onderhoudsbeurt_id: beurtId,
+            contract_id: contractId,
+            klant_naam: klantNaam,
+            sector: sectorLbl,
+            omschrijving: omschrijving,
+            bedrag_excl_btw: sumExclBtw,
+            btw_pct: btwPct,
+            bedrag_incl_btw: bedragInclBtw
+          });
+          if (regelInsert.error) throw regelInsert.error;
+
+          // Markeer uren-rijen als gefactureerd zodat ze niet dubbel komen.
+          if (goedgekeurdeUrenIds.length > 0) {
+            var markResp = await sb.from('beurt_uren_registraties')
+              .update({ gefactureerd: true, gefactureerd_op: nowIso })
+              .in('id', goedgekeurdeUrenIds);
+            if (markResp.error) throw markResp.error;
+          }
+
+          // Stempel beurt zelf — facturatie_status flag voor pipeline-aging.
+          var beurtMark = await sb.from('onderhoudsbeurten')
+            .update({ facturatie_status: 'uitgestuurd', gefactureerd_op: nowIso })
+            .eq('id', beurtId);
+          if (beurtMark.error) {
+            // Niet fataal — log en ga verder
+            console.warn('[saveUrenControle] beurt facturatie_status update faalde:', beurtMark.error);
+          }
+        }
+      } catch (factErr) {
+        console.error('[saveUrenControle] facturatie-regel mislukt:', factErr);
+        showToast('Uren opgeslagen, maar facturatie-regel mislukt: ' + (factErr.message || String(factErr)), 'error');
+        // Niet doorgaan met success-toast; wel modal sluiten zodat user niet vastzit.
+        closeModal('modal-uren-controle');
+        await refreshCurrentPipeline(mode);
+        return;
+      }
     }
 
     // Opmerking als manual note in dispatch-log (Toolkit-2)
