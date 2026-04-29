@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pipeline Components — demo</title>
+  <link rel="stylesheet" href="/admin/shared/pipeline-components.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #F3F4F6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .demo-section {
+      max-width: 1200px;
+      margin: 0 auto 40px;
+    }
+    .demo-section h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #1A1A2E;
+    }
+    .demo-section p {
+      margin: 0 0 16px;
+      color: #6B7280;
+      font-size: 13px;
+    }
+    .demo-section__output {
+      background: #FFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .demo-toggle {
+      display: inline-flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .demo-toggle button {
+      padding: 6px 12px;
+      background: #FFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .demo-toggle button.active {
+      background: #1A1A2E;
+      color: #FFF;
+      border-color: #1A1A2E;
+    }
+  </style>
+</head>
+<body>
+
+<div class="demo-section">
+  <h2>Scenario 1 — Volledige pipeline-pagina (mode='onderhoud')</h2>
+  <p>Mock-records gemixt over 5 fases. Wissel mode om gedrag te vergelijken.</p>
+  <div class="demo-toggle">
+    <button id="mode-onderhoud" class="active">mode: onderhoud</button>
+    <button id="mode-flancco">mode: flancco</button>
+    <button id="toggle-handoff">handoff-mode</button>
+  </div>
+  <div class="demo-section__output">
+    <div id="page-1"></div>
+  </div>
+</div>
+
+<div class="demo-section">
+  <h2>Scenario 2 — Losse dispatcher card (fase 1, met SLA-breach)</h2>
+  <p>Renderfunctie standalone aangeroepen. Aging-badge in breach-state.</p>
+  <div class="demo-section__output">
+    <div id="card-2" style="max-width: 480px;"></div>
+  </div>
+</div>
+
+<div class="demo-section">
+  <h2>Scenario 3 — Empty state</h2>
+  <p>Geen records in fase rapportage.</p>
+  <div class="demo-section__output">
+    <div id="empty-3" style="max-width: 480px;"></div>
+  </div>
+</div>
+
+<script src="/admin/shared/pipeline-components.js"></script>
+<script>
+  // --- Mock data -----------------------------------------------------------
+  var now = Date.now();
+  var hourAgo = function (h) { return new Date(now - h * 60 * 60 * 1000).toISOString(); };
+  var dayAgo  = function (d) { return new Date(now - d * 24 * 60 * 60 * 1000).toISOString(); };
+  var inHours = function (h) { return new Date(now + h * 60 * 60 * 1000).toISOString(); };
+
+  var mockRecords = [
+    {
+      id: '00000001-0000-0000-0000-000000000001',
+      referentie: 'BE-2026-0042',
+      status: 'in_te_plannen',
+      klant_naam: 'Vandersmissen NV',
+      klant_telefoon: '+32 478 12 34 56',
+      klant_email: 'info@vandersmissen.be',
+      klant_adres: 'Industrielaan 24',
+      klant_postcode: '2800',
+      klant_gemeente: 'Mechelen',
+      sector: 'zonnepanelen',
+      aantal_panelen: 24,
+      geschatte_duur_uren: 2.5,
+      laatst_uitgevoerd_op: dayAgo(380),
+      created_at: dayAgo(18),
+      last_status_change_at: dayAgo(18),
+      partner_id: 'novectra-id',
+      contract: { is_eenmalig: false, partner_id: 'novectra-id' }
+    },
+    {
+      id: '00000001-0000-0000-0000-000000000002',
+      referentie: 'BE-2026-0040',
+      status: 'in_te_plannen',
+      klant_naam: 'Bakkerij De Maen',
+      klant_telefoon: '04 99 12 34 56',
+      klant_email: 'piet@demaen.be',
+      sector: 'zonnepanelen',
+      aantal_panelen: 12,
+      geschatte_duur_uren: 1,
+      created_at: dayAgo(35),
+      last_status_change_at: dayAgo(35),
+      partner_id: 'novectra-id',
+      contract: { is_eenmalig: false, partner_id: 'novectra-id' }
+    },
+    {
+      id: '00000001-0000-0000-0000-000000000003',
+      referentie: 'BE-2026-0038',
+      status: 'ingepland',
+      klant_naam: 'Logistiek De Smet BV',
+      klant_telefoon: '+32 3 555 77 88',
+      klant_email: 'planning@desmet.be',
+      klant_adres: 'Havenlaan 12',
+      klant_postcode: '2030',
+      klant_gemeente: 'Antwerpen',
+      sector: 'warmtepomp',
+      plan_datum: inHours(36),
+      technieker_naam: 'Stijn Verheyden',
+      geschatte_duur_uren: 3.5,
+      created_at: dayAgo(8),
+      last_status_change_at: dayAgo(2),
+      partner_id: 'flancco-id',
+      contract: { is_eenmalig: false, partner_id: 'flancco-id' }
+    },
+    {
+      id: '00000001-0000-0000-0000-000000000004',
+      referentie: 'BE-2026-0035',
+      status: 'uitgevoerd',
+      klant_naam: 'Brouwerij Mertens',
+      sector: 'ventilatie',
+      created_at: dayAgo(12),
+      last_status_change_at: dayAgo(3),
+      beurt_uren: [{ goedgekeurd_op: null }],
+      gefactureerd: false,
+      partner_id: 'novectra-id',
+      contract: { is_eenmalig: false, partner_id: 'novectra-id' }
+    },
+    {
+      id: '00000001-0000-0000-0000-000000000005',
+      referentie: 'BE-2026-0028',
+      status: 'uitgevoerd',
+      klant_naam: 'Carrefour Express Diepenbeek',
+      sector: 'zonnepanelen',
+      rapport: { id: 'r1' },
+      beurt_uren: [{ goedgekeurd_op: null }],
+      gefactureerd: false,
+      created_at: dayAgo(20),
+      last_status_change_at: dayAgo(10),
+      partner_id: 'cwsolar-id',
+      contract: { is_eenmalig: false, partner_id: 'cwsolar-id' }
+    },
+    {
+      id: '00000001-0000-0000-0000-000000000006',
+      referentie: 'BE-2026-0024',
+      status: 'uitgevoerd',
+      klant_naam: 'Garage Vermeer',
+      sector: 'hvac',
+      rapport: { id: 'r2' },
+      beurt_uren: [{ goedgekeurd_op: hourAgo(48) }],
+      gefactureerd: false,
+      created_at: dayAgo(40),
+      last_status_change_at: dayAgo(15),
+      partner_id: 'flancco-id',
+      contract: { is_eenmalig: false, partner_id: 'flancco-id' }
+    }
+  ];
+
+  var partnerSlaMap = new Map();
+  partnerSlaMap.set('novectra-id', { sla_fase_1_uren: 24 * 14, sla_fase_2_uren: 24 * 7, sla_fase_4_uren: 24 * 5, sla_fase_5_uren: 24 * 7 });
+  partnerSlaMap.set('flancco-id',  { sla_fase_1_uren: 24 * 21, sla_fase_2_uren: 24 * 7, sla_fase_4_uren: 24 * 5, sla_fase_5_uren: 24 * 7 });
+  partnerSlaMap.set('cwsolar-id',  { sla_fase_1_uren: 24 * 14, sla_fase_2_uren: 24 * 7, sla_fase_4_uren: 24 * 5, sla_fase_5_uren: 24 * 7 });
+
+  // --- Scenario 1: full page ---------------------------------------------
+  var pageEl = document.getElementById('page-1');
+  var page1 = window.FlanccoPipeline.attachPage(pageEl, {
+    mode: 'onderhoud',
+    initialRecords: mockRecords,
+    partnerSlaMap: partnerSlaMap,
+    onAction: function (actionKey, record) {
+      window.alert('Actie: ' + actionKey + '\nRecord: ' + record.referentie);
+    }
+  });
+
+  document.getElementById('mode-onderhoud').addEventListener('click', function () {
+    document.getElementById('mode-onderhoud').classList.add('active');
+    document.getElementById('mode-flancco').classList.remove('active');
+    page1.destroy();
+    page1 = window.FlanccoPipeline.attachPage(pageEl, {
+      mode: 'onderhoud',
+      initialRecords: mockRecords,
+      partnerSlaMap: partnerSlaMap,
+      onAction: function (k, r) { window.alert('Actie: ' + k + ' op ' + r.referentie); }
+    });
+  });
+  document.getElementById('mode-flancco').addEventListener('click', function () {
+    document.getElementById('mode-onderhoud').classList.remove('active');
+    document.getElementById('mode-flancco').classList.add('active');
+    page1.destroy();
+    page1 = window.FlanccoPipeline.attachPage(pageEl, {
+      mode: 'flancco',
+      initialRecords: mockRecords,
+      partnerSlaMap: partnerSlaMap,
+      onAction: function (k, r) { window.alert('Actie: ' + k + ' op ' + r.referentie); }
+    });
+  });
+  document.getElementById('toggle-handoff').addEventListener('click', function () {
+    document.body.classList.toggle('handoff-mode');
+    page1.refresh();
+  });
+
+  // --- Scenario 2: standalone dispatcher card ----------------------------
+  var card2Container = document.getElementById('card-2');
+  var breachRecord = {
+    id: 'demo-breach',
+    referentie: 'BE-2026-0001',
+    status: 'in_te_plannen',
+    klant_naam: 'Aannemer Jansens',
+    klant_telefoon: '+32 477 11 22 33',
+    klant_email: 'info@jansens.be',
+    klant_adres: 'Hoofdstraat 1',
+    klant_postcode: '3500',
+    klant_gemeente: 'Hasselt',
+    sector: 'zonnepanelen',
+    aantal_panelen: 30,
+    geschatte_duur_uren: 3,
+    last_status_change_at: new Date(now - 24 * 60 * 60 * 1000 * 35).toISOString(),
+    partner_id: 'novectra-id',
+    contract: { is_eenmalig: false, partner_id: 'novectra-id' }
+  };
+  breachRecord._fase = window.FlanccoPipeline.computeFase(breachRecord, 'onderhoud');
+  breachRecord._aging = window.FlanccoPipeline.computeAging(breachRecord, 24 * 14);
+  breachRecord._slaResult = window.FlanccoPipeline.computeSlaBreach(breachRecord, partnerSlaMap.get('novectra-id'));
+  card2Container.appendChild(window.FlanccoPipeline.renderDispatcherCard(breachRecord, 'onderhoud', {
+    onAction: function (k) { window.alert('Actie ' + k + ' (demo)'); }
+  }));
+
+  // --- Scenario 3: empty state -------------------------------------------
+  window.FlanccoPipeline.renderEmptyState(document.getElementById('empty-3'), 'rapportage', 'onderhoud');
+</script>
+
+</body>
+</html>
