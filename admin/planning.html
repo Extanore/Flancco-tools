@@ -685,6 +685,25 @@
       transparent 6px, transparent 12px
     );
   }
+  /* Collapse-knop op uitgeklapte (lege) weekend-kolom — laat user terug
+     dichtklappen zodra hij klaar is met de week te bekijken. Klein,
+     rechtsboven in de header zodat het niet de dag-label verdrukt. */
+  .week-grid th.weekend-col .weekend-collapse-btn {
+    position: absolute; top: 4px; right: 4px;
+    width: 20px; height: 20px; padding: 0;
+    border: 1px solid var(--rule);
+    background: var(--white); color: var(--grey);
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+    z-index: 1;
+  }
+  .week-grid th.weekend-col .weekend-collapse-btn:hover {
+    background: var(--navy); color: var(--white); border-color: var(--navy);
+  }
+  /* Header-cel relative-positioning zodat de absolute collapse-knop juist plaatst */
+  .week-grid th.weekend-col { position: relative; }
   .appt-card .appt-extra-techs { display: flex; gap: 3px; margin-top: 3px; }
   .extra-tech-badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -4885,6 +4904,16 @@ function expandWeekendCol(dayIndex) {
   renderView();
 }
 
+/**
+ * Klap een eerder uitgeklapte weekend-kolom terug dicht (alleen zinvol als de
+ * dag leeg is — anders verbergt de chevron-collapse-knop zich automatisch).
+ */
+function collapseWeekendCol(dayIndex) {
+  if (!window._weekendExpanded) window._weekendExpanded = {};
+  delete window._weekendExpanded[dayIndex];
+  renderView();
+}
+
 function goToday() {
   currentDate = new Date();
   renderView();
@@ -5236,7 +5265,18 @@ function renderWeekView() {
         '<div class="th-day-label">' + esc(dayNames[d]) + '</div>' +
         '</th>';
     } else {
+      // Collapse-knop alleen tonen wanneer user de lege weekenddag eerder
+      // expliciet heeft uitgeklapt (anders is dichtklappen niet zinvol — er
+      // staan taken op die niet verborgen mogen worden).
+      var showCollapseBtn = isWeekend && window._weekendExpanded && window._weekendExpanded[d];
+      var collapseBtnHtml = '';
+      if (showCollapseBtn) {
+        var collapseIcon = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        collapseBtnHtml = '<button type="button" class="weekend-collapse-btn" onclick="collapseWeekendCol(' + d + ')" ' +
+          'title="' + esc(dayNames[d]) + ' weer dichtklappen">' + collapseIcon + '</button>';
+      }
       html += '<th class="' + (cls + fdMarkup.thClass).trim() + '">' +
+        collapseBtnHtml +
         '<div class="th-day-label">' + dayNames[d] + ' ' + formatDate(dates[d]) + '</div>' +
         fdMarkup.markerHtml + '</th>';
     }
