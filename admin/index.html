@@ -23207,14 +23207,12 @@ async function renderFeestdagenPage() {
   // Laad rows (eerst keer of bij refresh) — met paginate-veiligheidslimiet
   if (!fdAllRows || fdAllRows.length === 0) {
     try {
-      // Schema-alignment (2026-04-29): tabel heeft enkel datum/naam/land/type/created_at.
-      // Geen `id`/`datum_eind`/`recurring` kolommen; PK = datum. Field-mapping:
-      //   - label  -> naam
-      //   - aangemaakt_op -> created_at
-      //   - id     -> datum (PK identity)
-      //   - datum_eind/recurring vervallen (renderer toont graceful '—').
+      // Schema (Slot K v2, applied 2026-04-29): id UUID PK, datum, datum_eind,
+      // label, type ('feestdag'|'sluitingsperiode'), recurring ('jaarlijks'|'eenmalig'),
+      // aangemaakt_door, aangemaakt_op, bijgewerkt_op. CHECK chk_sluitingsperiode_eind
+      // dwingt datum_eind NOT NULL af voor sluitingsperiode en NULL voor feestdag.
       var resp = await sb.from('feestdagen')
-        .select('datum, naam, land, type, created_at')
+        .select('id, datum, datum_eind, label, type, recurring, aangemaakt_op, aangemaakt_door')
         .order('datum', { ascending: true })
         .limit(2000);
       if (resp.error) {
@@ -23222,20 +23220,7 @@ async function renderFeestdagenPage() {
         if (empty) { empty.style.display = 'block'; empty.textContent = 'Laden mislukt: ' + resp.error.message; }
         return;
       }
-      // Normaliseer rij-shape naar UI-conventies (label/id/aangemaakt_op) zodat
-      // bestaande renderer + CRUD-handlers ongewijzigd blijven werken.
-      fdAllRows = (resp.data || []).map(function(r) {
-        return {
-          id: r.datum,                         // PK = datum -> stabiel id-veld voor delete/edit
-          datum: r.datum,
-          datum_eind: null,                    // niet aanwezig in schema -> renderer toont '—'
-          label: r.naam || '',                 // naam = oorspronkelijke 'label'
-          type: r.type || 'feestdag',
-          recurring: 'eenmalig',               // niet in schema -> default
-          aangemaakt_op: r.created_at,
-          land: r.land || 'BE'
-        };
-      });
+      fdAllRows = resp.data || [];
     } catch (e) {
       tbody.innerHTML = '';
       if (empty) { empty.style.display = 'block'; empty.textContent = 'Laden mislukt: ' + (e && e.message ? e.message : e); }
@@ -23376,35 +23361,23 @@ async function submitFeestdag() {
     if (datumEind < datum) { errEl.textContent = _fdT('err_eind_before_start'); errEl.style.display = 'block'; return; }
   }
 
-  // Schema-alignment: tabel heeft enkel datum/naam/land/type. CHECK-constraint
-  // op type accepteert ('wettelijk','sector','bedrijf') — geen 'feestdag'/'sluitingsperiode'.
-  // UI-types worden gemapt naar schema-types:
-  //   feestdag         -> wettelijk
-  //   sluitingsperiode -> bedrijf
-  var dbType = (type === 'sluitingsperiode') ? 'bedrijf' : 'wettelijk';
+  // Schema (Slot K v2): type ∈ {feestdag, sluitingsperiode}; recurring ∈ {jaarlijks, eenmalig};
+  // CHECK chk_sluitingsperiode_eind dwingt datum_eind NOT NULL voor sluitingsperiode
+  // en NULL voor feestdag. PK = id UUID -> UPDATE/DELETE op id, datum-wijziging
+  // is een gewone UPDATE (geen delete+insert nodig).
   var payload = {
     datum: datum,
-    naam: label,
-    land: 'BE',
-    type: dbType
+    label: label,
+    type: type,
+    recurring: recurring,
+    datum_eind: (type === 'sluitingsperiode') ? datumEind : null
   };
 
   btn.disabled = true; var oldLbl = btn.textContent; btn.textContent = 'Opslaan...';
   try {
     var resp;
     if (id) {
-      // PK = datum; gebruik virtuele id (= oorspronkelijke datum) voor lookup.
-      // Bij datumwijziging valt PK uit elkaar -> upsert-pattern via delete+insert.
-      if (id !== datum) {
-        var del = await sb.from('feestdagen').delete().eq('datum', id);
-        if (del.error) {
-          errEl.textContent = _fdT('err_save', { reason: del.error.message }); errEl.style.display = 'block';
-          return;
-        }
-        resp = await sb.from('feestdagen').insert(payload).select().single();
-      } else {
-        resp = await sb.from('feestdagen').update(payload).eq('datum', id).select().single();
-      }
+      resp = await sb.from('feestdagen').update(payload).eq('id', id).select().single();
     } else {
       resp = await sb.from('feestdagen').insert(payload).select().single();
     }
@@ -23412,15 +23385,15 @@ async function submitFeestdag() {
       errEl.textContent = _fdT('err_save', { reason: resp.error.message }); errEl.style.display = 'block';
       return;
     }
-    // Audit log (best-effort, niet blokkerend) — record_id = datum (PK).
+    // Audit log (best-effort, niet blokkerend) — record_id = UUID PK uit response
     try {
       if (typeof auditLog === 'function') {
-        await auditLog('feestdagen', resp.data && resp.data.datum ? resp.data.datum : datum, id ? 'update' : 'create', null, payload);
+        await auditLog('feestdagen', resp.data && resp.data.id ? resp.data.id : id, id ? 'update' : 'create', null, payload);
       }
     } catch (_) {}
     // Slot 0 event
     if (typeof window.flanccoTrack === 'function') {
-      try { window.flanccoTrack(id ? 'Feestdag Updated' : 'Feestdag Created', { type: type, recurring: payload.recurring }); } catch (_) {}
+      try { window.flanccoTrack(id ? 'Feestdag Updated' : 'Feestdag Created', { type: type, recurring: recurring }); } catch (_) {}
     }
     fdAllRows = []; // force reload
     closeFeestdagModal();
@@ -23455,8 +23428,8 @@ async function confirmDeleteFeestdag() {
   btn.disabled = true; var oldLbl = btn.textContent; btn.textContent = 'Verwijderen...';
   try {
     var row = fdAllRows.find(function(r) { return r.id === fdDeleteId; });
-    // PK = datum; virtual id is gelijk aan datum.
-    var resp = await sb.from('feestdagen').delete().eq('datum', fdDeleteId);
+    // Slot K v2: PK = id (UUID).
+    var resp = await sb.from('feestdagen').delete().eq('id', fdDeleteId);
     if (resp.error) {
       if (typeof showToast === 'function') showToast(_fdT('err_delete', { reason: resp.error.message }), 'error');
       return;
