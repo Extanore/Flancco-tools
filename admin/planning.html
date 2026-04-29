@@ -646,6 +646,45 @@
   .appt-card.has-cert-warning .appt-klant { padding-left: 18px; }
   /* Ook de ref-row links inrukken zodat ref-chip niet over cert-warning-icon valt */
   .appt-card.has-cert-warning .appt-ref-row { padding-left: 18px; }
+
+  /* Auto-collapse leeg weekend in week-view: smalle kolom met chevron-knop
+     om expliciet uit te klappen. Bespaart horizontale ruimte voor de
+     werkdagen wanneer er niets op zaterdag/zondag gepland is. */
+  .week-grid th.weekend-collapsed,
+  .week-grid td.weekend-collapsed {
+    width: 38px;
+    min-width: 38px;
+    max-width: 38px;
+    padding: 4px 2px;
+    background: linear-gradient(135deg, var(--light) 0%, #FAFBFC 100%);
+    text-align: center;
+  }
+  .week-grid th.weekend-collapsed { vertical-align: middle; }
+  .week-grid th.weekend-collapsed .th-day-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 10px;
+    color: var(--grey);
+    letter-spacing: 0.5px;
+    margin: 4px auto;
+  }
+  .week-grid th.weekend-collapsed .weekend-expand-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    padding: 0; border: 1px solid var(--rule);
+    background: var(--white); border-radius: 50%;
+    cursor: pointer; color: var(--grey);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .week-grid th.weekend-collapsed .weekend-expand-btn:hover {
+    background: var(--navy); color: var(--white); border-color: var(--navy);
+  }
+  .week-grid td.weekend-collapsed {
+    background: repeating-linear-gradient(
+      45deg, var(--light) 0px, var(--light) 6px,
+      transparent 6px, transparent 12px
+    );
+  }
   .appt-card .appt-extra-techs { display: flex; gap: 3px; margin-top: 3px; }
   .extra-tech-badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -4796,6 +4835,8 @@ function prevPeriod() {
   } else {
     currentDate.setMonth(currentDate.getMonth() - 1);
   }
+  // Reset weekend-expand state per nieuwe week — collapsed-default voor lege dagen
+  window._weekendExpanded = {};
   renderView();
 }
 
@@ -4806,6 +4847,41 @@ function nextPeriod() {
   } else {
     currentDate.setMonth(currentDate.getMonth() + 1);
   }
+  window._weekendExpanded = {};
+  renderView();
+}
+
+/**
+ * Bepaalt of een datum "leeg" is (geen actieve beurten of interventies voor
+ * enige technieker). Wordt gebruikt door de week-view om zaterdag/zondag
+ * automatisch dicht te vouwen wanneer er niets op staat.
+ */
+function isDayEmpty(dateISO) {
+  if (!dateISO) return true;
+  // Check beurten
+  var hasBeurt = (window.allBeurten || []).some(function(b) {
+    if (!b || b.verwijderd_op) return false;
+    if (b.status !== 'ingepland' && b.status !== 'uitgevoerd' && b.status !== 'afgewerkt') return false;
+    if (typeof isBeurtOnDay === 'function') return isBeurtOnDay(b, dateISO);
+    return false;
+  });
+  if (hasBeurt) return false;
+  // Check interventies
+  var hasInterv = (window.allInterventies || []).some(function(iv) {
+    if (!iv) return false;
+    return iv.plan_datum === dateISO &&
+      (iv.status === 'gepland' || iv.status === 'open' || iv.status === 'in_uitvoering');
+  });
+  return !hasInterv;
+}
+
+/**
+ * Klik-handler voor de chevron-knop op een dichtgevouwen weekend-kolom.
+ * Slaat expand-state op in window._weekendExpanded en triggert re-render.
+ */
+function expandWeekendCol(dayIndex) {
+  if (!window._weekendExpanded) window._weekendExpanded = {};
+  window._weekendExpanded[dayIndex] = true;
   renderView();
 }
 
@@ -5126,6 +5202,17 @@ function renderWeekView() {
 
   var techniekers = getFilteredTechniekers();
 
+  // Auto-collapse logica voor zaterdag (d=5) en zondag (d=6): wanneer een
+  // weekend-dag geen actieve beurten of interventies heeft, vouwen we de kolom
+  // dicht tot 38px met expand-knop. User kan de kolom expliciet uitklappen via
+  // de chevron \u2014 state in window._weekendExpanded blijft tot week-navigatie.
+  if (!window._weekendExpanded) window._weekendExpanded = {};
+  var weekendCollapsed = { 5: false, 6: false };
+  [5, 6].forEach(function(d) {
+    if (window._weekendExpanded[d]) return; // gebruiker heeft expliciet open geklikt
+    weekendCollapsed[d] = isDayEmpty(formatDateISO(dates[d]));
+  });
+
   // Slot K — sluitingsperiode-banner bovenaan week
   var weekStartISO = formatDateISO(dates[0]);
   var weekEndISO = formatDateISO(dates[6]);
@@ -5136,13 +5223,23 @@ function renderWeekView() {
   for (var d = 0; d < 7; d++) {
     var isToday = isSameDay(dates[d], today);
     var isWeekend = d >= 5; // 5=Za, 6=Zo
-    var cls = (isToday ? 'today-col' : '') + (isWeekend ? ' weekend-col' : '');
+    var isCollapsed = !!weekendCollapsed[d];
+    var cls = (isToday ? 'today-col' : '') + (isWeekend ? ' weekend-col' : '') + (isCollapsed ? ' weekend-collapsed' : '');
     // Slot K — feestdag/sluiting-marker in dag-header
     var fdMarkup = (typeof getFeestdagHeaderMarkup === 'function')
       ? getFeestdagHeaderMarkup(formatDateISO(dates[d])) : { thClass: '', markerHtml: '' };
-    html += '<th class="' + (cls + fdMarkup.thClass).trim() + '">' +
-      '<div class="th-day-label">' + dayNames[d] + ' ' + formatDate(dates[d]) + '</div>' +
-      fdMarkup.markerHtml + '</th>';
+    if (isCollapsed) {
+      var expandIcon = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      html += '<th class="' + (cls + fdMarkup.thClass).trim() + '">' +
+        '<button type="button" class="weekend-expand-btn" onclick="expandWeekendCol(' + d + ')" ' +
+          'title="' + esc(dayNames[d]) + ' uitklappen — geen taken ingepland">' + expandIcon + '</button>' +
+        '<div class="th-day-label">' + esc(dayNames[d]) + '</div>' +
+        '</th>';
+    } else {
+      html += '<th class="' + (cls + fdMarkup.thClass).trim() + '">' +
+        '<div class="th-day-label">' + dayNames[d] + ' ' + formatDate(dates[d]) + '</div>' +
+        fdMarkup.markerHtml + '</th>';
+    }
   }
   html += '</tr></thead><tbody>';
 
@@ -5195,6 +5292,13 @@ function renderWeekView() {
       var isWeekend = d >= 5;
       var weekendCls = isWeekend ? ' weekend-col' : '';
       var absent = isTechAbsent(tech.id, dates[d]);
+
+      // Auto-collapsed weekend-dag: smalle lege td zonder drop-handler.
+      // Klik op header expandeert; dan komt deze cel weer normaal terug.
+      if (weekendCollapsed[d]) {
+        html += '<td class="weekend-collapsed' + (isToday ? ' today-col' : '') + '" aria-hidden="true"></td>';
+        continue;
+      }
 
       if (absent) {
         // C5: Verloftypes met kleur + diagonal stripe overlay (verloftype-kleur)
