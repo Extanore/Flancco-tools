@@ -55,7 +55,85 @@
     { key: '>30d',   minD: 30, maxD: Infinity,  label: '> 30 dagen',    color: 'red'    }
   ];
 
+  /**
+   * Prefilter-mapping voor de "Pipeline-status vandaag" dashboard-tegel.
+   * Mapping van bucket-key → (a) optionele auto-fase, (b) predicate, (c) label.
+   * Caller (admin/index.html) leest typically uit `localStorage.flancco_pipeline_prefilter`
+   * en geeft door via `attachPage(wrapperEl, { initialBucketFilter: 'sla_breach' })`.
+   */
+  var PREFILTER_KEYS = ['sla_breach', 'overdue', 'vandaag_plan', 'vandaag_uitvoering', 'wacht_rapport'];
+
+  var PREFILTER_TO_FASE = {
+    sla_breach:          null,                 // geen specifieke fase, filter cross-fase
+    overdue:             'in_te_plannen',
+    vandaag_plan:        'ingepland',
+    vandaag_uitvoering:  'uitgevoerd',
+    wacht_rapport:       'rapportage'
+  };
+
+  var PREFILTER_LABEL = {
+    sla_breach:          'SLA-breach',
+    overdue:             'Overdue (in te plannen >7d)',
+    vandaag_plan:        'Vandaag plan-datum',
+    vandaag_uitvoering:  'Vandaag uitvoering',
+    wacht_rapport:       'Wacht op rapport'
+  };
+
+  /**
+   * Predicate-functies per prefilter-key. Krijgen `(record, ctx)` waarbij
+   * ctx.partnerSlaMap een Map<partner_id, slaConfig> is en ctx.todayIso de
+   * iso-datum van vandaag (YYYY-MM-DD) — eenmaal pre-computed per render.
+   */
+  var PREFILTER_PREDICATE = {
+    sla_breach: function (record, ctx) {
+      if (!record) return false;
+      var slaMap = ctx && ctx.partnerSlaMap;
+      if (!slaMap || typeof slaMap.get !== 'function') return false;
+      var pid = record.partner_id || (record.contract && record.contract.partner_id);
+      if (!pid) return false;
+      var partnerSla = slaMap.get(pid);
+      if (!partnerSla) return false;
+      var sla = computeSlaBreach(record, partnerSla);
+      return !!(sla && sla.isBreach);
+    },
+    overdue: function (record, ctx) {
+      if (!record || record._fase !== 'in_te_plannen') return false;
+      var aging = (record._aging) ? record._aging : computeAging(record);
+      return aging.agingDagen > 7;
+    },
+    vandaag_plan: function (record, ctx) {
+      if (!record || record._fase !== 'ingepland') return false;
+      return safeIsoDate(record.plan_datum) === ctx.todayIso;
+    },
+    vandaag_uitvoering: function (record, ctx) {
+      if (!record || record._fase !== 'uitgevoerd') return false;
+      return safeIsoDate(record.plan_datum) === ctx.todayIso;
+    },
+    wacht_rapport: function (record) {
+      return !!(record && record._fase === 'rapportage');
+    }
+  };
+
   // ------ Utilities ----------------------------------------------------------
+
+  /**
+   * Coerce een Date / ISO-string / 'YYYY-MM-DD' naar een 'YYYY-MM-DD' string.
+   * Returnt '' indien niet parseerbaar. Local-tz om consistent te zijn met
+   * `plan_datum`-velden die als DATE in PG zonder tijd worden opgeslagen.
+   */
+  function safeIsoDate(value) {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      // Snelle check: 'YYYY-MM-DD' prefix.
+      if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+    }
+    var d = (value instanceof Date) ? value : new Date(value);
+    if (isNaN(d.getTime())) return '';
+    var yyyy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
 
   /** Defensive string coercion. */
   function safeStr(v) {
@@ -870,6 +948,20 @@
     this._searchDebounce = null;
     this._channel = null;
 
+    // Slot V/W dashboard-tegel prefilter. Whitelist op PREFILTER_KEYS;
+    // onbekende waarden worden silently genegeerd zodat caller nooit hoeft
+    // te valideren (defensief — typisch komt input uit localStorage).
+    var rawPrefilter = (opts.initialBucketFilter == null) ? null : String(opts.initialBucketFilter);
+    this._prefilter = (rawPrefilter && PREFILTER_KEYS.indexOf(rawPrefilter) !== -1) ? rawPrefilter : null;
+
+    // Activeer mapped fase indien prefilter een fase impliceert.
+    if (this._prefilter) {
+      var mappedFase = PREFILTER_TO_FASE[this._prefilter];
+      if (mappedFase && FASE_KEYS.indexOf(mappedFase) !== -1) {
+        this._activeFase = mappedFase;
+      }
+    }
+
     this._build();
     this._render();
 
@@ -893,6 +985,20 @@
     handoffSlot.setAttribute('data-slot', 'handoff-banner');
     handoffSlot.className = 'flp-slot flp-slot--handoff-banner flp-handoff-banner-slot';
     w.appendChild(handoffSlot);
+
+    // Prefilter-banner host. Hidden tot _render() bepaalt of er een prefilter actief is.
+    var prefilterBanner = makeEl('div', 'flp-prefilter-banner');
+    prefilterBanner.setAttribute('role', 'status');
+    prefilterBanner.hidden = true;
+    var prefilterLabel = makeEl('span', 'flp-prefilter-banner__label');
+    var prefilterClear = document.createElement('button');
+    prefilterClear.type = 'button';
+    prefilterClear.className = 'flp-prefilter-banner__clear';
+    prefilterClear.setAttribute('aria-label', 'Prefilter wissen');
+    prefilterClear.textContent = '×';
+    prefilterBanner.appendChild(prefilterLabel);
+    prefilterBanner.appendChild(prefilterClear);
+    w.appendChild(prefilterBanner);
 
     var toolbar = makeEl('div', 'flp-toolbar');
 
@@ -935,6 +1041,9 @@
     this._cardList = cardList;
     this._searchInput = searchInput;
     this._live = live;
+    this._prefilterBanner = prefilterBanner;
+    this._prefilterLabel = prefilterLabel;
+    this._prefilterClear = prefilterClear;
 
     var self = this;
     searchInput.addEventListener('input', function () {
@@ -943,6 +1052,10 @@
         self._searchQuery = safeTrim(searchInput.value);
         self._render();
       }, SEARCH_DEBOUNCE_MS);
+    });
+
+    prefilterClear.addEventListener('click', function () {
+      self._setPrefilter(null);
     });
   };
 
@@ -1017,7 +1130,12 @@
       onChange: function (key) { self._setActiveFase(key); }
     });
 
-    // Records voor actieve fase.
+    // Pre-filter banner (Slot V/W dashboard-tegel pre-filter).
+    this._renderPrefilterBanner();
+
+    // Records voor actieve fase. Wanneer prefilter='sla_breach' is er geen
+    // mapped fase — dan tonen we cross-fase en laten we de tab puur als
+    // visuele context staan (gebruiker kan nog steeds tab wisselen).
     var faseRecords = enriched.filter(function (r) { return r._fase === self._activeFase; });
 
     renderAgingStrip(this._agingStrip, {
@@ -1027,8 +1145,28 @@
       onBucketFilter: function (bucket) { self._setBucketFilter(bucket); }
     });
 
-    // Apply bucket filter + search.
-    var displayed = faseRecords.filter(function (r) {
+    // Pre-compute prefilter ctx (todayIso + slaMap) — eenmaal per render.
+    var prefilterCtx = null;
+    var prefilterPredicate = null;
+    if (this._prefilter) {
+      prefilterCtx = {
+        partnerSlaMap: this._partnerSlaMap,
+        todayIso: safeIsoDate(new Date())
+      };
+      prefilterPredicate = PREFILTER_PREDICATE[this._prefilter] || null;
+    }
+
+    // sla_breach filtert cross-fase op de volledige enriched-set; de andere
+    // prefilters mappen 1-op-1 op een fase, dus blijven binnen faseRecords.
+    var basePool = (this._prefilter === 'sla_breach') ? enriched : faseRecords;
+
+    // Apply prefilter + bucket filter + search.
+    var displayed = basePool.filter(function (r) {
+      if (prefilterPredicate) {
+        try {
+          if (!prefilterPredicate(r, prefilterCtx)) return false;
+        } catch (e) { return false; }
+      }
       if (self._activeBucket && r._aging && r._aging.bucket !== self._activeBucket) return false;
       if (self._searchQuery) {
         var hay = normalize([
@@ -1046,7 +1184,8 @@
     this._renderList(displayed);
 
     if (this._live) {
-      this._live.textContent = displayed.length + ' record' + (displayed.length === 1 ? '' : 's') + ' in ' + this._activeFase;
+      var liveSuffix = this._prefilter ? ' (prefilter: ' + (PREFILTER_LABEL[this._prefilter] || this._prefilter) + ')' : '';
+      this._live.textContent = displayed.length + ' record' + (displayed.length === 1 ? '' : 's') + ' in ' + this._activeFase + liveSuffix;
     }
 
     // Hand-off-mode visual cue.
@@ -1055,6 +1194,23 @@
     } else {
       this._wrapper.classList.remove('flp-page--handoff');
     }
+  };
+
+  /** Toon/verberg prefilter-banner op basis van `this._prefilter`. */
+  PipelinePage.prototype._renderPrefilterBanner = function () {
+    var banner = this._prefilterBanner;
+    var label = this._prefilterLabel;
+    if (!banner || !label) return;
+    if (!this._prefilter) {
+      banner.hidden = true;
+      banner.removeAttribute('data-prefilter');
+      label.textContent = '';
+      return;
+    }
+    var displayLabel = PREFILTER_LABEL[this._prefilter] || this._prefilter;
+    banner.hidden = false;
+    banner.setAttribute('data-prefilter', this._prefilter);
+    label.textContent = 'Prefilter: ' + displayLabel;
   };
 
   PipelinePage.prototype._renderList = function (records) {
@@ -1094,11 +1250,38 @@
     if (this._activeFase === key) return;
     this._activeFase = key;
     this._activeBucket = null;
+    // Wanneer er een fase-gebonden prefilter actief is en gebruiker switcht
+    // weg van die fase, clear prefilter (cross-fase 'sla_breach' blijft staan).
+    if (this._prefilter && this._prefilter !== 'sla_breach') {
+      var mapped = PREFILTER_TO_FASE[this._prefilter];
+      if (mapped && mapped !== key) {
+        this._prefilter = null;
+      }
+    }
     this._render();
   };
 
   PipelinePage.prototype._setBucketFilter = function (bucket) {
     this._activeBucket = bucket;
+    this._render();
+  };
+
+  /**
+   * Mute prefilter-state. `null` clears.
+   * Bij set: activeert mapped fase (indien aanwezig) zoals constructor doet.
+   */
+  PipelinePage.prototype._setPrefilter = function (key) {
+    var next = (key && PREFILTER_KEYS.indexOf(String(key)) !== -1) ? String(key) : null;
+    if (this._prefilter === next) return;
+    this._prefilter = next;
+    if (next) {
+      var mappedFase = PREFILTER_TO_FASE[next];
+      if (mappedFase && FASE_KEYS.indexOf(mappedFase) !== -1) {
+        this._activeFase = mappedFase;
+      }
+    }
+    // Clear bucket-filter zodat prefilter niet onverwacht door bucket wordt gemaskt.
+    this._activeBucket = null;
     this._render();
   };
 
@@ -1169,6 +1352,15 @@
     this._setBucketFilter(bucket);
   };
 
+  /**
+   * Set or clear de "Pipeline-status vandaag" prefilter post-mount.
+   * @param {string|null} key Een van PREFILTER_KEYS, of null om te wissen.
+   */
+  PipelinePage.prototype.setPrefilter = function (key) {
+    if (this._destroyed) return;
+    this._setPrefilter(key);
+  };
+
   PipelinePage.prototype.refresh = function () {
     if (this._destroyed) return;
     this._render();
@@ -1194,6 +1386,9 @@
     this._cardList = null;
     this._searchInput = null;
     this._live = null;
+    this._prefilterBanner = null;
+    this._prefilterLabel = null;
+    this._prefilterClear = null;
     this._supabase = null;
     this._dataFilter = null;
     this._onAction = null;
@@ -1210,7 +1405,26 @@
     computeAging: computeAging,
     /** Compute SLA-breach status for a single record. */
     computeSlaBreach: computeSlaBreach,
-    /** Render top-level pipeline-page (returns instance). */
+    /**
+     * Render top-level pipeline-page (returns instance).
+     *
+     * @param {HTMLElement} wrapperEl
+     * @param {Object} opts
+     * @param {('onderhoud'|'flancco')} [opts.mode]
+     * @param {Object} [opts.supabase]                 Supabase client voor optionele realtime-subscribe.
+     * @param {Function} [opts.dataFilter]             (record) => bool — caller-side filter.
+     * @param {Function} [opts.onAction]               (actionKey, record, btnEl) => void.
+     * @param {Map} [opts.partnerSlaMap]               Map<partner_id, {sla_fase_X_uren}>.
+     * @param {Array} [opts.initialRecords]            Initiële record-set.
+     * @param {string} [opts.realtimeTable]            Tabelnaam voor postgres_changes.
+     * @param {('sla_breach'|'overdue'|'vandaag_plan'|'vandaag_uitvoering'|'wacht_rapport')} [opts.initialBucketFilter]
+     *   Wanneer aanwezig: opent pipeline met die filter pre-applied + visuele banner met clear-knop.
+     *   Caller leest typically uit `localStorage.flancco_pipeline_prefilter` en clear na consume.
+     *   Mapping: 'overdue' → fase 'in_te_plannen' (>7d), 'vandaag_plan' → 'ingepland' op vandaag,
+     *   'vandaag_uitvoering' → 'uitgevoerd' op vandaag, 'wacht_rapport' → 'rapportage'.
+     *   'sla_breach' is cross-fase (geen auto-tab) en filtert obv `partnerSlaMap`.
+     * @returns {Object} { setRecords, setActiveFase, setBucketFilter, setPrefilter, refresh, destroy }
+     */
     attachPage: function (wrapperEl, opts) { return new PipelinePage(wrapperEl, opts); },
     /** Render a tab-bar standalone (e.g. for embedded views). */
     renderTabBar: renderTabBar,
@@ -1244,14 +1458,16 @@
  *  FlanccoPipeline.computeSlaBreach(record, slaCfg) -> {isBreach, breachUren, slaUrenLimit}
  *
  *  FlanccoPipeline.attachPage(wrapperEl, {
- *    mode:           'onderhoud' | 'flancco',
- *    supabase:       supabase-client (optional, voor realtime),
- *    dataFilter:     (record) => bool,
- *    onAction:       (actionKey, record, btnEl) => void,
- *    partnerSlaMap:  Map<partner_id, {sla_fase_1_uren, ...}>,
- *    initialRecords: Array,
- *    realtimeTable:  string (optional, voor postgres_changes subscribe)
- *  }) -> { setRecords, setActiveFase, setBucketFilter, refresh, destroy }
+ *    mode:                'onderhoud' | 'flancco',
+ *    supabase:            supabase-client (optional, voor realtime),
+ *    dataFilter:          (record) => bool,
+ *    onAction:            (actionKey, record, btnEl) => void,
+ *    partnerSlaMap:       Map<partner_id, {sla_fase_1_uren, ...}>,
+ *    initialRecords:      Array,
+ *    realtimeTable:       string (optional, voor postgres_changes subscribe),
+ *    initialBucketFilter: 'sla_breach'|'overdue'|'vandaag_plan'|'vandaag_uitvoering'|'wacht_rapport'
+ *                         (optional — opent met dashboard-tegel pre-filter + banner)
+ *  }) -> { setRecords, setActiveFase, setBucketFilter, setPrefilter, refresh, destroy }
  *
  *  FlanccoPipeline.renderTabBar(container, {tabs, activeKey, counts, onChange})
  *  FlanccoPipeline.renderAgingStrip(container, {records, slaConfig, activeBucket, onBucketFilter})

@@ -961,9 +961,13 @@
         .eq('id', clientId)
         .maybeSingle();
 
+      // Schema-noot: onderhoudsbeurten heeft GEEN `totaal_excl_btw` of `uren` kolom.
+      // Voor "gem. uurtarief" gebruiken we `beurt_uren_registraties.uurtarief_facturatie_snapshot`
+      // (de daadwerkelijk gefactureerde tariefsnapshot per technieker per dag).
+      // PostgREST embedded select levert per beurt een geneste lijst van uren-rijen.
       var p2 = supabase
         .from('onderhoudsbeurten')
-        .select('plan_datum, totaal_excl_btw, uren')
+        .select('plan_datum, beurt_uren_registraties(uurtarief_facturatie_snapshot)')
         .eq('client_id', clientId)
         .in('status', ['uitgevoerd', 'afgewerkt'])
         .order('plan_datum', { ascending: false })
@@ -975,16 +979,22 @@
 
         var beurten = (results[1] && results[1].data) || [];
         var count = beurten.length;
-        var bedragen = [];
+        // Gemiddeld uurtarief over alle uren-rijen van alle beurten (gewogen op aantal rijen,
+        // d.w.z. per technieker-dag — geen gewogen op uren omdat duur GENERATED is en niet
+        // mee-geselecteerd hier; dit blijft een snelle indicatie voor planner-context).
+        var tarieven = [];
         for (var i = 0; i < beurten.length; i++) {
-          var v = beurten[i].totaal_excl_btw;
-          if (v != null && isFinite(Number(v))) bedragen.push(Number(v));
+          var urenRijen = beurten[i].beurt_uren_registraties || [];
+          for (var u = 0; u < urenRijen.length; u++) {
+            var t = urenRijen[u].uurtarief_facturatie_snapshot;
+            if (t != null && isFinite(Number(t))) tarieven.push(Number(t));
+          }
         }
         var gem = null;
-        if (bedragen.length) {
+        if (tarieven.length) {
           var sum = 0;
-          for (var k = 0; k < bedragen.length; k++) sum += bedragen[k];
-          gem = sum / bedragen.length;
+          for (var k = 0; k < tarieven.length; k++) sum += tarieven[k];
+          gem = sum / tarieven.length;
         }
         var lastDates = [];
         for (var j = 0; j < beurten.length && lastDates.length < 3; j++) {
