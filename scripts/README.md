@@ -15,8 +15,26 @@ Statische cross-check: vangt **kolomnaam-mismatches** tussen frontend-code en de
 
 1. Scant `admin/*.html` en `admin/shared/*.js` op alle Supabase `.from('table').select(...)`-patterns.
 2. Parseert tabel-naam + alle geselecteerde kolommen — inclusief embedded relations zoals `uren:beurt_uren_registraties(id, eindprijs)`, alias-prefixes, JSON-paths (`->`), modifiers (`!inner`) en casts (`::text`).
-3. Cross-checkt elke `(table, col)`-paar tegen `information_schema.columns` van het live schema.
-4. Rapporteert mismatches (incl. "did you mean?"-suggesties via Levenshtein-distance), unknown tables en — in debug-mode — dynamic selects die geskipt zijn.
+3. Cross-checkt elke `(table, col)`-paar tegen `information_schema.columns` van het live schema. **Views, materialized views, partitioned tables en foreign tables** worden volledig ondersteund — `information_schema.columns` dekt ze allemaal, met `pg_class` als fallback voor edge-cases (zie hieronder).
+4. Rapporteert in drie buckets:
+   - **Mismatches** (FAIL): kolom genoemd in code maar niet in DB — incl. "did you mean?"-suggesties via Levenshtein-distance.
+   - **Missing tables/views** (FAIL): tabel/view bestaat überhaupt niet in `pg_class` — typo of dead code.
+   - **Schema-less relations** (INFO): tabel/view bestaat in `pg_class` maar leverde geen kolom-rijen op (bv. role-permission issue, niet-toegankelijke view) — col-check geskipt, maar geen CI-fail.
+5. In debug-mode: ook dynamic selects die geskipt zijn (template-literals).
+
+### Hoe views & materialized views worden behandeld
+
+| Type relation                                  | `information_schema.columns` heeft kolommen? | `pg_class` zichtbaar? | Categorie     | Behandeling                  |
+| ---------------------------------------------- | -------------------------------------------- | --------------------- | ------------- | ---------------------------- |
+| BASE TABLE                                     | ja                                           | ja (`r`)              | Schema        | Volledig col-check           |
+| VIEW                                           | ja                                           | ja (`v`)              | Schema        | Volledig col-check           |
+| MATERIALIZED VIEW                              | ja                                           | ja (`m`)              | Schema        | Volledig col-check           |
+| Partitioned table                              | ja                                           | ja (`p`)              | Schema        | Volledig col-check           |
+| Foreign table                                  | meestal ja                                   | ja (`f`)              | Schema        | Volledig col-check           |
+| View die niet zichtbaar is voor huidige role   | nee                                          | ja                    | Schema-less   | Info-only, geen CI-fail      |
+| Tabel/view die niet bestaat                    | nee                                          | nee                   | Missing       | FAIL met did-you-mean        |
+
+> **CI-credentials note** : gebruik een DB-user die SELECT-rechten heeft op alle public tables/views. Een `read_only` role met expliciete grants levert de meest accurate signal — een role zonder SELECT op een view valt in de "schema-less" categorie en wordt info-only gerapporteerd.
 
 ### Setup
 
@@ -58,11 +76,11 @@ node scripts/check-supabase-columns.mjs
 
 #### Exit codes
 
-| Code | Betekenis                                              |
-| ---- | ------------------------------------------------------ |
-| `0`  | Geen mismatches                                        |
-| `1`  | Mismatches gevonden (CI fail)                          |
-| `2`  | Setup-fout: env-var ontbreekt, db-connect fout, etc.   |
+| Code | Betekenis                                                                       |
+| ---- | ------------------------------------------------------------------------------- |
+| `0`  | Geen mismatches en geen missing tables (schema-less relations zijn info-only)   |
+| `1`  | Mismatches **of** missing tables/views gevonden (CI fail)                       |
+| `2`  | Setup-fout: env-var ontbreekt, db-connect fout, etc.                            |
 
 ### Inline-ignore
 
@@ -117,6 +135,8 @@ Het script is een statische analyse zonder JS-execution. Volgende patterns worde
 - **Constant-folded select-strings**: `const SELECT = 'id, naam'; sb.from('x').select(SELECT)` → tweede arg is variabele, niet literal. Workaround: inline literaal of gebruik ignore-marker.
 - **Computed column refs in `.eq('col', ...)`-filters**: niet binnen scope (script controleert alléén `.select()`-args).
 - **Generated columns / views met RLS-row-filters**: geen probleem — het script leest gewoon `information_schema.columns` voor zowel tabellen als views.
+- **Views met `security_invoker=on` zonder SELECT-grant voor de CI-role**: vallen in de "schema-less" categorie (info-only) — col-check wordt overgeslagen. Fix: grant SELECT aan de CI-role, of gebruik service-role connection voor het schema-fetch step.
+- **Views/tabellen die in CLAUDE.md gedocumenteerd staan maar nog niet via een migration zijn aangemaakt**: vallen in de "missing tables" categorie (FAIL). Dit is *correct* gedrag — het script meldt zo dat de migration nog niet applied is, of dat de code een typo bevat.
 
 ### Maintenance
 
