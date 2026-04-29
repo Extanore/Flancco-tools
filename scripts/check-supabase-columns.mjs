@@ -18,9 +18,15 @@
  *     --debug        toon parser-output per file
  *
  * EXIT CODES
- *   0  geen issues
- *   1  mismatches gevonden (CI fail)
+ *   0  geen issues (info-only schema-less relations zijn OK)
+ *   1  mismatches OF missing tables/views gevonden (CI fail)
  *   2  setup-fout (env-var ontbreekt, db-fail, etc.)
+ *
+ * SCHEMA-BRONNEN
+ *   Primary  : information_schema.columns — dekt tables, views, materialized views
+ *   Fallback : pg_class — disambigueert "view zonder col-data" vs "echt missing"
+ *              zodat we een view (geldig maar zonder zichtbare columns) niet als
+ *              typo flaggen.
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -453,29 +459,62 @@ async function fetchSchema() {
     process.exit(2);
   }
 
-  const sql = `
+  // Primaire schema-bron: information_schema.columns dekt zowel BASE TABLEs als
+  // VIEWs (en MATERIALIZED VIEWs). Goed voor 99% van de gevallen.
+  const sqlCols = `
     SELECT table_name, column_name
     FROM information_schema.columns
     WHERE table_schema = 'public'
     ORDER BY table_name, ordinal_position
   `;
-  const { rows } = await client.query(sql);
+  const { rows: colRows } = await client.query(sqlCols);
+
+  // Fallback-bron: pg_class dekt édge-cases waar information_schema entries mist
+  // (bv. views met security_invoker waar de huidige role geen SELECT op heeft, of
+  // foreign tables). We gebruiken dit *uitsluitend* om "table exists maar zonder
+  // kolom-data" te onderscheiden van "table bestaat überhaupt niet" — wat het
+  // verschil maakt tussen een echte typo (mismatch) en een schema-toegangsprobleem.
+  // relkind: r=table, v=view, m=materialized view, p=partitioned table, f=foreign.
+  const sqlRelations = `
+    SELECT c.relname AS name, c.relkind AS kind
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind IN ('r', 'v', 'm', 'p', 'f')
+  `;
+  const { rows: relRows } = await client.query(sqlRelations);
+
   await client.end();
 
   const schema = new Map();
-  for (const r of rows) {
+  for (const r of colRows) {
     if (!schema.has(r.table_name)) schema.set(r.table_name, new Set());
     schema.get(r.table_name).add(r.column_name);
   }
-  return schema;
+
+  // Map relname → kind ('r'|'v'|'m'|'p'|'f') voor relations zonder column-data.
+  const relations = new Map();
+  for (const r of relRows) {
+    relations.set(r.name, r.kind);
+  }
+
+  return { schema, relations };
 }
+
+const RELKIND_LABELS = {
+  r: 'table',
+  v: 'view',
+  m: 'materialized view',
+  p: 'partitioned table',
+  f: 'foreign table',
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reporting
 // ─────────────────────────────────────────────────────────────────────────────
 
 function formatHuman(report) {
-  const { mismatches, unknownTables, dynamicSelects, summary } = report;
+  const { mismatches, missingTables, schemaLessRelations, dynamicSelects, summary } = report;
 
   const C = {
     red: (s) => process.stdout.isTTY ? `\x1b[31m${s}\x1b[0m` : s,
@@ -483,18 +522,20 @@ function formatHuman(report) {
     green: (s) => process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s,
     dim: (s) => process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s,
     bold: (s) => process.stdout.isTTY ? `\x1b[1m${s}\x1b[0m` : s,
+    blue: (s) => process.stdout.isTTY ? `\x1b[34m${s}\x1b[0m` : s,
   };
 
   const lines = [];
   lines.push('');
   lines.push(C.bold('Supabase column-check'));
   lines.push(C.dim('─'.repeat(60)));
-  lines.push(`Schema      : ${summary.tableCount} tabellen, ${summary.columnCount} kolommen`);
+  lines.push(`Schema      : ${summary.tableCount} tabellen-met-kolommen, ${summary.columnCount} kolommen, ${summary.relationCount} relations totaal (incl. views/foreign)`);
   lines.push(`Files       : ${summary.fileCount}`);
   lines.push(`Selects     : ${summary.selectCount} (${summary.uniqueColumnRefCount} unique col-refs)`);
   lines.push('');
 
-  if (mismatches.length === 0 && unknownTables.length === 0) {
+  const isClean = mismatches.length === 0 && missingTables.length === 0 && schemaLessRelations.length === 0;
+  if (isClean) {
     lines.push(C.green('✓ Alle kolom-referenties matchen het live schema.'));
   }
 
@@ -514,11 +555,26 @@ function formatHuman(report) {
     }
   }
 
-  if (unknownTables.length > 0) {
-    lines.push(C.yellow(`⚠ ${unknownTables.length} unknown table reference(s) (skipped):`));
-    for (const u of unknownTables) {
+  if (missingTables.length > 0) {
+    lines.push(C.red(`✗ ${missingTables.length} missing table/view(s) — bestaat niet in DB (mogelijk typo of dead code):`));
+    lines.push('');
+    for (const u of missingTables) {
       const rel = relative(REPO_ROOT, u.file);
-      lines.push(`  ${C.dim(rel + ':' + u.line)} → ${u.table}`);
+      lines.push(`  ${C.red(u.table)}`);
+      lines.push(`    ${C.dim(rel + ':' + u.line)}`);
+      const candidates = u.candidates || [];
+      if (candidates.length > 0) {
+        lines.push(`    ${C.yellow('did you mean: ' + candidates.join(', ') + '?')}`);
+      }
+      lines.push('');
+    }
+  }
+
+  if (schemaLessRelations.length > 0) {
+    lines.push(C.blue(`ℹ ${schemaLessRelations.length} relation(s) zonder kolom-data — bestaat als ${C.dim('(' + [...new Set(schemaLessRelations.map(s => s.relkindLabel || s.relkind))].join(', ') + ')')} maar zonder SELECT-rechten op information_schema.columns; col-check geskipt.`));
+    for (const r of schemaLessRelations) {
+      const rel = relative(REPO_ROOT, r.file);
+      lines.push(`  ${C.dim(rel + ':' + r.line)} → ${r.table} ${C.dim('(' + (r.relkindLabel || r.relkind) + ')')}`);
     }
     lines.push('');
   }
@@ -532,7 +588,9 @@ function formatHuman(report) {
   }
 
   lines.push(C.dim('─'.repeat(60)));
-  if (mismatches.length > 0) {
+  // Exit-policy: mismatches + missingTables breken CI; schemaLessRelations zijn info-only.
+  const failCount = mismatches.length + missingTables.length;
+  if (failCount > 0) {
     lines.push(WARN_ONLY ? C.yellow('Result: FAIL (warn-only mode → exit 0)') : C.red('Result: FAIL'));
   } else {
     lines.push(C.green('Result: OK'));
@@ -577,7 +635,7 @@ function suggestColumns(target, candidates) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const schema = await fetchSchema();
+  const { schema, relations } = await fetchSchema();
   const tableCount = schema.size;
   const columnCount = [...schema.values()].reduce((a, s) => a + s.size, 0);
 
@@ -589,13 +647,27 @@ async function main() {
     for (const r of refs) allRefs.push(r);
   }
 
+  // Drie buckets voor unknown-table refs:
+  //   - missing: relation bestaat niet in pg_class (echte typo of dead code)
+  //   - schemaless: bestaat in pg_class maar information_schema.columns retourneerde
+  //                 geen rijen (bv. permission-issue, niet-toegankelijke view)
+  //   - skippedRelation: voorheen "unknownTables" — alle unknowns gaggregeerd
   const mismatches = [];
-  const unknownTables = [];
+  const missingTables = [];      // relation bestaat niet → highest severity
+  const schemaLessRelations = []; // relation bestaat (view/foreign) maar zonder col-data → info
   const dynamicSelects = [];
   const seenUnknownTable = new Set();
   let selectCount = 0;
   let uniqueColumnRefCount = 0;
   const seenColRef = new Set();
+
+  // Helper: classificeer een unknown-table-ref. Returns 'missing' | 'schemaless'.
+  function classifyUnknown(table) {
+    if (relations.has(table)) {
+      return { kind: 'schemaless', relkind: relations.get(table) };
+    }
+    return { kind: 'missing', relkind: null };
+  }
 
   for (const ref of allRefs) {
     if (ref.skipped) {
@@ -609,7 +681,24 @@ async function main() {
       const key = ref.file + ':' + ref.line + ':' + ref.table;
       if (!seenUnknownTable.has(key)) {
         seenUnknownTable.add(key);
-        unknownTables.push({ file: ref.file, line: ref.line, table: ref.table });
+        const c = classifyUnknown(ref.table);
+        const entry = {
+          file: ref.file,
+          line: ref.line,
+          table: ref.table,
+          relkind: c.relkind,
+          relkindLabel: c.relkind ? RELKIND_LABELS[c.relkind] : null,
+        };
+        if (c.kind === 'missing') {
+          // Suggesties op tabel-niveau: lev-distance op alle bekende relations.
+          entry.candidates = suggestColumns(
+            ref.table,
+            new Set([...schema.keys(), ...relations.keys()])
+          );
+          missingTables.push(entry);
+        } else {
+          schemaLessRelations.push(entry);
+        }
       }
       continue;
     }
@@ -620,7 +709,8 @@ async function main() {
         uniqueColumnRefCount++;
       }
       if (!schema.has(table)) {
-        // embedded relation refereert naar onbekende tabel/view
+        // embedded relation refereert naar onbekende tabel/view — al gerapporteerd
+        // op root-niveau via missingTables/schemaLessRelations.
         continue;
       }
       const tableCols = schema.get(table);
@@ -642,13 +732,25 @@ async function main() {
     summary: {
       tableCount,
       columnCount,
+      relationCount: relations.size,
       fileCount: files.length,
       selectCount,
       uniqueColumnRefCount,
       mismatchCount: mismatches.length,
+      missingTableCount: missingTables.length,
+      schemaLessRelationCount: schemaLessRelations.length,
     },
     mismatches,
-    unknownTables,
+    missingTables,
+    schemaLessRelations,
+    // Backwards-compat: behoud `unknownTables` als gemerged superset zodat
+    // bestaande JSON-consumers niet breken.
+    unknownTables: [...missingTables, ...schemaLessRelations].map(e => ({
+      file: e.file,
+      line: e.line,
+      table: e.table,
+      relkind: e.relkind,
+    })),
     dynamicSelects,
   };
 
@@ -658,7 +760,10 @@ async function main() {
     console.log(formatHuman(report));
   }
 
-  if (mismatches.length > 0 && !WARN_ONLY) process.exit(1);
+  // Exit-policy: zowel kolom-mismatches als missing-tables zijn echte bugs.
+  // schema-less relations (views zonder col-data) zijn info-only — geen CI-fail.
+  const failCount = mismatches.length + missingTables.length;
+  if (failCount > 0 && !WARN_ONLY) process.exit(1);
   process.exit(0);
 }
 

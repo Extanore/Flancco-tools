@@ -4354,14 +4354,34 @@ window.flanccoFeestdagen = {
 
 async function loadFeestdagen() {
   try {
+    // Schema: feestdagen(datum DATE NN, naam TEXT NN, land TEXT NN default 'BE',
+    //   type TEXT NN default 'wettelijk', created_at TIMESTAMPTZ NN default now()).
+    // Geen `id`, `datum_eind`, `label`, `recurring` in DB. We normaliseren elke
+    // row naar een interne shape met `label` (= naam) en `datum_eind` (= datum
+    // voor single-day events) zodat downstream-render (header-marker, banner,
+    // soft-warning-modal, maand-cel) ongewijzigd blijft.
     var resp = await sb.from('feestdagen')
-      .select('id, datum, datum_eind, label, type, recurring')
+      .select('datum, naam, land, type, created_at')
       .order('datum', { ascending: true });
     if (resp.error) {
       console.warn('[Slot K] feestdagen-fetch error:', resp.error.message);
       return;
     }
-    var rows = resp.data || [];
+    var raw = resp.data || [];
+    var rows = raw.map(function(r) {
+      // Sluitingsperiodes kunnen later via type='sluitingsperiode' toegevoegd
+      // worden; alle andere `type`-waardes (incl. default 'wettelijk') worden
+      // als feestdag behandeld voor de planning-UI.
+      var normalizedType = r.type === 'sluitingsperiode' ? 'sluitingsperiode' : 'feestdag';
+      return {
+        datum: r.datum,
+        datum_eind: r.datum,        // single-day default; multi-day vereist schema-uitbreiding
+        label: r.naam || '',
+        type: normalizedType,
+        land: r.land || 'BE',
+        created_at: r.created_at || null
+      };
+    });
     var byDatum = new Map();
     var sluitings = [];
     rows.forEach(function(r) {
