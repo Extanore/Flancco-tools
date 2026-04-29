@@ -575,6 +575,20 @@
     overflow: hidden; text-overflow: ellipsis; font-size: 12px;
     padding-right: 22px; /* ruimte reserveren voor absoluut-gepositioneerd .appt-sector-icon */
   }
+  /* Ref-chip op eigen regel bovenaan zodat de naam volledige breedte heeft
+     en de avatar-stack rechtsboven niet over de chip valt. Reserveer rechts
+     ruimte voor max 3 avatars (~46px) plus sector-icon (22px). */
+  .appt-card .appt-ref-row {
+    padding-right: 70px;
+    margin-bottom: 3px;
+    min-height: 16px;
+    line-height: 1;
+  }
+  .appt-card .appt-ref-row + .appt-klant {
+    /* Wanneer ref-row aanwezig is mag klant-naam de volle breedte gebruiken,
+       want sector-icon zit op zelfde lijn als ref-chip (rechtsboven). */
+    padding-right: 4px;
+  }
   .appt-card .appt-meta { font-size: 10px; color: var(--grey); margin-top: 2px; }
   .appt-card .appt-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700;
     padding: 2px 6px; border-radius: 4px; margin-top: 3px; }
@@ -630,6 +644,8 @@
     display: inline-flex; align-items: center; justify-content: center;
   }
   .appt-card.has-cert-warning .appt-klant { padding-left: 18px; }
+  /* Ook de ref-row links inrukken zodat ref-chip niet over cert-warning-icon valt */
+  .appt-card.has-cert-warning .appt-ref-row { padding-left: 18px; }
   .appt-card .appt-extra-techs { display: flex; gap: 3px; margin-top: 3px; }
   .extra-tech-badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -5545,7 +5561,14 @@ function renderApptCard(b, info, dayInfo, dateISO, contextTechId) {
     certWarnIcon +
     stackHtml +
     hpBtnHtml +
-    '<div class="appt-klant">' + beurtRefHtml(b) + esc(info.naam) + losseBadge + multiDagBadge + '</div>' +
+    // UX-feedback Apr 28: ref-chip op eigen regel bovenaan zodat de
+    // bedrijfsnaam de volle breedte krijgt en de avatar-stack rechtsboven
+    // ruimte heeft. Conditioneel renderen — geen lege div als geen ref-chip.
+    (function() {
+      var rh = beurtRefHtml(b);
+      return rh ? '<div class="appt-ref-row">' + rh + '</div>' : '';
+    })() +
+    '<div class="appt-klant">' + esc(info.naam) + losseBadge + multiDagBadge + '</div>' +
     '<span class="appt-sector-icon">' + getSectorIcon(info.sector) + '</span>' +
     (timeStr ? '<div class="appt-time">' + timeStr + (duurStr ? '<span class="appt-duur">· ' + duurStr + '</span>' : '') + '</div>' : '') +
     '<div class="appt-meta">' + esc(info.gemeente) + '</div>' +
