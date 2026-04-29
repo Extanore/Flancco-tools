@@ -16384,7 +16384,10 @@ function buildTechDetailHTML(techId) {
     : '<span class="exp-empty-note">Geen voertuig toegewezen</span>';
 
   // Beurten-statistieken (deze kalender-jaar)
-  var beurten = (allBeurten || window._allBeurten || []).filter(function(b) { return b.technieker_id === t.id; });
+  // Defensief: window-property access throwed niet bij undeclared global,
+  // bare-name `allBeurten` zou ReferenceError geven op pages waar de var
+  // niet declared is (bv. wanneer planning-data nog niet geladen is).
+  var beurten = (window.allBeurten || window._allBeurten || []).filter(function(b) { return b.technieker_id === t.id; });
   var ingeplande = beurten.filter(function(b) { return b.status === 'ingepland'; }).length;
   var uitgevoerde = beurten.filter(function(b) { return b.status === 'uitgevoerd' || b.status === 'afgewerkt'; }).length;
 
@@ -16899,8 +16902,10 @@ function previewTechnieker(id) {
     ? '<strong>' + esc(voertuig.nummerplaat) + '</strong> — ' + esc(voertuig.merk + ' ' + voertuig.model)
     : '<span style="color:var(--grey)">Geen voertuig toegewezen</span>';
 
-  // Geplande beurten count
-  var beurten = allBeurten ? allBeurten.filter(function(b) { return b.technieker_id === t.id && b.status === 'ingepland'; }) : [];
+  // Geplande beurten count — defensief via window-property om ReferenceError
+  // te voorkomen wanneer de variabele niet gedeclareerd is in deze scope.
+  var _allBeurtenSafe = window.allBeurten || window._allBeurten || [];
+  var beurten = _allBeurtenSafe.filter(function(b) { return b.technieker_id === t.id && b.status === 'ingepland'; });
 
   var overlay = document.createElement('div');
   overlay.id = 'tech-preview-overlay';

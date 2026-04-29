@@ -2297,7 +2297,7 @@
 </div>
 
 <!-- WERKBON MODAL -->
-<div class="modal-overlay" id="modal-werkbon">
+<div class="modal-overlay" id="modal-werkbon" data-dirty-track="true">
   <div class="modal" style="max-width:700px">
     <h2>Beurt voltooien — Werkbon</h2>
     <p id="werkbon-info" style="color:var(--grey);font-size:12px;margin-bottom:16px"></p>
@@ -2315,7 +2315,7 @@
 
     <div class="modal-buttons">
       <div class="footer-right" style="margin-left:auto">
-        <button type="button" class="btn btn-ghost" onclick="closeWerkbonModal()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-werkbon')">Annuleren</button>
         <button type="button" class="btn btn-primary" onclick="saveWerkbon()">Voltooien &amp; werkbon aanmaken</button>
       </div>
     </div>
@@ -2806,7 +2806,7 @@
 </div>
 
 <!-- UREN BEVESTIGEN MODAL -->
-<div class="modal-overlay" id="modal-uren-bevestigen">
+<div class="modal-overlay" id="modal-uren-bevestigen" data-dirty-track="true">
   <div class="modal" style="max-width:620px">
     <h2>Uren bevestigen</h2>
     <input type="hidden" id="ub-beurt-id">
@@ -2820,7 +2820,7 @@
     <div id="ub-facturatie-badge" style="display:none;padding:10px 14px;border-radius:8px;background:#ECFDF5;border:1px solid #10B981;font-size:13px;color:#065F46;margin-bottom:14px"></div>
     <div class="modal-buttons">
       <div class="footer-right" style="margin-left:auto">
-        <button type="button" class="btn btn-ghost" onclick="closeUrenBevestigenModal()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-uren-bevestigen')">Annuleren</button>
         <div class="btn-split">
           <button type="button" class="btn btn-primary btn-split-main" onclick="saveUrenBevestiging()">Bevestigen &amp; uitvoeren</button>
           <button type="button" class="btn btn-primary btn-split-toggle" aria-haspopup="menu" aria-label="Meer opties" onclick="toggleSplitMenu(this, event)">
@@ -2839,7 +2839,7 @@
 </div>
 
 <!-- QUICK VERLOF MODAL -->
-<div class="modal-overlay" id="modal-quick-verlof">
+<div class="modal-overlay" id="modal-quick-verlof" data-dirty-track="true">
   <div class="modal" style="max-width:460px">
     <h2 id="qv-title">Verlof toevoegen</h2>
     <input type="hidden" id="qv-edit-id">
@@ -2886,7 +2886,7 @@
         </button>
       </div>
       <div class="footer-right">
-        <button type="button" class="btn btn-ghost" onclick="closeQuickVerlofModal()">Annuleren</button>
+        <button type="button" class="btn btn-ghost" onclick="window.flanccoModalClose('modal-quick-verlof')">Annuleren</button>
         <button type="button" class="btn btn-primary" onclick="saveQuickVerlof()">Opslaan</button>
       </div>
     </div>
@@ -8073,8 +8073,16 @@ function openQuickVerlofModal(techId, dateStr, editId, presetTypeId) {
   }
 
   document.getElementById('modal-quick-verlof').classList.add('open');
+
+  // Dirty-state baseline (na alle late field-populaties)
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-quick-verlof'); }, 0);
+  }
 }
 function closeQuickVerlofModal() {
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-quick-verlof');
+  }
   document.getElementById('modal-quick-verlof').classList.remove('open');
 }
 
@@ -9407,9 +9415,17 @@ function openUrenBevestigenModal(beurt) {
   ubRenderRijen();
   document.getElementById('ub-notitie').value = '';
   document.getElementById('modal-uren-bevestigen').classList.add('open');
+
+  // Dirty-state baseline (na alle late field-populaties)
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-uren-bevestigen'); }, 0);
+  }
 }
 
 function closeUrenBevestigenModal() {
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-uren-bevestigen');
+  }
   document.getElementById('modal-uren-bevestigen').classList.remove('open');
   _ubCurrentBeurt = null;
   _ubExtraRijen = [];
@@ -12834,6 +12850,11 @@ function openWerkbonModal(beurtId) {
 
   updateWerkbonTotaal();
   document.getElementById('modal-werkbon').classList.add('open');
+
+  // Dirty-state baseline (na alle late field-populaties)
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.snapshot === 'function') {
+    setTimeout(function() { window.flanccoModalDirty.snapshot('modal-werkbon'); }, 0);
+  }
 }
 
 function addWerkbonUrenRij(defaultTechId, defaultDatum) {
@@ -12918,6 +12939,9 @@ function updateWerkbonTotaal() {
 }
 
 function closeWerkbonModal() {
+  if (window.flanccoModalDirty && typeof window.flanccoModalDirty.clear === 'function') {
+    window.flanccoModalDirty.clear('modal-werkbon');
+  }
   document.getElementById('modal-werkbon').classList.remove('open');
 }
 
