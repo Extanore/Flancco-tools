@@ -2314,7 +2314,8 @@
         </h2>
         <p id="dp-info" class="sp-header-sub"></p>
       </div>
-      <button type="button" class="sp-close" onclick="closeDagPlusKiezer()" aria-label="Sluiten">&times;</button>
+      <!-- Eigen sp-close knop weggehaald — gedeelde .modal-close-x (auto-
+           geïnjecteerd) regelt nu het sluiten consistent met andere modals. -->
     </div>
     <div class="sp-search-wrap">
       <svg class="sp-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -4670,6 +4671,9 @@ window.flanccoModalClose = async function(overlayId) {
 };
 
 // Auto-injecteer × button in elke .modal-overlay zodra de DOM klaar is.
+// Skip wanneer er al een .modal-close-x is, OF wanneer de modal een eigen
+// close-knop heeft via aria-label="Sluiten" (legacy patroon dat we niet
+// dubbel willen renderen).
 (function _injectModalCloseButtons() {
   var X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
   function inject() {
@@ -4677,7 +4681,9 @@ window.flanccoModalClose = async function(overlayId) {
       if (!overlay.id) return;
       var modal = overlay.querySelector(':scope > .modal');
       if (!modal) return;
-      if (modal.querySelector(':scope > .modal-close-x')) return;
+      // Reeds een gedeelde .modal-close-x of een legacy close-button (aria-label="Sluiten")
+      if (modal.querySelector('.modal-close-x')) return;
+      if (modal.querySelector('[aria-label="Sluiten"]')) return;
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'modal-close-x';
