@@ -1514,8 +1514,14 @@
 <script src="shared/client-combobox-resolver.js"></script>
 <link rel="stylesheet" href="shared/werklocatie-picker.css">
 <script src="shared/werklocatie-picker.js"></script>
+<link rel="stylesheet" href="shared/pipeline-components.css">
+<script src="shared/pipeline-components.js"></script>
+<script src="shared/pipeline-toolkit.js"></script>
 </head>
 <body>
+
+<!-- ===== Slot V Toolkit-3 — Hand-off banner mount-point (auto-populated by pipeline-toolkit.js MutationObserver) ===== -->
+<div data-slot="handoff-banner"></div>
 
 <!-- LOGIN SCREEN -->
 <div id="login" class="login-wrap">
@@ -1583,6 +1589,14 @@
     <a class="nav-item admin-only" href="planning.html" data-page="planning">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Planning</span>
+    </a>
+    <a class="nav-item admin-only" onclick="showPage('onderhoud')" data-page="onderhoud">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      <span>Onderhoud</span>
+    </a>
+    <a class="nav-item admin-only" onclick="showPage('flancco-werk')" data-page="flancco-werk">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <span>Flancco-werk</span>
     </a>
     <a class="nav-item" onclick="showPage('interventies')" data-page="interventies" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -1741,6 +1755,18 @@
           <div class="card-header"><span class="card-title">Komende deadlines</span></div>
           <p style="font-size:12px;color:var(--grey);margin:0 0 10px">Contracten einddatum &le;30d, urgente interventies, overdue beurten</p>
           <div class="deadlines-body" id="deadlines-body" style="min-height:220px"></div>
+        </div>
+      </div>
+      <!-- ===== Slot V Toolkit — Pipeline-status vandaag ===== -->
+      <div class="card admin-only" id="dashboard-pipeline-status-tile" style="margin-top:20px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span class="card-title">Pipeline-status vandaag</span>
+          <button type="button" class="btn-link" onclick="renderDashboardPipelineTegel()" title="Vernieuwen" style="background:none;border:none;color:var(--navy);cursor:pointer;padding:4px;display:inline-flex;align-items:center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-7"/><path d="M21 4v5h-5"/></svg>
+          </button>
+        </div>
+        <div id="dashboard-pipeline-status-body" style="margin-top:8px">
+          <div class="muted" style="color:var(--grey);font-size:13px;padding:8px 0">Laden&hellip;</div>
         </div>
       </div>
       <div class="card" style="margin-top:20px">
@@ -2203,6 +2229,28 @@
             <h2 class="dv-title">Platform-instellingen</h2>
             <p class="dv-subtitle">Partnerbeheer, checklist-templates, rapport-configuratie en duur-regels per sector. Elke sectie heeft een eigen opslaan-actie.</p>
           </div>
+        </div>
+      </div>
+      <!-- ===== Slot V Toolkit-3 — Hand-off modus (Sarah-resilient) ===== -->
+      <div class="card admin-only" id="handoff-mode-card" style="margin-bottom:20px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div>
+            <span class="card-title">Hand-off modus (Sarah-resilient)</span>
+            <p class="muted" style="margin:6px 0 0;font-size:13px;color:var(--grey)">Schakel deze modus aan wanneer de vaste planner afwezig is. Activity-logs, klant-notities en runbook-tooltips worden default uitgeklapt zodat een collega kan invallen zonder eerst overdracht.</p>
+          </div>
+        </div>
+        <div class="card-body" style="margin-top:12px">
+          <div class="form-field" style="margin-bottom:12px">
+            <label class="toggle-row" style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--ink)">
+              <input type="checkbox" id="handoff-mode-toggle" onchange="onHandOffModusToggle(this.checked)">
+              <span>Hand-off modus actief</span>
+            </label>
+          </div>
+          <div class="form-field" id="handoff-mode-since-row" style="display:none;margin-bottom:12px;max-width:280px">
+            <label for="handoff-mode-since" style="display:block;font-size:12px;color:var(--grey);font-weight:600;margin-bottom:6px">Afwezig sinds</label>
+            <input type="date" id="handoff-mode-since" onchange="onHandOffModusSinceChange(this.value)" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px">
+          </div>
+          <div class="muted" id="handoff-mode-status" style="font-size:12px;color:var(--grey)">Status: niet actief.</div>
         </div>
       </div>
       <div class="card">
@@ -3983,6 +4031,40 @@
       </div>
     </div>
 
+    <!-- ===== Slot V — Onderhoud (partner-recurrent pipeline) ===== -->
+    <div class="page admin-only" id="page-onderhoud">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+        <div>
+          <h1 style="margin:0;font-size:24px;font-weight:700;color:var(--navy)">Onderhoud</h1>
+          <p class="muted" style="margin:4px 0 0;color:var(--grey);font-size:13px">Partner-recurrent onderhoud — pipeline van In te plannen tot Uitgestuurd ter facturatie</p>
+        </div>
+        <div class="card-actions" style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="refreshOnderhoudData()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            Vernieuwen
+          </button>
+        </div>
+      </div>
+      <div id="onderhoud-pipeline-wrapper" class="flp-page"></div>
+    </div>
+
+    <!-- ===== Slot W — Flancco-werk (ad-hoc Flancco-interne pipeline) ===== -->
+    <div class="page admin-only" id="page-flancco-werk">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+        <div>
+          <h1 style="margin:0;font-size:24px;font-weight:700;color:var(--navy)">Flancco-werk</h1>
+          <p class="muted" style="margin:4px 0 0;color:var(--grey);font-size:13px">Ad-hoc Flancco-interne klussen — pipeline voor losse opdrachten zonder partner-contract</p>
+        </div>
+        <div class="card-actions" style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="refreshFlanccoWerkData()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            Vernieuwen
+          </button>
+        </div>
+      </div>
+      <div id="flancco-werk-pipeline-wrapper" class="flp-page"></div>
+    </div>
+
   </div>
 </div>
 
@@ -4830,6 +4912,37 @@
       <button class="btn btn-ghost" onclick="resolveVerlofConflict('keep')">Laat taken staan</button>
       <button class="btn btn-ghost" onclick="resolveVerlofConflict('unassign')">Maak los (in_te_plannen)</button>
       <button class="btn btn-danger" onclick="resolveVerlofConflict('delete')">Verwijder taken</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Slot V — Uren-controle modal (fase 4 → 5 transition) ===== -->
+<div class="modal-overlay" id="modal-uren-controle" style="display:none" onclick="if(event.target===this)closeModal('modal-uren-controle')">
+  <div class="modal" style="max-width:760px;padding:28px 28px 0">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0">
+        <h3>Uren-controle vóór facturatie</h3>
+        <small style="display:block;color:var(--grey);font-size:12px;margin-top:2px">Pas tarieven of uren aan indien nodig. Save → genereert facturatie-regel.</small>
+      </div>
+      <button class="modal-close" type="button" aria-label="Sluiten" onclick="closeModal('modal-uren-controle')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-uren-controle-meta" class="metric-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
+      <div id="modal-uren-controle-list" style="margin-bottom:16px">
+        <div class="empty-state" style="padding:24px;text-align:center;color:var(--grey);font-size:13px;background:var(--light);border-radius:8px">Laden&hellip;</div>
+      </div>
+      <div class="form-field form-field-full">
+        <label>Opmerking voor facturatie (optioneel)</label>
+        <textarea id="modal-uren-controle-opmerking" rows="2" placeholder="Bv. extra materiaal, korting, etc." style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="margin:24px -28px 0;padding:16px 28px">
+      <div class="footer-left">
+        <button class="btn btn-ghost" onclick="closeModal('modal-uren-controle')">Annuleer</button>
+      </div>
+      <div class="footer-right">
+        <button class="btn btn-primary" id="modal-uren-controle-save" onclick="saveUrenControle()">Goedkeuren + verstuur ter facturatie</button>
+      </div>
     </div>
   </div>
 </div>
@@ -6384,6 +6497,10 @@ function showPage(name) {
   if (name === 'forecast' && typeof activateWinstgevendheidPage === 'function') activateWinstgevendheidPage();
   // Slot W — Calculator-instellingen (USPs / motivatie / frequentie / contractduur / klant-vragen)
   if (name === 'calculator-config' && typeof initCalcConfigPage === 'function') initCalcConfigPage();
+  // Slot V — Onderhoud (partner-recurrent pipeline)
+  if (name === 'onderhoud' && typeof showOnderhoudPage === 'function') showOnderhoudPage();
+  // Slot W — Flancco-werk (ad-hoc Flancco-interne pipeline)
+  if (name === 'flancco-werk' && typeof showFlanccoWerkPage === 'function') showFlanccoWerkPage();
 }
 
 // =============================================
@@ -8089,6 +8206,16 @@ function renderAdminSettings() {
     html += '<div><label style="font-size:11px;color:var(--grey)">Gratis transport (km)</label><input type="number" id="adm-km-' + p.id + '" value="' + (p.transport_gratis_km || 0) + '" min="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
     html += '</div></div>';
 
+    // ===== Slot V Toolkit-5 — SLA-targets per Onderhoud-fase =====
+    html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">SLA-targets per fase (Onderhoud-pipeline)</label>';
+    html += '<p style="font-size:12px;color:var(--grey);margin:0 0 10px">Aantal uren waarbinnen Onderhoud-fases moeten verwerkt worden. Aging-badge wordt rood bij overschrijding. Leeg = geen SLA.</p>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    html += '<div><label for="adm-sla-fase-1-' + p.id + '" style="font-size:11px;color:var(--grey)">Fase 1 (In te plannen) &mdash; uren</label><input type="number" min="1" max="999" id="adm-sla-fase-1-' + p.id + '" value="' + (p.sla_fase_1_uren != null ? p.sla_fase_1_uren : '') + '" placeholder="bv. 4" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label for="adm-sla-fase-2-' + p.id + '" style="font-size:11px;color:var(--grey)">Fase 2 (Ingepland) &mdash; uren</label><input type="number" min="1" max="999" id="adm-sla-fase-2-' + p.id + '" value="' + (p.sla_fase_2_uren != null ? p.sla_fase_2_uren : '') + '" placeholder="bv. 24" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label for="adm-sla-fase-4-' + p.id + '" style="font-size:11px;color:var(--grey)">Fase 4 (Rapportage) &mdash; uren</label><input type="number" min="1" max="999" id="adm-sla-fase-4-' + p.id + '" value="' + (p.sla_fase_4_uren != null ? p.sla_fase_4_uren : '') + '" placeholder="bv. 48" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '<div><label for="adm-sla-fase-5-' + p.id + '" style="font-size:11px;color:var(--grey)">Fase 5 (Uitgestuurd ter facturatie) &mdash; uren</label><input type="number" min="1" max="999" id="adm-sla-fase-5-' + p.id + '" value="' + (p.sla_fase_5_uren != null ? p.sla_fase_5_uren : '') + '" placeholder="bv. 168" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>';
+    html += '</div></div>';
+
     // Save button + invite button + delete button
     html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
     html += '<button type="button" class="btn btn-primary" onclick="saveAdminPartner(\'' + p.id + '\')">Opslaan</button>';
@@ -8982,6 +9109,27 @@ async function saveAdminPartner(partnerId) {
     transport_gratis_km: parseInt(document.getElementById('adm-km-' + partnerId).value) || 0
   };
 
+  // Slot V Toolkit-5 — SLA-uren per fase (1, 2, 4, 5). Optionele INT-velden;
+  // lege string -> NULL zodat partner-pipeline geen SLA-breach forceert als waarde niet ingesteld is.
+  // Velden zijn optioneel renderbaar in de UI; defensieve element-checks vermijden crashes als render-template wijzigt.
+  function _readSlaUren(faseNr) {
+    var el = document.getElementById('adm-sla-fase-' + faseNr + '-' + partnerId);
+    if (!el) return undefined; // Skip merge: kolom wordt niet aangeraakt
+    var raw = (el.value || '').trim();
+    if (raw === '') return null;
+    var n = parseInt(raw, 10);
+    if (!isFinite(n) || n < 1) return null;
+    return n;
+  }
+  var _sla1 = _readSlaUren(1);
+  var _sla2 = _readSlaUren(2);
+  var _sla4 = _readSlaUren(4);
+  var _sla5 = _readSlaUren(5);
+  if (_sla1 !== undefined) updates.sla_fase_1_uren = _sla1;
+  if (_sla2 !== undefined) updates.sla_fase_2_uren = _sla2;
+  if (_sla4 !== undefined) updates.sla_fase_4_uren = _sla4;
+  if (_sla5 !== undefined) updates.sla_fase_5_uren = _sla5;
+
   // Snapshot vóór update voor audit-diff.
   var _prevPartner = partners.find(function(x) { return x.id === partnerId; });
   var _prevSnapshot = _prevPartner ? _pickPartnerAuditFields(_prevPartner) : null;
@@ -9027,6 +9175,618 @@ async function saveAdminPartner(partnerId) {
   }
   showToast('Partner opgeslagen');
 }
+
+// =============================================
+// SLOT V (Onderhoud) + SLOT W (Flancco-werk) — Pipeline-bootstrap
+// =============================================
+// Bootstrap voor de twee pipeline-pages, modal-uren-controle, hand-off modus,
+// dashboard-tegel "Pipeline-status vandaag" en SLA-save-extension.
+// Pipeline-renderer + toolkit-helpers leven in admin/shared/pipeline-{components,toolkit}.js;
+// dit blok bedraadt enkel de admin/index.html-specifieke wiring + data-loaders.
+
+// --- Caches ----------------------------------------------------------------
+window._pipelineRecords = window._pipelineRecords || [];
+window._pipelinePartnerSlaMap = window._pipelinePartnerSlaMap || new Map();
+
+// --- Pipeline-instances (idempotent re-attach) -----------------------------
+var _onderhoudPipelineInstance = null;
+var _flanccoWerkPipelineInstance = null;
+
+// SQL-shape voor select(): denormalized contract+rapport+uren via FK-joins.
+// We selecteren alle non-afgewerkte beurten; afgewerkte beurten zijn historiek
+// en vallen buiten de pipeline (markeer_afgewerkt-actie verplaatst record erheen).
+var _PIPELINE_SELECT = '*, contract:contracten(id, is_eenmalig, partner_id, contract_nummer, klant_naam, klant_email, klant_telefoon, klant_adres, klant_postcode, klant_gemeente, sector, aantal_panelen, frequentie, contractduur, client_id), rapport:rapporten(id), uren:beurt_uren_registraties(id, goedgekeurd_op, gefactureerd, gefactureerd_op, duur_minuten, uurtarief_facturatie_snapshot, eindprijs)';
+
+async function loadOnderhoudData() {
+  try {
+    if (!window.FlanccoPipeline || typeof window.FlanccoPipeline.computeFase !== 'function') {
+      console.warn('[loadOnderhoudData] FlanccoPipeline niet geladen');
+      return [];
+    }
+    var resp = await sb
+      .from('onderhoudsbeurten')
+      .select(_PIPELINE_SELECT)
+      .neq('status', 'afgewerkt')
+      .is('verwijderd_op', null)
+      .order('plan_datum', { ascending: true, nullsFirst: false });
+    if (resp.error) throw resp.error;
+    var rows = resp.data || [];
+    return rows.map(function(r) {
+      try {
+        return Object.assign({}, r, { _fase: window.FlanccoPipeline.computeFase(r, 'onderhoud') });
+      } catch (e) {
+        console.error('[loadOnderhoudData] computeFase mislukt voor record', r && r.id, e);
+        return Object.assign({}, r, { _fase: null });
+      }
+    });
+  } catch (e) {
+    console.error('[loadOnderhoudData]', e);
+    return [];
+  }
+}
+
+async function loadFlanccoWerkData() {
+  try {
+    if (!window.FlanccoPipeline || typeof window.FlanccoPipeline.computeFase !== 'function') {
+      console.warn('[loadFlanccoWerkData] FlanccoPipeline niet geladen');
+      return [];
+    }
+    var resp = await sb
+      .from('onderhoudsbeurten')
+      .select(_PIPELINE_SELECT)
+      .neq('status', 'afgewerkt')
+      .is('verwijderd_op', null)
+      .order('plan_datum', { ascending: true, nullsFirst: false });
+    if (resp.error) throw resp.error;
+    var rows = resp.data || [];
+    return rows.map(function(r) {
+      try {
+        return Object.assign({}, r, { _fase: window.FlanccoPipeline.computeFase(r, 'flancco') });
+      } catch (e) {
+        console.error('[loadFlanccoWerkData] computeFase mislukt voor record', r && r.id, e);
+        return Object.assign({}, r, { _fase: null });
+      }
+    });
+  } catch (e) {
+    console.error('[loadFlanccoWerkData]', e);
+    return [];
+  }
+}
+
+async function loadPartnerSlaConfig() {
+  try {
+    var resp = await sb
+      .from('partners')
+      .select('id, sla_fase_1_uren, sla_fase_2_uren, sla_fase_4_uren, sla_fase_5_uren');
+    if (resp.error) throw resp.error;
+    var map = new Map();
+    (resp.data || []).forEach(function(p) {
+      map.set(p.id, {
+        sla_fase_1_uren: p.sla_fase_1_uren,
+        sla_fase_2_uren: p.sla_fase_2_uren,
+        sla_fase_4_uren: p.sla_fase_4_uren,
+        sla_fase_5_uren: p.sla_fase_5_uren
+      });
+    });
+    return map;
+  } catch (e) {
+    console.error('[loadPartnerSlaConfig]', e);
+    return new Map();
+  }
+}
+
+// --- Page-show handlers ----------------------------------------------------
+async function showOnderhoudPage() {
+  try {
+    var wrapper = document.getElementById('onderhoud-pipeline-wrapper');
+    if (!wrapper) return;
+    if (!window.FlanccoPipeline || typeof window.FlanccoPipeline.attachPage !== 'function') {
+      wrapper.innerHTML = '<div class="empty-state error">Pipeline-component niet geladen. Herlaad de pagina.</div>';
+      return;
+    }
+    if (_onderhoudPipelineInstance && typeof _onderhoudPipelineInstance.destroy === 'function') {
+      try { _onderhoudPipelineInstance.destroy(); } catch (_e) { /* ignore */ }
+    }
+    _onderhoudPipelineInstance = null;
+    wrapper.innerHTML = '<div class="muted" style="padding:24px;text-align:center">Laden…</div>';
+
+    var loaded = await Promise.all([loadOnderhoudData(), loadPartnerSlaConfig()]);
+    var records = loaded[0];
+    var partnerSlaMap = loaded[1];
+    window._pipelineRecords = records;
+    window._pipelinePartnerSlaMap = partnerSlaMap;
+
+    // Slot V = recurrent partner-werk: contract bestaat én is_eenmalig === false
+    var dataFilter = function(r) { return !!(r.contract && r.contract.is_eenmalig === false); };
+
+    _onderhoudPipelineInstance = window.FlanccoPipeline.attachPage(wrapper, {
+      mode: 'onderhoud',
+      supabase: sb,
+      records: records.filter(dataFilter),
+      partnerSlaMap: partnerSlaMap,
+      onAction: function(actionKey, record) { return onPipelineAction(actionKey, record, 'onderhoud'); }
+    });
+  } catch (e) {
+    console.error('[showOnderhoudPage]', e);
+    var w = document.getElementById('onderhoud-pipeline-wrapper');
+    if (w) w.innerHTML = '<div class="empty-state error">Fout bij laden: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+}
+
+async function showFlanccoWerkPage() {
+  try {
+    var wrapper = document.getElementById('flancco-werk-pipeline-wrapper');
+    if (!wrapper) return;
+    if (!window.FlanccoPipeline || typeof window.FlanccoPipeline.attachPage !== 'function') {
+      wrapper.innerHTML = '<div class="empty-state error">Pipeline-component niet geladen. Herlaad de pagina.</div>';
+      return;
+    }
+    if (_flanccoWerkPipelineInstance && typeof _flanccoWerkPipelineInstance.destroy === 'function') {
+      try { _flanccoWerkPipelineInstance.destroy(); } catch (_e) { /* ignore */ }
+    }
+    _flanccoWerkPipelineInstance = null;
+    wrapper.innerHTML = '<div class="muted" style="padding:24px;text-align:center">Laden…</div>';
+
+    var loaded = await Promise.all([loadFlanccoWerkData(), loadPartnerSlaConfig()]);
+    var records = loaded[0];
+    var partnerSlaMap = loaded[1];
+    window._pipelineRecords = records;
+    window._pipelinePartnerSlaMap = partnerSlaMap;
+
+    // Slot W = ad-hoc Flancco-interne klussen: geen contract, geen contract_id, of contract.is_eenmalig === true
+    var dataFilter = function(r) {
+      if (!r.contract_id) return true;
+      if (!r.contract) return true;
+      return r.contract.is_eenmalig === true;
+    };
+
+    _flanccoWerkPipelineInstance = window.FlanccoPipeline.attachPage(wrapper, {
+      mode: 'flancco',
+      supabase: sb,
+      records: records.filter(dataFilter),
+      partnerSlaMap: partnerSlaMap,
+      onAction: function(actionKey, record) { return onPipelineAction(actionKey, record, 'flancco'); }
+    });
+  } catch (e) {
+    console.error('[showFlanccoWerkPage]', e);
+    var w = document.getElementById('flancco-werk-pipeline-wrapper');
+    if (w) w.innerHTML = '<div class="empty-state error">Fout bij laden: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+}
+
+async function refreshOnderhoudData() { return showOnderhoudPage(); }
+async function refreshFlanccoWerkData() { return showFlanccoWerkPage(); }
+
+async function refreshCurrentPipeline(mode) {
+  if (mode === 'onderhoud') return refreshOnderhoudData();
+  if (mode === 'flancco') return refreshFlanccoWerkData();
+}
+
+// --- Action-router ---------------------------------------------------------
+async function onPipelineAction(actionKey, record, mode) {
+  try {
+    if (!record || !record.id) {
+      console.warn('[onPipelineAction] Geen record-id:', actionKey, record);
+      return;
+    }
+    switch (actionKey) {
+      case 'plan_in':
+        if (typeof window.openQuickAddModal === 'function') {
+          window.openQuickAddModal({ beurtId: record.id, prefill: record });
+        } else {
+          // Fallback: planning.html host de QuickAdd-modal; deeplink met beurt-id
+          window.location.href = 'planning.html?quickadd=' + encodeURIComponent(record.id);
+        }
+        break;
+
+      case 'snooze':
+        await onPipelineSnooze(record);
+        await refreshCurrentPipeline(mode);
+        break;
+
+      case 'annuleer':
+        if (!confirm('Record annuleren? Dit doet een soft-delete (kan teruggedraaid worden door admin).')) return;
+        var annResp = await sb.from('onderhoudsbeurten')
+          .update({ verwijderd_op: new Date().toISOString() })
+          .eq('id', record.id);
+        if (annResp.error) throw annResp.error;
+        await refreshCurrentPipeline(mode);
+        showToast('Record geannuleerd', 'info');
+        break;
+
+      case 'verplaats':
+        if (typeof window.openEditBeurtModal === 'function') {
+          window.openEditBeurtModal({ beurtId: record.id });
+        } else {
+          alert('Verplaatsen kan via de planning-pagina (admin/planning.html).');
+        }
+        break;
+
+      case 'bel_klant':
+        var tel = (record.contract && record.contract.klant_telefoon) || record.klant_telefoon;
+        if (tel) {
+          window.location.href = 'tel:' + tel.replace(/\s/g, '');
+        } else {
+          alert('Geen telefoonnummer bekend voor deze klant.');
+        }
+        break;
+
+      case 'terug_naar_fase_1':
+        if (!confirm('Record terug naar "In te plannen"?')) return;
+        var t1Resp = await sb.from('onderhoudsbeurten')
+          .update({ status: 'in_te_plannen', plan_datum: null })
+          .eq('id', record.id);
+        if (t1Resp.error) throw t1Resp.error;
+        await refreshCurrentPipeline(mode);
+        showToast('Record teruggezet naar fase 1', 'info');
+        break;
+
+      case 'markeer_uitgevoerd':
+        if (typeof window.openUrenBevestigenModal === 'function') {
+          window.openUrenBevestigenModal(record.id);
+        } else {
+          if (!confirm('Markeer als uitgevoerd? Uren-controle gebeurt in volgende fase.')) return;
+          var muResp = await sb.from('onderhoudsbeurten')
+            .update({ status: 'uitgevoerd' })
+            .eq('id', record.id);
+          if (muResp.error) throw muResp.error;
+          await refreshCurrentPipeline(mode);
+          showToast('Record gemarkeerd als uitgevoerd', 'success');
+        }
+        break;
+
+      case 'maak_rapport':
+        window.open('rapport.html?beurt=' + encodeURIComponent(record.id), '_blank');
+        break;
+
+      case 'direct_naar_facturatie':
+      case 'controleer_verstuur':
+        await openUrenControleModal(record.id, mode);
+        break;
+
+      case 'markeer_afgewerkt':
+        if (!confirm('Record als definitief afgewerkt markeren? Verdwijnt uit pipeline (blijft historiek).')) return;
+        var afResp = await sb.from('onderhoudsbeurten')
+          .update({ status: 'afgewerkt' })
+          .eq('id', record.id);
+        if (afResp.error) throw afResp.error;
+        await refreshCurrentPipeline(mode);
+        showToast('Record afgewerkt', 'success');
+        break;
+
+      default:
+        console.warn('[onPipelineAction] Onbekende action-key:', actionKey);
+    }
+  } catch (e) {
+    console.error('[onPipelineAction]', actionKey, e);
+    showToast('Actie mislukt: ' + (e.message || String(e)), 'error');
+  }
+}
+
+async function onPipelineSnooze(record) {
+  try {
+    var dagenRaw = prompt('Aantal dagen snooze (1-30):', '7');
+    if (dagenRaw === null) return;
+    var dagen = parseInt(dagenRaw, 10);
+    if (!isFinite(dagen) || dagen < 1 || dagen > 30) {
+      alert('Ongeldig aantal dagen. Geef een waarde tussen 1 en 30.');
+      return;
+    }
+    var redenRaw = prompt('Reden voor snooze (verplicht — komt in dispatch-log):', '');
+    if (redenRaw === null) return;
+    var reden = (redenRaw || '').trim();
+    if (!reden) { alert('Reden is verplicht.'); return; }
+
+    var snoozeTot = new Date();
+    snoozeTot.setDate(snoozeTot.getDate() + dagen);
+    var snoozeIso = snoozeTot.toISOString().slice(0, 10);
+
+    if (window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.addSnoozeWithReason === 'function') {
+      await window.FlanccoPipelineToolkit.addSnoozeWithReason(record.id, snoozeIso, reden, sb);
+    } else {
+      // Fallback: direct schrijven naar onderhoudsbeurten zonder dispatch-log entry
+      var resp = await sb.from('onderhoudsbeurten')
+        .update({ snooze_tot: snoozeIso })
+        .eq('id', record.id);
+      if (resp.error) throw resp.error;
+    }
+    showToast('Snooze ingesteld tot ' + snoozeIso, 'info');
+  } catch (e) {
+    console.error('[onPipelineSnooze]', e);
+    showToast('Snooze mislukt: ' + (e.message || String(e)), 'error');
+  }
+}
+
+// --- Modal-uren-controle (Slot V — fase 5: Uitgestuurd ter facturatie) -----
+window._urenControleContext = window._urenControleContext || { beurtId: null, mode: null };
+
+async function openUrenControleModal(beurtId, mode) {
+  try {
+    if (!beurtId) return;
+    window._urenControleContext = { beurtId: beurtId, mode: mode || 'onderhoud' };
+
+    var modal = document.getElementById('modal-uren-controle');
+    var meta = document.getElementById('modal-uren-controle-meta');
+    var list = document.getElementById('modal-uren-controle-list');
+    var opmerking = document.getElementById('modal-uren-controle-opmerking');
+    if (!modal || !meta || !list) {
+      console.warn('[openUrenControleModal] Modal-elementen ontbreken in DOM');
+      return;
+    }
+    modal.style.display = 'flex';
+    meta.innerHTML = '<span class="muted">Laden…</span>';
+    list.innerHTML = '<div class="muted">Laden…</div>';
+    if (opmerking) opmerking.value = '';
+
+    var beurtResp = await sb.from('onderhoudsbeurten')
+      .select('id, plan_datum, status, contract:contracten(klant_naam, contract_nummer, sector, aantal_panelen)')
+      .eq('id', beurtId)
+      .single();
+    if (beurtResp.error) throw beurtResp.error;
+    var beurt = beurtResp.data;
+
+    var urenResp = await sb.from('beurt_uren_registraties')
+      .select('id, technieker_id, start_tijd, eind_tijd, duur_minuten, uurtarief_facturatie_snapshot, eindprijs, goedgekeurd_op, gefactureerd, gefactureerd_op')
+      .eq('beurt_id', beurtId)
+      .order('start_tijd', { ascending: true });
+    if (urenResp.error) throw urenResp.error;
+    var uren = urenResp.data || [];
+
+    var contractNr = (beurt && beurt.contract && beurt.contract.contract_nummer) || '—';
+    var klantNaam = (beurt && beurt.contract && beurt.contract.klant_naam) || '';
+    var sectorLbl = (beurt && beurt.contract && beurt.contract.sector) || '';
+    var planDatum = beurt && beurt.plan_datum ? beurt.plan_datum : '—';
+    meta.innerHTML =
+      '<div><strong>' + escapeHtml(contractNr) + '</strong>' + (klantNaam ? ' — ' + escapeHtml(klantNaam) : '') + '</div>' +
+      '<div class="muted" style="font-size:12px">' + escapeHtml(sectorLbl) + ' &middot; uitgevoerd op ' + escapeHtml(planDatum) + '</div>';
+
+    if (uren.length === 0) {
+      list.innerHTML = '<div class="empty-state">Geen uren-registraties gevonden voor deze beurt. Voeg ze eerst toe via de uren-pagina of agenda.</div>';
+      return;
+    }
+
+    // Render bewerkbare rijen.
+    // Schema-noot: duur_minuten is een GENERATED kolom op (eind_tijd - start_tijd), dus
+    // niet rechtstreeks schrijfbaar. Om "uren" via de UI aan te passen, herberekenen we
+    // start_tijd/eind_tijd: we behouden start_tijd en zetten eind_tijd = start_tijd + uren.
+    // Het tarief is wel direct schrijfbaar (uurtarief_facturatie_snapshot).
+    list.innerHTML = uren.map(function(u) {
+      var techLabel = u.technieker_id ? String(u.technieker_id).slice(0, 8) + '…' : '?';
+      var disabled = u.gefactureerd ? 'disabled title="Reeds gefactureerd"' : '';
+      var urenWaarde = (u.duur_minuten != null) ? (Math.round((u.duur_minuten / 60) * 100) / 100) : '';
+      var tariefWaarde = (u.uurtarief_facturatie_snapshot != null) ? u.uurtarief_facturatie_snapshot : '';
+      return (
+        '<div class="uren-row" data-uren-id="' + escapeHtml(u.id) + '" data-start-tijd="' + escapeHtml(u.start_tijd || '') + '" style="display:grid;grid-template-columns:1fr 110px 120px;gap:12px;align-items:end;padding:10px 0;border-bottom:1px solid var(--rule)">' +
+          '<div><div style="font-size:11px;color:var(--grey);font-weight:600;margin-bottom:4px">Technieker</div><div style="font-size:13px">' + escapeHtml(techLabel) + '</div></div>' +
+          '<div><label style="font-size:11px;color:var(--grey);font-weight:600;display:block;margin-bottom:4px">Uren</label><input type="number" step="0.25" min="0" max="24" value="' + urenWaarde + '" data-field="uren" ' + disabled + ' style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>' +
+          '<div><label style="font-size:11px;color:var(--grey);font-weight:600;display:block;margin-bottom:4px">Tarief €/u</label><input type="number" step="0.01" min="0" value="' + tariefWaarde + '" data-field="uurtarief" ' + disabled + ' style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px"></div>' +
+        '</div>'
+      );
+    }).join('');
+  } catch (e) {
+    console.error('[openUrenControleModal]', e);
+    var lst = document.getElementById('modal-uren-controle-list');
+    if (lst) lst.innerHTML = '<div class="empty-state error">Fout bij laden: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+}
+
+async function saveUrenControle() {
+  try {
+    var ctx = window._urenControleContext || {};
+    var beurtId = ctx.beurtId;
+    var mode = ctx.mode || 'onderhoud';
+    if (!beurtId) { showToast('Geen beurt-context', 'error'); return; }
+
+    var rows = Array.prototype.slice.call(document.querySelectorAll('#modal-uren-controle-list .uren-row'));
+    if (rows.length === 0) { showToast('Geen uren-rijen om op te slaan', 'error'); return; }
+
+    var nowIso = new Date().toISOString();
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var urenId = row.getAttribute('data-uren-id');
+      var startTijdRaw = row.getAttribute('data-start-tijd') || '';
+      var urenInp = row.querySelector('[data-field=uren]');
+      var tariefInp = row.querySelector('[data-field=uurtarief]');
+      // Skip disabled (al gefactureerd) rijen
+      if (urenInp && urenInp.disabled) continue;
+      var urenVal = parseFloat(urenInp ? urenInp.value : '0') || 0;
+      var tariefVal = parseFloat(tariefInp ? tariefInp.value : '0') || 0;
+      if (urenVal < 0 || urenVal > 24) { showToast('Uren-waarde buiten bereik (0-24)', 'error'); return; }
+      if (tariefVal < 0) { showToast('Negatief uurtarief niet toegelaten', 'error'); return; }
+      // duur_minuten + eindprijs zijn GENERATED kolommen — niet schrijfbaar.
+      // Om "uren" aan te passen herberekenen we eind_tijd op basis van start_tijd + uren.
+      // Bij ontbrekende start_tijd vallen we terug op now() − uren als pragmatische start.
+      var startMs = startTijdRaw ? new Date(startTijdRaw).getTime() : NaN;
+      if (!isFinite(startMs)) {
+        startMs = Date.now() - Math.round(urenVal * 3600 * 1000);
+      }
+      var eindMs = startMs + Math.round(urenVal * 3600 * 1000);
+      var payload = {
+        start_tijd: new Date(startMs).toISOString(),
+        eind_tijd: new Date(eindMs).toISOString(),
+        uurtarief_facturatie_snapshot: tariefVal,
+        goedgekeurd_op: nowIso
+      };
+      var resp = await sb.from('beurt_uren_registraties').update(payload).eq('id', urenId);
+      if (resp.error) throw resp.error;
+    }
+
+    // Opmerking als manual note in dispatch-log (Toolkit-2)
+    var opmEl = document.getElementById('modal-uren-controle-opmerking');
+    var opm = opmEl ? (opmEl.value || '').trim() : '';
+    if (opm && window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.addManualNote === 'function') {
+      try {
+        await window.FlanccoPipelineToolkit.addManualNote(beurtId, '[Facturatie-controle] ' + opm, sb);
+      } catch (logErr) {
+        console.warn('[saveUrenControle] dispatch-log note mislukt:', logErr);
+      }
+    }
+
+    closeModal('modal-uren-controle');
+    await refreshCurrentPipeline(mode);
+    showToast('Uren goedgekeurd — record uitgestuurd ter facturatie', 'success');
+  } catch (e) {
+    console.error('[saveUrenControle]', e);
+    showToast('Opslaan mislukt: ' + (e.message || String(e)), 'error');
+  }
+}
+
+// --- Hand-off modus (Toolkit-3) --------------------------------------------
+function onHandOffModusToggle(checked) {
+  try {
+    var sinceRow = document.getElementById('handoff-mode-since-row');
+    var sinceInput = document.getElementById('handoff-mode-since');
+    var status = document.getElementById('handoff-mode-status');
+    if (checked) {
+      if (sinceRow) sinceRow.style.display = '';
+      if (sinceInput && !sinceInput.value) {
+        sinceInput.value = new Date().toISOString().slice(0, 10);
+      }
+      var sinceVal = sinceInput ? sinceInput.value : '';
+      if (window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.toggleHandOffMode === 'function') {
+        window.FlanccoPipelineToolkit.toggleHandOffMode(true, sinceVal);
+      }
+      if (status) status.textContent = 'Status: actief sinds ' + (sinceVal || 'vandaag');
+    } else {
+      if (sinceRow) sinceRow.style.display = 'none';
+      if (window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.toggleHandOffMode === 'function') {
+        window.FlanccoPipelineToolkit.toggleHandOffMode(false);
+      }
+      if (status) status.textContent = 'Status: niet actief.';
+    }
+  } catch (e) {
+    console.error('[onHandOffModusToggle]', e);
+  }
+}
+
+function onHandOffModusSinceChange(date) {
+  try {
+    var toggle = document.getElementById('handoff-mode-toggle');
+    if (!toggle || !toggle.checked) return;
+    if (window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.toggleHandOffMode === 'function') {
+      window.FlanccoPipelineToolkit.toggleHandOffMode(true, date);
+    }
+    var status = document.getElementById('handoff-mode-status');
+    if (status) status.textContent = 'Status: actief sinds ' + (date || 'vandaag');
+  } catch (e) {
+    console.error('[onHandOffModusSinceChange]', e);
+  }
+}
+
+// Sync UI met persisted state na DOM-ready
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    var toggle = document.getElementById('handoff-mode-toggle');
+    if (!toggle) return;
+    var isActive = false;
+    if (window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.isHandOffMode === 'function') {
+      isActive = !!window.FlanccoPipelineToolkit.isHandOffMode();
+    }
+    var since = '';
+    try { since = localStorage.getItem('flancco_handoff_mode_since') || ''; } catch (_e) {}
+    toggle.checked = isActive;
+    var sinceRow = document.getElementById('handoff-mode-since-row');
+    var sinceInput = document.getElementById('handoff-mode-since');
+    var status = document.getElementById('handoff-mode-status');
+    if (isActive) {
+      if (sinceRow) sinceRow.style.display = '';
+      if (sinceInput && since) sinceInput.value = since;
+      if (status) status.textContent = 'Status: actief sinds ' + (since || 'vandaag');
+    } else {
+      if (sinceRow) sinceRow.style.display = 'none';
+      if (status) status.textContent = 'Status: niet actief.';
+    }
+  } catch (e) {
+    console.error('[handoff-mode init]', e);
+  }
+});
+
+// --- Dashboard-tegel "Pipeline-status vandaag" -----------------------------
+async function renderDashboardPipelineTegel() {
+  var body = document.getElementById('dashboard-pipeline-status-body');
+  if (!body) return;
+  body.innerHTML = '<div class="muted">Laden…</div>';
+  try {
+    if (!window.FlanccoPipeline) {
+      body.innerHTML = '<div class="muted">Pipeline-component niet beschikbaar.</div>';
+      return;
+    }
+    var loaded = await Promise.all([loadOnderhoudData(), loadPartnerSlaConfig()]);
+    var records = loaded[0];
+    var partnerSlaMap = loaded[1];
+
+    var todayIso = new Date().toISOString().slice(0, 10);
+    var slaBreach = 0, overdue = 0, vandaagPlan = 0, vandaagUitvoering = 0, wachtRapport = 0;
+
+    records.forEach(function(r) {
+      var fase = r._fase;
+      if (!fase || fase === 'afgewerkt') return;
+
+      // SLA-breach: alleen als partner-config bestaat
+      var partnerId = r.contract && r.contract.partner_id;
+      var partnerSla = partnerId ? partnerSlaMap.get(partnerId) : null;
+      if (partnerSla && typeof window.FlanccoPipeline.computeSlaBreach === 'function') {
+        try {
+          var breach = window.FlanccoPipeline.computeSlaBreach(r, partnerSla);
+          if (breach && breach.isBreach) slaBreach++;
+        } catch (_e) { /* defensive */ }
+      }
+
+      // Overdue: in fase 1 langer dan 7 dagen
+      if (fase === 'in_te_plannen' && typeof window.FlanccoPipeline.computeAging === 'function') {
+        try {
+          var aging = window.FlanccoPipeline.computeAging(r);
+          if (aging && aging.agingDagen > 7) overdue++;
+        } catch (_e) { /* defensive */ }
+      }
+
+      if (fase === 'ingepland' && r.plan_datum === todayIso) vandaagPlan++;
+      if (fase === 'uitgevoerd' && r.plan_datum === todayIso) vandaagUitvoering++;
+      if (fase === 'rapportage') wachtRapport++;
+    });
+
+    function rowHtml(label, count, bucketKey, colorVar) {
+      var colorStyle = colorVar ? 'color:' + colorVar : '';
+      return (
+        '<div class="dashboard-pipeline-row" onclick="filterPipelineByBucket(\'' + bucketKey + '\')" ' +
+        'style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;cursor:pointer;border-bottom:1px solid var(--rule);font-size:13px">' +
+          '<span>' + escapeHtml(label) + '</span>' +
+          '<span class="dashboard-pipeline-count" style="font-weight:700;' + colorStyle + '">' + count + '</span>' +
+        '</div>'
+      );
+    }
+
+    body.innerHTML =
+      rowHtml('SLA-breach', slaBreach, 'sla_breach', '#dc2626') +
+      rowHtml('Overdue (>7d in fase 1)', overdue, 'overdue', '#ea580c') +
+      rowHtml('Vandaag plan-datum', vandaagPlan, 'vandaag_plan', '') +
+      rowHtml('Vandaag uitvoering', vandaagUitvoering, 'vandaag_uitvoering', '') +
+      rowHtml('Wacht op rapport', wachtRapport, 'wacht_rapport', '');
+  } catch (e) {
+    console.error('[renderDashboardPipelineTegel]', e);
+    body.innerHTML = '<div class="muted error">Fout: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+}
+
+function filterPipelineByBucket(bucketKey) {
+  try {
+    localStorage.setItem('flancco_pipeline_prefilter', bucketKey);
+  } catch (_e) { /* localStorage geblokkeerd */ }
+  if (typeof showPage === 'function') {
+    showPage('onderhoud');
+  }
+}
+
+// Render dashboard-tegel als de tile in DOM zit (admin-only)
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    if (document.getElementById('dashboard-pipeline-status-body')) {
+      renderDashboardPipelineTegel();
+    }
+  } catch (e) {
+    console.error('[dashboard-pipeline-tegel init]', e);
+  }
+});
 
 // =============================================
 // PARTNER PERMISSIONS
@@ -12435,7 +13195,17 @@ function openNewContract() {
   ncCalc();
 }
 
-function closeModal() {
+function closeModal(modalId) {
+  // Polymorf: zonder argument sluit het oude contract-modal (backward-compat),
+  // met argument sluit het opgegeven modal-element. Modal-uren-controle (Slot V)
+  // gebruikt display:none/flex pattern; modal-contract gebruikt .open class.
+  if (modalId) {
+    var el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.remove('open');
+    if (el.style.display !== '') el.style.display = 'none';
+    return;
+  }
   document.getElementById('modal-contract').classList.remove('open');
 }
 
@@ -18913,7 +19683,12 @@ function _pickPartnerAuditFields(p) {
     kleur_donker: p.kleur_donker || null,
     logo_url: p.logo_url || null,
     contract_getekend: p.contract_getekend || null,
-    actief: (p.actief === false) ? false : (p.actief || null)
+    actief: (p.actief === false) ? false : (p.actief || null),
+    // Slot V Toolkit-5 — SLA-uren per fase (audit-relevant: SLA-config-changes raken commerciële verplichtingen)
+    sla_fase_1_uren: (p.sla_fase_1_uren != null ? p.sla_fase_1_uren : null),
+    sla_fase_2_uren: (p.sla_fase_2_uren != null ? p.sla_fase_2_uren : null),
+    sla_fase_4_uren: (p.sla_fase_4_uren != null ? p.sla_fase_4_uren : null),
+    sla_fase_5_uren: (p.sla_fase_5_uren != null ? p.sla_fase_5_uren : null)
   };
 }
 // Genereer diff van twee snapshots — enkel gewijzigde keys blijven over.

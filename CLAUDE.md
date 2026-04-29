@@ -70,6 +70,32 @@ Resolver-helper: `window.FlanccoClientResolver.resolve(value, allClientContacts)
 ### Shared component: FlanccoWerklocatiePicker
 Kaarten-grid radiogroup voor werklocatie-keuze bij multi-locatie klanten. Single-locatie klanten: auto-select primary, geen UI-prompt. Multi-locatie: 2-column kaarten met label + adres + "Primair"-badge. Init via `window.FlanccoWerklocatiePicker.attach(wrapperEl, {clientId, allClientLocations, onChange, autoSelectIfSingle, allowNew, onAddNew})`. Verschijnt onder klant-keuze in: losse opdracht (`qa-locatie`), interventie (`ni-locatie`), contract-wizard (`wiz-werklocatie-card`), bouwdroger uitgeven (`uitgeef-locatie-fwp`). ARIA radiogroup, keyboard-nav, XSS-defensief.
 
+### Shared component: FlanccoPipeline (Slot V/W)
+5-fase pipeline-engine die zowel "Onderhoud" (Slot V, partner-recurrent) als "Flancco-werk" (Slot W, ad-hoc Flancco-interne klussen) aandrijft. Files: `admin/shared/pipeline-components.js` (1278 regels) + `pipeline-components.css` (803, prefix `.flp-`). Demo: `pipeline-components-demo.html` met 3 mock-records. Mode bepaalt fase-gedrag:
+- `mode='onderhoud'` — 5 fases (In te plannen → Ingepland → Uitgevoerd → Rapportage → Uitgestuurd ter facturatie), fase 4 verplicht
+- `mode='flancco'` — 5 fases met optionele rapport-fase (skipbaar bij interne klussen zonder rapport-eis)
+
+Public API onder `window.FlanccoPipeline`:
+- `computeFase(record)` → numerieke fase (1-5) op basis van status + timestamps
+- `computeAging(record, now)` → uren sinds fase-entry
+- `computeSlaBreach(record, partner, fase)` → boolean obv `partners.sla_fase_X_uren`
+- `attachPage(wrapperEl, {mode, records, partners, onAction, ...})` — hoofd-mount
+- `renderTabBar`, `renderAgingStrip`, `renderDispatcherCard`, `renderScheduleCard`, `renderActionCard`, `renderEmptyState` — losse render-helpers
+- `constants` — fase-labels, kleuren, SLA-defaults
+
+Auto-rendering placeholders via data-slot attributen (`data-slot="activity-log|klant-context|runbook-tip"`) — toolkit hooks zich in via MutationObserver. Pages live in `admin/index.html` als `#page-onderhoud` (wrapper `#onderhoud-pipeline-wrapper`) en `#page-flancco-werk` (wrapper `#flancco-werk-pipeline-wrapper`). Fase 4→5 transition gebruikt modal `modal-uren-controle` voor uren goedkeuren + facturatie-trigger.
+
+### Shared component: FlanccoPipelineToolkit (Sarah-resilient)
+Continuity-toolkit voor planner hand-off: 5 sub-componenten gebundeld in `admin/shared/pipeline-toolkit.js` (1584 regels). API onder `window.FlanccoPipelineToolkit`. Sub-componenten:
+- `activity-log` — render `beurt_dispatch_log` rijen per beurt, supports manual entries via input
+- `klant-context` — toont `clients.planner_notitie` + mini-historiek (laatste N beurten van klant)
+- `runbook-tip` — contextuele tooltip uit `runbook_tooltips` per (fase, action_key) — admin kan in-place editen
+- `handoff-banner` — body-class `handoff-mode` + dashboard-tegel als modus actief is
+
+Auto-attach pattern: MutationObserver luistert op `data-slot` attributen (`activity-log`, `klant-context`, `runbook-tip`, `handoff-banner`) zodat host-pages enkel placeholder-elementen renderen — toolkit injecteert UI lazy. Module-level cache: `runbook_tooltips` permanent (admin-mutaties broadcasten via custom event), user-role 5min TTL (vermijdt RLS round-trips per render).
+
+**Hand-off modus**: toggle in admin-instellingen (`#handoff-mode-card`, admin-only). Persisteert via `localStorage['flancco_handoff_mode_since']` (timestamp). Wanneer actief: tooltips, activity-log en klant-notitie worden default uitgeklapt op pipeline-pages — minimaliseert klikken voor vervangende planner.
+
 ## Supabase Configuratie
 - **Project URL**: `https://dhuqpxwwavqyxaelxuzl.supabase.co`
 - **Anon key**: staat in elk HTML-bestand als `SUPA_KEY`
@@ -83,6 +109,8 @@ Kaarten-grid radiogroup voor werklocatie-keuze bij multi-locatie klanten. Single
 - `klant_consents` (Slot Q) — GDPR consent-trail per klant per kanaal: id, contract_id (FK), klant_email, kanaal ('email_service'|'email_marketing'|'sms'|'whatsapp'), opt_in, opt_in_ts/bron/ip/ua, opt_out_ts/bron/ip, opt_out_token (UNIQUE), notitie. View `v_klant_consent_actief` toont laatste status per email/kanaal voor send-* functions.
 - `klant_notification_log` (Slot F) — append-only audit-trail voor elke klant-notificatie poging: id, beurt_id (FK), contract_id (FK), partner_id (FK), kanaal ('email'|'sms'|'whatsapp'), event_type ('reminder_24h'|'reminder_day'|'rapport_klaar'|'test'), recipient (gemaskeerd), status ('sent'|'failed'|'skipped_no_consent'|'skipped_already_sent'|'skipped_missing_contact'|'skipped_daily_cap'), provider_message_id, error_detail, created_at. RLS: admin full SELECT, partner SELECT enkel eigen `partner_id`. Idempotency wordt afgedwongen via 7 timestamp-kolommen op `onderhoudsbeurten` (`reminder_24h_email_ts`, `reminder_day_email_ts`, `_sms_ts` × 2, `_whatsapp_ts` × 2, `rapport_klaar_email_ts`).
 - `audit_log` (Slot H + v2) — business-kritieke mutatie-trail voor compliance, incidentonderzoek, klacht-verdediging: id, tabel, record_id, actie, oude_waarde (TEXT, JSON-string of scalar), nieuwe_waarde (TEXT, idem), user_id (nullable), created_at, **ip (INET)**, **user_agent (TEXT, max 500)**. Slot H v2 voegt `ip` + `user_agent` toe via `BEFORE INSERT` trigger `trg_audit_log_stamp_request_meta` die `current_setting('request.headers')` parst (cf-connecting-ip → x-forwarded-for first hop → x-real-ip). Service-role + pg_cron inserts → NULL (correcte system-vs-end-user-onderscheiding). Client-side helper `auditLog()` in `admin/index.html` past **PII-redactie** toe via `_auditSerializeSnapshot` + `AUDIT_PII_KEYS` whitelist (email/naam/adres/telefoon/handtekening/tokens → `[REDACTED:str:<len>]`, type-hint behouden voor zinvolle diff). Onder 7-jarige boekhoudkundige bewaarplicht — niet selectief purgeable. Partial index `audit_log_ip_idx WHERE ip IS NOT NULL` voor security-forensics.
+- `beurt_dispatch_log` (Slot V/W Toolkit-2) — append-only activity-log per onderhoudsbeurt voor planner hand-off + incident-reconstructie: id, beurt_id (FK onderhoudsbeurten), type CHECK (`manual`|`snooze`|`system`|`transitie`|`mail`), text, user_id (nullable), created_at. Index `(beurt_id, created_at DESC)`. RLS: 3 policies — admin/bediende SELECT+INSERT; partner SELECT enkel eigen via JOIN op `onderhoudsbeurten → contracten.partner_id`. Status-transition trigger op `onderhoudsbeurten` schrijft auto rij bij elke status-wijziging (type=`transitie`).
+- `runbook_tooltips` (Slot V/W Toolkit-5) — admin-bewerkbare contextuele tooltips per pipeline-fase + action_key voor planner-onboarding/hand-off: id, fase (1-5), action_key TEXT, text TEXT, updated_at. UNIQUE (fase, action_key). RLS: 4 policies — alle authenticated SELECT, admin INSERT/UPDATE/DELETE. 10 NL pre-seed defaults dekken kern-acties per fase.
 
 ### Slot T schema-additions (2026-04-28)
 - `clients.contact_person` is **nullable** geworden — bedrijf-only-klanten (geen vaste contactpersoon). `client_type='bedrijf' AND contact_person IS NULL` = bedrijf-only mode.
@@ -102,6 +130,16 @@ Kaarten-grid radiogroup voor werklocatie-keuze bij multi-locatie klanten. Single
 - `actief` boolean blijft bestaan voor backward-compat — alle 9+ filter-queries werken zonder code-wijziging
 - View `v_winstgevendheid_per_technieker` herwerkt: filter `WHERE t.actief = true` weggehaald → ex-techs blijven zichtbaar in YTD-aggregaten met `uit_dienst_sinds`-suffix
 - Hard-delete-pad enkel beschikbaar na 7 jaar bewaarplicht (boekhoudkundige eis); default flow is soft-delete via `uit_dienst_sinds`
+
+### Slot V/W schema-additions (2026-04-29)
+Slot V (Onderhoud) en Slot W (Flancco-werk) zijn twee nieuwe pipeline-pagina's in het admin-dashboard die dezelfde 5-fase pipeline-logica delen maar verschillende werk-types behandelen. Slot V toont partner-recurrent onderhoud (filter `contract.is_eenmalig=false`) met fase 4 (rapportage) verplicht; Slot W toont ad-hoc Flancco-interne klussen (filter `contract.is_eenmalig=true OR contract_id IS NULL`) met optionele rapport-fase. Beide pages delen één shared component (`FlanccoPipeline`) plus de Sarah-resilient continuity-toolkit (`FlanccoPipelineToolkit`) — gebouwd om bus factor 1 (één planner) te mitigeren via audit-stempels, activity-logs, klant-notities, hand-off modus en SLA-runbooks.
+
+- `onderhoudsbeurten.snooze_tot DATE NULL` — Slot V fase-1 snooze
+- `onderhoudsbeurten.last_modified_by/at` (Toolkit-1) — audit-stempel via BEFORE UPDATE trigger; cron/service-role updates → NULL (correct gedrag)
+- `beurt_dispatch_log` (Toolkit-2) — append-only activity-log per beurt; types: `manual`/`snooze`/`system`/`transitie`/`mail`. Status-transition trigger op `onderhoudsbeurten` schrijft auto bij elke status-wijziging. RLS partner-tenant via JOIN.
+- `clients.planner_notitie TEXT NULL` (Toolkit-3) — vrije tekst voor klant-preferences (geen GDPR-gevoelige content)
+- `partners.sla_fase_{1,2,4,5}_uren INT NULL` (Toolkit-5) — per partner SLA per fase
+- `runbook_tooltips` (Toolkit-5) — admin-bewerkbare tooltips, UNIQUE (fase, action_key), 10 NL pre-seed defaults
 
 ### Database Views
 - `v_winstgevendheid_per_partner` (Slot G) — YTD-aggregatie per actieve partner: aantal afgewerkte beurten, omzet_excl_btw, planning_fee_kost, arbeids-/reis-/materiaalkost, brutomarge. `security_invoker=on`; admin ziet alle rijen, partner enkel eigen contracten via RLS.
@@ -157,8 +195,9 @@ Kaarten-grid radiogroup voor werklocatie-keuze bij multi-locatie klanten. Single
 ### Rol-systeem
 Na login wordt `user_roles` gecheckt. De body krijgt class `role-admin` of `role-partner`.
 - CSS: `.admin-only` en `.partner-only` classes tonen/verbergen elementen per rol
-- Admin ziet: Dashboard, Contracten (met filter + "Nieuw contract"), Partners, Prijsbeheer, Winstgevendheid (Slot G — voormalig Forecast)
+- Admin ziet: Dashboard, Contracten (met filter + "Nieuw contract"), Partners, Prijsbeheer, Winstgevendheid (Slot G — voormalig Forecast), **Onderhoud** (Slot V — partner-recurrent pipeline), **Flancco-werk** (Slot W — ad-hoc pipeline), Instellingen (incl. hand-off modus toggle)
 - Partner ziet: Dashboard (eigen stats), Contracten (alleen eigen klanten), Instellingen (branding)
+- Dashboard bevat tegel **"Pipeline-status vandaag"** (admin-only, 5 buckets: SLA-breach, overdue, vandaag plan, vandaag uitvoering, wacht rapport) — klikbaar voor pre-filter naar Onderhoud/Flancco-werk pages
 
 ### Partner Branding
 Bij partner-login wordt `applyBranding(partner)` aangeroepen die sidebar-kleur, CSS custom properties en logo aanpast op basis van partner-record.
@@ -173,6 +212,16 @@ Elke calculator is een standalone pagina met:
 - Handtekening canvas
 - Na ondertekening: insert in `contracten` tabel via Supabase JS + PDF download optie
 
+### Sarah-resilient continuity (concept)
+Bus factor 1 mitigatie: het platform draait operationeel op één planner. Wanneer die wegvalt (vakantie, ziekte, rolwissel) moet een vervanger binnen één dag de pipeline kunnen overnemen zonder tribal knowledge te verliezen. De toolkit (`FlanccoPipelineToolkit`) levert daarvoor 5 elementen:
+1. **Audit-stempel** (`onderhoudsbeurten.last_modified_by/at`) — wie wijzigde wat, wanneer; via BEFORE UPDATE trigger, geen client-side discipline nodig
+2. **Activity-log per beurt** (`beurt_dispatch_log`) — append-only narrative van élke transitie + handmatige notes; vervangt "ik onthoud waarom" met "ik lees waarom"
+3. **Klant-notitie + mini-historiek** (`clients.planner_notitie` + laatste N beurten) — preferences + context die normaal in een planner-hoofd zitten
+4. **Hand-off modus** — toggle in instellingen die tooltips, activity-log en klant-notitie default uitklapt op pipeline-pages, plus dashboard-tegel "Pipeline-status vandaag" als triage-startpunt voor de vervanger
+5. **SLA per partner + admin-bewerkbare runbook-tooltips** (`partners.sla_fase_X_uren` + `runbook_tooltips`) — wat moet wanneer gebeuren + hoe; tooltips zijn admin-editable, dus runbook kan groeien zonder code-deploy
+
+Pattern voor hand-off modus: `localStorage['flancco_handoff_mode_since']` zet body-class `handoff-mode`; CSS-rules in `pipeline-components.css` openen toolkit-secties default. Geen feature-flag in DB — modus is browser-local zodat elke vervanger zelf kan togglen.
+
 ## Openstaande Taken (TODO)
 
 ### Hoge prioriteit
@@ -182,13 +231,14 @@ Elke calculator is een standalone pagina met:
 
 ### Medium prioriteit
 4. **Dynamische pricing in calculatoren**: TIERS array is hardcoded — zou uit Supabase `pricing` tabel moeten laden
-5. **renderContracten() partner-kolom**: Voor partners is de "Partner" kolom in de contractentabel overbodig (ze zien alleen eigen data)
+5. **renderContracten() partner-kolom**: Voor partners is de "Partner" kolom in de contractentabel overbodig (ze zien alleen eigen data) — extra relevant nu Slot V fase 5 (Uitgestuurd ter facturatie) handoff naar partner triggert
 6. **Responsive design**: Dashboard is nog niet geoptimaliseerd voor mobiel
+7. **Runbook-tooltips uitbreiden**: 10 NL pre-seed defaults dekken kern-acties; uitbreiden naar volledige fase-coverage zodra planner edge-cases identificeert via hand-off modus
 
 ### Laag prioriteit
-7. **Contract detail view**: Klikbaar maken van contractrijen voor meer detail
-8. **PDF export vanuit admin**: Contracten als PDF kunnen downloaden vanuit het dashboard
-9. **Notificaties**: Email alerts bij nieuwe contracten
+8. **Contract detail view**: Klikbaar maken van contractrijen voor meer detail
+9. **PDF export vanuit admin**: Contracten als PDF kunnen downloaden vanuit het dashboard
+10. **Notificaties**: Email alerts bij nieuwe contracten
 
 ## Huisstijl Flancco
 - Primaire kleur: navy `#1A1A2E`
