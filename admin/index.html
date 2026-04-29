@@ -6509,7 +6509,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes', onderhoud: 'Onderhoud', 'flancco-werk': 'Flancco-werk' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -9234,10 +9234,44 @@ window._pipelinePartnerSlaMap = window._pipelinePartnerSlaMap || new Map();
 var _onderhoudPipelineInstance = null;
 var _flanccoWerkPipelineInstance = null;
 
-// SQL-shape voor select(): denormalized contract+rapport+uren via FK-joins.
+// SQL-shape voor select(): denormalized contract+client+rapport+uren via FK-joins.
 // We selecteren alle non-afgewerkte beurten; afgewerkte beurten zijn historiek
 // en vallen buiten de pipeline (markeer_afgewerkt-actie verplaatst record erheen).
-var _PIPELINE_SELECT = '*, contract:contracten(id, is_eenmalig, partner_id, contract_nummer, klant_naam, klant_email, klant_telefoon, klant_adres, klant_postcode, klant_gemeente, sector, aantal_panelen, frequentie, contractduur, client_id), rapport:rapporten(id), uren:beurt_uren_registraties(id, goedgekeurd_op, gefactureerd, gefactureerd_op, duur_minuten, uurtarief_facturatie_snapshot, eindprijs)';
+// `client:clients(...)` vereist voor losse opdrachten (contract_id=NULL): zonder
+// contract-snapshot is anders géén klant-naam/adres beschikbaar voor render.
+var _PIPELINE_SELECT = '*, contract:contracten(id, is_eenmalig, partner_id, contract_nummer, klant_naam, klant_email, klant_telefoon, klant_adres, klant_postcode, klant_gemeente, sector, aantal_panelen, frequentie, contractduur, client_id), client:clients(id, company_name, contact_person, client_type, email, phone, street, house_number, postal_code, city, planner_notitie), rapport:rapporten(id), uren:beurt_uren_registraties(id, goedgekeurd_op, gefactureerd, gefactureerd_op, duur_minuten, uurtarief_facturatie_snapshot, eindprijs)';
+
+/**
+ * Synthesize een minimal contract-object met klant-snapshot uit `r.client`-rij
+ * wanneer er geen echte contract-snapshot is (losse opdrachten met contract_id=NULL).
+ * No-op voor records met echt contract.
+ */
+function _synthesizeContractFromClient(r) {
+  if (r && !r.contract && r.client) {
+    var c = r.client;
+    var naam = c.company_name || c.contact_person || '';
+    var adres = ((c.street || '') + ' ' + (c.house_number || '')).trim();
+    r.contract = {
+      id: null,
+      is_eenmalig: true,            // synth → behandel als ad-hoc (Slot W)
+      partner_id: null,
+      contract_nummer: null,
+      klant_naam: naam,
+      klant_email: c.email || null,
+      klant_telefoon: c.phone || null,
+      klant_adres: adres || null,
+      klant_postcode: c.postal_code || null,
+      klant_gemeente: c.city || null,
+      sector: null,
+      aantal_panelen: null,
+      frequentie: null,
+      contractduur: null,
+      client_id: c.id || null,
+      _synth: true                  // marker zodat downstream weet dat dit gesynthetiseerd is
+    };
+  }
+  return r;
+}
 
 async function loadOnderhoudData() {
   try {
@@ -9255,7 +9289,8 @@ async function loadOnderhoudData() {
     var rows = resp.data || [];
     return rows.map(function(r) {
       try {
-        return Object.assign({}, r, { _fase: window.FlanccoPipeline.computeFase(r, 'onderhoud') });
+        var rWithContract = _synthesizeContractFromClient(Object.assign({}, r));
+        return Object.assign(rWithContract, { _fase: window.FlanccoPipeline.computeFase(rWithContract, 'onderhoud') });
       } catch (e) {
         console.error('[loadOnderhoudData] computeFase mislukt voor record', r && r.id, e);
         return Object.assign({}, r, { _fase: null });
@@ -9283,7 +9318,8 @@ async function loadFlanccoWerkData() {
     var rows = resp.data || [];
     return rows.map(function(r) {
       try {
-        return Object.assign({}, r, { _fase: window.FlanccoPipeline.computeFase(r, 'flancco') });
+        var rWithContract = _synthesizeContractFromClient(Object.assign({}, r));
+        return Object.assign(rWithContract, { _fase: window.FlanccoPipeline.computeFase(rWithContract, 'flancco') });
       } catch (e) {
         console.error('[loadFlanccoWerkData] computeFase mislukt voor record', r && r.id, e);
         return Object.assign({}, r, { _fase: null });
