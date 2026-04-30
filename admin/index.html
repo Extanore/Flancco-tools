@@ -9440,9 +9440,22 @@ async function loadFlanccoWerkData() {
       .neq('status', 'afgewerkt')
       .is('verwijderd_op', null)
       .order('plan_datum', { ascending: true, nullsFirst: false });
-    if (resp.error) throw resp.error;
+    if (resp.error) {
+      console.error('[loadFlanccoWerkData] supabase error:', resp.error);
+      throw resp.error;
+    }
     var rows = resp.data || [];
-    return rows.map(function(r) {
+    console.debug('[loadFlanccoWerkData] PostgREST returned', rows.length, 'rows. Sample:',
+      rows.slice(0, 3).map(function(r) {
+        return {
+          id: r.id, status: r.status,
+          contract_id: r.contract_id, has_contract: !!r.contract,
+          client_id: r.client_id, has_client: !!r.client,
+          contract_eenmalig: r.contract && r.contract.is_eenmalig
+        };
+      })
+    );
+    var enriched = rows.map(function(r) {
       try {
         var rWithContract = _synthesizeContractFromClient(Object.assign({}, r));
         return Object.assign(rWithContract, { _fase: window.FlanccoPipeline.computeFase(rWithContract, 'flancco') });
@@ -9451,6 +9464,13 @@ async function loadFlanccoWerkData() {
         return Object.assign({}, r, { _fase: null });
       }
     });
+    var faseCount = enriched.reduce(function(acc, r) {
+      var k = r._fase || 'null';
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    console.debug('[loadFlanccoWerkData] enriched count by _fase:', faseCount);
+    return enriched;
   } catch (e) {
     console.error('[loadFlanccoWerkData]', e);
     return [];
@@ -9552,6 +9572,11 @@ async function showFlanccoWerkPage() {
       if (!r.contract) return true;
       return r.contract.is_eenmalig === true;
     };
+    var filteredRecords = records.filter(dataFilter);
+    console.debug('[showFlanccoWerkPage] records totaal:', records.length, '→ na dataFilter:', filteredRecords.length,
+      filteredRecords.length === 0 && records.length > 0
+        ? '⚠ alle records weggefilterd — check r.contract_id / r.contract / r.contract.is_eenmalig in raw rows'
+        : '');
 
     // Bucket-prefilter consume — zelfde pattern als showOnderhoudPage.
     var prefilter = null;
@@ -9563,7 +9588,7 @@ async function showFlanccoWerkPage() {
     _flanccoWerkPipelineInstance = window.FlanccoPipeline.attachPage(wrapper, {
       mode: 'flancco',
       supabase: sb,
-      records: records.filter(dataFilter),
+      records: filteredRecords,
       partnerSlaMap: partnerSlaMap,
       initialBucketFilter: prefilter || undefined,
       onAction: function(actionKey, record) { return onPipelineAction(actionKey, record, 'flancco'); }
