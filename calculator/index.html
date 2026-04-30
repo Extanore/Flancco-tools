@@ -639,16 +639,19 @@
     <div id="shared-fields">
       <!--
         Slot V — Afstand wordt server-side berekend op basis van partner-
-        vestigingsadres ↔ klant-postcode. Veld is readonly (eindklant kan
-        het niet manipuleren — afstand is een prijs-driver). Auto-fill via
-        RPC anon_calculate_distance_km na geldige postcode-input.
+        vestigingsadres ↔ klant-postcode (RPC anon_calculate_distance_km).
+        Card is VERBORGEN voor de eindklant: afstand is alleen een interne
+        prijs-driver voor het transport-supplement. De input + helper
+        blijven in de DOM omdat calculateAll() de waarde leest en
+        refreshAfstandFromPostcode() de waarde schrijft. `aria-hidden`
+        + `display:none` voorkomt dat screen-readers het toch oplezen.
       -->
-      <div class="card">
+      <div class="card" style="display:none" aria-hidden="true">
         <div class="card-title" data-i18n="step1.cards.afstand">Afstand</div>
         <div class="field">
           <label><span data-i18n="step1.cards.afstandLabel">Afstand tot uw woning</span> <small data-i18n="step1.cards.afstandUnit">(in km)</small></label>
           <input type="number" id="afstand" min="0" max="500" value="15" readonly aria-readonly="true" tabindex="-1">
-          <div class="field-helper is-fallback" id="afstand-helper" aria-live="polite" data-i18n="step1.cards.afstandWaiting">Vul eerst uw postcode in om de afstand te berekenen.</div>
+          <div class="field-helper is-fallback" id="afstand-helper" aria-live="off" data-i18n="step1.cards.afstandWaiting">Vul eerst uw postcode in om de afstand te berekenen.</div>
         </div>
       </div>
 
