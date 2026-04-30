@@ -13,6 +13,8 @@
 <script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.manual.tagged-events.js"></script>
 <script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
 <script defer src="/shared/analytics.js"></script>
+<!-- Slot Y — Lucide icon-set (gedeeld met calculator). Exposeert window.flanccoIcons + window.flanccoRenderIcon. -->
+<script src="/shared/lucide-icons.js"></script>
 <!-- Sentry (enkel op productiehosts — niet op localhost) -->
 <script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
 <script>
@@ -1429,6 +1431,75 @@
   .cc-loading { text-align:center; padding:48px 24px; color:var(--grey); font-size:14px; }
 
   /* =========================================================================
+     SLOT Y — Calculator-instellingen split-screen + live preview
+     Form (links) + iframe-preview (rechts, sticky), responsive < 1200px stacked.
+     ========================================================================= */
+  .cc-split { display:grid; grid-template-columns: 1fr 1.2fr; gap:18px; min-height:calc(100vh - 240px); align-items:start; }
+  .cc-split-form { overflow-y:auto; padding-right:6px; min-width:0; display:flex; flex-direction:column; gap:18px; }
+  .cc-split-preview-wrap { position:sticky; top:12px; align-self:start; display:flex; flex-direction:column; gap:8px; }
+  .cc-split-preview-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border:1px solid var(--rule); border-radius:8px; background:#fff; }
+  .cc-split-preview-toolbar-left { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--grey); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+  .cc-split-preview-toolbar-right { display:flex; align-items:center; gap:8px; }
+  .cc-split-preview { border:1px solid var(--rule); border-radius:10px; overflow:hidden; background:#f8f9fb; height:calc(100vh - 280px); min-height:520px; box-shadow:0 4px 14px rgba(0,0,0,0.04); }
+  .cc-split-preview iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
+  .cc-split-preview-newtab { font-size:12px; font-weight:600; color:var(--navy); text-decoration:none; padding:6px 10px; border-radius:6px; background:transparent; border:1.5px solid var(--rule); cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; transition:0.12s; }
+  .cc-split-preview-newtab:hover { border-color:var(--navy); background:#F9FAFB; }
+  .cc-split-preview-langtoggle { display:inline-flex; gap:0; border:1.5px solid var(--rule); border-radius:6px; overflow:hidden; background:#fff; }
+  .cc-split-preview-langtoggle button { background:transparent; border:none; padding:5px 10px; font-size:11px; font-weight:700; color:var(--grey); cursor:pointer; font-family:inherit; letter-spacing:0.04em; transition:0.12s; }
+  .cc-split-preview-langtoggle button:not(:last-child) { border-right:1.5px solid var(--rule); }
+  .cc-split-preview-langtoggle button.active { background:var(--navy); color:#fff; }
+  @media (max-width: 1200px) {
+    .cc-split { grid-template-columns:1fr; min-height:0; }
+    .cc-split-preview-wrap { position:static; }
+    .cc-split-preview { height:600px; }
+  }
+
+  /* Icon-picker (USP-icoon kiezen ipv SVG-string plakken) */
+  .cc-icon-btn { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1.5px solid var(--rule); border-radius:8px; background:#fff; cursor:pointer; font-size:13px; font-family:inherit; color:var(--navy); transition:0.12s; }
+  .cc-icon-btn:hover { border-color:var(--navy); background:#F9FAFB; }
+  .cc-icon-btn svg { width:22px; height:22px; color:var(--navy); flex-shrink:0; }
+  .cc-icon-btn .cc-icon-btn-label { font-weight:600; }
+  .cc-icon-btn .cc-icon-btn-empty { color:var(--grey); font-weight:500; }
+  .cc-icon-picker-overlay { position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .cc-icon-picker { background:#fff; border-radius:14px; max-width:720px; width:100%; max-height:85vh; display:flex; flex-direction:column; padding:22px; box-shadow:0 24px 64px rgba(0,0,0,0.25); }
+  .cc-icon-picker-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+  .cc-icon-picker-title { font-size:16px; font-weight:700; color:var(--navy); margin:0; }
+  .cc-icon-picker-close { background:transparent; border:none; cursor:pointer; padding:4px; color:var(--grey); border-radius:6px; }
+  .cc-icon-picker-close:hover { color:var(--navy); background:#F3F4F6; }
+  .cc-icon-picker-search { width:100%; padding:10px 12px; border:1.5px solid var(--rule); border-radius:8px; font-size:13px; font-family:inherit; color:var(--navy); margin-bottom:12px; box-sizing:border-box; }
+  .cc-icon-picker-search:focus { outline:none; border-color:var(--navy); }
+  .cc-icon-picker-body { overflow-y:auto; flex:1; padding-right:4px; }
+  .cc-icon-cat { font-size:11px; font-weight:700; color:var(--grey); text-transform:uppercase; letter-spacing:0.06em; margin:14px 0 6px; }
+  .cc-icon-cat:first-child { margin-top:0; }
+  .cc-icon-grid { display:grid; grid-template-columns:repeat(8, 1fr); gap:8px; }
+  @media (max-width: 600px) { .cc-icon-grid { grid-template-columns:repeat(6, 1fr); } }
+  .cc-icon-grid button { aspect-ratio:1; min-height:48px; border:1.5px solid var(--rule); border-radius:8px; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.12s; padding:0; }
+  .cc-icon-grid button:hover { border-color:var(--navy); background:#F3F4F6; }
+  .cc-icon-grid button.active { border-color:var(--navy); background:#EFF6FF; }
+  .cc-icon-grid button svg { width:24px; height:24px; color:var(--navy); }
+  .cc-icon-picker-footer { display:flex; justify-content:space-between; align-items:center; gap:8px; padding-top:14px; border-top:1px solid var(--rule); margin-top:12px; }
+  .cc-icon-picker-empty { text-align:center; padding:24px; color:var(--grey); font-size:13px; }
+
+  /* Visibility-toggle (oog-knop) per element-card */
+  .cc-vis-toggle { background:transparent; border:1.5px solid var(--rule); border-radius:6px; padding:5px 8px; cursor:pointer; color:var(--navy); font-family:inherit; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:5px; transition:0.12s; }
+  .cc-vis-toggle:hover { border-color:var(--navy); background:#F9FAFB; }
+  .cc-vis-toggle svg { width:14px; height:14px; }
+  .cc-vis-toggle.hidden { color:var(--grey); border-color:#FECACA; background:#FEF2F2; }
+  .cc-card-hidden { opacity:0.55; position:relative; }
+  .cc-card-hidden .cc-hidden-badge { position:absolute; top:8px; left:50%; transform:translateX(-50%); background:#FEE2E2; color:#991B1B; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:3px 8px; border-radius:999px; pointer-events:none; }
+
+  /* Save-bar onderaan (sticky bottom, verschijnt enkel bij dirty state) */
+  .cc-savebar { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1.5px solid var(--rule); box-shadow:0 -8px 24px rgba(0,0,0,0.08); padding:12px 24px; display:none; align-items:center; justify-content:space-between; gap:16px; z-index:90; font-family:inherit; }
+  .cc-savebar-count { font-size:13px; font-weight:600; color:var(--navy); }
+  .cc-savebar-count strong { color:var(--red); }
+  .cc-savebar-actions { display:flex; gap:10px; }
+  /* Voeg bottom-padding toe aan calculator-config wanneer save-bar zichtbaar is, zodat scrollende inhoud niet wordt afgedekt */
+  body.cc-savebar-open #page-calculator-config { padding-bottom:80px; }
+
+  /* Compatibility shim — backward-compat tekst-helper voor oud configs met icon_svg */
+  .cc-icon-legacy-hint { font-size:11px; color:#92400E; background:#FEF3C7; border:1px solid #FCD34D; border-radius:6px; padding:6px 9px; margin-top:6px; line-height:1.4; }
+
+  /* =========================================================================
      SLOT D — Partner-facturatie
      Periode-segmented + navigator + KPI-strip + datatabel + skeleton-loader.
      Volgt design-template admin data-view (.dv-*); hergebruikt knop/select-stijl.
@@ -1959,22 +2030,18 @@
       <div id="klant-dossier" style="display:none"></div>
     </div>
 
-    <!-- CALCULATOR-INSTELLINGEN PAGE (Slot W) -->
+    <!-- CALCULATOR-INSTELLINGEN PAGE (Slot W + Slot Y/Stage 1 — split-screen + live preview) -->
     <div class="page admin-only" id="page-calculator-config">
       <div class="card">
         <div class="dv-header">
           <div class="dv-header-left">
             <h2 class="dv-title">Calculator-instellingen</h2>
-            <p class="dv-subtitle">Beheer USPs, motivatie-tekst, frequentie- en contractduur-opties + klantvragen per sector. Wijzigingen zijn direct zichtbaar voor klanten.</p>
+            <p class="dv-subtitle">Beheer USPs, motivatie-tekst, frequentie- en contractduur-opties + klantvragen per sector. Wijzigingen zijn live zichtbaar in de preview rechts.</p>
           </div>
           <div class="dv-header-actions">
             <button type="button" class="btn btn-ghost" id="cc-btn-reset" onclick="resetCalcConfig()" title="Verwijder de override voor deze sector + scope; calculator gebruikt opnieuw de code-default.">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
               Herstel naar code-default
-            </button>
-            <button type="button" class="btn btn-primary" id="cc-btn-save" onclick="saveCalcConfig()" disabled>
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Opslaan
             </button>
           </div>
         </div>
@@ -1997,9 +2064,46 @@
 
         <div id="cc-scope-banner" class="cc-banner" style="display:none"></div>
 
-        <div id="cc-form" class="cc-form">
-          <!-- Dynamisch gerenderd door renderCalcConfigForm() -->
+        <div class="cc-split">
+          <div class="cc-split-form">
+            <div id="cc-form" class="cc-form">
+              <!-- Dynamisch gerenderd door renderCalcConfigForm() -->
+            </div>
+          </div>
+          <div class="cc-split-preview-wrap">
+            <div class="cc-split-preview-toolbar">
+              <div class="cc-split-preview-toolbar-left">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--navy)"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Live preview</span>
+              </div>
+              <div class="cc-split-preview-toolbar-right">
+                <div class="cc-split-preview-langtoggle" role="tablist" aria-label="Preview taal">
+                  <button type="button" class="active" data-cc-lang="nl" onclick="ccSetPreviewLang('nl')">NL</button>
+                  <button type="button" data-cc-lang="fr" onclick="ccSetPreviewLang('fr')">FR</button>
+                </div>
+                <button type="button" class="cc-split-preview-newtab" onclick="ccOpenPreviewNewTab()" title="Open preview in nieuw tabblad">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Nieuw tabblad
+                </button>
+              </div>
+            </div>
+            <div class="cc-split-preview">
+              <iframe id="cc-preview-iframe" title="Calculator preview" loading="lazy" referrerpolicy="no-referrer"></iframe>
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Slot Y — sticky save-bar onderaan (verschijnt alleen bij wijzigingen) -->
+    <div id="cc-savebar" class="cc-savebar" role="region" aria-label="Niet-opgeslagen wijzigingen">
+      <span id="cc-savebar-count" class="cc-savebar-count">0 wijzigingen niet opgeslagen</span>
+      <div class="cc-savebar-actions">
+        <button type="button" class="btn btn-ghost" id="cc-btn-discard" onclick="ccDiscardChanges()">Verwerp</button>
+        <button type="button" class="btn btn-primary" id="cc-btn-save" onclick="saveCalcConfig()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Bewaar
+        </button>
       </div>
     </div>
 
@@ -6503,6 +6607,11 @@ function getCurrentPageName() {
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
+  // Slot Y — verberg de calculator-config save-bar wanneer we van die pagina af navigeren
+  var ccBar = document.getElementById('cc-savebar');
+  var ccDirtyVisible = (name === 'calculator-config' && typeof ccState !== 'undefined' && ccState.dirty && !ccState.loading);
+  if (ccBar) ccBar.style.display = ccDirtyVisible ? 'flex' : 'none';
+  document.body.classList.toggle('cc-savebar-open', ccDirtyVisible);
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   // Activate the visible nav item (not role-hidden)
   var navItems = document.querySelectorAll('.nav-item[data-page="' + name + '"]');
@@ -23514,7 +23623,12 @@ var ccState = {
   initialConfig: {},         // snapshot bij laad — voor dirty-check
   dirty: false,
   loading: false,
-  initialized: false
+  initialized: false,
+  // Slot Y/Stage 1
+  previewLang: 'nl',         // 'nl' | 'fr' — taal van preview-iframe
+  previewReady: false,       // pas beschikbaar nadat iframe 'flancco-preview-ready' stuurt
+  pushTimer: null,           // debounce-timer voor postMessage updates
+  globalConfigCache: {}      // {sector: cfg} — voor preview merging in partner-scope (zodat USP/motivatie correct over globaal komt)
 };
 
 function ccDeepClone(obj) {
@@ -23559,6 +23673,23 @@ async function initCalcConfigPage() {
       return '';
     }
   });
+  // Slot Y — postMessage listener voor de calculator-iframe
+  if (!window.__ccPreviewListenerInstalled) {
+    window.__ccPreviewListenerInstalled = true;
+    window.addEventListener('message', function(e) {
+      if (!e || !e.data || typeof e.data !== 'object') return;
+      var iframe = document.getElementById('cc-preview-iframe');
+      if (!iframe || !iframe.contentWindow || e.source !== iframe.contentWindow) return;
+      if (e.data.type === 'flancco-preview-ready') {
+        ccState.previewReady = true;
+        ccPushConfigToPreview();
+        ccPushSectorToPreview();
+        ccPushLangToPreview();
+      }
+    });
+  }
+  // Init de preview-iframe met de juiste URL
+  ccUpdatePreviewIframeSrc();
   await loadCalcConfigForCurrent();
 }
 
@@ -23582,6 +23713,8 @@ async function onCalcConfigScopeChange() {
   // Reset naar zonnepanelen-tab bij scope-wissel zodat de UI consistent is
   ccState.sector = 'zonnepanelen';
   document.querySelectorAll('.cc-sector-tab').forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-cc-sector') === 'zonnepanelen'); });
+  // Slot Y — partner-slug zit in de iframe URL, dus reload de iframe
+  ccUpdatePreviewIframeSrc();
   await loadCalcConfigForCurrent();
 }
 
@@ -23599,6 +23732,8 @@ async function onCalcConfigSectorChange(sector) {
   }
   ccState.sector = sector;
   document.querySelectorAll('.cc-sector-tab').forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-cc-sector') === sector); });
+  // Slot Y — preview switch: postMessage sector + nieuwe config voor deze sector
+  ccPushSectorToPreview();
   await loadCalcConfigForCurrent();
 }
 
@@ -23631,6 +23766,25 @@ async function loadCalcConfigForCurrent() {
       ccState.config = {};
     }
     ccState.initialConfig = ccDeepClone(ccState.config);
+    // Slot Y — cache de globale config voor deze sector zodat partner-mode
+    // de juiste effectieve preview kan tonen (partner-override over globaal heen).
+    if (!ccIsPartnerScope()) {
+      ccState.globalConfigCache[ccState.sector] = ccDeepClone(ccState.config);
+    } else {
+      // Lazy-load globale config voor deze sector als nog niet gecached
+      if (!ccState.globalConfigCache[ccState.sector]) {
+        try {
+          var gres = await sb.from('sector_config').select('*').eq('sector', ccState.sector).is('partner_id', null).maybeSingle();
+          if (gres && !gres.error && gres.data) {
+            ccState.globalConfigCache[ccState.sector] = ccDeepClone(gres.data.config || {});
+          } else {
+            ccState.globalConfigCache[ccState.sector] = {};
+          }
+        } catch (_) {
+          ccState.globalConfigCache[ccState.sector] = {};
+        }
+      }
+    }
   } catch (e) {
     console.error('loadCalcConfigForCurrent error:', e);
     formEl.innerHTML = '<div class="cc-empty-state">Fout bij laden: ' + esc((e && e.message) || String(e)) + '</div>';
@@ -23639,6 +23793,8 @@ async function loadCalcConfigForCurrent() {
   }
   ccState.loading = false;
   renderCalcConfigForm();
+  // Slot Y — push direct na laad zodat preview sync is met DB-state
+  ccPushConfigToPreview();
 }
 
 function ccUpdateScopeBanner() {
@@ -23662,11 +23818,176 @@ function ccUpdateSaveBtn() {
   if (btn) btn.disabled = !ccState.dirty || ccState.loading;
   var rbtn = document.getElementById('cc-btn-reset');
   if (rbtn) rbtn.disabled = !ccState.rowId || ccState.loading;
+  // Slot Y — sticky save-bar onderaan
+  var savebar = document.getElementById('cc-savebar');
+  var countEl = document.getElementById('cc-savebar-count');
+  if (savebar) {
+    if (ccState.dirty && !ccState.loading) {
+      savebar.style.display = 'flex';
+      var n = ccCountChanges();
+      if (countEl) countEl.innerHTML = '<strong>' + n + '</strong> wijziging' + (n === 1 ? '' : 'en') + ' niet opgeslagen';
+      document.body.classList.add('cc-savebar-open');
+    } else {
+      savebar.style.display = 'none';
+      document.body.classList.remove('cc-savebar-open');
+    }
+  }
+}
+
+function ccCountChanges() {
+  // Telt het aantal top-level config-keys waar de huidige snapshot afwijkt van initialConfig.
+  // Pure JSON-vergelijking — voldoende granular voor de save-bar UX.
+  try {
+    var cur = ccState.config || {};
+    var base = ccState.initialConfig || {};
+    var keys = {};
+    Object.keys(cur).forEach(function(k){ keys[k] = true; });
+    Object.keys(base).forEach(function(k){ keys[k] = true; });
+    var n = 0;
+    Object.keys(keys).forEach(function(k){
+      if (JSON.stringify(cur[k]) !== JSON.stringify(base[k])) n++;
+    });
+    return n || 1; // minstens 1 als dirty=true
+  } catch (_) { return 1; }
 }
 
 function ccMarkDirty() {
   ccState.dirty = true;
   ccUpdateSaveBtn();
+  // Slot Y — debounced push naar preview-iframe
+  ccSchedulePushToPreview();
+}
+
+function ccSchedulePushToPreview() {
+  if (ccState.pushTimer) { clearTimeout(ccState.pushTimer); ccState.pushTimer = null; }
+  ccState.pushTimer = setTimeout(function() {
+    ccState.pushTimer = null;
+    ccPushConfigToPreview();
+  }, 200);
+}
+
+// =============================================
+// Slot Y — Preview iframe + postMessage bridge
+// =============================================
+
+function ccBuildPreviewUrl() {
+  // Hostname-aware base — werkt op (a) productie subdomain-split
+  // (calculator.flancco-platform.be vs app.flancco-platform.be), (b) GitHub-Pages
+  // fallback (extanore.github.io/Flancco-tools/calculator), en (c) localhost
+  // (zelfde origin). Hergebruikt CALCULATOR_BASE_URL die elders al elders is
+  // gedefinieerd voor partner-share-links.
+  var base = (typeof CALCULATOR_BASE_URL !== 'undefined' ? CALCULATOR_BASE_URL : '../calculator')
+           + '/index.html?preview=admin';
+  if (ccIsPartnerScope() && ccState.scope) {
+    var p = ccPartnersList().find(function(x) { return x.id === ccState.scope; });
+    if (p && p.slug) base += '&partner=' + encodeURIComponent(p.slug);
+  }
+  // Lang-hint via query (calculator kan dit oppakken voor initial render)
+  if (ccState.previewLang && ccState.previewLang !== 'nl') {
+    base += '&lang=' + encodeURIComponent(ccState.previewLang);
+  }
+  return base;
+}
+
+// Resolveert het juiste targetOrigin voor postMessage-calls naar de preview-
+// iframe. Cross-origin (productie subdomain-split) vereist expliciet origin;
+// same-origin mag '*' maar we zijn altijd specifiek voor security.
+function ccPreviewTargetOrigin() {
+  if (typeof CALCULATOR_BASE_URL === 'undefined') return '*';
+  try { return new URL(CALCULATOR_BASE_URL, location.origin).origin; }
+  catch (_) { return '*'; }
+}
+
+function ccUpdatePreviewIframeSrc() {
+  var iframe = document.getElementById('cc-preview-iframe');
+  if (!iframe) return;
+  var newSrc = ccBuildPreviewUrl();
+  // Reset previewReady; we wachten op een nieuwe ready-message
+  ccState.previewReady = false;
+  if (iframe.src !== newSrc) {
+    iframe.src = newSrc;
+  } else {
+    // Forceer reload als URL hetzelfde is (bv. dezelfde scope opnieuw)
+    try { iframe.contentWindow.location.reload(); } catch (_) { iframe.src = newSrc + '&_t=' + Date.now(); }
+  }
+}
+
+function ccBuildMergedConfigForPreview() {
+  // Slot Y — bouw de config zoals de calculator's RPC anon_get_calculator_config hem zou
+  // teruggeven: één object per sector. Voor de huidige sector mergen we partner-override
+  // (USPs/motivatie) over de globale basis. Andere sectoren tonen we vanuit cache zodat
+  // tab-switches in de preview een consistente set hebben.
+  var out = {};
+  CC_SECTORS.forEach(function(s) {
+    out[s] = ccDeepClone(ccState.globalConfigCache[s] || {});
+  });
+  if (ccIsPartnerScope()) {
+    // Partner-mode: enkel whitelist-keys (USPs, motivatie) overschrijven globale waarden
+    // voor de actieve sector — de form bewerkt enkel die voor de actieve sector.
+    var sec = ccState.sector;
+    var partnerCfg = ccState.config || {};
+    out[sec] = out[sec] || {};
+    if (partnerCfg.usps !== undefined) out[sec].usps = ccDeepClone(partnerCfg.usps);
+    if (partnerCfg.motivatie !== undefined) out[sec].motivatie = ccDeepClone(partnerCfg.motivatie);
+  } else {
+    // Globaal: huidige form-state IS de globale config voor deze sector
+    out[ccState.sector] = ccDeepClone(ccState.config || {});
+  }
+  return out;
+}
+
+function ccPushConfigToPreview() {
+  var iframe = document.getElementById('cc-preview-iframe');
+  if (!iframe || !iframe.contentWindow) return;
+  if (!ccState.previewReady) return; // wachten op ready-handshake
+  try {
+    iframe.contentWindow.postMessage({
+      type: 'flancco-preview-config',
+      payload: ccBuildMergedConfigForPreview()
+    }, ccPreviewTargetOrigin());
+  } catch (e) {
+    console.warn('ccPushConfigToPreview failed:', e);
+  }
+}
+
+function ccPushSectorToPreview() {
+  var iframe = document.getElementById('cc-preview-iframe');
+  if (!iframe || !iframe.contentWindow) return;
+  if (!ccState.previewReady) return;
+  try {
+    iframe.contentWindow.postMessage({
+      type: 'flancco-preview-set-sector',
+      payload: { sector: ccState.sector }
+    }, ccPreviewTargetOrigin());
+  } catch (e) { console.warn('ccPushSectorToPreview failed:', e); }
+}
+
+function ccPushLangToPreview() {
+  var iframe = document.getElementById('cc-preview-iframe');
+  if (!iframe || !iframe.contentWindow) return;
+  if (!ccState.previewReady) return;
+  try {
+    iframe.contentWindow.postMessage({
+      type: 'flancco-preview-set-lang',
+      payload: { lang: ccState.previewLang }
+    }, ccPreviewTargetOrigin());
+  } catch (e) { console.warn('ccPushLangToPreview failed:', e); }
+}
+
+function ccSetPreviewLang(lang) {
+  if (lang !== 'nl' && lang !== 'fr') return;
+  ccState.previewLang = lang;
+  document.querySelectorAll('.cc-split-preview-langtoggle button').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-cc-lang') === lang);
+  });
+  ccPushLangToPreview();
+}
+
+function ccOpenPreviewNewTab() {
+  var url = ccBuildPreviewUrl();
+  // Strip query-only marker zodat het tabblad een schone preview-URL toont
+  var win = window.open(url, '_blank', 'noopener,noreferrer');
+  if (win) win.opener = null;
 }
 
 // ---------------------- RENDER ----------------------
@@ -23691,31 +24012,56 @@ function renderCcUspsSection() {
   var cards = '';
   for (var i = 0; i < 3; i++) {
     var u = usps[i] || {};
-    var hasIcon = !!(u.icon_svg && String(u.icon_svg).trim());
-    var preview = hasIcon ? '<div class="cc-usp-preview" aria-hidden="true">' + (u.icon_svg || '') + '</div>'
-                          : '<div class="cc-usp-preview empty" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/></svg></div>';
-    cards += '<div class="cc-usp-card">' +
+    var iconName = u.icon || '';
+    var legacySvg = u.icon_svg || '';
+    var visible = (u.visible !== false); // default true
+    // Slot Y — icon-button met live preview van gekozen icoon
+    var iconBtnInner;
+    if (iconName && window.flanccoIcons && window.flanccoIcons.svg && window.flanccoIcons.svg[iconName]) {
+      iconBtnInner = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + window.flanccoIcons.svg[iconName] + '</svg>' +
+                     '<span class="cc-icon-btn-label">' + esc(iconName) + '</span>';
+    } else if (legacySvg && legacySvg.trim()) {
+      // Backward-compat: oude saves met icon_svg
+      iconBtnInner = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (legacySvg || '') + '</svg>' +
+                     '<span class="cc-icon-btn-label" style="color:#92400E">Custom (oud)</span>';
+    } else {
+      iconBtnInner = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
+                     '<span class="cc-icon-btn-empty">Kies icoon</span>';
+    }
+    var legacyHint = (legacySvg && !iconName) ?
+      '<div class="cc-icon-legacy-hint">Dit USP gebruikt nog een ouderwetse SVG-string. Kies een nieuw icoon om te upgraden naar de centrale Lucide-set.</div>' : '';
+    var hiddenBadge = visible ? '' : '<span class="cc-hidden-badge">Verborgen voor klanten</span>';
+    var visBtnLabel = visible ? 'Zichtbaar' : 'Verborgen';
+    var visBtnIcon = visible
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
+    var visClass = visible ? '' : ' hidden';
+    var cardClass = visible ? 'cc-usp-card' : 'cc-usp-card cc-card-hidden';
+    cards += '<div class="' + cardClass + '">' + hiddenBadge +
       '<div class="cc-usp-header">' +
         '<span class="cc-usp-num">USP ' + (i + 1) + '</span>' +
-        preview +
+        '<button type="button" class="cc-vis-toggle' + visClass + '" onclick="ccToggleUspVisible(' + i + ')" title="Toon/verberg deze USP voor klanten">' +
+          visBtnIcon + '<span>' + visBtnLabel + '</span>' +
+        '</button>' +
       '</div>' +
       '<div class="cc-field">' +
-        '<label>Icoon (SVG-string)<span class="cc-field-hint" style="margin-left:auto;font-weight:400;text-transform:none">24×24 viewBox, Lucide-stijl</span></label>' +
-        '<textarea class="cc-svg" placeholder="<svg viewBox=&quot;0 0 24 24&quot;>…</svg>" oninput="ccUpdateUsp(' + i + ', \'icon_svg\', this.value)">' + esc(u.icon_svg || '') + '</textarea>' +
+        '<label>Icoon</label>' +
+        '<button type="button" class="cc-icon-btn" onclick="ccOpenIconPicker(' + i + ')">' + iconBtnInner + '</button>' +
+        legacyHint +
       '</div>' +
       '<div class="cc-grid-2">' +
         '<div class="cc-field"><label>Tekst <span class="cc-lang">NL</span></label>' +
-          '<textarea placeholder="Gebruik \\n voor regel-einde" oninput="ccUpdateUsp(' + i + ', \'text_nl\', this.value)">' + esc(u.text_nl || '') + '</textarea></div>' +
+          '<textarea rows="3" placeholder="bv. Tot 30% meer rendement" oninput="ccUpdateUsp(' + i + ', \'text_nl\', this.value)">' + esc(u.text_nl || '') + '</textarea></div>' +
         '<div class="cc-field"><label>Tekst <span class="cc-lang fr">FR</span></label>' +
-          '<textarea placeholder="Utilisez \\n pour saut de ligne" oninput="ccUpdateUsp(' + i + ', \'text_fr\', this.value)">' + esc(u.text_fr || '') + '</textarea></div>' +
+          '<textarea rows="3" placeholder="ex. Jusqu’à 30% de rendement en plus" oninput="ccUpdateUsp(' + i + ', \'text_fr\', this.value)">' + esc(u.text_fr || '') + '</textarea></div>' +
       '</div>' +
-      '<div style="text-align:right"><button type="button" class="cc-link-btn" onclick="ccResetUsp(' + i + ')">Gebruik code-default</button></div>' +
+      '<div style="text-align:right"><button type="button" class="cc-link-btn" onclick="ccResetUsp(' + i + ')">Herstel naar code-default</button></div>' +
     '</div>';
   }
   return '<div class="cc-section" id="cc-section-usps">' +
     '<div class="cc-section-header">' +
       '<div><h3 class="cc-section-title">USPs</h3>' +
-      '<p class="cc-section-subtitle">Drie korte verkoopargumenten boven de calculator (icoon + 1–2 regels tekst). Lege velden = standaard zoals in de code.</p></div>' +
+      '<p class="cc-section-subtitle">Drie korte verkoopargumenten boven de calculator. Kies een icoon, schrijf 1–2 regels tekst per taal en gebruik het oog om een USP te verbergen zonder de inhoud te verliezen.</p></div>' +
     '</div>' +
     '<div class="cc-usp-grid">' + cards + '</div>' +
   '</div>';
@@ -23723,16 +24069,15 @@ function renderCcUspsSection() {
 
 function renderCcMotivatieSection() {
   var m = ccState.config.motivatie || {};
+  var visible = (m.visible !== false); // default true
   function row(labelNl, labelFr, keyNl, keyFr, isTextarea, placeholderNl, placeholderFr) {
-    var tag = isTextarea ? 'textarea' : 'input type="text"';
-    var endTag = isTextarea ? '</textarea>' : '';
     function field(lang, key, lbl, ph, val) {
       var langCls = (lang === 'fr') ? ' fr' : '';
       var inputAttrs = 'oninput="ccUpdateMotivatie(\'' + key + '\', this.value)"';
       var placeholderAttr = ph ? ' placeholder="' + esc(ph) + '"' : '';
       if (isTextarea) {
         return '<div class="cc-field"><label>' + esc(lbl) + ' <span class="cc-lang' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
-          '<textarea ' + inputAttrs + placeholderAttr + '>' + esc(val || '') + '</textarea></div>';
+          '<textarea rows="3" ' + inputAttrs + placeholderAttr + '>' + esc(val || '') + '</textarea></div>';
       } else {
         return '<div class="cc-field"><label>' + esc(lbl) + ' <span class="cc-lang' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
           '<input type="text" ' + inputAttrs + placeholderAttr + ' value="' + esc(val || '') + '"></div>';
@@ -23743,11 +24088,23 @@ function renderCcMotivatieSection() {
       field('fr', keyFr, labelFr, placeholderFr, m[keyFr]) +
     '</div>';
   }
-  return '<div class="cc-section" id="cc-section-motivatie">' +
+  var hiddenBadge = visible ? '' : '<span class="cc-hidden-badge">Verborgen voor klanten</span>';
+  var visBtnLabel = visible ? 'Zichtbaar' : 'Verborgen';
+  var visBtnIcon = visible
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
+  var visClass = visible ? '' : ' hidden';
+  var sectionClass = visible ? 'cc-section' : 'cc-section cc-card-hidden';
+  return '<div class="' + sectionClass + '" id="cc-section-motivatie" style="position:relative">' + hiddenBadge +
     '<div class="cc-section-header">' +
       '<div><h3 class="cc-section-title">Motivatie-block</h3>' +
-      '<p class="cc-section-subtitle">"Waarom …?" uitklapbaar tekstblok onder de USPs. Highlight-paragraaf wordt visueel benadrukt.</p></div>' +
-      '<button type="button" class="cc-link-btn" onclick="ccResetSection(\'motivatie\')">Gebruik code-default</button>' +
+      '<p class="cc-section-subtitle">"Waarom …?" uitklapbaar tekstblok onder de USPs. Highlight-paragraaf wordt visueel benadrukt. Gebruik Enter voor regelafbreking — wat je hier typt is wat de klant ziet.</p></div>' +
+      '<div style="display:flex;gap:8px;align-items:flex-start">' +
+        '<button type="button" class="cc-vis-toggle' + visClass + '" onclick="ccToggleMotivatieVisible()" title="Toon/verberg het hele motivatie-block voor klanten">' +
+          visBtnIcon + '<span>' + visBtnLabel + '</span>' +
+        '</button>' +
+        '<button type="button" class="cc-link-btn" onclick="ccResetSection(\'motivatie\')">Herstel naar code-default</button>' +
+      '</div>' +
     '</div>' +
     '<div style="display:flex;flex-direction:column;gap:14px">' +
       row('Titel', 'Titre', 'title_nl', 'title_fr', false, 'Waarom uw zonnepanelen reinigen?', 'Pourquoi nettoyer…') +
@@ -23840,6 +24197,7 @@ function renderCcKlantVragenSection() {
   var showBuitenkraan = (ccState.sector === 'zonnepanelen');
   function questionBlock(qkey, title, defaultOptions) {
     var q = kv[qkey] || {};
+    var visible = (q.visible !== false); // default true
     var opts = (q.options && Array.isArray(q.options)) ? q.options : defaultOptions.map(function(o){ return { value: o.value, label_nl: '', label_fr: '' }; });
     // Houd waarden constant; admin kan enkel labels editeren
     var optionsHtml = '';
@@ -23852,14 +24210,26 @@ function renderCcKlantVragenSection() {
         '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(existing.label_fr || '') + '" placeholder="' + esc(def.placeholderFr || '') + '" oninput="ccUpdateKvOption(\'' + qkey + '\', \'' + def.value + '\', \'label_fr\', this.value)"></div>' +
       '</div>';
     }
-    return '<div class="cc-question">' +
+    var hiddenBadge = visible ? '' : '<span class="cc-hidden-badge">Verborgen voor klanten</span>';
+    var visBtnLabel = visible ? 'Zichtbaar' : 'Verborgen';
+    var visBtnIcon = visible
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
+    var visClass = visible ? '' : ' hidden';
+    var blockClass = visible ? 'cc-question' : 'cc-question cc-card-hidden';
+    return '<div class="' + blockClass + '" style="position:relative">' + hiddenBadge +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h4 class="cc-question-title">' + esc(title) + '</h4>' +
-      '<button type="button" class="cc-link-btn" onclick="ccResetKvQuestion(\'' + qkey + '\')">Gebruik code-default</button></div>' +
+      '<div style="display:flex;gap:8px;align-items:flex-start">' +
+        '<button type="button" class="cc-vis-toggle' + visClass + '" onclick="ccToggleKvVisible(\'' + qkey + '\')" title="Toon/verberg deze vraag voor klanten">' +
+          visBtnIcon + '<span>' + visBtnLabel + '</span>' +
+        '</button>' +
+        '<button type="button" class="cc-link-btn" onclick="ccResetKvQuestion(\'' + qkey + '\')">Herstel naar code-default</button>' +
+      '</div></div>' +
       '<div class="cc-grid-2" style="margin-top:10px">' +
         '<div class="cc-field"><label>Vraaglabel <span class="cc-lang">NL</span></label><input type="text" value="' + esc(q.label_nl || '') + '" oninput="ccUpdateKv(\'' + qkey + '\', \'label_nl\', this.value)"></div>' +
         '<div class="cc-field"><label>Vraaglabel <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(q.label_fr || '') + '" oninput="ccUpdateKv(\'' + qkey + '\', \'label_fr\', this.value)"></div>' +
-        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang">NL</span></label><textarea oninput="ccUpdateKv(\'' + qkey + '\', \'helper_nl\', this.value)">' + esc(q.helper_nl || '') + '</textarea></div>' +
-        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang fr">FR</span></label><textarea oninput="ccUpdateKv(\'' + qkey + '\', \'helper_fr\', this.value)">' + esc(q.helper_fr || '') + '</textarea></div>' +
+        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang">NL</span></label><textarea rows="3" placeholder="Korte uitleg onder de vraag" oninput="ccUpdateKv(\'' + qkey + '\', \'helper_nl\', this.value)">' + esc(q.helper_nl || '') + '</textarea></div>' +
+        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang fr">FR</span></label><textarea rows="3" placeholder="Brève explication" oninput="ccUpdateKv(\'' + qkey + '\', \'helper_fr\', this.value)">' + esc(q.helper_fr || '') + '</textarea></div>' +
       '</div>' +
       '<div class="cc-question-options">' + optionsHtml + '</div>' +
     '</div>';
@@ -23875,7 +24245,7 @@ function renderCcKlantVragenSection() {
   return '<div class="cc-section" id="cc-section-klant-vragen">' +
     '<div class="cc-section-header">' +
       '<div><h3 class="cc-section-title">Klant-vragen</h3>' +
-      '<p class="cc-section-subtitle">Praktische vragen tijdens het invullen van de calculator. Optie-waarden (Goed/Beperkt, Ja/Nee) blijven vast — enkel labels zijn editeerbaar.</p></div>' +
+      '<p class="cc-section-subtitle">Praktische vragen tijdens het invullen van de calculator. Optie-waarden (Goed/Beperkt, Ja/Nee) blijven vast — enkel labels zijn editeerbaar. Verberg een vraag om hem tijdelijk uit de flow te halen zonder de inhoud te verliezen.</p></div>' +
     '</div>' +
     bereikBlock + buitenBlock +
   '</div>';
@@ -23896,44 +24266,51 @@ function ccUpdateUsp(idx, key, val) {
   } else {
     ccState.config.usps[idx][key] = val;
   }
-  // Cleanup: als alle drie de keys leeg zijn, zet object terug op leeg {}
-  // (zo blijft de slot herkenbaar maar zonder data)
+  // Cleanup: als alle keys leeg zijn (en geen visible-override), reset de slot
   ccCleanupUspSlot(idx);
   ccCleanupUspsArray();
   ccMarkDirty();
-  // Refresh icoon-preview zonder volledige re-render (snappier UX)
-  ccRefreshUspPreview(idx);
+  // Tekst-input: geen full re-render (anders verliest de cursor focus). Icoon en
+  // visibility gaan via dedicated mutators die wel re-renderen.
+}
+
+// Slot Y — icoon kiezen vanuit picker (zet usp[idx].icon, ruimt legacy icon_svg op)
+function ccSelectUspIcon(idx, iconName) {
+  ccEnsureUsps();
+  var u = ccState.config.usps[idx] || {};
+  ccState.config.usps[idx] = u;
+  if (iconName) {
+    u.icon = iconName;
+    delete u.icon_svg; // upgrade-pad: legacy SVG-string verwijderen
+  } else {
+    delete u.icon;
+    delete u.icon_svg;
+  }
+  ccCleanupUspSlot(idx);
+  ccCleanupUspsArray();
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+function ccUspIsEmpty(u) {
+  // USP is "leeg" als er geen icoon (nieuw of legacy), tekst of zichtbaarheids-override is gezet
+  if (!u || typeof u !== 'object') return true;
+  if (u.icon || u.icon_svg || u.text_nl || u.text_fr) return false;
+  if (u.visible === false) return false; // expliciet verborgen — bewaren
+  return true;
 }
 
 function ccCleanupUspSlot(idx) {
   var u = ccState.config.usps[idx];
-  if (u && !u.icon_svg && !u.text_nl && !u.text_fr) {
+  if (ccUspIsEmpty(u)) {
     ccState.config.usps[idx] = {};
   }
 }
 
 function ccCleanupUspsArray() {
   // Als alle 3 USPs leeg zijn, verwijder usps-key volledig
-  var allEmpty = ccState.config.usps.every(function(u) { return !u.icon_svg && !u.text_nl && !u.text_fr; });
+  var allEmpty = ccState.config.usps.every(ccUspIsEmpty);
   if (allEmpty) delete ccState.config.usps;
-}
-
-function ccRefreshUspPreview(idx) {
-  // Vind de specifieke usp-card (er staan er 3 in DOM-volgorde) en update preview-element
-  var cards = document.querySelectorAll('#cc-section-usps .cc-usp-card');
-  var card = cards[idx];
-  if (!card) return;
-  var preview = card.querySelector('.cc-usp-preview');
-  if (!preview) return;
-  var u = (ccState.config.usps && ccState.config.usps[idx]) || {};
-  var hasIcon = !!(u.icon_svg && String(u.icon_svg).trim());
-  if (hasIcon) {
-    preview.classList.remove('empty');
-    preview.innerHTML = u.icon_svg;
-  } else {
-    preview.classList.add('empty');
-    preview.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/></svg>';
-  }
 }
 
 function ccResetUsp(idx) {
@@ -23944,6 +24321,38 @@ function ccResetUsp(idx) {
   renderCalcConfigForm();
 }
 
+// Slot Y — visibility-toggle voor USP
+function ccToggleUspVisible(idx) {
+  ccEnsureUsps();
+  var u = ccState.config.usps[idx] || {};
+  ccState.config.usps[idx] = u;
+  if (u.visible === false) {
+    delete u.visible; // weer zichtbaar — verwijder de flag (default = true)
+  } else {
+    u.visible = false;
+  }
+  ccCleanupUspSlot(idx);
+  ccCleanupUspsArray();
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+// Slot Y — icon-picker openen voor USP
+function ccOpenIconPicker(idx) {
+  ccIconPickerState.targetUspIdx = idx;
+  ccIconPickerState.searchTerm = '';
+  ccRenderIconPicker();
+}
+
+function ccMotivatieIsEmpty(m) {
+  // Motivatie "leeg" = geen tekst-keys EN geen visible-override
+  if (!m || typeof m !== 'object') return true;
+  var keys = Object.keys(m);
+  if (keys.length === 0) return true;
+  if (keys.length === 1 && keys[0] === 'visible' && m.visible !== false) return true;
+  return false;
+}
+
 function ccUpdateMotivatie(key, val) {
   if (!ccState.config.motivatie) ccState.config.motivatie = {};
   if (val == null || val === '') {
@@ -23951,10 +24360,37 @@ function ccUpdateMotivatie(key, val) {
   } else {
     ccState.config.motivatie[key] = val;
   }
-  if (ccState.config.motivatie && Object.keys(ccState.config.motivatie).length === 0) {
+  if (ccMotivatieIsEmpty(ccState.config.motivatie)) {
     delete ccState.config.motivatie;
   }
   ccMarkDirty();
+}
+
+// Slot Y — visibility-toggle voor motivatie-block
+function ccToggleMotivatieVisible() {
+  if (!ccState.config.motivatie) ccState.config.motivatie = {};
+  var m = ccState.config.motivatie;
+  if (m.visible === false) {
+    delete m.visible; // weer zichtbaar
+  } else {
+    m.visible = false;
+  }
+  if (ccMotivatieIsEmpty(m)) delete ccState.config.motivatie;
+  ccMarkDirty();
+  renderCalcConfigForm();
+}
+
+// Slot Y — visibility-toggle voor klant-vraag
+function ccToggleKvVisible(qkey) {
+  var q = ccEnsureKv(qkey);
+  if (q.visible === false) {
+    delete q.visible;
+  } else {
+    q.visible = false;
+  }
+  ccCleanupKv(qkey);
+  ccMarkDirty();
+  renderCalcConfigForm();
 }
 
 function ccResetSection(sectionKey) {
@@ -24130,7 +24566,11 @@ function ccCleanupKv(qkey) {
   var kv = ccState.config.klant_vragen;
   if (!kv) return;
   var q = kv[qkey];
-  if (q && Object.keys(q).length === 0) delete kv[qkey];
+  if (q) {
+    var keys = Object.keys(q);
+    var onlyVisibleTrue = (keys.length === 1 && keys[0] === 'visible' && q.visible !== false);
+    if (keys.length === 0 || onlyVisibleTrue) delete kv[qkey];
+  }
   if (Object.keys(kv).length === 0) delete ccState.config.klant_vragen;
 }
 
@@ -24147,10 +24587,29 @@ function ccResetKvQuestion(qkey) {
 function ccBuildPersistedConfig() {
   // Bouwt config snapshot. Gerichte cleanup: lege containers verwijderen en in
   // partner-mode strikt enkel whitelist-keys behouden.
+  // Slot Y — strip visible:true (default) zodat payload klein blijft. visible:false
+  // wordt expliciet bewaard zodat de calculator weet dat het element verborgen moet zijn.
   var cfg = ccDeepClone(ccState.config) || {};
-  // Final cleanup: lege deep-objects → verwijder
-  if (cfg.usps && cfg.usps.length === 0) delete cfg.usps;
-  if (cfg.motivatie && Object.keys(cfg.motivatie).length === 0) delete cfg.motivatie;
+  // USPs: per slot zichtbaarheid normaliseren
+  if (Array.isArray(cfg.usps)) {
+    for (var ui = 0; ui < cfg.usps.length; ui++) {
+      var u = cfg.usps[ui];
+      if (u && u.visible === true) delete u.visible;
+    }
+    if (cfg.usps.length === 0) delete cfg.usps;
+  }
+  // Motivatie
+  if (cfg.motivatie) {
+    if (cfg.motivatie.visible === true) delete cfg.motivatie.visible;
+    if (Object.keys(cfg.motivatie).length === 0) delete cfg.motivatie;
+  }
+  // Klant-vragen
+  if (cfg.klant_vragen && typeof cfg.klant_vragen === 'object') {
+    Object.keys(cfg.klant_vragen).forEach(function(qk) {
+      var q = cfg.klant_vragen[qk];
+      if (q && q.visible === true) delete q.visible;
+    });
+  }
   if (ccIsPartnerScope()) {
     var allowed = {};
     for (var i = 0; i < CC_PARTNER_WHITELIST.length; i++) {
@@ -24205,6 +24664,10 @@ async function saveCalcConfig() {
     ccState.config = ccDeepClone(persisted);
     ccState.initialConfig = ccDeepClone(persisted);
     ccState.dirty = false;
+    // Slot Y — refresh global cache zodat partner-scope en andere sectoren de juiste basis krijgen
+    if (!ccIsPartnerScope()) {
+      ccState.globalConfigCache[ccState.sector] = ccDeepClone(persisted);
+    }
     showToast('Opgeslagen', 'success');
   } catch (e) {
     console.error('saveCalcConfig error:', e);
@@ -24215,7 +24678,26 @@ async function saveCalcConfig() {
       ccUpdateSaveBtn();
     }
     renderCalcConfigForm();
+    ccPushConfigToPreview();
   }
+}
+
+// Slot Y — Verwerp wijzigingen sinds laatste laden
+async function ccDiscardChanges() {
+  if (!ccState.dirty) return;
+  var ok = await confirmDialog({
+    title: 'Wijzigingen verwerpen',
+    message: 'Alle niet-opgeslagen wijzigingen voor deze sector worden ongedaan gemaakt. Doorgaan?',
+    confirmLabel: 'Verwerp wijzigingen',
+    cancelLabel: 'Annuleren',
+    variant: 'danger'
+  });
+  if (!ok) return;
+  ccState.config = ccDeepClone(ccState.initialConfig);
+  ccState.dirty = false;
+  renderCalcConfigForm();
+  ccUpdateSaveBtn();
+  ccPushConfigToPreview();
 }
 
 async function resetCalcConfig() {
@@ -24241,13 +24723,165 @@ async function resetCalcConfig() {
     ccState.config = {};
     ccState.initialConfig = {};
     ccState.dirty = false;
+    if (!ccIsPartnerScope()) {
+      ccState.globalConfigCache[ccState.sector] = {};
+    }
     showToast('Override verwijderd — calculator gebruikt code-default', 'success');
     renderCalcConfigForm();
     ccUpdateSaveBtn();
+    ccPushConfigToPreview();
   } catch (e) {
     console.error('resetCalcConfig error:', e);
     showToast('Fout bij verwijderen: ' + ((e && e.message) || String(e)), 'error');
   }
+}
+
+// =============================================
+// Slot Y — Icon-picker modal (gedeelde Lucide-set via window.flanccoIcons)
+// =============================================
+
+var ccIconPickerState = {
+  targetUspIdx: null,    // index van de USP waarvoor we kiezen
+  searchTerm: ''
+};
+
+function ccCloseIconPicker() {
+  var el = document.getElementById('cc-icon-picker-overlay');
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+  ccIconPickerState.targetUspIdx = null;
+  ccIconPickerState.searchTerm = '';
+  document.removeEventListener('keydown', ccIconPickerKeydown);
+}
+
+function ccIconPickerKeydown(e) {
+  if (e.key === 'Escape') ccCloseIconPicker();
+}
+
+function ccRenderIconPicker() {
+  // Verwijder bestaande modal indien aanwezig
+  var existing = document.getElementById('cc-icon-picker-overlay');
+  if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+  var icons = (window.flanccoIcons && window.flanccoIcons.svg) ? window.flanccoIcons.svg : null;
+  var categories = (window.flanccoIcons && Array.isArray(window.flanccoIcons.categories)) ? window.flanccoIcons.categories : null;
+
+  // Huidige selectie ophalen voor active-state
+  var idx = ccIconPickerState.targetUspIdx;
+  var current = (ccState.config.usps && ccState.config.usps[idx] && ccState.config.usps[idx].icon) || '';
+
+  var search = (ccIconPickerState.searchTerm || '').toLowerCase().trim();
+
+  var bodyHtml = '';
+  if (!icons || !categories) {
+    bodyHtml = '<div class="cc-icon-picker-empty">' +
+      'De gedeelde icon-set kon niet geladen worden (<code>/shared/lucide-icons.js</code>).<br>' +
+      'Neem contact op met de beheerder of probeer de pagina te herladen.' +
+      '</div>';
+  } else {
+    var anyShown = false;
+    for (var ci = 0; ci < categories.length; ci++) {
+      var cat = categories[ci];
+      var catIcons = (cat && Array.isArray(cat.icons)) ? cat.icons : [];
+      var filtered = catIcons.filter(function(name) {
+        if (!icons[name]) return false;
+        if (!search) return true;
+        return String(name).toLowerCase().indexOf(search) >= 0;
+      });
+      if (filtered.length === 0) continue;
+      anyShown = true;
+      var catLabel = (cat.label_nl || cat.label || cat.key || '');
+      bodyHtml += '<div class="cc-icon-cat">' + esc(catLabel) + '</div>';
+      bodyHtml += '<div class="cc-icon-grid">';
+      for (var k = 0; k < filtered.length; k++) {
+        var name = filtered[k];
+        var isActive = (name === current);
+        bodyHtml += '<button type="button" class="' + (isActive ? 'active' : '') + '" ' +
+          'data-cc-icon-name="' + esc(name) + '" ' +
+          'title="' + esc(name) + '" ' +
+          'onclick="ccPickIcon(\'' + name.replace(/\\/g, '\\\\').replace(/\'/g, "\\\'") + '\')">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + icons[name] + '</svg>' +
+          '</button>';
+      }
+      bodyHtml += '</div>';
+    }
+    if (!anyShown) {
+      bodyHtml = '<div class="cc-icon-picker-empty">Geen icoon gevonden voor "' + esc(search) + '".</div>';
+    }
+  }
+
+  var html =
+    '<div class="cc-icon-picker-overlay" id="cc-icon-picker-overlay" role="dialog" aria-modal="true" aria-labelledby="cc-icon-picker-title">' +
+      '<div class="cc-icon-picker" onclick="event.stopPropagation()">' +
+        '<div class="cc-icon-picker-header">' +
+          '<h3 class="cc-icon-picker-title" id="cc-icon-picker-title">Kies een icoon</h3>' +
+          '<button type="button" class="cc-icon-picker-close" onclick="ccCloseIconPicker()" aria-label="Sluiten">' +
+            '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<input type="text" class="cc-icon-picker-search" id="cc-icon-picker-search" placeholder="Zoek een icoon (bv. zon, schild, klok)…" value="' + esc(search) + '">' +
+        '<div class="cc-icon-picker-body" id="cc-icon-picker-body">' + bodyHtml + '</div>' +
+        '<div class="cc-icon-picker-footer">' +
+          '<button type="button" class="btn btn-ghost" onclick="ccPickIcon(null)">Geen icoon</button>' +
+          '<span style="font-size:11px;color:var(--grey)">Klik een icoon om te selecteren · ESC om te sluiten</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  var wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  var overlay = wrap.firstChild;
+  // Click op overlay zelf sluit modal (maar niet op de inhoud)
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) ccCloseIconPicker(); });
+  document.body.appendChild(overlay);
+
+  // Search-veld live filteren
+  var searchEl = document.getElementById('cc-icon-picker-search');
+  if (searchEl) {
+    searchEl.addEventListener('input', function() {
+      ccIconPickerState.searchTerm = searchEl.value || '';
+      // Render alleen het body-deel opnieuw, zonder de search-input te recreëren
+      // (anders verliest hij focus). Trick: we vervangen alleen body-content.
+      var bodyEl = document.getElementById('cc-icon-picker-body');
+      if (!bodyEl) return;
+      var s = ccIconPickerState.searchTerm.toLowerCase().trim();
+      var newHtml = '';
+      if (!icons || !categories) {
+        bodyEl.innerHTML = '<div class="cc-icon-picker-empty">Icon-set niet geladen.</div>';
+        return;
+      }
+      var any = false;
+      for (var ci2 = 0; ci2 < categories.length; ci2++) {
+        var cat2 = categories[ci2];
+        var ci2icons = (cat2 && Array.isArray(cat2.icons)) ? cat2.icons : [];
+        var f = ci2icons.filter(function(nm) {
+          if (!icons[nm]) return false;
+          if (!s) return true;
+          return String(nm).toLowerCase().indexOf(s) >= 0;
+        });
+        if (f.length === 0) continue;
+        any = true;
+        var catLabel2 = (cat2.label_nl || cat2.label || cat2.key || '');
+        newHtml += '<div class="cc-icon-cat">' + esc(catLabel2) + '</div><div class="cc-icon-grid">';
+        for (var kk = 0; kk < f.length; kk++) {
+          var nm2 = f[kk];
+          var act = (nm2 === current) ? 'active' : '';
+          newHtml += '<button type="button" class="' + act + '" data-cc-icon-name="' + esc(nm2) + '" title="' + esc(nm2) + '" onclick="ccPickIcon(\'' + nm2.replace(/\\/g, '\\\\').replace(/\'/g, "\\\'") + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + icons[nm2] + '</svg></button>';
+        }
+        newHtml += '</div>';
+      }
+      if (!any) newHtml = '<div class="cc-icon-picker-empty">Geen icoon gevonden voor "' + esc(s) + '".</div>';
+      bodyEl.innerHTML = newHtml;
+    });
+    setTimeout(function() { searchEl.focus(); }, 30);
+  }
+  document.addEventListener('keydown', ccIconPickerKeydown);
+}
+
+function ccPickIcon(name) {
+  var idx = ccIconPickerState.targetUspIdx;
+  if (idx == null) { ccCloseIconPicker(); return; }
+  ccSelectUspIcon(idx, name || null);
+  ccCloseIconPicker();
 }
 
 // =============================================

@@ -13,6 +13,10 @@
 <script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.manual.tagged-events.js"></script>
 <script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
 <script defer src="/shared/analytics.js"></script>
+<!-- Slot Y / Stage 1 — Curated Lucide-iconset (gedeeld met admin).
+     Synchroon laden zodat USP-rendering direct na DOMContentLoaded
+     beschikt over window.flanccoRenderIcon. Geen externe dependency. -->
+<script src="/shared/lucide-icons.js"></script>
 <script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
 <script>
   (function(){
@@ -951,6 +955,49 @@
 var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
 var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ═══════════════════════════════════════════
+// SLOT Y / STAGE 1 — PREVIEW MODE
+// ═══════════════════════════════════════════
+// Wanneer de calculator in een iframe binnen het admin-dashboard wordt
+// geladen met ?preview=admin schakelt hij naar preview-modus:
+//   - geen Plausible-tracking, geen Brussels-prompt, geen taal-overlay
+//   - geen contract-insert, geen klant_consents-rijen
+//   - submit-knop blijft zichtbaar maar disabled met tooltip
+//   - sector_config wordt NIET via RPC geladen — admin pusht config
+//     via window.postMessage zodat live-edits direct zichtbaar zijn
+//   - taal en sector kunnen ook van buitenaf gestuurd worden
+// Het ouder-frame ontvangt 'flancco-preview-ready' zodra de listener
+// actief is en kan vanaf dan config-updates pushen.
+var IS_PREVIEW = (function () {
+  try {
+    return new URLSearchParams(window.location.search).get('preview') === 'admin';
+  } catch (_) { return false; }
+})();
+window.flanccoIsPreview = IS_PREVIEW;
+
+// Tracking degraderen tot no-op in preview. analytics.js wordt met `defer`
+// geladen en zal — na dit script-block — window.flanccoTrack assignen, dus
+// installeren we een setter-trap zodat onze no-op blijft staan, ongeacht
+// de laad-volgorde. Andere telemetrie (Sentry) blijft ongemoeid; alleen
+// Plausible-events worden onderdrukt om productie-statistieken zuiver te houden.
+if (IS_PREVIEW) {
+  (function () {
+    var noop = function () { /* no-op in preview */ };
+    try {
+      Object.defineProperty(window, 'flanccoTrack', {
+        configurable: true,
+        get: function () { return noop; },
+        set: function () { /* slik elke late assignment in */ }
+      });
+    } catch (_) {
+      // Fallback bij browsers die defineProperty op window niet toelaten:
+      // brute-force overwrite met setInterval-ish hack vermijden — gewoon
+      // direct overschrijven en accepteren dat een race mogelijk is.
+      window.flanccoTrack = noop;
+    }
+  })();
+}
 
 // Platform URLs — hostname-autodetect
 var APP_BASE_URL = (function() {
@@ -2541,31 +2588,58 @@ var CONTRACTDUUR_DEFAULT = {
 
 /**
  * Normaliseert één USP-item zodat zowel het code-default-shape ({icon, text})
- * als het server-config-shape ({icon_svg, text_nl, text_fr}) dezelfde
- * render-pad volgen.
+ * als het server-config-shape ({icon, icon_svg, text_nl, text_fr, visible})
+ * dezelfde render-pad volgen.
+ *
+ * Slot Y / Stage 1 — voorkeur volgorde voor het icoon:
+ *   1. item.icon → als bekende Lucide-naam, render via flanccoRenderIcon
+ *      (zo gaat admin's icon-picker output direct naar de calculator).
+ *   2. item.icon_svg → backwards-compat raw SVG-string uit oudere config.
+ *   3. item.icon → als legacy raw SVG-string (code-defaults uit SECTORS).
+ *   4. Niets → lege string (item-filter haalt 'm dan weg).
+ *
+ * Het `visible`-flag (default true) wordt onveranderd doorgegeven zodat
+ * renderUspBar items met visible:false kan overslaan zonder hun positie
+ * in de bron te wijzigen.
  */
 function _normalizeUspItem(item) {
   if (!item) return null;
-  var icon = item.icon_svg || item.icon || '';
+  var icon = '';
+  var rawIcon = item.icon || '';
+  // Detecteer of `icon` een Lucide-naam is (slug-vorm: lowercase, alfanum + dash).
+  // Een raw SVG-string begint altijd met '<' — dus alles zonder '<' behandelen
+  // we als kandidaat-naam en consulteren de registry.
+  if (rawIcon && rawIcon.indexOf('<') === -1 && window.flanccoIcons && window.flanccoIcons.has && window.flanccoIcons.has(rawIcon)) {
+    icon = window.flanccoRenderIcon(rawIcon);
+  } else if (item.icon_svg) {
+    icon = item.icon_svg;
+  } else if (rawIcon) {
+    icon = rawIcon; // legacy raw-SVG fallback
+  }
   var text = item.text;
   if (item.text_nl != null || item.text_fr != null) {
     text = getLangText(item, 'text', item.text || '');
   }
-  return { icon: icon, text: text || '' };
+  // visible default = true; alleen exact `false` markeert zichtbaar=uit.
+  var visible = item.visible !== false;
+  return { icon: icon, text: text || '', visible: visible };
 }
 
 /**
  * Bouwt de USP-bar voor een sector. Leest eerst sector_config.usps,
  * fallback op SECTORS[sector].usps. Lege array → lege strook (geen render).
+ * Items met visible:false worden overgeslagen (Slot Y).
  */
 function renderUspBar(sector) {
   var cfg = SECTORS[sector];
   if (!cfg) return '';
   var override = getSectorCfg(sector, 'usps');
   var source = (Array.isArray(override) && override.length > 0) ? override : (cfg.usps || []);
-  var items = source.map(_normalizeUspItem).filter(function(u) { return u && (u.icon || u.text); });
+  var items = source.map(_normalizeUspItem).filter(function (u) {
+    return u && u.visible && (u.icon || u.text);
+  });
   if (items.length === 0) return '';
-  return '<div class="usp-bar">' + items.map(function(u) {
+  return '<div class="usp-bar">' + items.map(function (u) {
     return '<div class="usp-item"><div class="usp-icon">' + u.icon + '</div><div class="usp-text">' + u.text + '</div></div>';
   }).join('') + '</div>';
 }
@@ -2585,6 +2659,9 @@ function renderMotivatieBlock(sector) {
     return (sCfg && typeof sCfg.renderInfoBlocks === 'function') ? sCfg.renderInfoBlocks() : '';
   }
   var override = getSectorCfg(sector, 'motivatie') || {};
+  // Slot Y — admin kan het volledige motivatie-block onzichtbaar maken
+  // (bv. voor partners die liever hun eigen voice-of-tone aanhouden).
+  if (override.visible === false) return '';
   var title    = getLangText(override, 'title',    defaults.title_nl);
   var subtitle = getLangText(override, 'subtitle', defaults.subtitle_nl);
   var intro    = getLangText(override, 'intro',    defaults.intro_nl);
@@ -2796,6 +2873,19 @@ function applyKlantVragen() {
     var slotDefaults = defaults[slot] || {};
     var slotOverride = override[slot] || {};
 
+    // Slot Y — admin kan een vraag volledig verbergen (visible:false).
+    // We tonen/verbergen via display zodat readInputs() bij sign-up niet
+    // breekt op een ontbrekend element; submit-flow kijkt naar wrapper-
+    // visibility om de waarde te negeren als de vraag niet getoond werd.
+    if (slotOverride.visible === false) {
+      wrapper.style.display = 'none';
+      wrapper.setAttribute('data-cfg-hidden', 'true');
+      return;
+    } else {
+      wrapper.style.display = '';
+      wrapper.removeAttribute('data-cfg-hidden');
+    }
+
     var label   = getLangText(slotOverride, 'label',  slotDefaults.label_nl  || '');
     var helper  = getLangText(slotOverride, 'helper', slotDefaults.helper_nl || '');
 
@@ -2884,6 +2974,11 @@ function applyCalcConfigToUI() {
  */
 async function loadCalcConfig() {
   if (!partner || !partner.id) { calcConfig = {}; return; }
+  // Slot Y — in preview-modus pusht admin de config via postMessage. De
+  // initiële RPC-fetch sla we over zodat een latere postMessage niet door
+  // een race-conditie overschreven wordt. calcConfig start op een leeg
+  // object → helpers vallen terug op code-defaults tot de eerste push.
+  if (IS_PREVIEW) { calcConfig = window.calcConfig || {}; return; }
   try {
     var res = await sb.rpc('anon_get_calculator_config', { p_partner_id: partner.id });
     if (res && res.error) {
@@ -3082,10 +3177,123 @@ async function init() {
     // Initial calculation
     calculateAll();
 
+    // Slot Y / Stage 1 — preview-mode bootstrap (badge + postMessage handshake).
+    // We doen dit ná de eerste render zodat de admin-iframe pas een 'ready'-
+    // event krijgt wanneer de UI staat — anders zou een eerste config-push
+    // tegen een nog niet bestaande DOM aan kunnen lopen.
+    if (IS_PREVIEW) {
+      setupPreviewMode();
+    }
+
   } catch (err) {
     console.error('Init error:', err);
     showError('Er is een fout opgetreden bij het laden. Probeer de pagina te vernieuwen.');
   }
+}
+
+// ═══════════════════════════════════════════
+// SLOT Y / STAGE 1 — PREVIEW MODE BOOTSTRAP
+// ═══════════════════════════════════════════
+/**
+ * Activeert preview-modus: toont een visueel badge, disable't de signing-
+ * knop en luistert naar postMessage-events vanuit het admin-iframe parent.
+ * Wordt enkel aangeroepen wanneer IS_PREVIEW true is — dus geen impact op
+ * productie-gebruik.
+ *
+ * Ondersteunde events (e.data.type):
+ *   - 'flancco-preview-config'      → e.data.payload = volledige calcConfig
+ *   - 'flancco-preview-set-sector'  → e.data.payload.sector
+ *   - 'flancco-preview-set-lang'    → e.data.payload.lang ('nl' | 'fr')
+ *
+ * Uitgaand:
+ *   - 'flancco-preview-ready'  → admin start config-push wanneer dit aankomt
+ */
+function setupPreviewMode() {
+  // 1. Visueel badge top-right (defensief: niet dubbel injecteren).
+  if (!document.getElementById('preview-badge')) {
+    var badge = document.createElement('div');
+    badge.id = 'preview-badge';
+    badge.textContent = 'PREVIEW MODE';
+    badge.setAttribute('aria-hidden', 'true');
+    badge.style.cssText = [
+      'position:fixed',
+      'top:10px',
+      'right:10px',
+      'z-index:9999',
+      'padding:6px 12px',
+      'background:#1A1A2E',
+      'color:#fff',
+      'font-family:Inter,-apple-system,sans-serif',
+      'font-size:11px',
+      'font-weight:600',
+      'letter-spacing:0.08em',
+      'text-transform:uppercase',
+      'border-radius:6px',
+      'box-shadow:0 4px 12px rgba(0,0,0,0.15)',
+      'opacity:0.6',
+      'pointer-events:none',
+      'user-select:none'
+    ].join(';');
+    document.body.appendChild(badge);
+
+    // Print-versie verbergen via stylesheet (niet inline want @media werkt
+    // niet met cssText). Eén keer toevoegen.
+    if (!document.getElementById('preview-badge-print-style')) {
+      var st = document.createElement('style');
+      st.id = 'preview-badge-print-style';
+      st.textContent = '@media print { #preview-badge { display: none !important; } }';
+      document.head.appendChild(st);
+    }
+  }
+
+  // 2. Submit-knop disable't met tooltip.
+  ['btn-submit', 'signing-submit-btn'].forEach(function (id) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    b.disabled = true;
+    b.classList.add('preview-disabled');
+    b.setAttribute('title', 'Preview-modus — ondertekenen is uitgeschakeld');
+    b.style.cursor = 'not-allowed';
+    b.style.opacity = '0.55';
+  });
+
+  // 3. Brussels-prompt onderdrukken: stub de globale referentie.
+  window.__showBrusselsPrompt = function () { /* preview no-op */ };
+
+  // 4. postMessage-listener voor live config-pushes.
+  window.addEventListener('message', function (e) {
+    if (!e || !e.data || typeof e.data !== 'object') return;
+    var type = e.data.type;
+    var payload = e.data.payload || {};
+    if (type === 'flancco-preview-config') {
+      // Volledige calcConfig vervangen — admin is source of truth in preview.
+      // Object-shape verwacht; defensief filteren.
+      window.calcConfig = (payload && typeof payload === 'object' && !Array.isArray(payload)) ? payload : {};
+      calcConfig = window.calcConfig;
+      try {
+        applyCalcConfigToUI();
+      } catch (err) {
+        console.warn('[preview] applyCalcConfigToUI faalde:', err);
+      }
+    } else if (type === 'flancco-preview-set-sector') {
+      var s = payload && payload.sector;
+      if (s && typeof switchSectorTab === 'function' && selectedSectors && selectedSectors.indexOf(s) >= 0) {
+        switchSectorTab(s);
+      }
+    } else if (type === 'flancco-preview-set-lang') {
+      var l = payload && payload.lang;
+      if (l && window.flanccoI18n && typeof window.flanccoI18n.setLang === 'function') {
+        window.flanccoI18n.setLang(l);
+      }
+    }
+  });
+
+  // 5. Acknowledgement aan parent zodat admin weet dat hij mag pushen.
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'flancco-preview-ready' }, '*');
+    }
+  } catch (_) { /* cross-origin ouderframe — admin doet dan een polling-fallback */ }
 }
 
 // ═══════════════════════════════════════════
@@ -5506,6 +5714,13 @@ function checkAccept() {
 // SUBMIT CONTRACT
 // ═══════════════════════════════════════════
 async function submitContract() {
+  // Slot Y / Stage 1 \u2014 in preview-modus mag het contract niet weg. Knoppen
+  // zijn al disabled door setupPreviewMode(); deze guard is een tweede
+  // verdedigingslinie tegen programmatische triggers (devtools, e2e tests).
+  if (IS_PREVIEW) {
+    console.info('[preview] submitContract genegeerd \u2014 preview-modus actief.');
+    return;
+  }
   var btn = document.getElementById('btn-submit');
   if (btn.classList.contains('download-locked')) return;
   btn.disabled = true;
@@ -6085,6 +6300,9 @@ init();
 <script>
 (function(){
   try {
+    // Slot Y / Stage 1 — geen cookie-banner in preview-modus, anders staat
+    // hij steeds in beeld in de admin-iframe en stoort de visuele preview.
+    if (window.flanccoIsPreview) return;
     if (!localStorage.getItem('cc_v1')) {
       var el = document.getElementById('cc-banner');
       if (el) el.style.display = 'block';
@@ -6192,6 +6410,9 @@ init();
   }
 
   function showBrusselsPrompt() {
+    // Slot Y / Stage 1 — in preview-modus geen taal-prompt overlay tonen
+    // (admin pusht de taal expliciet via postMessage).
+    if (window.flanccoIsPreview) return;
     if (document.getElementById('lang-prompt-overlay')) return;
     var overlay = document.createElement('div');
     overlay.className = 'lang-prompt-overlay';
