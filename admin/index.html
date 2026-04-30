@@ -1531,6 +1531,93 @@
   /* Voeg bottom-padding toe aan calculator-config wanneer save-bar zichtbaar is, zodat scrollende inhoud niet wordt afgedekt */
   body.cc-savebar-open #page-calculator-config { padding-bottom:80px; }
 
+  /* =========================================================================
+     SLOT Y / Stage 2 — In-preview edit: hover-cues + popover-shell
+     Hover op een editable mock-element → potlood-icoon + lichte highlight.
+     Klik → ccOpenPopover(target, anchorEl) opent popover met content-editor.
+     Partner-scope locked elements (frequentie/contractduur/klant_vraag):
+     greyed-out, "Globaal beheerd"-tooltip, niet klikbaar.
+     ========================================================================= */
+  .cc-mock-section.is-editable,
+  .cc-mock-usp.is-editable,
+  .cc-mock-vraag.is-editable,
+  .cc-mock-options-card.is-editable { cursor:pointer; transition:background 0.15s, box-shadow 0.15s; position:relative; }
+  .cc-mock-section.is-editable:hover,
+  .cc-mock-usp.is-editable:hover,
+  .cc-mock-vraag.is-editable:hover,
+  .cc-mock-options-card.is-editable:hover { background:rgba(9,137,121,0.04); box-shadow:0 0 0 2px rgba(9,137,121,0.18); border-radius:10px; }
+  .cc-mock-section.is-editable::after,
+  .cc-mock-usp.is-editable::after,
+  .cc-mock-vraag.is-editable::after,
+  .cc-mock-options-card.is-editable::after {
+    content:'';
+    position:absolute; top:8px; right:8px; width:24px; height:24px;
+    background:#fff url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23098979' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E") center/14px no-repeat;
+    border:1px solid var(--rule); border-radius:6px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.06);
+    opacity:0; transition:opacity 0.15s;
+    pointer-events:none;
+    z-index:2;
+  }
+  .cc-mock-section.is-editable:hover::after,
+  .cc-mock-usp.is-editable:hover::after,
+  .cc-mock-vraag.is-editable:hover::after,
+  .cc-mock-options-card.is-editable:hover::after { opacity:1; }
+  .cc-mock-section.is-locked,
+  .cc-mock-vraag.is-locked,
+  .cc-mock-options-card.is-locked { opacity:0.6; cursor:not-allowed; position:relative; }
+  .cc-mock-section.is-locked:hover,
+  .cc-mock-vraag.is-locked:hover,
+  .cc-mock-options-card.is-locked:hover { background:rgba(180,83,9,0.04); border-radius:10px; }
+  .cc-mock-section.is-locked::after,
+  .cc-mock-vraag.is-locked::after,
+  .cc-mock-options-card.is-locked::after {
+    content:'Globaal beheerd';
+    position:absolute; right:auto; left:50%; top:8px; transform:translateX(-50%);
+    width:auto; padding:2px 8px;
+    background:rgba(180,83,9,0.12); color:#92400E;
+    font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase;
+    border-radius:4px; border:0;
+    opacity:0; transition:opacity 0.15s;
+    pointer-events:none;
+    z-index:2;
+  }
+  .cc-mock-section.is-locked:hover::after,
+  .cc-mock-vraag.is-locked:hover::after,
+  .cc-mock-options-card.is-locked:hover::after { opacity:1; }
+
+  /* Popover-shell — floating editor naast aangeklikt element */
+  .cc-popover {
+    position:fixed; z-index:200;
+    width:480px; max-width:calc(100vw - 32px);
+    max-height:calc(100vh - 80px); overflow-y:auto;
+    background:#fff; border-radius:12px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+    border:1px solid var(--rule);
+    animation:cc-popover-fadein 0.16s ease-out;
+  }
+  @keyframes cc-popover-fadein {
+    from { opacity:0; transform:translateY(-4px) scale(0.98); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+  .cc-popover-arrow {
+    position:absolute; width:12px; height:12px; background:#fff;
+    border-left:1px solid var(--rule); border-top:1px solid var(--rule);
+    transform:rotate(-45deg);
+    /* Position via JS on each open */
+  }
+  .cc-popover-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--rule); }
+  .cc-popover-title { margin:0; font-size:14px; font-weight:600; color:var(--navy); }
+  .cc-popover-close { background:transparent; border:0; font-size:22px; color:var(--grey); cursor:pointer; padding:0 4px; line-height:1; }
+  .cc-popover-close:hover { color:var(--navy); }
+  .cc-popover-body { padding:18px; }
+
+  /* Mobile/narrow viewport — fall back to centered modal */
+  @media (max-width:640px) {
+    .cc-popover { left:50% !important; top:50% !important; transform:translate(-50%, -50%) !important; }
+    .cc-popover-arrow { display:none; }
+  }
+
   /* Compatibility shim — backward-compat tekst-helper voor oud configs met icon_svg */
   .cc-icon-legacy-hint { font-size:11px; color:#92400E; background:#FEF3C7; border:1px solid #FCD34D; border-radius:6px; padding:6px 9px; margin-top:6px; line-height:1.4; }
 
@@ -2149,6 +2236,19 @@
           Bewaar
         </button>
       </div>
+    </div>
+
+    <!-- Slot Y / Stage 2 — popover-host voor in-preview content-editing.
+         Body wordt gerenderd door ccRenderPopoverContent(target, bodyEl)
+         (Agent B-contract). Open/close + positionering via ccOpenPopover()
+         / ccClosePopover() / ccPositionPopover(). -->
+    <div id="cc-popover" class="cc-popover" role="dialog" aria-modal="false" hidden>
+      <div class="cc-popover-arrow" aria-hidden="true"></div>
+      <div class="cc-popover-header">
+        <h3 class="cc-popover-title" id="cc-popover-title"></h3>
+        <button type="button" class="cc-popover-close" onclick="ccClosePopover()" aria-label="Sluiten">×</button>
+      </div>
+      <div class="cc-popover-body" id="cc-popover-body"></div>
     </div>
 
     <!-- PRICING PAGE -->
@@ -23900,6 +24000,30 @@ async function initCalcConfigPage() {
       }
     });
   }
+  // Slot Y / Stage 2 — delegated click-handler op preview-host
+  // Bind één keer (idempotent): klik op een element met data-cc-edit-target
+  // opent de popover naast dat element via ccOpenPopover.
+  if (!window.__ccPreviewClickHandlerInstalled) {
+    window.__ccPreviewClickHandlerInstalled = true;
+    var previewHost = document.getElementById('cc-inline-preview');
+    if (previewHost) {
+      previewHost.addEventListener('click', _ccPreviewClickHandler);
+      // Keyboard-activation (Enter/Space) op editable elementen
+      previewHost.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var hit = e.target.closest && e.target.closest('[data-cc-edit-target]');
+        if (!hit) return;
+        if (hit.classList.contains('is-locked')) return;
+        e.preventDefault();
+        _ccPreviewClickHandler(e);
+      });
+      // Reposition popover als preview-container scrollt
+      var scrollHost = previewHost.closest ? previewHost.closest('.cc-split-preview') : null;
+      if (scrollHost) scrollHost.addEventListener('scroll', _ccPopoverReposition, { passive:true });
+    }
+    // Reposition op window-resize (zijde-flip indien nodig)
+    window.addEventListener('resize', _ccPopoverReposition);
+  }
   // Init de preview-iframe met de juiste URL
   ccUpdatePreviewIframeSrc();
   await loadCalcConfigForCurrent();
@@ -24297,6 +24421,18 @@ function ccRenderInlinePreview() {
     }
     return '';
   }
+  // Slot Y / Stage 2 — JSON-target attribute helper.
+  // Returnt een veilig HTML-attribuut-fragment incl. quote, klaar om
+  // direct in een tagstring geconcateneerd te worden (bv. ' data-x="..."').
+  function editAttr(target) {
+    var json = JSON.stringify(target || {});
+    // escape voor double-quoted HTML-attribuut
+    var safe = json.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');
+    return ' data-cc-edit-target="' + safe + '"';
+  }
+  // In partner-mode zijn frequentie/contractduur/klant_vragen "globaal beheerd"
+  // en dus locked (greyed-out, niet klikbaar). Andere elementen blijven editable.
+  var partnerScope = (typeof ccIsPartnerScope === 'function') ? !!ccIsPartnerScope() : false;
 
   var html = '';
 
@@ -24313,12 +24449,14 @@ function ccRenderInlinePreview() {
     var icon = cfgU.icon || defU.icon;
     var iconHtml = icon ? renderIcon(icon) : (cfgU.icon_svg || '');
     var text = pickLang(cfgU, 'text') || pickLang(defU, 'text');
+    var uspAttr = editAttr({ type:'usp', index:i });
+    var uspRoleAttr = ' role="button" tabindex="0" aria-label="USP ' + (i+1) + ' bewerken"';
     if (hidden) {
-      html += '<div class="cc-mock-usp" style="opacity:0.35"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text || '(verborgen)') + '</div></div>';
+      html += '<div class="cc-mock-usp is-editable"' + uspAttr + uspRoleAttr + ' style="opacity:0.35"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text || '(verborgen)') + '</div></div>';
     } else if (!iconHtml && !text) {
-      html += '<div class="cc-mock-usp is-empty"><div class="cc-mock-usp-text">USP ' + (i+1) + '</div></div>';
+      html += '<div class="cc-mock-usp is-empty is-editable"' + uspAttr + uspRoleAttr + '><div class="cc-mock-usp-text">USP ' + (i+1) + '</div></div>';
     } else {
-      html += '<div class="cc-mock-usp"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text) + '</div></div>';
+      html += '<div class="cc-mock-usp is-editable"' + uspAttr + uspRoleAttr + '><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text) + '</div></div>';
     }
   }
   html += '</div></div>';
@@ -24332,7 +24470,7 @@ function ccRenderInlinePreview() {
   var intro = pickLang(mot, 'intro');
   var highlight = pickLang(mot, 'highlight');
   var outro = pickLang(mot, 'outro');
-  html += '<div class="cc-mock-section' + (motHidden ? ' is-hidden-pv' : '') + '">';
+  html += '<div class="cc-mock-section is-editable' + (motHidden ? ' is-hidden-pv' : '') + '"' + editAttr({ type:'motivatie' }) + ' role="button" tabindex="0" aria-label="Motivatie-block bewerken">';
   html += '<p class="cc-mock-section-label">Motivatie-block</p>';
   html += '<div class="cc-mock-motivatie">';
   if (title) html += '<p class="cc-mock-motivatie-title">' + escHtml(title) + '</p>';
@@ -24352,10 +24490,13 @@ function ccRenderInlinePreview() {
   var freqDefault = freq.default != null ? freq.default : freqAvail[0];
   var durAvail = Array.isArray(dur.available) ? dur.available : [0, 3, 5];
   var durDefault = dur.default != null ? dur.default : (durAvail.indexOf(3) >= 0 ? 3 : durAvail[0]);
+  // Frequentie/Contractduur zijn globaal-only: in partner-mode 'locked' renderen
+  var optsLockClass = partnerScope ? ' is-locked' : ' is-editable';
+  var optsLockRole = partnerScope ? ' aria-disabled="true"' : ' role="button" tabindex="0"';
   html += '<div class="cc-mock-section">';
   html += '<p class="cc-mock-section-label">Opties</p>';
   html += '<div class="cc-mock-options">';
-  html += '<div class="cc-mock-options-card">';
+  html += '<div class="cc-mock-options-card' + optsLockClass + '"' + editAttr({ type:'frequentie' }) + optsLockRole + (partnerScope ? '' : ' aria-label="Frequentie-opties bewerken"') + '>';
   html += '<p class="cc-mock-options-title">Frequentie</p>';
   freqAvail.forEach(function(k) {
     var cfgOpt = (cfg.frequentie && cfg.frequentie.options) ? cfg.frequentie.options[String(k)] : null;
@@ -24367,7 +24508,7 @@ function ccRenderInlinePreview() {
     html += '<div class="cc-mock-radio' + (active ? ' is-active' : '') + '"><div class="cc-mock-radio-dot"></div><div class="cc-mock-radio-text"><strong>' + escHtml(lbl) + '</strong>' + (sub ? '<small>' + escHtml(sub) + '</small>' : '') + '</div></div>';
   });
   html += '</div>';
-  html += '<div class="cc-mock-options-card">';
+  html += '<div class="cc-mock-options-card' + optsLockClass + '"' + editAttr({ type:'contractduur' }) + optsLockRole + (partnerScope ? '' : ' aria-label="Contractduur-opties bewerken"') + '>';
   html += '<p class="cc-mock-options-title">Contractduur</p>';
   durAvail.forEach(function(k) {
     var cfgOpt = (cfg.contractduur && cfg.contractduur.options) ? cfg.contractduur.options[String(k)] : null;
@@ -24400,7 +24541,9 @@ function ccRenderInlinePreview() {
       var lbl = pickLang(v, 'label');
       var helper = pickLang(v, 'helper');
       if (!lbl && !helper) return;
-      html += '<div class="cc-mock-vraag" style="' + (hidden ? 'opacity:0.4' : '') + '">';
+      var kvLockClass = partnerScope ? ' is-locked' : ' is-editable';
+      var kvLockRole = partnerScope ? ' aria-disabled="true"' : ' role="button" tabindex="0" aria-label="Klantvraag bewerken"';
+      html += '<div class="cc-mock-vraag' + kvLockClass + '"' + editAttr({ type:'klant_vraag', key:k }) + kvLockRole + ' style="' + (hidden ? 'opacity:0.4;' : '') + '">';
       if (lbl) html += '<p class="cc-mock-vraag-label">' + escHtml(lbl) + (hidden ? ' <small style="color:#92400E">(verborgen)</small>' : '') + '</p>';
       if (helper) html += '<p class="cc-mock-vraag-helper">' + escHtml(helper) + '</p>';
       var cfgOpts = Array.isArray(cfgV && cfgV.options) ? cfgV.options : null;
@@ -24426,6 +24569,770 @@ function ccRenderInlinePreview() {
   host.innerHTML = header + html;
 }
 
+// =============================================
+// Slot Y / Stage 2 — Popover content-renderers (Agent B contract)
+//
+// Public entry point: ccRenderPopoverContent(target, bodyEl)
+// Agent A's framework calls this met:
+//   target = { type, index?, key? }
+//     - type 'usp'         + index 0..2
+//     - type 'motivatie'
+//     - type 'frequentie'
+//     - type 'contractduur'
+//     - type 'klant_vraag' + key 'bereikbaarheid'|'buitenkraan'
+//   bodyEl = <div id="cc-popover-body"> (mag al inhoud bevatten — we
+//            overschrijven met onze eigen markup)
+//
+// Mutaties: direct op ccState.config.<...>; na elke wijziging
+//   ccMarkDirty() + ccRenderInlinePreview() (live preview-sync). Re-use
+//   van bestaande mutators (ccUpdateUsp/ccUpdateMotivatie/ccUpdateFreq*/
+//   ccUpdateDuur*/ccUpdateKv*) zodat cleanup-regels (lege keys verwijderen)
+//   identiek blijven aan de form-renderer.
+// =============================================
+
+// Helper: zorg dat een diep-genest pad in een object bestaat. Voorbeeld:
+//   _ccEnsurePath(ccState.config, 'klant_vragen', 'bereikbaarheid')
+// retourneert het diepste object (laatste key) zonder undefined te raken.
+function _ccEnsurePath(root) {
+  var node = root;
+  for (var i = 1; i < arguments.length; i++) {
+    var key = arguments[i];
+    if (!node[key] || typeof node[key] !== 'object') node[key] = {};
+    node = node[key];
+  }
+  return node;
+}
+
+// Helper: bind een input/textarea aan een getter+setter. Setter ontvangt
+// de raw value; lege strings worden door de bestaande mutators omgezet
+// naar "delete key" zodat de payload schoon blijft. Live re-render van
+// preview gebeurt via ccMarkDirty() (debounced 200ms via push-timer) +
+// directe ccRenderInlinePreview() voor instant feedback in de mockup.
+function _ccBindInput(el, getter, setter) {
+  if (!el) return;
+  try { var initial = getter(); el.value = (initial == null ? '' : String(initial)); } catch (_) {}
+  el.addEventListener('input', function() {
+    try {
+      setter(el.value);
+      ccRenderInlinePreview();
+    } catch (e) { console.error('cc-popover bind setter:', e); }
+  });
+}
+
+// Helper: bind checkbox aan een (getter)→bool, (setter)(bool).
+function _ccBindCheckbox(el, getter, setter) {
+  if (!el) return;
+  try { el.checked = !!getter(); } catch (_) {}
+  el.addEventListener('change', function() {
+    try {
+      setter(!!el.checked);
+      ccMarkDirty();
+      ccRenderInlinePreview();
+    } catch (e) { console.error('cc-popover bind checkbox:', e); }
+  });
+}
+
+// Helper: bind radio. onSelect wordt enkel aangeroepen wanneer de radio
+// nieuw geselecteerd wordt (niet bij deselect via een andere radio in de groep).
+function _ccBindRadio(el, isSelectedGetter, onSelect) {
+  if (!el) return;
+  try { el.checked = !!isSelectedGetter(); } catch (_) {}
+  el.addEventListener('change', function() {
+    if (!el.checked) return;
+    try {
+      onSelect();
+      ccMarkDirty();
+      ccRenderInlinePreview();
+    } catch (e) { console.error('cc-popover bind radio:', e); }
+  });
+}
+
+// Veld-template: NL/FR-paar (input of textarea) in 2-koloms grid.
+// Geeft HTML-string. IDs worden via _ccBindInput later opgehaald.
+function _ccFieldPairHtml(opts) {
+  // opts: { labelNl, labelFr, idNl, idFr, valNl, valFr,
+  //         placeholderNl, placeholderFr, isTextarea, rows, accent }
+  var rows = opts.rows || 3;
+  var accentStyle = opts.accent ? ' style="border-left:3px solid var(--primary,#098979);padding-left:10px"' : '';
+  function field(lang, lbl, id, val, ph) {
+    var langCls = (lang === 'fr') ? 'cc-lang fr' : 'cc-lang';
+    var phAttr = ph ? ' placeholder="' + esc(ph) + '"' : '';
+    var control = opts.isTextarea
+      ? '<textarea id="' + esc(id) + '" rows="' + rows + '"' + phAttr + '>' + esc(val == null ? '' : val) + '</textarea>'
+      : '<input id="' + esc(id) + '" type="text" value="' + esc(val == null ? '' : val) + '"' + phAttr + '>';
+    return '<div class="cc-field"' + accentStyle + '>' +
+      '<label>' + esc(lbl) + ' <span class="' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
+      control +
+    '</div>';
+  }
+  return '<div class="cc-grid-2">' +
+    field('nl', opts.labelNl, opts.idNl, opts.valNl, opts.placeholderNl) +
+    field('fr', opts.labelFr, opts.idFr, opts.valFr, opts.placeholderFr) +
+  '</div>';
+}
+
+// Visibility-rij (label + checkbox-toggle) — gemeenschappelijk voor alle editors.
+function _ccVisibilityRowHtml(id, label, checked) {
+  return '<label class="cc-popover-vis-row" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);font-weight:600;padding:8px 10px;background:#F9FAFB;border:1px solid var(--rule);border-radius:8px;cursor:pointer">' +
+    '<input id="' + esc(id) + '" type="checkbox"' + (checked ? ' checked' : '') + ' style="margin:0">' +
+    '<span>' + esc(label) + '</span>' +
+  '</label>';
+}
+
+// Reset-link (kleine grey link onderaan).
+function _ccResetLinkHtml(id, label) {
+  return '<div style="text-align:right;margin-top:6px"><button id="' + esc(id) + '" type="button" class="cc-link-btn">' + esc(label) + '</button></div>';
+}
+
+// Sluitknop onderaan.
+function _ccCloseButtonHtml() {
+  return '<div style="display:flex;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)">' +
+    '<button id="cc-popover-close-btn" type="button" class="btn btn-ghost">Sluiten</button>' +
+  '</div>';
+}
+
+// Title-helper: zet titel in popover-header (defensief — Agent A kan dit ook doen).
+function _ccSetPopoverTitle(t) {
+  var el = document.getElementById('cc-popover-title');
+  if (el) el.textContent = t || '';
+}
+
+// Render een Lucide-icoon SVG-string voor een gegeven name (gebruikt
+// dezelfde shared icon-set als de form-renderer en preview).
+function _ccRenderIconSvg(name) {
+  if (!name) return '';
+  if (window.flanccoIcons && window.flanccoIcons.svg && window.flanccoIcons.svg[name]) {
+    return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + window.flanccoIcons.svg[name] + '</svg>';
+  }
+  return '';
+}
+
+// Bind sluit-knop (gemeenschappelijk).
+function _ccBindClose() {
+  var btn = document.getElementById('cc-popover-close-btn');
+  if (btn) btn.addEventListener('click', function() {
+    if (typeof ccClosePopover === 'function') ccClosePopover();
+  });
+}
+
+// ----- USP-editor -----
+function _ccRenderUspEditor(target, bodyEl) {
+  var idx = (target && typeof target.index === 'number') ? target.index : 0;
+  if (idx < 0 || idx > 2) idx = 0;
+  ccEnsureUsps();
+  var u = ccState.config.usps[idx] || {};
+  var defaults = (CC_FALLBACK_DEFAULTS[ccState.sector] || {}).usps || [];
+  var defU = defaults[idx] || {};
+  var iconName = u.icon || '';
+  var legacySvg = u.icon_svg || '';
+  var visible = (u.visible !== false);
+
+  _ccSetPopoverTitle('USP ' + (idx + 1) + ' bewerken');
+
+  // Icon-button preview
+  var iconBtnInner;
+  if (iconName) {
+    iconBtnInner = (_ccRenderIconSvg(iconName) || '<span class="cc-icon-btn-empty">' + esc(iconName) + '</span>') +
+      '<span class="cc-icon-btn-label">' + esc(iconName) + '</span>';
+  } else if (legacySvg && legacySvg.trim()) {
+    iconBtnInner = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + legacySvg + '</svg>' +
+      '<span class="cc-icon-btn-label" style="color:#92400E">Custom (oud)</span>';
+  } else {
+    iconBtnInner = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
+      '<span class="cc-icon-btn-empty">Kies icoon</span>';
+  }
+
+  bodyEl.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+      _ccVisibilityRowHtml('cc-popover-usp-vis', 'Zichtbaar voor klanten', visible) +
+      '<div class="cc-field">' +
+        '<label>Icoon</label>' +
+        '<button id="cc-popover-usp-icon-btn" type="button" class="cc-icon-btn">' + iconBtnInner + '</button>' +
+      '</div>' +
+      _ccFieldPairHtml({
+        labelNl: 'Tekst', labelFr: 'Texte',
+        idNl: 'cc-popover-usp-text-nl', idFr: 'cc-popover-usp-text-fr',
+        valNl: u.text_nl || '', valFr: u.text_fr || '',
+        placeholderNl: defU.text_nl || 'bv. Tot 30% meer rendement',
+        placeholderFr: defU.text_fr || 'ex. Jusqu’à 30% de rendement',
+        isTextarea: true, rows: 3
+      }) +
+      _ccResetLinkHtml('cc-popover-usp-reset', 'Gebruik code-default voor deze USP') +
+      _ccCloseButtonHtml() +
+    '</div>';
+
+  // Bind: visibility
+  _ccBindCheckbox(
+    document.getElementById('cc-popover-usp-vis'),
+    function() { var uu = ccState.config.usps[idx] || {}; return uu.visible !== false; },
+    function(v) {
+      ccEnsureUsps();
+      var uu = ccState.config.usps[idx] || {};
+      ccState.config.usps[idx] = uu;
+      if (v) { delete uu.visible; } else { uu.visible = false; }
+      ccCleanupUspSlot(idx);
+      ccCleanupUspsArray();
+    }
+  );
+
+  // Bind: tekst NL / FR (via bestaande mutator → cleanup + dirty)
+  _ccBindInput(
+    document.getElementById('cc-popover-usp-text-nl'),
+    function() { var uu = ccState.config.usps[idx] || {}; return uu.text_nl || ''; },
+    function(v) { ccUpdateUsp(idx, 'text_nl', v); }
+  );
+  _ccBindInput(
+    document.getElementById('cc-popover-usp-text-fr'),
+    function() { var uu = ccState.config.usps[idx] || {}; return uu.text_fr || ''; },
+    function(v) { ccUpdateUsp(idx, 'text_fr', v); }
+  );
+
+  // Bind: icon-button → opent bestaande Lucide icon-picker. Na keuze
+  // re-renderen we het popover-body zodat de nieuwe icon-preview verschijnt.
+  // Pattern: ccPickIcon is het exit-punt van de picker → wrap voor één-keer
+  // post-callback (flag voorkomt dubbele wraps bij snelle re-opens).
+  var iconBtn = document.getElementById('cc-popover-usp-icon-btn');
+  if (iconBtn) {
+    iconBtn.addEventListener('click', function() {
+      ccOpenIconPicker(idx);
+      if (!window.__ccPopoverIconWrapInstalled) {
+        window.__ccPopoverIconWrapInstalled = true;
+        var origPick = window.ccPickIcon;
+        if (typeof origPick === 'function') {
+          window.ccPickIcon = function(name) {
+            try { origPick(name); } catch (e) { console.error('ccPickIcon wrap:', e); }
+            try {
+              var pop = document.getElementById('cc-popover');
+              var bd = document.getElementById('cc-popover-body');
+              if (pop && bd && !pop.hasAttribute('hidden')) {
+                _ccRenderUspEditor({ type: 'usp', index: idx }, bd);
+              }
+            } catch (_) { /* swallow */ }
+          };
+        }
+      }
+    });
+  }
+
+  // Bind: reset-link
+  var resetBtn = document.getElementById('cc-popover-usp-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      ccResetUsp(idx);
+      _ccRenderUspEditor({ type: 'usp', index: idx }, bodyEl);
+    });
+  }
+
+  _ccBindClose();
+}
+
+// ----- Motivatie-editor -----
+function _ccRenderMotivatieEditor(target, bodyEl) {
+  if (!ccState.config.motivatie) ccState.config.motivatie = {};
+  var m = ccState.config.motivatie;
+  var defaults = (CC_FALLBACK_DEFAULTS[ccState.sector] || {}).motivatie || {};
+  var visible = (m.visible !== false);
+
+  _ccSetPopoverTitle('Motivatie-block bewerken');
+
+  bodyEl.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+      _ccVisibilityRowHtml('cc-popover-mot-vis', 'Zichtbaar voor klanten', visible) +
+      _ccFieldPairHtml({
+        labelNl: 'Titel', labelFr: 'Titre',
+        idNl: 'cc-popover-mot-title-nl', idFr: 'cc-popover-mot-title-fr',
+        valNl: m.title_nl, valFr: m.title_fr,
+        placeholderNl: defaults.title_nl, placeholderFr: defaults.title_fr,
+        isTextarea: false
+      }) +
+      _ccFieldPairHtml({
+        labelNl: 'Subtitel', labelFr: 'Sous-titre',
+        idNl: 'cc-popover-mot-subtitle-nl', idFr: 'cc-popover-mot-subtitle-fr',
+        valNl: m.subtitle_nl, valFr: m.subtitle_fr,
+        placeholderNl: defaults.subtitle_nl, placeholderFr: defaults.subtitle_fr,
+        isTextarea: false
+      }) +
+      _ccFieldPairHtml({
+        labelNl: 'Intro', labelFr: 'Introduction',
+        idNl: 'cc-popover-mot-intro-nl', idFr: 'cc-popover-mot-intro-fr',
+        valNl: m.intro_nl, valFr: m.intro_fr,
+        placeholderNl: defaults.intro_nl, placeholderFr: defaults.intro_fr,
+        isTextarea: true, rows: 2
+      }) +
+      _ccFieldPairHtml({
+        labelNl: 'Highlight (visueel benadrukt)', labelFr: 'Highlight (mis en avant)',
+        idNl: 'cc-popover-mot-highlight-nl', idFr: 'cc-popover-mot-highlight-fr',
+        valNl: m.highlight_nl, valFr: m.highlight_fr,
+        placeholderNl: defaults.highlight_nl, placeholderFr: defaults.highlight_fr,
+        isTextarea: true, rows: 2, accent: true
+      }) +
+      _ccFieldPairHtml({
+        labelNl: 'Outro', labelFr: 'Conclusion',
+        idNl: 'cc-popover-mot-outro-nl', idFr: 'cc-popover-mot-outro-fr',
+        valNl: m.outro_nl, valFr: m.outro_fr,
+        placeholderNl: defaults.outro_nl, placeholderFr: defaults.outro_fr,
+        isTextarea: true, rows: 2
+      }) +
+      _ccResetLinkHtml('cc-popover-mot-reset', 'Reset alle velden naar code-default') +
+      _ccCloseButtonHtml() +
+    '</div>';
+
+  // Bind visibility
+  _ccBindCheckbox(
+    document.getElementById('cc-popover-mot-vis'),
+    function() { var mm = ccState.config.motivatie || {}; return mm.visible !== false; },
+    function(v) {
+      if (!ccState.config.motivatie) ccState.config.motivatie = {};
+      var mm = ccState.config.motivatie;
+      if (v) { delete mm.visible; } else { mm.visible = false; }
+      if (ccMotivatieIsEmpty(mm)) delete ccState.config.motivatie;
+    }
+  );
+
+  // Bind alle 10 tekstvelden via bestaande ccUpdateMotivatie mutator
+  var motKeys = ['title_nl','title_fr','subtitle_nl','subtitle_fr','intro_nl','intro_fr','highlight_nl','highlight_fr','outro_nl','outro_fr'];
+  var motIdMap = {
+    title_nl:'cc-popover-mot-title-nl', title_fr:'cc-popover-mot-title-fr',
+    subtitle_nl:'cc-popover-mot-subtitle-nl', subtitle_fr:'cc-popover-mot-subtitle-fr',
+    intro_nl:'cc-popover-mot-intro-nl', intro_fr:'cc-popover-mot-intro-fr',
+    highlight_nl:'cc-popover-mot-highlight-nl', highlight_fr:'cc-popover-mot-highlight-fr',
+    outro_nl:'cc-popover-mot-outro-nl', outro_fr:'cc-popover-mot-outro-fr'
+  };
+  motKeys.forEach(function(k) {
+    var el = document.getElementById(motIdMap[k]);
+    _ccBindInput(
+      el,
+      function() { var mm = ccState.config.motivatie || {}; return mm[k] || ''; },
+      function(v) { ccUpdateMotivatie(k, v); }
+    );
+  });
+
+  // Reset-link met confirm
+  var motResetBtn = document.getElementById('cc-popover-mot-reset');
+  if (motResetBtn) {
+    motResetBtn.addEventListener('click', function() {
+      var go = function(ok) {
+        if (!ok) return;
+        delete ccState.config.motivatie;
+        ccMarkDirty();
+        ccRenderInlinePreview();
+        _ccRenderMotivatieEditor(target, bodyEl);
+      };
+      // confirmDialog kan een Promise zijn; degrade naar window.confirm.
+      try {
+        if (typeof confirmDialog === 'function') {
+          var p = confirmDialog({
+            title: 'Reset motivatie-block',
+            message: 'Alle motivatie-velden voor deze sector worden teruggezet naar de code-default. Doorgaan?',
+            confirmLabel: 'Reset',
+            cancelLabel: 'Annuleren',
+            variant: 'danger'
+          });
+          if (p && typeof p.then === 'function') { p.then(go); return; }
+          go(!!p);
+          return;
+        }
+      } catch (_) {}
+      go(window.confirm('Alle motivatie-velden resetten?'));
+    });
+  }
+
+  _ccBindClose();
+}
+
+// Renders één frequentie/contractduur-optie-card. Gebruikt door beide editors.
+function _ccRenderOptCardHtml(prefix, id, idLabel, isAvail, isDefault, opt, defOpt, kortingVal) {
+  // prefix = 'freq' of 'duur'; id is numeric (1,2 of 0,3,5).
+  var kortingHtml = '';
+  if (prefix === 'duur') {
+    var kVal = (typeof kortingVal === 'number') ? String(kortingVal) : '';
+    kortingHtml =
+      '<div class="cc-field" style="max-width:140px">' +
+        '<label>Korting %</label>' +
+        '<input id="cc-popover-' + prefix + '-korting-' + id + '" type="number" min="0" max="100" step="1" value="' + esc(kVal) + '" placeholder="0">' +
+      '</div>';
+  }
+  return '<div style="border:1px solid var(--rule);border-radius:8px;padding:12px;background:#FAFAFB">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
+      '<strong style="color:var(--navy);font-size:13px">' + esc(idLabel) + '</strong>' +
+      '<div style="display:flex;gap:14px;align-items:center;font-size:12px;flex-wrap:wrap">' +
+        '<label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input id="cc-popover-' + prefix + '-avail-' + id + '" type="checkbox"' + (isAvail ? ' checked' : '') + '> Beschikbaar</label>' +
+        '<label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input id="cc-popover-' + prefix + '-default-' + id + '" type="radio" name="cc-popover-' + prefix + '-default"' + (isDefault ? ' checked' : '') + (isAvail ? '' : ' disabled') + '> Default</label>' +
+      '</div>' +
+    '</div>' +
+    '<div class="cc-grid-2">' +
+      '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input id="cc-popover-' + prefix + '-label-nl-' + id + '" type="text" value="' + esc(opt.label_nl || '') + '" placeholder="' + esc((defOpt && defOpt.label_nl) || '') + '"></div>' +
+      '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input id="cc-popover-' + prefix + '-label-fr-' + id + '" type="text" value="' + esc(opt.label_fr || '') + '" placeholder="' + esc((defOpt && defOpt.label_fr) || '') + '"></div>' +
+      '<div class="cc-field"><label>Sub-tekst <span class="cc-lang">NL</span></label><input id="cc-popover-' + prefix + '-sub-nl-' + id + '" type="text" value="' + esc(opt.sub_nl || '') + '" placeholder="' + esc((defOpt && defOpt.sub_nl) || '') + '"></div>' +
+      '<div class="cc-field"><label>Sub-tekst <span class="cc-lang fr">FR</span></label><input id="cc-popover-' + prefix + '-sub-fr-' + id + '" type="text" value="' + esc(opt.sub_fr || '') + '" placeholder="' + esc((defOpt && defOpt.sub_fr) || '') + '"></div>' +
+    '</div>' +
+    (kortingHtml ? '<div style="margin-top:8px">' + kortingHtml + '</div>' : '') +
+  '</div>';
+}
+
+// ----- Frequentie-editor (globaal-only) -----
+function _ccRenderFrequentieEditor(target, bodyEl) {
+  _ccSetPopoverTitle('Frequentie bewerken');
+
+  if (ccIsPartnerScope()) {
+    bodyEl.innerHTML =
+      '<p style="color:var(--grey);font-size:13px;line-height:1.5">Frequentie-opties zijn globaal beheerd. Wissel naar <strong>Globaal</strong> om aan te passen.</p>' +
+      _ccCloseButtonHtml();
+    _ccBindClose();
+    return;
+  }
+
+  ccEnsureFreq();
+  var f = ccState.config.frequentie;
+  var defaults = ((CC_FALLBACK_DEFAULTS[ccState.sector] || {}).frequentie) || {};
+  var defOptions = defaults.options || {};
+  var available = Array.isArray(f.available) ? f.available.slice() : [];
+  var defaultId = (typeof f.default === 'number') ? f.default : null;
+  var options = f.options || {};
+
+  var cardsHtml = '';
+  for (var i = 0; i < CC_FREQ_IDS.length; i++) {
+    var id = CC_FREQ_IDS[i];
+    var lbl = (id === 1 ? 'Jaarlijks (1× / jaar)' : 'Halfjaarlijks (2× / jaar)');
+    var opt = options[String(id)] || {};
+    var defOpt = defOptions[String(id)] || {};
+    var isAvail = available.indexOf(id) >= 0;
+    var isDefault = (defaultId === id);
+    cardsHtml += _ccRenderOptCardHtml('freq', id, lbl, isAvail, isDefault, opt, defOpt, null);
+  }
+
+  bodyEl.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+      cardsHtml +
+      _ccResetLinkHtml('cc-popover-freq-reset', 'Reset frequentie naar code-default') +
+      _ccCloseButtonHtml() +
+    '</div>';
+
+  // Bind per ID
+  CC_FREQ_IDS.forEach(function(id) {
+    _ccBindCheckbox(
+      document.getElementById('cc-popover-freq-avail-' + id),
+      function() {
+        ccEnsureFreq();
+        return ccState.config.frequentie.available.indexOf(id) >= 0;
+      },
+      function(v) { ccUpdateFreqAvailable(id, v); }
+    );
+    _ccBindRadio(
+      document.getElementById('cc-popover-freq-default-' + id),
+      function() {
+        ccEnsureFreq();
+        return ccState.config.frequentie.default === id;
+      },
+      function() {
+        // Defensief: ook auto-checken bij default zodat invariant geldt.
+        ccEnsureFreq();
+        var arr = ccState.config.frequentie.available;
+        if (arr.indexOf(id) < 0) {
+          arr.push(id);
+          arr.sort(function(a, b) { return a - b; });
+        }
+        ccUpdateFreqDefault(id);
+      }
+    );
+    ['label_nl','label_fr','sub_nl','sub_fr'].forEach(function(k) {
+      var idAttr = 'cc-popover-freq-' + k.replace('_','-') + '-' + id;
+      _ccBindInput(
+        document.getElementById(idAttr),
+        function() {
+          ccEnsureFreq();
+          var oo = ccState.config.frequentie.options[String(id)] || {};
+          return oo[k] || '';
+        },
+        function(v) { ccUpdateFreqOption(id, k, v); }
+      );
+    });
+  });
+
+  var freqResetBtn = document.getElementById('cc-popover-freq-reset');
+  if (freqResetBtn) freqResetBtn.addEventListener('click', function() {
+    delete ccState.config.frequentie;
+    ccMarkDirty();
+    ccRenderInlinePreview();
+    _ccRenderFrequentieEditor(target, bodyEl);
+  });
+
+  _ccBindClose();
+}
+
+// ----- Contractduur-editor (globaal-only) -----
+function _ccRenderContractduurEditor(target, bodyEl) {
+  _ccSetPopoverTitle('Contractduur bewerken');
+
+  if (ccIsPartnerScope()) {
+    bodyEl.innerHTML =
+      '<p style="color:var(--grey);font-size:13px;line-height:1.5">Contractduur-opties zijn globaal beheerd. Wissel naar <strong>Globaal</strong> om aan te passen.</p>' +
+      _ccCloseButtonHtml();
+    _ccBindClose();
+    return;
+  }
+
+  ccEnsureDuur();
+  var c = ccState.config.contractduur;
+  var defaults = ((CC_FALLBACK_DEFAULTS[ccState.sector] || {}).contractduur) || {};
+  var defOptions = defaults.options || {};
+  var defKorting = defaults.korting_pct || {};
+  var available = Array.isArray(c.available) ? c.available.slice() : [];
+  var defaultId = (typeof c.default === 'number') ? c.default : null;
+  var options = c.options || {};
+  var korting = c.korting_pct || {};
+
+  var cardsHtml = '';
+  for (var i = 0; i < CC_DUUR_IDS.length; i++) {
+    var id = CC_DUUR_IDS[i];
+    var lbl = (id === 0 ? 'Eenmalige interventie' : (id + ' jaar'));
+    var opt = options[String(id)] || {};
+    var defOpt = defOptions[String(id)] || {};
+    var isAvail = available.indexOf(id) >= 0;
+    var isDefault = (defaultId === id);
+    var kVal = korting[String(id)];
+    if (typeof kVal !== 'number') kVal = (typeof defKorting[String(id)] === 'number') ? defKorting[String(id)] : null;
+    cardsHtml += _ccRenderOptCardHtml('duur', id, lbl, isAvail, isDefault, opt, defOpt, kVal);
+  }
+
+  bodyEl.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+      cardsHtml +
+      _ccResetLinkHtml('cc-popover-duur-reset', 'Reset contractduur naar code-default') +
+      _ccCloseButtonHtml() +
+    '</div>';
+
+  CC_DUUR_IDS.forEach(function(id) {
+    _ccBindCheckbox(
+      document.getElementById('cc-popover-duur-avail-' + id),
+      function() {
+        ccEnsureDuur();
+        return ccState.config.contractduur.available.indexOf(id) >= 0;
+      },
+      function(v) { ccUpdateDuurAvailable(id, v); }
+    );
+    _ccBindRadio(
+      document.getElementById('cc-popover-duur-default-' + id),
+      function() {
+        ccEnsureDuur();
+        return ccState.config.contractduur.default === id;
+      },
+      function() {
+        ccEnsureDuur();
+        var arr = ccState.config.contractduur.available;
+        if (arr.indexOf(id) < 0) {
+          arr.push(id);
+          arr.sort(function(a, b) { return a - b; });
+        }
+        ccUpdateDuurDefault(id);
+      }
+    );
+    ['label_nl','label_fr','sub_nl','sub_fr'].forEach(function(k) {
+      var idAttr = 'cc-popover-duur-' + k.replace('_','-') + '-' + id;
+      _ccBindInput(
+        document.getElementById(idAttr),
+        function() {
+          ccEnsureDuur();
+          var oo = ccState.config.contractduur.options[String(id)] || {};
+          return oo[k] || '';
+        },
+        function(v) { ccUpdateDuurOption(id, k, v); }
+      );
+    });
+    _ccBindInput(
+      document.getElementById('cc-popover-duur-korting-' + id),
+      function() {
+        ccEnsureDuur();
+        var k = ccState.config.contractduur.korting_pct || {};
+        var v = k[String(id)];
+        return (typeof v === 'number') ? String(v) : '';
+      },
+      function(v) { ccUpdateDuurKorting(id, v); }
+    );
+  });
+
+  var duurResetBtn = document.getElementById('cc-popover-duur-reset');
+  if (duurResetBtn) duurResetBtn.addEventListener('click', function() {
+    delete ccState.config.contractduur;
+    ccMarkDirty();
+    ccRenderInlinePreview();
+    _ccRenderContractduurEditor(target, bodyEl);
+  });
+
+  _ccBindClose();
+}
+
+// ----- Klant-vraag-editor -----
+function _ccRenderKlantVraagEditor(target, bodyEl) {
+  var key = (target && target.key) || 'bereikbaarheid';
+  var titleMap = { bereikbaarheid: 'Bereikbaarheid bewerken', buitenkraan: 'Buitenkraan bewerken' };
+  _ccSetPopoverTitle(titleMap[key] || 'Klant-vraag bewerken');
+
+  // Edge-case: sector heeft deze vraag niet als default → toon notice
+  var defaults = ((CC_FALLBACK_DEFAULTS[ccState.sector] || {}).klant_vragen) || {};
+  if (!defaults[key]) {
+    bodyEl.innerHTML =
+      '<p style="color:var(--grey);font-size:13px;line-height:1.5">Niet relevant voor sector <strong>' + esc(ccState.sector) + '</strong>. Deze vraag wordt niet getoond in de calculator voor deze sector.</p>' +
+      _ccCloseButtonHtml();
+    _ccBindClose();
+    return;
+  }
+
+  ccEnsureKv(key);
+  var q = ccState.config.klant_vragen[key];
+  var defQ = defaults[key] || {};
+  var visible = (q.visible !== false);
+
+  // Vaste opties per vraag-type (waarden zijn system-level enum, niet wijzigbaar)
+  var fixedOptions = (key === 'bereikbaarheid')
+    ? [
+        { value: 'Goed',    placeholderNl: 'Goed bereikbaar — bestelwagen kan vlot tot bij de woning', placeholderFr: 'Bien accessible' },
+        { value: 'Beperkt', placeholderNl: 'Beperkt bereikbaar — smalle straat, paaltjes of obstakels', placeholderFr: 'Accessibilité limitée' }
+      ]
+    : [
+        { value: 'Ja',  placeholderNl: 'Ja, er is een werkende buitenkraan beschikbaar', placeholderFr: 'Oui, robinet extérieur disponible' },
+        { value: 'Nee', placeholderNl: 'Nee, breng zelf water mee', placeholderFr: 'Non, apportez votre propre eau' }
+      ];
+
+  function findExistingOpt(value) {
+    var arr = (q && Array.isArray(q.options)) ? q.options : [];
+    for (var i = 0; i < arr.length; i++) if (arr[i] && arr[i].value === value) return arr[i];
+    return {};
+  }
+
+  var optionsHtml = '';
+  for (var oi = 0; oi < fixedOptions.length; oi++) {
+    var def = fixedOptions[oi];
+    var existing = findExistingOpt(def.value);
+    var safeVal = def.value;
+    var safeId = safeVal.replace(/[^a-zA-Z0-9]/g, '_');
+    optionsHtml += '<div data-cc-pop-opt-value="' + esc(safeVal) + '" style="border:1px solid var(--rule);border-radius:8px;padding:10px 12px;background:#FAFAFB">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+        '<span style="font-size:11px;font-weight:700;color:var(--grey);background:#EEF2F7;padding:3px 8px;border-radius:999px;letter-spacing:0.04em;text-transform:uppercase">value: ' + esc(safeVal) + '</span>' +
+        '<span style="font-size:11px;color:var(--grey)">(read-only)</span>' +
+      '</div>' +
+      _ccFieldPairHtml({
+        labelNl: 'Optie-label', labelFr: 'Libellé option',
+        idNl: 'cc-popover-kv-opt-nl-' + safeId, idFr: 'cc-popover-kv-opt-fr-' + safeId,
+        valNl: existing.label_nl || '', valFr: existing.label_fr || '',
+        placeholderNl: def.placeholderNl, placeholderFr: def.placeholderFr,
+        isTextarea: false
+      }) +
+    '</div>';
+  }
+
+  bodyEl.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+      _ccVisibilityRowHtml('cc-popover-kv-vis', 'Zichtbaar voor klanten', visible) +
+      _ccFieldPairHtml({
+        labelNl: 'Vraag-label', labelFr: 'Libellé question',
+        idNl: 'cc-popover-kv-label-nl', idFr: 'cc-popover-kv-label-fr',
+        valNl: q.label_nl || '', valFr: q.label_fr || '',
+        placeholderNl: defQ.label_nl || '', placeholderFr: defQ.label_fr || '',
+        isTextarea: false
+      }) +
+      _ccFieldPairHtml({
+        labelNl: 'Helper-tekst', labelFr: 'Texte d’aide',
+        idNl: 'cc-popover-kv-helper-nl', idFr: 'cc-popover-kv-helper-fr',
+        valNl: q.helper_nl || '', valFr: q.helper_fr || '',
+        placeholderNl: defQ.helper_nl || 'Korte uitleg onder de vraag', placeholderFr: defQ.helper_fr || 'Brève explication',
+        isTextarea: true, rows: 2
+      }) +
+      '<div>' +
+        '<p style="font-size:11px;color:var(--grey);margin:6px 0 8px;text-transform:uppercase;letter-spacing:0.04em;font-weight:600">Antwoord-opties</p>' +
+        '<div style="display:flex;flex-direction:column;gap:10px">' + optionsHtml + '</div>' +
+      '</div>' +
+      _ccResetLinkHtml('cc-popover-kv-reset', 'Reset deze vraag naar code-default') +
+      _ccCloseButtonHtml() +
+    '</div>';
+
+  _ccBindCheckbox(
+    document.getElementById('cc-popover-kv-vis'),
+    function() {
+      var qq = (ccState.config.klant_vragen || {})[key] || {};
+      return qq.visible !== false;
+    },
+    function(v) {
+      var qq = ccEnsureKv(key);
+      if (v) { delete qq.visible; } else { qq.visible = false; }
+      ccCleanupKv(key);
+    }
+  );
+
+  _ccBindInput(
+    document.getElementById('cc-popover-kv-label-nl'),
+    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.label_nl || ''; },
+    function(v) { ccUpdateKv(key, 'label_nl', v); }
+  );
+  _ccBindInput(
+    document.getElementById('cc-popover-kv-label-fr'),
+    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.label_fr || ''; },
+    function(v) { ccUpdateKv(key, 'label_fr', v); }
+  );
+  _ccBindInput(
+    document.getElementById('cc-popover-kv-helper-nl'),
+    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.helper_nl || ''; },
+    function(v) { ccUpdateKv(key, 'helper_nl', v); }
+  );
+  _ccBindInput(
+    document.getElementById('cc-popover-kv-helper-fr'),
+    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.helper_fr || ''; },
+    function(v) { ccUpdateKv(key, 'helper_fr', v); }
+  );
+
+  fixedOptions.forEach(function(def) {
+    var safeId = def.value.replace(/[^a-zA-Z0-9]/g, '_');
+    _ccBindInput(
+      document.getElementById('cc-popover-kv-opt-nl-' + safeId),
+      function() { return findExistingOpt(def.value).label_nl || ''; },
+      function(v) { ccUpdateKvOption(key, def.value, 'label_nl', v); }
+    );
+    _ccBindInput(
+      document.getElementById('cc-popover-kv-opt-fr-' + safeId),
+      function() { return findExistingOpt(def.value).label_fr || ''; },
+      function(v) { ccUpdateKvOption(key, def.value, 'label_fr', v); }
+    );
+  });
+
+  var kvResetBtn = document.getElementById('cc-popover-kv-reset');
+  if (kvResetBtn) kvResetBtn.addEventListener('click', function() {
+    ccResetKvQuestion(key);
+    _ccRenderKlantVraagEditor(target, bodyEl);
+  });
+
+  _ccBindClose();
+}
+
+// ----- Public entry point — Agent A roept dit aan na ccOpenPopover -----
+function ccRenderPopoverContent(target, bodyEl) {
+  if (!bodyEl) bodyEl = document.getElementById('cc-popover-body');
+  if (!bodyEl) {
+    console.error('ccRenderPopoverContent: geen bodyEl gevonden');
+    return;
+  }
+  if (!target || typeof target.type !== 'string') {
+    bodyEl.innerHTML = '<p style="color:var(--red);font-size:13px">Onbekend popover-target.</p>';
+    return;
+  }
+  // Reset wrapper-flag bij elke nieuwe popover-content render zodat de
+  // ccPickIcon-wrap opnieuw geïnstalleerd wordt voor het nieuwe target.
+  window.__ccPopoverIconWrapInstalled = false;
+  try {
+    switch (target.type) {
+      case 'usp':           _ccRenderUspEditor(target, bodyEl); break;
+      case 'motivatie':     _ccRenderMotivatieEditor(target, bodyEl); break;
+      case 'frequentie':    _ccRenderFrequentieEditor(target, bodyEl); break;
+      case 'contractduur':  _ccRenderContractduurEditor(target, bodyEl); break;
+      case 'klant_vraag':   _ccRenderKlantVraagEditor(target, bodyEl); break;
+      default:
+        bodyEl.innerHTML = '<p style="color:var(--red);font-size:13px">Onbekend target-type: ' + esc(target.type) + '</p>';
+    }
+  } catch (e) {
+    console.error('ccRenderPopoverContent error:', e);
+    bodyEl.innerHTML = '<p style="color:var(--red);font-size:13px">Render-fout: ' + esc((e && e.message) || String(e)) + '</p>';
+  }
+}
+
 function ccSetPreviewLang(lang) {
   if (lang !== 'nl' && lang !== 'fr') return;
   ccState.previewLang = lang;
@@ -24440,6 +25347,143 @@ function ccOpenPreviewNewTab() {
   // Strip query-only marker zodat het tabblad een schone preview-URL toont
   var win = window.open(url, '_blank', 'noopener,noreferrer');
   if (win) win.opener = null;
+}
+
+// ============================================================
+// SLOT Y / Stage 2 — Popover-framework voor in-preview editing
+// ------------------------------------------------------------
+// State + open/close API voor het floating popover-element naast
+// de mock-preview. Content wordt gerenderd door Agent B's
+// ccRenderPopoverContent(target, bodyEl). Targets:
+//   { type:'usp', index:0..2 }
+//   { type:'motivatie' }
+//   { type:'frequentie' }
+//   { type:'contractduur' }
+//   { type:'klant_vraag', key:'<kvKey>' }
+// Partner-scope locked: frequentie / contractduur / klant_vraag.
+// ============================================================
+window.ccPopoverState = window.ccPopoverState || { activeTarget: null, anchorEl: null };
+
+function ccOpenPopover(target, anchorEl) {
+  if (!target || !target.type) return;
+  // Block niet-whitelist targets in partner-mode
+  if (ccIsPartnerScope() && ['frequentie','contractduur','klant_vraag'].indexOf(target.type) >= 0) return;
+  ccPopoverState.activeTarget = target;
+  ccPopoverState.anchorEl = anchorEl || null;
+
+  var pop = document.getElementById('cc-popover');
+  var body = document.getElementById('cc-popover-body');
+  var titleEl = document.getElementById('cc-popover-title');
+  if (!pop || !body) return;
+
+  // Title per type
+  var titles = {
+    usp: 'USP ' + ((target.index || 0) + 1) + ' bewerken',
+    motivatie: 'Motivatie-block bewerken',
+    frequentie: 'Frequentie-opties bewerken',
+    contractduur: 'Contractduur-opties bewerken',
+    klant_vraag: 'Klantvraag — ' + (target.key === 'buitenkraan' ? 'Buitenkraan' : (target.key === 'bereikbaarheid' ? 'Bereikbaarheid' : (target.key || '')))
+  };
+  if (titleEl) titleEl.textContent = titles[target.type] || 'Bewerken';
+
+  // Render content via Agent B's API
+  if (typeof ccRenderPopoverContent === 'function') {
+    try {
+      ccRenderPopoverContent(target, body);
+    } catch (err) {
+      console.warn('[Slot Y] ccRenderPopoverContent threw:', err);
+      body.innerHTML = '<p style="color:var(--grey);font-size:13px">Editor kon niet worden geladen.</p>';
+    }
+  } else {
+    body.innerHTML = '<p style="color:var(--grey);font-size:13px">Editor wordt geladen…</p>';
+  }
+
+  pop.hidden = false;
+  ccPositionPopover(anchorEl);
+  // Focus eerste input voor keyboard-friendly editing
+  setTimeout(function() {
+    var first = body.querySelector('input,textarea,select,button');
+    if (first && typeof first.focus === 'function') first.focus();
+  }, 60);
+  // Re-bind handlers idempotent (eerst removen om dubbele bind te vermijden)
+  document.removeEventListener('keydown', _ccPopoverKeyHandler);
+  document.removeEventListener('mousedown', _ccPopoverOutsideClickHandler);
+  document.addEventListener('keydown', _ccPopoverKeyHandler);
+  setTimeout(function() {
+    document.addEventListener('mousedown', _ccPopoverOutsideClickHandler);
+  }, 0);
+}
+
+function ccClosePopover() {
+  var pop = document.getElementById('cc-popover');
+  if (pop) pop.hidden = true;
+  ccPopoverState.activeTarget = null;
+  ccPopoverState.anchorEl = null;
+  document.removeEventListener('keydown', _ccPopoverKeyHandler);
+  document.removeEventListener('mousedown', _ccPopoverOutsideClickHandler);
+}
+
+function _ccPopoverKeyHandler(e) {
+  if (e.key === 'Escape') ccClosePopover();
+}
+
+function _ccPopoverOutsideClickHandler(e) {
+  var pop = document.getElementById('cc-popover');
+  if (!pop || pop.hidden) return;
+  if (pop.contains(e.target)) return;
+  // Klik op een ander cc-mock-section — laat de delegated click-handler dat afhandelen
+  var newTarget = e.target.closest && e.target.closest('[data-cc-edit-target]');
+  if (newTarget) return; // hij zal opnieuw openen via click-handler
+  ccClosePopover();
+}
+
+function ccPositionPopover(anchorEl) {
+  var pop = document.getElementById('cc-popover');
+  var arrow = pop && pop.querySelector('.cc-popover-arrow');
+  if (!pop) return;
+  if (!anchorEl || window.innerWidth < 640) {
+    // Mobile/narrow → CSS fallback to centered modal
+    pop.style.left = ''; pop.style.top = '';
+    if (arrow) arrow.style.display = 'none';
+    return;
+  }
+  var rect = anchorEl.getBoundingClientRect();
+  var popW = 480;
+  var spaceRight = window.innerWidth - rect.right;
+  var preferRight = spaceRight >= popW + 24;
+  var left = preferRight ? rect.right + 12 : Math.max(8, rect.left - popW - 12);
+  var top = Math.max(8, Math.min(rect.top, window.innerHeight - 100));
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+  if (arrow) {
+    arrow.style.display = '';
+    arrow.style.top = (rect.top + rect.height/2 - 6 - top) + 'px';
+    arrow.style.left = preferRight ? '-7px' : 'auto';
+    arrow.style.right = preferRight ? 'auto' : '-7px';
+    arrow.style.transform = preferRight ? 'rotate(-45deg)' : 'rotate(135deg)';
+  }
+}
+
+function _ccPopoverReposition() {
+  if (ccPopoverState.activeTarget && ccPopoverState.anchorEl) {
+    ccPositionPopover(ccPopoverState.anchorEl);
+  }
+}
+
+function _ccPreviewClickHandler(e) {
+  var hit = e.target.closest && e.target.closest('[data-cc-edit-target]');
+  if (!hit) return;
+  if (hit.classList.contains('is-locked')) return; // partner-mode lock
+  e.preventDefault();
+  e.stopPropagation();
+  var raw = hit.getAttribute('data-cc-edit-target');
+  if (!raw) return;
+  try {
+    var target = JSON.parse(raw);
+    ccOpenPopover(target, hit);
+  } catch (err) {
+    console.warn('[Slot Y] invalid edit-target attr:', raw);
+  }
 }
 
 // ---------------------- RENDER ----------------------
