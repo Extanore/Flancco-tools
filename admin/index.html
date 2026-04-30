@@ -23896,10 +23896,24 @@ function ccBuildPreviewUrl() {
   // wordt elders gebruikt voor partner-share-links die WEL via de subdomain
   // gaan (met partner-slug-redirect); dat is een andere flow.
   var base = location.origin + '/calculator/index.html?preview=admin';
+  // Calculator vereist een geldige partner-slug om te initialiseren (sectoren,
+  // pricing, branding worden uit de partners-tabel gehaald). Bij scope=Globaal
+  // pakken we een fallback-partner zodat de calculator-shell rendert; de
+  // CONFIG (USPs, motivatie, freq, duur, klant-vragen) wordt sowieso door
+  // admin via postMessage gepusht — loadCalcConfig wordt in preview-mode
+  // geskipt — dus DB-overrides van die fallback-partner beïnvloeden de
+  // preview niet. Voorkeur: Flancco zelf (slug 'flancco') als die actief is.
+  var slug = null;
   if (ccIsPartnerScope() && ccState.scope) {
     var p = ccPartnersList().find(function(x) { return x.id === ccState.scope; });
-    if (p && p.slug) base += '&partner=' + encodeURIComponent(p.slug);
+    if (p && p.slug) slug = p.slug;
   }
+  if (!slug) {
+    var fallback = ccPartnersList().find(function(x) { return x.slug === 'flancco' && x.actief !== false; })
+                || ccPartnersList().find(function(x) { return x.actief !== false && x.slug; });
+    slug = fallback ? fallback.slug : null;
+  }
+  if (slug) base += '&partner=' + encodeURIComponent(slug);
   // Lang-hint via query (calculator kan dit oppakken voor initial render)
   if (ccState.previewLang && ccState.previewLang !== 'nl') {
     base += '&lang=' + encodeURIComponent(ccState.previewLang);
