@@ -23955,17 +23955,20 @@ function ccUpdatePreviewIframeSrc() {
   // Reset previewReady; we wachten op een nieuwe ready-message
   ccState.previewReady = false;
   ccShowPreviewStatus();
-  // Fallback: als de postMessage-handshake om welke reden niet aankomt,
-  // gebruik iframe.onload als ready-trigger. We wachten 1.5s na onload om de
-  // calculator's setupPreviewMode-listener tijd te geven om aan te haken,
-  // dan pushen we config alsof we 'ready' hadden ontvangen.
+  // Drielagige fallback voor de ready-handshake:
+  //   1. postMessage van calculator's setupPreviewMode (primair)
+  //   2. iframe.onload + 1.5s delay (vangnet voor postMessage-loss)
+  //   3. Hard-cutoff na 4s (vangnet als zelfs onload niet vuurt — bv.
+  //      iframe-load die hangt door netwerktimeout / CSP-block)
   iframe.onload = function() {
     setTimeout(function() {
-      if (!ccState.previewReady) {
-        ccMarkPreviewReady('iframe.onload-fallback');
-      }
+      if (!ccState.previewReady) ccMarkPreviewReady('iframe.onload-fallback');
     }, 1500);
   };
+  if (window.__ccPreviewHardCutoff) clearTimeout(window.__ccPreviewHardCutoff);
+  window.__ccPreviewHardCutoff = setTimeout(function() {
+    if (!ccState.previewReady) ccMarkPreviewReady('hard-cutoff-4s');
+  }, 4000);
   if (iframe.src !== newSrc) {
     iframe.src = newSrc;
   } else {
