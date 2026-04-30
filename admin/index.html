@@ -1440,16 +1440,43 @@
   .cc-split-preview-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border:1px solid var(--rule); border-radius:8px; background:#fff; }
   .cc-split-preview-toolbar-left { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--grey); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
   .cc-split-preview-toolbar-right { display:flex; align-items:center; gap:8px; }
-  .cc-split-preview { position:relative; border:1px solid var(--rule); border-radius:10px; overflow:hidden; background:#f8f9fb; height:calc(100vh - 280px); min-height:520px; box-shadow:0 4px 14px rgba(0,0,0,0.04); }
-  .cc-split-preview iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
-  /* Loading-state overlay — verdwijnt zodra preview-ready handshake binnenkomt */
-  .cc-preview-status { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:#f8f9fb; z-index:2; padding:24px; text-align:center; transition:opacity 0.3s ease, visibility 0.3s; }
-  .cc-preview-status.is-hidden { opacity:0; visibility:hidden; pointer-events:none; }
-  .cc-preview-status-text { font-size:13px; color:var(--grey); font-weight:500; margin:0; }
-  .cc-preview-status-hint { font-size:12px; color:var(--grey); max-width:340px; line-height:1.55; margin:0; }
-  .cc-preview-status-hint a { color:var(--primary); text-decoration:underline; }
-  .cc-preview-spinner { width:32px; height:32px; border:3px solid #e5e7eb; border-top-color:var(--primary); border-radius:50%; animation:cc-spin 0.8s linear infinite; }
-  @keyframes cc-spin { to { transform:rotate(360deg); } }
+  .cc-split-preview { position:relative; border:1px solid var(--rule); border-radius:10px; overflow:auto; background:#f8f9fb; height:calc(100vh - 280px); min-height:520px; box-shadow:0 4px 14px rgba(0,0,0,0.04); }
+  /* Inline mockup-preview — visuele weergave van wat de klant ziet, op
+     basis van de huidige form-state. Niet pixel-perfect; bedoeld voor
+     content-validatie (copy + structuur). Voor exact gedrag → Nieuw tabblad. */
+  .cc-inline-preview { padding:24px; max-width:560px; margin:0 auto; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  .cc-mock-empty { text-align:center; padding:40px 20px; color:var(--grey); font-size:13px; }
+  .cc-mock-section { margin-bottom:20px; }
+  .cc-mock-section.is-hidden-pv { opacity:0.4; position:relative; }
+  .cc-mock-section.is-hidden-pv::after { content:'Verborgen voor klanten'; position:absolute; top:8px; right:8px; background:rgba(180,83,9,0.12); color:#92400E; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; }
+  .cc-mock-uspbar { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .cc-mock-usp { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:14px 10px; text-align:center; box-shadow:0 1px 2px rgba(0,0,0,0.03); display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .cc-mock-usp-icon { width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--primary); }
+  .cc-mock-usp-icon svg { width:100%; height:100%; stroke-width:2; }
+  .cc-mock-usp-text { font-size:11px; line-height:1.35; color:var(--navy); white-space:pre-line; font-weight:500; }
+  .cc-mock-usp.is-empty { background:#fafbfc; border-style:dashed; color:var(--grey); justify-content:center; min-height:90px; }
+  .cc-mock-usp.is-empty .cc-mock-usp-text { color:var(--grey); font-style:italic; font-weight:400; }
+  .cc-mock-motivatie { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px 18px; }
+  .cc-mock-motivatie-title { font-size:14px; font-weight:600; color:var(--navy); margin:0 0 4px; }
+  .cc-mock-motivatie-subtitle { font-size:12px; color:var(--grey); margin:0 0 12px; }
+  .cc-mock-motivatie p { font-size:12px; line-height:1.6; color:var(--dark); margin:0 0 8px; white-space:pre-line; }
+  .cc-mock-motivatie .cc-mock-highlight { background:rgba(9,137,121,0.08); border-left:3px solid var(--primary); padding:8px 10px; border-radius:4px; margin:8px 0; }
+  .cc-mock-motivatie .cc-mock-highlight p { margin:0; color:var(--primary-dark); font-weight:500; }
+  .cc-mock-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .cc-mock-options-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; }
+  .cc-mock-options-title { font-size:11px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.06em; margin:0 0 10px; }
+  .cc-mock-radio { display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border-radius:6px; font-size:12px; }
+  .cc-mock-radio.is-active { background:rgba(9,137,121,0.06); border:1px solid var(--primary); }
+  .cc-mock-radio-dot { width:14px; height:14px; border-radius:50%; border:1.5px solid #cbd5e1; flex-shrink:0; margin-top:2px; }
+  .cc-mock-radio.is-active .cc-mock-radio-dot { border-color:var(--primary); background:radial-gradient(circle, var(--primary) 40%, transparent 50%); }
+  .cc-mock-radio-text strong { display:block; font-size:12px; color:var(--navy); }
+  .cc-mock-radio-text small { display:block; font-size:10px; color:var(--grey); margin-top:2px; }
+  .cc-mock-vraag { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; margin-bottom:8px; }
+  .cc-mock-vraag-label { font-size:12px; font-weight:600; color:var(--navy); margin:0 0 4px; }
+  .cc-mock-vraag-helper { font-size:10px; color:var(--grey); margin:0 0 8px; line-height:1.5; }
+  .cc-mock-vraag-options { display:flex; flex-direction:column; gap:4px; }
+  .cc-mock-vraag-option { font-size:11px; color:var(--dark); padding:4px 8px; background:#f3f4f6; border-radius:4px; }
+  .cc-mock-section-label { font-size:10px; font-weight:700; color:var(--grey); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 6px; }
   .cc-split-preview-newtab { font-size:12px; font-weight:600; color:var(--navy); text-decoration:none; padding:6px 10px; border-radius:6px; background:transparent; border:1.5px solid var(--rule); cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; transition:0.12s; }
   .cc-split-preview-newtab:hover { border-color:var(--navy); background:#F9FAFB; }
   .cc-split-preview-langtoggle { display:inline-flex; gap:0; border:1.5px solid var(--rule); border-radius:6px; overflow:hidden; background:#fff; }
@@ -2096,16 +2123,16 @@
               </div>
             </div>
             <div class="cc-split-preview">
-              <div id="cc-preview-status" class="cc-preview-status" aria-live="polite">
-                <div class="cc-preview-spinner" aria-hidden="true"></div>
-                <p class="cc-preview-status-text">Preview laden…</p>
-                <p class="cc-preview-status-hint" id="cc-preview-status-hint" hidden>
-                  Duurt langer dan verwacht. Open in een
-                  <a href="#" id="cc-preview-newtab-link" rel="noopener">nieuw tabblad</a>
-                  om de URL en eventuele console-errors te bekijken.
-                </p>
-              </div>
-              <iframe id="cc-preview-iframe" title="Calculator preview" referrerpolicy="no-referrer"></iframe>
+              <!--
+                Slot Y v2 — inline-mockup-preview i.p.v. iframe naar de live
+                calculator. De iframe-aanpak had te veel race-conditions
+                (postMessage-handshake, partner-slug-bootstrap, CSP-block).
+                Inline-render is robuust, geen network-roundtrip, en toont
+                de structuur die de klant ziet (USPs + motivatie + opties +
+                vragen) op basis van de huidige form-state. Voor pixel-perfect
+                preview blijft "Open in nieuw tabblad" beschikbaar.
+              -->
+              <div id="cc-inline-preview" class="cc-inline-preview" aria-live="polite"></div>
             </div>
           </div>
         </div>
@@ -23878,18 +23905,13 @@ async function initCalcConfigPage() {
   await loadCalcConfigForCurrent();
 }
 
-// Idempotente ready-marker — wordt zowel door postMessage als door iframe-
-// onload-fallback aangeroepen. Eerste call wint.
+// Slot Y v2 — inline-preview is altijd "ready". Functie behouden voor
+// backward-compat (een stale postMessage-ready van een vorige iframe-versie
+// kan binnenkomen tijdens transitie); roept gewoon de inline render aan.
 function ccMarkPreviewReady(source) {
   if (ccState.previewReady) return;
   ccState.previewReady = true;
-  if (window.console && typeof console.debug === 'function') {
-    console.debug('[Slot Y] preview ready via', source);
-  }
-  ccHidePreviewStatus();
-  ccPushConfigToPreview();
-  ccPushSectorToPreview();
-  ccPushLangToPreview();
+  ccRenderInlinePreview();
 }
 
 async function onCalcConfigScopeChange() {
@@ -24109,62 +24131,19 @@ function ccPreviewTargetOrigin() {
 }
 
 function ccUpdatePreviewIframeSrc() {
-  var iframe = document.getElementById('cc-preview-iframe');
-  if (!iframe) return;
-  var newSrc = ccBuildPreviewUrl();
-  // Reset previewReady; we wachten op een nieuwe ready-message
-  ccState.previewReady = false;
-  ccShowPreviewStatus();
-  // Drielagige fallback voor de ready-handshake:
-  //   1. postMessage van calculator's setupPreviewMode (primair)
-  //   2. iframe.onload + 1.5s delay (vangnet voor postMessage-loss)
-  //   3. Hard-cutoff na 4s (vangnet als zelfs onload niet vuurt — bv.
-  //      iframe-load die hangt door netwerktimeout / CSP-block)
-  iframe.onload = function() {
-    setTimeout(function() {
-      if (!ccState.previewReady) ccMarkPreviewReady('iframe.onload-fallback');
-    }, 1500);
-  };
-  if (window.__ccPreviewHardCutoff) clearTimeout(window.__ccPreviewHardCutoff);
-  window.__ccPreviewHardCutoff = setTimeout(function() {
-    if (!ccState.previewReady) ccMarkPreviewReady('hard-cutoff-4s');
-  }, 4000);
-  if (iframe.src !== newSrc) {
-    iframe.src = newSrc;
-  } else {
-    // Forceer reload als URL hetzelfde is (bv. dezelfde scope opnieuw)
-    try { iframe.contentWindow.location.reload(); } catch (_) { iframe.src = newSrc + '&_t=' + Date.now(); }
-  }
+  // v2: iframe is vervangen door inline-mockup. Functie behouden voor
+  // backward-compat maar redirect naar de nieuwe render-pad.
+  ccRenderInlinePreview();
 }
 
 // Toont de loading-overlay over het iframe + start een 5s-timeout die een
 // "duurt langer dan verwacht — open in nieuw tabblad"-hint toont. Helpt bij
 // debuggen wanneer de calculator geblokkeerd wordt door CSP/X-Frame, of
 // wanneer de URL fout is (gebruiker ziet anders een wit scherm zonder context).
-function ccShowPreviewStatus() {
-  var status = document.getElementById('cc-preview-status');
-  var hint = document.getElementById('cc-preview-status-hint');
-  if (status) status.classList.remove('is-hidden');
-  if (hint) hint.hidden = true;
-  if (window.__ccPreviewHintTimer) clearTimeout(window.__ccPreviewHintTimer);
-  window.__ccPreviewHintTimer = setTimeout(function() {
-    if (!ccState.previewReady) {
-      var h = document.getElementById('cc-preview-status-hint');
-      var link = document.getElementById('cc-preview-newtab-link');
-      if (h) h.hidden = false;
-      if (link) link.href = ccBuildPreviewUrl();
-    }
-  }, 5000);
-}
-
-function ccHidePreviewStatus() {
-  var status = document.getElementById('cc-preview-status');
-  if (status) status.classList.add('is-hidden');
-  if (window.__ccPreviewHintTimer) {
-    clearTimeout(window.__ccPreviewHintTimer);
-    window.__ccPreviewHintTimer = null;
-  }
-}
+// Slot Y v2 — spinner-helpers no-op (inline-preview heeft geen async load).
+// Behouden als no-op zodat oude callers niet breken tijdens transitie.
+function ccShowPreviewStatus() { /* no-op v2 */ }
+function ccHidePreviewStatus() { /* no-op v2 */ }
 
 function ccBuildMergedConfigForPreview() {
   // Slot Y — bouw de config zoals de calculator's RPC anon_get_calculator_config hem zou
@@ -24190,42 +24169,181 @@ function ccBuildMergedConfigForPreview() {
   return out;
 }
 
-function ccPushConfigToPreview() {
-  var iframe = document.getElementById('cc-preview-iframe');
-  if (!iframe || !iframe.contentWindow) return;
-  if (!ccState.previewReady) return; // wachten op ready-handshake
-  try {
-    iframe.contentWindow.postMessage({
-      type: 'flancco-preview-config',
-      payload: ccBuildMergedConfigForPreview()
-    }, ccPreviewTargetOrigin());
-  } catch (e) {
-    console.warn('ccPushConfigToPreview failed:', e);
+// Slot Y v2 — alle "push naar preview" routes wijzen naar inline-render.
+// De iframe-aanpak is vervangen door ccRenderInlinePreview() (zie verder).
+function ccPushConfigToPreview() { ccRenderInlinePreview(); }
+function ccPushSectorToPreview() { ccRenderInlinePreview(); }
+function ccPushLangToPreview()   { ccRenderInlinePreview(); }
+
+/**
+ * Slot Y v2 — Inline mockup-preview render. Toont de huidige form-state
+ * als visuele weergave van wat de klant ziet. Niet pixel-perfect (geen
+ * volledige calculator-styling); bedoeld voor content-validatie tijdens
+ * het bewerken. Voor exact gedrag → "Open in nieuw tabblad".
+ *
+ * Render-bronnen (in volgorde van precedentie):
+ *   1. ccState.config voor huidige sector (form-state, ongezaved)
+ *   2. globalConfigCache[sector] (laatst geladen DB-state)
+ *   3. CC_FALLBACK_DEFAULTS (hardcoded code-defaults — zelfde als calculator)
+ */
+function ccRenderInlinePreview() {
+  var host = document.getElementById('cc-inline-preview');
+  if (!host) return;
+  var lang = ccState.previewLang === 'fr' ? 'fr' : 'nl';
+  var sec = ccState.sector;
+  var merged = ccBuildMergedConfigForPreview();
+  var cfg = merged[sec] || {};
+
+  // Helpers
+  function pickLang(obj, baseKey) {
+    if (!obj || typeof obj !== 'object') return '';
+    var v = obj[baseKey + '_' + lang];
+    if (v != null && v !== '') return String(v);
+    var fallback = lang === 'fr' ? 'nl' : 'fr';
+    var v2 = obj[baseKey + '_' + fallback];
+    return (v2 != null && v2 !== '') ? String(v2) : '';
   }
-}
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function renderIcon(name) {
+    if (window.flanccoIcons && window.flanccoIcons.svg && window.flanccoIcons.svg[name]) {
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.flanccoIcons.svg[name] + '</svg>';
+    }
+    return '';
+  }
 
-function ccPushSectorToPreview() {
-  var iframe = document.getElementById('cc-preview-iframe');
-  if (!iframe || !iframe.contentWindow) return;
-  if (!ccState.previewReady) return;
-  try {
-    iframe.contentWindow.postMessage({
-      type: 'flancco-preview-set-sector',
-      payload: { sector: ccState.sector }
-    }, ccPreviewTargetOrigin());
-  } catch (e) { console.warn('ccPushSectorToPreview failed:', e); }
-}
+  var html = '';
 
-function ccPushLangToPreview() {
-  var iframe = document.getElementById('cc-preview-iframe');
-  if (!iframe || !iframe.contentWindow) return;
-  if (!ccState.previewReady) return;
-  try {
-    iframe.contentWindow.postMessage({
-      type: 'flancco-preview-set-lang',
-      payload: { lang: ccState.previewLang }
-    }, ccPreviewTargetOrigin());
-  } catch (e) { console.warn('ccPushLangToPreview failed:', e); }
+  // ===== USPs =====
+  var usps = Array.isArray(cfg.usps) ? cfg.usps : [];
+  var allUspHidden = usps.length > 0 && usps.every(function(u) { return u && u.visible === false; });
+  var uspsSectionHidden = usps.length === 0 || allUspHidden;
+  if (!uspsSectionHidden || usps.length > 0) {
+    html += '<div class="cc-mock-section">';
+    html += '<p class="cc-mock-section-label">USPs</p>';
+    html += '<div class="cc-mock-uspbar">';
+    for (var i = 0; i < 3; i++) {
+      var u = usps[i] || {};
+      var hidden = u.visible === false;
+      var iconHtml = u.icon ? renderIcon(u.icon) : (u.icon_svg || '');
+      var text = pickLang(u, 'text');
+      var isEmpty = !iconHtml && !text;
+      if (hidden) {
+        html += '<div class="cc-mock-usp" style="opacity:0.35"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text || '(verborgen)') + '</div></div>';
+      } else if (isEmpty) {
+        html += '<div class="cc-mock-usp is-empty"><div class="cc-mock-usp-text">USP ' + (i+1) + '</div></div>';
+      } else {
+        html += '<div class="cc-mock-usp"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text) + '</div></div>';
+      }
+    }
+    html += '</div></div>';
+  }
+
+  // ===== Motivatie-block =====
+  var mot = cfg.motivatie || {};
+  var motHidden = mot.visible === false;
+  var hasMotContent = pickLang(mot, 'title') || pickLang(mot, 'subtitle') || pickLang(mot, 'intro') || pickLang(mot, 'highlight') || pickLang(mot, 'outro');
+  if (hasMotContent || !motHidden) {
+    html += '<div class="cc-mock-section' + (motHidden ? ' is-hidden-pv' : '') + '">';
+    html += '<p class="cc-mock-section-label">Motivatie-block</p>';
+    html += '<div class="cc-mock-motivatie">';
+    var title = pickLang(mot, 'title');
+    var subtitle = pickLang(mot, 'subtitle');
+    var intro = pickLang(mot, 'intro');
+    var highlight = pickLang(mot, 'highlight');
+    var outro = pickLang(mot, 'outro');
+    if (title) html += '<p class="cc-mock-motivatie-title">' + escHtml(title) + '</p>';
+    if (subtitle) html += '<p class="cc-mock-motivatie-subtitle">' + escHtml(subtitle) + '</p>';
+    if (intro) html += '<p>' + escHtml(intro) + '</p>';
+    if (highlight) html += '<div class="cc-mock-highlight"><p>' + escHtml(highlight) + '</p></div>';
+    if (outro) html += '<p>' + escHtml(outro) + '</p>';
+    if (!title && !subtitle && !intro && !highlight && !outro) {
+      html += '<p style="color:var(--grey);font-style:italic">Niets ingevuld — code-default wordt gebruikt.</p>';
+    }
+    html += '</div></div>';
+  }
+
+  // ===== Frequentie + Contractduur =====
+  var freq = cfg.frequentie || {};
+  var dur = cfg.contractduur || {};
+  if ((freq.options && Object.keys(freq.options).length) || (dur.options && Object.keys(dur.options).length)) {
+    html += '<div class="cc-mock-section">';
+    html += '<p class="cc-mock-section-label">Opties</p>';
+    html += '<div class="cc-mock-options">';
+    // Frequentie
+    html += '<div class="cc-mock-options-card">';
+    html += '<p class="cc-mock-options-title">Frequentie</p>';
+    var freqAvail = Array.isArray(freq.available) ? freq.available : [1, 2];
+    var freqDefault = freq.default != null ? freq.default : freqAvail[0];
+    freqAvail.forEach(function(k) {
+      var opt = (freq.options || {})[String(k)] || {};
+      var lbl = pickLang(opt, 'label') || ('Optie ' + k);
+      var sub = pickLang(opt, 'sub') || '';
+      var active = (k == freqDefault);
+      html += '<div class="cc-mock-radio' + (active ? ' is-active' : '') + '"><div class="cc-mock-radio-dot"></div><div class="cc-mock-radio-text"><strong>' + escHtml(lbl) + '</strong>' + (sub ? '<small>' + escHtml(sub) + '</small>' : '') + '</div></div>';
+    });
+    html += '</div>';
+    // Contractduur
+    html += '<div class="cc-mock-options-card">';
+    html += '<p class="cc-mock-options-title">Contractduur</p>';
+    var durAvail = Array.isArray(dur.available) ? dur.available : [0, 3, 5];
+    var durDefault = dur.default != null ? dur.default : (durAvail.indexOf(3) >= 0 ? 3 : durAvail[0]);
+    durAvail.forEach(function(k) {
+      var opt = (dur.options || {})[String(k)] || {};
+      var lbl = pickLang(opt, 'label') || (k + ' jaar');
+      var sub = pickLang(opt, 'sub') || '';
+      var korting = (dur.korting_pct || {})[String(k)];
+      if (korting != null && korting > 0 && !sub) sub = korting + '% korting';
+      var active = (k == durDefault);
+      html += '<div class="cc-mock-radio' + (active ? ' is-active' : '') + '"><div class="cc-mock-radio-dot"></div><div class="cc-mock-radio-text"><strong>' + escHtml(lbl) + '</strong>' + (sub ? '<small>' + escHtml(sub) + '</small>' : '') + '</div></div>';
+    });
+    html += '</div>';
+    html += '</div></div>';
+  }
+
+  // ===== Klant-vragen =====
+  var kv = cfg.klant_vragen || {};
+  var kvKeys = ['bereikbaarheid', 'buitenkraan'];
+  var hasKvContent = kvKeys.some(function(k) { return kv[k] && (pickLang(kv[k], 'label') || pickLang(kv[k], 'helper')); });
+  if (hasKvContent) {
+    html += '<div class="cc-mock-section">';
+    html += '<p class="cc-mock-section-label">Klant-vragen</p>';
+    kvKeys.forEach(function(k) {
+      var v = kv[k];
+      if (!v) return;
+      var hidden = v.visible === false;
+      var lbl = pickLang(v, 'label');
+      var helper = pickLang(v, 'helper');
+      if (!lbl && !helper) return;
+      html += '<div class="cc-mock-vraag' + (hidden ? '" style="opacity:0.4"' : '"') + '>';
+      if (lbl) html += '<p class="cc-mock-vraag-label">' + escHtml(lbl) + (hidden ? ' <small style="color:#92400E">(verborgen)</small>' : '') + '</p>';
+      if (helper) html += '<p class="cc-mock-vraag-helper">' + escHtml(helper) + '</p>';
+      var opts = Array.isArray(v.options) ? v.options : [];
+      if (opts.length > 0) {
+        html += '<div class="cc-mock-vraag-options">';
+        opts.forEach(function(o) {
+          var ol = pickLang(o, 'label') || (o && o.value) || '';
+          if (ol) html += '<div class="cc-mock-vraag-option">' + escHtml(ol) + '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (!html) {
+    html = '<div class="cc-mock-empty">Niets om te tonen — alle velden gebruiken nog de code-default. Vul iets in om de preview live te zien.</div>';
+  }
+
+  // Sector-header bovenaan
+  var secLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  var header = '<p class="cc-mock-section-label" style="text-align:center;margin-bottom:14px;color:var(--primary)">Calculator — ' + (secLabels[sec] || sec) + ' (' + lang.toUpperCase() + ')</p>';
+
+  host.innerHTML = header + html;
 }
 
 function ccSetPreviewLang(lang) {
