@@ -13,6 +13,16 @@ Alleen seriëel als:
 
 Voor uitvoeren: kondig kort het parallel-plan aan ("ik launch X agents tegelijk voor Y/Z") en ga meteen door zonder te wachten op bevestiging.
 
+## Migration documentation discipline
+
+**Bij elke nieuwe DB-migratie altijd `mcp__apply_migration` MCP draaien VOOR CLAUDE.md update.** Anders raakt de documentatie voor op de werkelijke DB-state. Wave 4 (commits `5ecb2b0` → `ef5f02a`) ontdekte dat 4 lokale migration-files in repo nooit applied waren in productie-DB — vermijd dit door per-slot deze drie stappen:
+
+1. `mcp__list_migrations` check vóór release om te bevestigen welke migration-files al applied zijn
+2. `mcp__apply_migration` MCP draaien voor elke nog niet-applied file
+3. Pas daarna CLAUDE.md updaten met de nieuwe schema-additions
+
+CLAUDE.md weerspiegelt de **werkelijke DB-state**, niet de inhoud van lokale migration-files. Een migration-file in `/migrations/` ≠ applied in productie.
+
 ## Project Overview
 Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onderhoud + reiniging zonnepanelen) om partnercontracten voor zonnepaneelreiniging te beheren. Gehost op **Cloudflare Pages** (repo: `Extanore/Flancco-tools`), backend via **Supabase**.
 
@@ -43,6 +53,9 @@ Flancco-tools/
 │   └── werklocatie-picker-demo.html — Standalone test 3 scenarios
 ├── novectra/index.html            — Calculator voor partner Novectra
 ├── cwsolar/index.html             — Calculator voor partner CW Solar
+├── scripts/                       — CI-tooling (geen runtime-dep)
+│   ├── check-supabase-columns.mjs — Schema-drift detectie: vergelijkt geclaimde kolomnamen in HTML/JS-files met werkelijke DB-kolommen via Supabase MCP. Returns non-zero exit-code bij mismatch.
+│   └── README.md                  — Run-instructies + interpretatie van output
 ├── DEPLOY.sh                      — Git deploy script
 └── CLAUDE.md                      — Dit bestand
 ```
@@ -104,13 +117,29 @@ Auto-attach pattern: MutationObserver luistert op `data-slot` attributen (`activ
 ### Database Tabellen
 - `partners` — id, naam, slug, marge_pct, planning_fee, kleur_primair, kleur_secundair, logo_url, contact_email, contact_telefoon, website, contract_getekend
 - `pricing` — id, partner_id, staffel_min, staffel_max, label, flancco_forfait
-- `contracten` — id, partner_id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_email, klant_telefoon, aantal_panelen, frequentie, contractduur, forfait_per_beurt, totaal_excl_btw, totaal_incl_btw, handtekening (base64), datum_ondertekening, status
+- `contracten` — id, partner_id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_email, klant_telefoon, aantal_panelen, frequentie, contractduur, forfait_per_beurt, totaal_excl_btw, totaal_incl_btw, handtekening (base64), datum_ondertekening, status. **Slot A2 (applied Wave 4a)** voegt 4 contract-terms kolommen toe:
+  - `speciale_instructies_technieker TEXT NULL` — vrije tekst, zichtbaar voor uitvoerend technieker
+  - `scope_akkoord_handtekening BOOLEAN NOT NULL DEFAULT false`
+  - `scope_akkoord_handtekening_base64 TEXT NULL` — PNG base64
+  - `scope_akkoord_handtekening_datum TIMESTAMPTZ NULL`
+  - CHECK-constraint `chk_scope_handtekening_consistent` enforced consistentie (alle 3 NULL of alle 3 NOT NULL bij scope_akkoord=true). Bestaande RLS dekt nieuwe kolommen automatisch.
 - `user_roles` — id, user_id (FK auth.users), role ('admin'|'partner'), partner_id (nullable FK partners)
 - `klant_consents` (Slot Q) — GDPR consent-trail per klant per kanaal: id, contract_id (FK), klant_email, kanaal ('email_service'|'email_marketing'|'sms'|'whatsapp'), opt_in, opt_in_ts/bron/ip/ua, opt_out_ts/bron/ip, opt_out_token (UNIQUE), notitie. View `v_klant_consent_actief` toont laatste status per email/kanaal voor send-* functions.
-- `klant_notification_log` (Slot F) — append-only audit-trail voor elke klant-notificatie poging: id, beurt_id (FK), contract_id (FK), partner_id (FK), kanaal ('email'|'sms'|'whatsapp'), event_type ('reminder_24h'|'reminder_day'|'rapport_klaar'|'test'), recipient (gemaskeerd), status ('sent'|'failed'|'skipped_no_consent'|'skipped_already_sent'|'skipped_missing_contact'|'skipped_daily_cap'), provider_message_id, error_detail, created_at. RLS: admin full SELECT, partner SELECT enkel eigen `partner_id`. Idempotency wordt afgedwongen via 7 timestamp-kolommen op `onderhoudsbeurten` (`reminder_24h_email_ts`, `reminder_day_email_ts`, `_sms_ts` × 2, `_whatsapp_ts` × 2, `rapport_klaar_email_ts`).
-- `audit_log` (Slot H + v2) — business-kritieke mutatie-trail voor compliance, incidentonderzoek, klacht-verdediging: id, tabel, record_id, actie, oude_waarde (TEXT, JSON-string of scalar), nieuwe_waarde (TEXT, idem), user_id (nullable), created_at, **ip (INET)**, **user_agent (TEXT, max 500)**. Slot H v2 voegt `ip` + `user_agent` toe via `BEFORE INSERT` trigger `trg_audit_log_stamp_request_meta` die `current_setting('request.headers')` parst (cf-connecting-ip → x-forwarded-for first hop → x-real-ip). Service-role + pg_cron inserts → NULL (correcte system-vs-end-user-onderscheiding). Client-side helper `auditLog()` in `admin/index.html` past **PII-redactie** toe via `_auditSerializeSnapshot` + `AUDIT_PII_KEYS` whitelist (email/naam/adres/telefoon/handtekening/tokens → `[REDACTED:str:<len>]`, type-hint behouden voor zinvolle diff). Onder 7-jarige boekhoudkundige bewaarplicht — niet selectief purgeable. Partial index `audit_log_ip_idx WHERE ip IS NOT NULL` voor security-forensics.
+- `klant_notification_log` (Slot F, applied Wave 2a) — append-only audit-trail voor elke klant-notificatie poging: id, beurt_id (FK), contract_id (FK), partner_id (FK), kanaal ('email'|'sms'|'whatsapp'), event_type ('reminder_24h'|'reminder_day'|'rapport_klaar'|'test'), recipient (gemaskeerd), status ('sent'|'failed'|'skipped_no_consent'|'skipped_already_sent'|'skipped_missing_contact'|'skipped_daily_cap'), provider_message_id, error_detail, created_at. RLS: admin full SELECT, partner SELECT enkel eigen `partner_id`. Idempotency wordt afgedwongen via 7 timestamp-kolommen op `onderhoudsbeurten` (`reminder_24h_email_ts`, `reminder_day_email_ts`, `_sms_ts` × 2, `_whatsapp_ts` × 2, `rapport_klaar_email_ts`).
+- `audit_log` (Slot H + v2, v2-effectief applied via Wave 4a) — business-kritieke mutatie-trail voor compliance, incidentonderzoek, klacht-verdediging: id, tabel, record_id, actie, oude_waarde (TEXT, JSON-string of scalar), nieuwe_waarde (TEXT, idem), user_id (nullable), created_at, **ip (INET)**, **user_agent (TEXT, max 500)**. Slot H v2 voegt `ip` + `user_agent` toe via `BEFORE INSERT` trigger `trg_audit_log_stamp_request_meta` die `current_setting('request.headers')` parst (cf-connecting-ip → x-forwarded-for first hop → x-real-ip). Service-role + pg_cron inserts → NULL (correcte system-vs-end-user-onderscheiding). Client-side helper `auditLog()` in `admin/index.html` past **PII-redactie** toe via `_auditSerializeSnapshot` + `AUDIT_PII_KEYS` whitelist (email/naam/adres/telefoon/handtekening/tokens → `[REDACTED:str:<len>]`, type-hint behouden voor zinvolle diff). Onder 7-jarige boekhoudkundige bewaarplicht — niet selectief purgeable. Partial index `audit_log_ip_idx WHERE ip IS NOT NULL` voor security-forensics.
 - `beurt_dispatch_log` (Slot V/W Toolkit-2) — append-only activity-log per onderhoudsbeurt voor planner hand-off + incident-reconstructie: id, beurt_id (FK onderhoudsbeurten), type CHECK (`manual`|`snooze`|`system`|`transitie`|`mail`), text, user_id (nullable), created_at. Index `(beurt_id, created_at DESC)`. RLS: 3 policies — admin/bediende SELECT+INSERT; partner SELECT enkel eigen via JOIN op `onderhoudsbeurten → contracten.partner_id`. Status-transition trigger op `onderhoudsbeurten` schrijft auto rij bij elke status-wijziging (type=`transitie`).
-- `runbook_tooltips` (Slot V/W Toolkit-5) — admin-bewerkbare contextuele tooltips per pipeline-fase + action_key voor planner-onboarding/hand-off: id, fase (1-5), action_key TEXT, text TEXT, updated_at. UNIQUE (fase, action_key). RLS: 4 policies — alle authenticated SELECT, admin INSERT/UPDATE/DELETE. 10 NL pre-seed defaults dekken kern-acties per fase.
+- `runbook_tooltips` (Slot V/W Toolkit-5) — admin-bewerkbare contextuele tooltips per pipeline-fase + action_key voor planner-onboarding/hand-off: id, fase (1-5), action_key TEXT, text TEXT, updated_at. UNIQUE (fase, action_key). RLS: 4 policies — alle authenticated SELECT, admin INSERT/UPDATE/DELETE. **27 NL pre-seed entries** (uitgebreid in Wave 4a vanaf 10 originele defaults) dekken kern-acties per fase.
+- `feestdagen` (Slot K v2, applied Wave 4a) — BE-feestdagen + sluitingsperiodes voor planning-blokkades. Schema **v2** (vervangt v1):
+  - `id` UUID PK (nieuw t.o.v. v1)
+  - `datum` DATE NOT NULL
+  - `datum_eind` DATE NULL — voor sluitingsperiodes (verplicht als type=`sluitingsperiode`)
+  - `label` TEXT NOT NULL (was `naam` in v1)
+  - `type` TEXT NOT NULL DEFAULT `'wettelijk'` — CHECK (`feestdag`|`sluitingsperiode`)
+  - `recurring` TEXT NOT NULL DEFAULT `'eenmalig'` — CHECK (`jaarlijks`|`eenmalig`)
+  - `aangemaakt_door` UUID NULL
+  - `aangemaakt_op` TIMESTAMPTZ (was `created_at` in v1)
+  - `bijgewerkt_op` TIMESTAMPTZ (nieuw)
+  - 20 BE-feestdagen pre-seed. CHECK-constraints: `chk_label_min_length` (≥2 chars), `chk_sluitingsperiode_eind` (sluitingsperiode → datum_eind verplicht; feestdag → datum_eind NULL).
 
 ### Slot T schema-additions (2026-04-28)
 - `clients.contact_person` is **nullable** geworden — bedrijf-only-klanten (geen vaste contactpersoon). `client_type='bedrijf' AND contact_person IS NULL` = bedrijf-only mode.
@@ -142,9 +171,18 @@ Slot V (Onderhoud) en Slot W (Flancco-werk) zijn twee nieuwe pipeline-pagina's i
 - `runbook_tooltips` (Toolkit-5) — admin-bewerkbare tooltips, UNIQUE (fase, action_key), 10 NL pre-seed defaults
 
 ### Database Views
-- `v_winstgevendheid_per_partner` (Slot G) — YTD-aggregatie per actieve partner: aantal afgewerkte beurten, omzet_excl_btw, planning_fee_kost, arbeids-/reis-/materiaalkost, brutomarge. `security_invoker=on`; admin ziet alle rijen, partner enkel eigen contracten via RLS.
-- `v_winstgevendheid_per_sector` (Slot G) — Idem per genormaliseerde sector (`warmtepomp_*` → `warmtepomp`, whitelist of `overig`).
+- `v_winstgevendheid_per_partner` (Slot G, applied Wave 4a) — YTD-aggregatie per actieve partner: aantal afgewerkte beurten, omzet_excl_btw, planning_fee_kost, arbeids-/reis-/materiaalkost, brutomarge. `security_invoker=on`; admin ziet alle rijen, partner enkel eigen contracten via RLS.
+- `v_winstgevendheid_per_sector` (Slot G, applied Wave 4a) — Idem per genormaliseerde sector (`warmtepomp_*` → `warmtepomp`, whitelist of `overig`).
 - `v_winstgevendheid_per_technieker` (Slot G) — Per-tech equal-share allocatie via `UNNEST(extra_technieker_ids)`; bevat `bezettingsgraad_pct` (v1: trekt verlof/feestdagen NIET af). Voedt de Winstgevendheid-pagina (voormalig forecast).
+- Voor Wave 4a was alleen `v_winstgevendheid_per_technieker` aanwezig in productie; de Slot G 3-tab pagina (Partner / Sector / Technieker) op `admin/index.html` werkt nu volledig met alle drie de views actief.
+- `v_ew_maand_stats`, `v_kalender_beurten` — gehard met `security_invoker=on` in Wave 4a (voorheen SECURITY DEFINER-views die alle RLS bypassten).
+
+### Security hardening (Wave 4a sweep)
+Bundel kleine maar kritieke fixes uit commits `5ecb2b0` → `ef5f02a`:
+- **`beurt_uren_registraties.eindprijs`** is een **GENERATED kolom** geworden (uit `duur_minuten * uurtarief`) — voorheen schrijfbaar door client; nu altijd consistent.
+- **26 SECURITY DEFINER trigger-functions** hebben `REVOKE EXECUTE FROM anon, authenticated, PUBLIC` gekregen — voorheen aanroepbaar als gewone functie, nu enkel via trigger-pad.
+- **3 trigger-helpers** (`bouwdrogers_set_updated_at`, `bpd_touch_updated_at`, `set_updated_at`) hebben `SET search_path = public, pg_temp` — search_path-injectie afgesloten.
+- **2 SECURITY DEFINER views** (`v_ew_maand_stats`, `v_kalender_beurten`) → `security_invoker=on` (zie Database Views).
 
 ### Storage buckets
 - `contracten-pdf` — getekende contracten (publiek voor klant-link)
@@ -165,11 +203,23 @@ Slot V (Onderhoud) en Slot W (Flancco-werk) zijn twee nieuwe pipeline-pagina's i
 
 ### Scheduled Jobs (pg_cron)
 - `slot_f_klant_dispatch_daily` (Slot F) — `'15 7 * * *'` (07:15 UTC dagelijks). Roept `SELECT dispatch_klant_notifications_via_http()` aan, een SECURITY DEFINER functie die `pg_net.http_post` gebruikt om `dispatch-klant-notifications` te invoken met service-role bearer. Vereist twee Vault-secrets: `slot_f_supabase_url` en `slot_f_service_role_key`.
+- `slot_u_techniekers_actief_daily` (Slot U) — `'5 0 * * *'` (00:05 UTC dagelijks). Synct `techniekers.actief` op basis van `uit_dienst_sinds`.
+
+### Scheduled Tasks (Claude Code harness, niet pg_cron)
+- `trig_01RGQwBJKYhJvFrtCpAr2Yr2` — weekly schema-drift check. Runt `scripts/check-supabase-columns.mjs` elke maandag 08:00 UTC. Output naar repo-issue/log bij kolom-mismatch tussen HTML/JS-claims en werkelijke DB-state. Vroegtijdig signaal voor situaties zoals Wave 4 (lokale migration ≠ applied).
 
 ### RLS Policies
 - **Admin**: volledige CRUD op alle tabellen
 - **Partner**: SELECT op eigen contracten (partner_id match), UPDATE op eigen partner-record (branding/instellingen), SELECT op `klant_consents` van eigen contracten, SELECT op `klant_notification_log` van eigen contracten
 - **Anon**: INSERT op contracten + SELECT op pricing en partners (nodig voor calculatoren); INSERT op `klant_consents` met `opt_in_bron='calculator'`
+
+### Slot I anti-self-promote RLS (applied Wave 4a)
+Voorkomt dat een partner-admin zichzelf of collega's binnen eigen partner kan upgraden naar `manage_users=true` (voorheen mogelijk via `user_roles_partner_update` policy):
+- `user_roles_partner_update` policy uitgebreid met manage_users-bescherming — partner-admin kan andere velden van eigen partner-leden updaten, maar niet `manage_users` toggelen
+- Nieuwe RLS-helpers (beide SECURITY DEFINER, returnen booleans over caller's eigen scope):
+  - `is_partner_admin_of(target_partner_id UUID)` — caller heeft admin-rol binnen target_partner_id
+  - `user_role_has_manage_users(user_id UUID)` — gegeven user_role-rij heeft manage_users=true
+- Deze helpers zijn herbruikbaar voor andere partner-tenant policies die "alleen partner-admin van eigen scope mag dit"-semantiek nodig hebben
 
 ### Edge Function Secrets vereist (Slot F)
 - `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_REPLY_TO` — voor `send-klant-notification-email`
