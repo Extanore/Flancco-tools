@@ -3059,7 +3059,11 @@ async function init() {
     if (!subtypeParam) subtypeParam = 'lucht_lucht';
   }
 
-  if (!slug) { showError('Geen partner opgegeven in de URL.'); return; }
+  if (!slug) {
+    showError('Geen partner opgegeven in de URL.');
+    if (IS_PREVIEW) { try { setupPreviewMode(); } catch (_) {} }
+    return;
+  }
 
   try {
     // Fetch partner
@@ -3188,6 +3192,10 @@ async function init() {
   } catch (err) {
     console.error('Init error:', err);
     showError('Er is een fout opgetreden bij het laden. Probeer de pagina te vernieuwen.');
+    // Slot Y — ook bij init-fout het admin-iframe niet eeuwig laten wachten
+    // op de preview-handshake. Roep setupPreviewMode aan zodat de admin een
+    // ready-event krijgt; de error-overlay blijft zichtbaar in de iframe.
+    if (IS_PREVIEW) { try { setupPreviewMode(); } catch (_) {} }
   }
 }
 
@@ -3995,6 +4003,13 @@ function showError(msg) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('error-page').style.display = 'flex';
   document.getElementById('error-msg').textContent = msg;
+  // Slot Y — admin-iframe niet eeuwig laten wachten op ready-handshake bij
+  // een fatal init-fout. Setup-preview is idempotent (defensieve guard
+  // tegen dubbel injecteren) en post een 'flancco-preview-ready' zodat de
+  // admin de spinner kan wegnemen en de error-pagina in de iframe ziet.
+  if (typeof IS_PREVIEW !== 'undefined' && IS_PREVIEW) {
+    try { if (typeof setupPreviewMode === 'function') setupPreviewMode(); } catch (_) {}
+  }
 }
 
 function applyBranding(p, sector) {
