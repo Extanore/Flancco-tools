@@ -9405,15 +9405,11 @@ async function loadOnderhoudData() {
       console.warn('[loadOnderhoudData] FlanccoPipeline niet geladen');
       return [];
     }
-    var resp = await sb
-      .from('onderhoudsbeurten')
-      .select(_PIPELINE_SELECT)
-      .neq('status', 'afgewerkt')
-      .is('verwijderd_op', null)
-      .order('plan_datum', { ascending: true, nullsFirst: false });
-    if (resp.error) throw resp.error;
-    var rows = resp.data || [];
-    return rows.map(function(r) {
+    var fetched = await _fetchPipelineRows();
+    var rows = fetched.rows;
+    var dbg = fetched.dbg;
+    console.debug('[loadOnderhoudData] PostgREST returned', rows.length, 'rows.', dbg);
+    var enriched = rows.map(function(r) {
       try {
         var rWithContract = _synthesizeContractFromClient(Object.assign({}, r));
         return Object.assign(rWithContract, { _fase: window.FlanccoPipeline.computeFase(rWithContract, 'onderhoud') });
@@ -9422,10 +9418,123 @@ async function loadOnderhoudData() {
         return Object.assign({}, r, { _fase: null });
       }
     });
+    var faseCount = enriched.reduce(function(acc, r) {
+      var k = r._fase || 'null';
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    console.debug('[loadOnderhoudData] enriched count by _fase:', faseCount);
+    window._pipelineDebug.last = {
+      page: 'onderhoud',
+      rawCount: dbg.rawCount,
+      fallbackUsed: dbg.fallbackUsed,
+      primaryError: dbg.primaryError,
+      fallbackError: dbg.fallbackError,
+      faseCount: faseCount,
+      ts: new Date().toISOString()
+    };
+    return enriched;
   } catch (e) {
     console.error('[loadOnderhoudData]', e);
+    window._pipelineDebug.last = { page: 'onderhoud', error: e.message || String(e), ts: new Date().toISOString() };
     return [];
   }
+}
+
+// Globale debug-state zodat showFlanccoWerkPage / showOnderhoudPage een
+// visible banner kunnen tonen op basis van de laatste fetch.
+window._pipelineDebug = window._pipelineDebug || { last: null };
+
+/**
+ * Rendert een visible debug-banner bovenaan de pipeline-wrapper. Toont
+ * exact waar records verloren gaan (PostgREST → enrich → filter). Helpt
+ * gebruiker root-cause melden zonder browser-console te openen.
+ * Verwijderen zodra Slot W/V data-flow stabiel is.
+ */
+function _renderPipelineDebugBanner(wrapper, info) {
+  if (!wrapper) return;
+  var dbg = info.pipelineDbg || {};
+  var color = '#1A1A2E';
+  var msg;
+  if (info.rawCount === 0) {
+    color = '#B45309';
+    msg = '⚠ Geen records uit DB. Mogelijke oorzaak: ';
+    if (dbg.fallbackUsed && dbg.fallbackError) msg += 'fallback-query faalde — ' + dbg.fallbackError;
+    else if (dbg.fallbackUsed) msg += 'embedded-select faalde, fallback ook 0 rows';
+    else if (dbg.primaryError) msg += 'PostgREST error — ' + dbg.primaryError;
+    else msg += 'lege response (RLS-block of echt leeg).';
+  } else if (info.filteredCount === 0) {
+    color = '#B45309';
+    msg = '⚠ ' + info.rawCount + ' records uit DB, maar 0 na ' + info.page + '-filter. dataFilter scoping mismatch.';
+  } else {
+    color = '#16A34A';
+    msg = '✓ ' + info.filteredCount + '/' + info.rawCount + ' records na filter.';
+  }
+  var fallbackBadge = dbg.fallbackUsed ? ' <span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-left:6px">Fallback-query</span>' : '';
+  var faseLine = dbg.faseCount ? ' • _fase-verdeling: ' + JSON.stringify(dbg.faseCount) : '';
+  var bannerHtml =
+    '<div id="cc-pipe-debug" style="margin-bottom:12px;padding:10px 14px;border:1px solid ' + color + '40;border-radius:8px;background:' + color + '08;color:' + color + ';font-size:12px;font-family:ui-monospace,Menlo,monospace;line-height:1.55;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<strong>[' + info.page + ' debug]</strong>' + fallbackBadge +
+      '<span>' + msg + faseLine + '</span>' +
+      '<button onclick="document.getElementById(\'cc-pipe-debug\').remove()" style="margin-left:auto;background:transparent;border:1px solid ' + color + '40;color:' + color + ';padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer">×</button>' +
+    '</div>';
+  // Verwijder oude banner indien aanwezig (re-render veilig)
+  var existing = wrapper.querySelector('#cc-pipe-debug');
+  if (existing) existing.remove();
+  // Insert vóór de pipeline-content
+  wrapper.insertAdjacentHTML('afterbegin', bannerHtml);
+}
+
+async function _fetchPipelineRows() {
+  // Probeer eerst de volledige embedded-select; valt terug op een simpele
+  // select zonder embedded resources als PostgREST een fout geeft (bv.
+  // door FK-relatie-resolutie die kapot is na schema-wijziging).
+  var dbg = { primaryError: null, fallbackUsed: false, rawCount: 0 };
+  var resp = await sb
+    .from('onderhoudsbeurten')
+    .select(_PIPELINE_SELECT)
+    .neq('status', 'afgewerkt')
+    .is('verwijderd_op', null)
+    .order('plan_datum', { ascending: true, nullsFirst: false });
+  if (resp.error) {
+    dbg.primaryError = resp.error.message || String(resp.error);
+    console.warn('[pipeline] embedded-select faalde, fallback simpele select:', dbg.primaryError);
+    dbg.fallbackUsed = true;
+    var basic = await sb
+      .from('onderhoudsbeurten')
+      .select('*')
+      .neq('status', 'afgewerkt')
+      .is('verwijderd_op', null)
+      .order('plan_datum', { ascending: true, nullsFirst: false });
+    if (basic.error) {
+      dbg.fallbackError = basic.error.message || String(basic.error);
+      console.error('[pipeline] fallback select FAILED:', dbg.fallbackError);
+      return { rows: [], dbg: dbg };
+    }
+    var basicRows = basic.data || [];
+    dbg.rawCount = basicRows.length;
+    // Hydrate handmatig: contracten + clients via aparte queries
+    var contractIds = basicRows.filter(function(r) { return r.contract_id; }).map(function(r) { return r.contract_id; });
+    var clientIds = basicRows.filter(function(r) { return r.client_id; }).map(function(r) { return r.client_id; });
+    var contractMap = {};
+    var clientMap = {};
+    if (contractIds.length > 0) {
+      var cRes = await sb.from('contracten').select('id, is_eenmalig, partner_id, contract_nummer, klant_naam, klant_email, klant_telefoon, klant_adres, klant_postcode, klant_gemeente, sector, aantal_panelen, frequentie, contractduur, client_id').in('id', contractIds);
+      (cRes.data || []).forEach(function(c) { contractMap[c.id] = c; });
+    }
+    if (clientIds.length > 0) {
+      var cliRes = await sb.from('clients').select('id, company_name, contact_person, client_type, email, phone, street, house_number, postal_code, city, planner_notitie').in('id', clientIds);
+      (cliRes.data || []).forEach(function(c) { clientMap[c.id] = c; });
+    }
+    var hydrated = basicRows.map(function(r) {
+      r.contract = r.contract_id ? (contractMap[r.contract_id] || null) : null;
+      r.client = r.client_id ? (clientMap[r.client_id] || null) : null;
+      return r;
+    });
+    return { rows: hydrated, dbg: dbg };
+  }
+  dbg.rawCount = (resp.data || []).length;
+  return { rows: resp.data || [], dbg: dbg };
 }
 
 async function loadFlanccoWerkData() {
@@ -9434,27 +9543,10 @@ async function loadFlanccoWerkData() {
       console.warn('[loadFlanccoWerkData] FlanccoPipeline niet geladen');
       return [];
     }
-    var resp = await sb
-      .from('onderhoudsbeurten')
-      .select(_PIPELINE_SELECT)
-      .neq('status', 'afgewerkt')
-      .is('verwijderd_op', null)
-      .order('plan_datum', { ascending: true, nullsFirst: false });
-    if (resp.error) {
-      console.error('[loadFlanccoWerkData] supabase error:', resp.error);
-      throw resp.error;
-    }
-    var rows = resp.data || [];
-    console.debug('[loadFlanccoWerkData] PostgREST returned', rows.length, 'rows. Sample:',
-      rows.slice(0, 3).map(function(r) {
-        return {
-          id: r.id, status: r.status,
-          contract_id: r.contract_id, has_contract: !!r.contract,
-          client_id: r.client_id, has_client: !!r.client,
-          contract_eenmalig: r.contract && r.contract.is_eenmalig
-        };
-      })
-    );
+    var fetched = await _fetchPipelineRows();
+    var rows = fetched.rows;
+    var dbg = fetched.dbg;
+    console.debug('[loadFlanccoWerkData] PostgREST returned', rows.length, 'rows.', dbg);
     var enriched = rows.map(function(r) {
       try {
         var rWithContract = _synthesizeContractFromClient(Object.assign({}, r));
@@ -9470,9 +9562,19 @@ async function loadFlanccoWerkData() {
       return acc;
     }, {});
     console.debug('[loadFlanccoWerkData] enriched count by _fase:', faseCount);
+    window._pipelineDebug.last = {
+      page: 'flancco-werk',
+      rawCount: dbg.rawCount,
+      fallbackUsed: dbg.fallbackUsed,
+      primaryError: dbg.primaryError,
+      fallbackError: dbg.fallbackError,
+      faseCount: faseCount,
+      ts: new Date().toISOString()
+    };
     return enriched;
   } catch (e) {
     console.error('[loadFlanccoWerkData]', e);
+    window._pipelineDebug.last = { page: 'flancco-werk', error: e.message || String(e), ts: new Date().toISOString() };
     return [];
   }
 }
@@ -9522,6 +9624,13 @@ async function showOnderhoudPage() {
 
     // Slot V = recurrent partner-werk: contract bestaat én is_eenmalig === false
     var dataFilter = function(r) { return !!(r.contract && r.contract.is_eenmalig === false); };
+    var filteredRecords = records.filter(dataFilter);
+    _renderPipelineDebugBanner(wrapper, {
+      page: 'onderhoud',
+      rawCount: records.length,
+      filteredCount: filteredRecords.length,
+      pipelineDbg: window._pipelineDebug && window._pipelineDebug.last
+    });
 
     // Bucket-prefilter consume — gezet door dashboard-tegel "Pipeline-status vandaag".
     // One-shot: clear na consume zodat refresh niet opnieuw filtert.
@@ -9534,7 +9643,7 @@ async function showOnderhoudPage() {
     _onderhoudPipelineInstance = window.FlanccoPipeline.attachPage(wrapper, {
       mode: 'onderhoud',
       supabase: sb,
-      records: records.filter(dataFilter),
+      records: filteredRecords,
       partnerSlaMap: partnerSlaMap,
       initialBucketFilter: prefilter || undefined,
       onAction: function(actionKey, record) { return onPipelineAction(actionKey, record, 'onderhoud'); }
@@ -9577,6 +9686,15 @@ async function showFlanccoWerkPage() {
       filteredRecords.length === 0 && records.length > 0
         ? '⚠ alle records weggefilterd — check r.contract_id / r.contract / r.contract.is_eenmalig in raw rows'
         : '');
+    // Visible debug-banner bovenaan zodat we IN DE UI zien waar de records
+    // verloren gaan (zonder console te openen). Verwijderen zodra root-cause
+    // bevestigd is.
+    _renderPipelineDebugBanner(wrapper, {
+      page: 'flancco-werk',
+      rawCount: records.length,
+      filteredCount: filteredRecords.length,
+      pipelineDbg: window._pipelineDebug && window._pipelineDebug.last
+    });
 
     // Bucket-prefilter consume — zelfde pattern als showOnderhoudPage.
     var prefilter = null;
