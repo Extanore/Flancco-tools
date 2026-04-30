@@ -1427,19 +1427,40 @@ async function generateContractPDFShared(c, p, opts) {
 
     var jsPDF = window.jspdf.jsPDF;
     var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    var pageW = pdf.internal.pageSize.getWidth();
-    var pageH = pdf.internal.pageSize.getHeight();
-    var imgW = pageW;
-    var imgH = canvas.height * imgW / canvas.width;
-    var imgData = canvas.toDataURL('image/png');
-    var y = 0;
-    pdf.addImage(imgData, 'PNG', 0, y, imgW, imgH);
-    var remaining = imgH - pageH;
-    while (remaining > 0) {
-      y -= pageH;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, y, imgW, imgH);
-      remaining -= pageH;
+    var pageW = pdf.internal.pageSize.getWidth();   // 210 mm
+    var pageH = pdf.internal.pageSize.getHeight();  // 297 mm
+
+    // Document-marges (standaard A4-zakelijk: 15mm L/R, 18mm T/B). Het
+    // contract leest hierdoor als een nette A4 i.p.v. edge-to-edge afgedrukt.
+    var marginXmm = 15;
+    var marginYmm = 18;
+    var contentWmm = pageW - 2 * marginXmm;  // 180 mm tekenruimte
+    var contentHmm = pageH - 2 * marginYmm;  // 261 mm tekenruimte
+
+    // Canvas → mm-schaling. Verticaal slicen per pagina-hoogte zodat
+    // pagina-breaks niet midden in een blok komen èn de marges op ELKE
+    // pagina worden gerespecteerd (oude aanpak met negatieve y zou
+    // content over de top-marge tekenen op vervolg-pagina's).
+    var pxPerMm = canvas.width / contentWmm;
+    var sliceHpxMax = Math.floor(contentHmm * pxPerMm);
+
+    var sliceY = 0;
+    var pageNum = 0;
+    while (sliceY < canvas.height) {
+      var sliceHpx = Math.min(sliceHpxMax, canvas.height - sliceY);
+      var pc = document.createElement('canvas');
+      pc.width = canvas.width;
+      pc.height = sliceHpx;
+      var ctx = pc.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pc.width, pc.height);
+      ctx.drawImage(canvas, 0, sliceY, canvas.width, sliceHpx, 0, 0, pc.width, sliceHpx);
+      var pageImgData = pc.toDataURL('image/png');
+      if (pageNum > 0) pdf.addPage();
+      var sliceHmm = sliceHpx / pxPerMm;
+      pdf.addImage(pageImgData, 'PNG', marginXmm, marginYmm, contentWmm, sliceHmm);
+      sliceY += sliceHpx;
+      pageNum++;
     }
 
     var partnerName = (p && (p.bedrijfsnaam || p.naam)) || 'Flancco';
