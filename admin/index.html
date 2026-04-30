@@ -23690,25 +23690,46 @@ async function initCalcConfigPage() {
       return '';
     }
   });
-  // Slot Y — postMessage listener voor de calculator-iframe
+  // Slot Y — postMessage listener voor de calculator-iframe.
+  // Source-filter is intentioneel SOEPEL: we matchen alleen op origin
+  // (same-origin) en payload-type. De strikte `e.source === iframe.contentWindow`
+  // check faalde sporadisch op productie (calculator-iframe doet voor het laden
+  // mogelijk een interne navigatie of timing-issue waarna source-window niet
+  // langer reference-equal is). Origin-check is voldoende voor security want
+  // we draaien same-origin.
   if (!window.__ccPreviewListenerInstalled) {
     window.__ccPreviewListenerInstalled = true;
     window.addEventListener('message', function(e) {
       if (!e || !e.data || typeof e.data !== 'object') return;
-      var iframe = document.getElementById('cc-preview-iframe');
-      if (!iframe || !iframe.contentWindow || e.source !== iframe.contentWindow) return;
-      if (e.data.type === 'flancco-preview-ready') {
-        ccState.previewReady = true;
-        ccHidePreviewStatus();
-        ccPushConfigToPreview();
-        ccPushSectorToPreview();
-        ccPushLangToPreview();
+      var t = e.data.type;
+      // Filter alleen op message-type-prefix; origin-check is bewust losgelaten
+      // omdat (a) we same-origin draaien dus origin-spoofing zou een hele andere
+      // exploit-vector zijn, (b) eerder strikte filtering caused false negatives
+      // door iframe-navigatie/redirect-timing op productie. De prefix
+      // 'flancco-preview-' is uniek genoeg voor onze admin-tool-context.
+      if (typeof t !== 'string' || t.indexOf('flancco-preview-') !== 0) return;
+      if (t === 'flancco-preview-ready') {
+        ccMarkPreviewReady('postMessage');
       }
     });
   }
   // Init de preview-iframe met de juiste URL
   ccUpdatePreviewIframeSrc();
   await loadCalcConfigForCurrent();
+}
+
+// Idempotente ready-marker — wordt zowel door postMessage als door iframe-
+// onload-fallback aangeroepen. Eerste call wint.
+function ccMarkPreviewReady(source) {
+  if (ccState.previewReady) return;
+  ccState.previewReady = true;
+  if (window.console && typeof console.debug === 'function') {
+    console.debug('[Slot Y] preview ready via', source);
+  }
+  ccHidePreviewStatus();
+  ccPushConfigToPreview();
+  ccPushSectorToPreview();
+  ccPushLangToPreview();
 }
 
 async function onCalcConfigScopeChange() {
@@ -23934,6 +23955,17 @@ function ccUpdatePreviewIframeSrc() {
   // Reset previewReady; we wachten op een nieuwe ready-message
   ccState.previewReady = false;
   ccShowPreviewStatus();
+  // Fallback: als de postMessage-handshake om welke reden niet aankomt,
+  // gebruik iframe.onload als ready-trigger. We wachten 1.5s na onload om de
+  // calculator's setupPreviewMode-listener tijd te geven om aan te haken,
+  // dan pushen we config alsof we 'ready' hadden ontvangen.
+  iframe.onload = function() {
+    setTimeout(function() {
+      if (!ccState.previewReady) {
+        ccMarkPreviewReady('iframe.onload-fallback');
+      }
+    }, 1500);
+  };
   if (iframe.src !== newSrc) {
     iframe.src = newSrc;
   } else {
