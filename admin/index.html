@@ -23889,13 +23889,13 @@ function ccSchedulePushToPreview() {
 // =============================================
 
 function ccBuildPreviewUrl() {
-  // Hostname-aware base — werkt op (a) productie subdomain-split
-  // (calculator.flancco-platform.be vs app.flancco-platform.be), (b) GitHub-Pages
-  // fallback (extanore.github.io/Flancco-tools/calculator), en (c) localhost
-  // (zelfde origin). Hergebruikt CALCULATOR_BASE_URL die elders al elders is
-  // gedefinieerd voor partner-share-links.
-  var base = (typeof CALCULATOR_BASE_URL !== 'undefined' ? CALCULATOR_BASE_URL : '../calculator')
-           + '/index.html?preview=admin';
+  // Voor de admin-preview gebruiken we ALTIJD same-origin (location.origin +
+  // /calculator/index.html). De subdomain calculator.flancco-platform.be is
+  // host-aliased naar de Pages-root waar geen /index.html bestaat (404), en
+  // bovendien voorkomt same-origin alle CSP/X-Frame-issues. CALCULATOR_BASE_URL
+  // wordt elders gebruikt voor partner-share-links die WEL via de subdomain
+  // gaan (met partner-slug-redirect); dat is een andere flow.
+  var base = location.origin + '/calculator/index.html?preview=admin';
   if (ccIsPartnerScope() && ccState.scope) {
     var p = ccPartnersList().find(function(x) { return x.id === ccState.scope; });
     if (p && p.slug) base += '&partner=' + encodeURIComponent(p.slug);
@@ -23907,13 +23907,10 @@ function ccBuildPreviewUrl() {
   return base;
 }
 
-// Resolveert het juiste targetOrigin voor postMessage-calls naar de preview-
-// iframe. Cross-origin (productie subdomain-split) vereist expliciet origin;
-// same-origin mag '*' maar we zijn altijd specifiek voor security.
+// Same-origin → location.origin als targetOrigin voor postMessage. Strict
+// match (geen '*') voor security-defense.
 function ccPreviewTargetOrigin() {
-  if (typeof CALCULATOR_BASE_URL === 'undefined') return '*';
-  try { return new URL(CALCULATOR_BASE_URL, location.origin).origin; }
-  catch (_) { return '*'; }
+  return location.origin;
 }
 
 function ccUpdatePreviewIframeSrc() {
