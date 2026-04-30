@@ -24175,6 +24175,71 @@ function ccPushConfigToPreview() { ccRenderInlinePreview(); }
 function ccPushSectorToPreview() { ccRenderInlinePreview(); }
 function ccPushLangToPreview()   { ccRenderInlinePreview(); }
 
+// Slot Y v2 — code-defaults per sector. Identiek qua structuur aan
+// calculator/index.html (SECTORS object). Voor pixel-perfect copy → echte
+// calculator. Doel hier: admin krijgt visueel referentiekader bij lege
+// config zodat overrides zichtbare verandering tonen.
+var CC_FALLBACK_DEFAULTS = {
+  zonnepanelen: {
+    usps: [
+      { icon: 'droplet', text_nl: 'Osmosewater\nzonder chemie', text_fr: 'Eau osmosée\nsans chimie' },
+      { icon: 'zap', text_nl: 'Tot 20% meer\nopbrengst', text_fr: 'Jusqu’à 20%\nde rendement' },
+      { icon: 'shield-check', text_nl: 'Gecertificeerd\n+ technische controle', text_fr: 'Certifié\n+ contrôle technique' }
+    ],
+    motivatie: {
+      title_nl: 'Waarom uw zonnepanelen reinigen?',
+      title_fr: 'Pourquoi nettoyer vos panneaux solaires?',
+      subtitle_nl: 'Ontdek hoeveel rendement u misloopt zonder reiniging',
+      subtitle_fr: 'Découvrez combien de rendement vous perdez',
+      intro_nl: 'Regen spoelt oppervlakkig stof weg, maar hardnekkig vuil blijft vastzitten op uw panelen.',
+      intro_fr: 'La pluie nettoie en surface, mais la saleté tenace reste sur vos panneaux.',
+      highlight_nl: 'Een typische installatie van 20 panelen verliest jaarlijks tot 1.250 kWh bij 15% vervuiling.',
+      highlight_fr: 'Une installation typique de 20 panneaux perd jusqu’à 1.250 kWh par an avec 15% de salissure.',
+      outro_nl: 'Veel fabrikanten vereisen regelmatig onderhoud voor de garantie.',
+      outro_fr: 'De nombreux fabricants exigent un entretien régulier pour la garantie.'
+    },
+    frequentie: { available: [1], default: 1, options: { '1': { label_nl: 'Jaarlijks', label_fr: 'Annuel', sub_nl: '1 onderhoudsbeurt per jaar', sub_fr: '1 entretien par an' } } },
+    contractduur: { available: [0, 3, 5], default: 3, korting_pct: { '0': 0, '3': 5, '5': 5 }, options: { '0': { label_nl: 'Eenmalige interventie', label_fr: 'Intervention unique' }, '3': { label_nl: '3 jaar', label_fr: '3 ans', sub_nl: '5% korting', sub_fr: '5% de remise' }, '5': { label_nl: '5 jaar', label_fr: '5 ans', sub_nl: '5% korting', sub_fr: '5% de remise' } } },
+    klant_vragen: {
+      bereikbaarheid: { label_nl: 'Hoe goed is uw woning bereikbaar?', label_fr: 'Quelle est l’accessibilité de votre habitation?', helper_nl: 'Onze servicewagen heeft ±5m parkeerruimte nodig binnen 50m van uw woning.', helper_fr: 'Notre véhicule de service a besoin de ±5m d’espace de stationnement.', options: [{ value: 'Goed', label_nl: 'Goed bereikbaar', label_fr: 'Bien accessible' }, { value: 'Beperkt', label_nl: 'Beperkt bereikbaar', label_fr: 'Accès limité' }] },
+      buitenkraan: { label_nl: 'Is er een werkende buitenkraan beschikbaar?', label_fr: 'Disposez-vous d’un robinet extérieur fonctionnel?', helper_nl: 'Voor osmosewater-reiniging gebruiken we ±100l water per beurt.', helper_fr: 'Pour le nettoyage à l’eau osmosée, nous utilisons ±100l par entretien.', options: [{ value: 'Ja', label_nl: 'Ja, een werkende buitenkraan', label_fr: 'Oui, robinet extérieur fonctionnel' }, { value: 'Nee', label_nl: 'Nee, breng zelf water mee', label_fr: 'Non, apportez votre eau' }] }
+    }
+  },
+  warmtepomp: {
+    usps: [
+      { icon: 'thermometer', text_nl: 'Maximaal\nrendement', text_fr: 'Rendement\nmaximal' },
+      { icon: 'gauge', text_nl: 'Lagere\nenergiekosten', text_fr: 'Coûts\nénergétiques réduits' },
+      { icon: 'shield-check', text_nl: 'Verlengt\nlevensduur', text_fr: 'Prolonge\nla durée de vie' }
+    ],
+    motivatie: { title_nl: 'Waarom uw warmtepomp onderhouden?', title_fr: 'Pourquoi entretenir votre pompe à chaleur?', subtitle_nl: 'Maximaal rendement én langere levensduur', subtitle_fr: 'Rendement maximal et durée de vie prolongée', intro_nl: 'Een vervuilde warmtepomp verbruikt meer energie en faalt sneller.', intro_fr: 'Une pompe à chaleur encrassée consomme plus et tombe en panne plus vite.', highlight_nl: 'Jaarlijks onderhoud bespaart tot 15% op uw energiefactuur.', highlight_fr: 'L’entretien annuel économise jusqu’à 15% sur votre facture.', outro_nl: 'Verplicht voor garantie bij de meeste fabrikanten.', outro_fr: 'Obligatoire pour la garantie chez la plupart des fabricants.' },
+    frequentie: { available: [1, 2], default: 1, options: { '1': { label_nl: 'Jaarlijks', label_fr: 'Annuel' }, '2': { label_nl: 'Halfjaarlijks', label_fr: 'Semestriel' } } },
+    contractduur: { available: [0, 3, 5], default: 3, korting_pct: { '0': 0, '3': 5, '5': 5 }, options: { '0': { label_nl: 'Eenmalig' }, '3': { label_nl: '3 jaar', sub_nl: '5% korting' }, '5': { label_nl: '5 jaar', sub_nl: '5% korting' } } },
+    klant_vragen: { bereikbaarheid: { label_nl: 'Bereikbaarheid van het toestel', helper_nl: 'Buiten- en binnenunit moeten toegankelijk zijn.', options: [{ value: 'Goed', label_nl: 'Goed bereikbaar' }, { value: 'Beperkt', label_nl: 'Beperkt bereikbaar' }] } }
+  },
+  ventilatie: {
+    usps: [
+      { icon: 'wind', text_nl: 'Schone\nbinnenlucht', text_fr: 'Air intérieur\npropre' },
+      { icon: 'gauge', text_nl: 'Optimaal\nrendement', text_fr: 'Rendement\noptimal' },
+      { icon: 'shield-check', text_nl: 'Verlengt\nlevensduur', text_fr: 'Prolonge\nla durée de vie' }
+    ],
+    motivatie: { title_nl: 'Waarom uw ventilatie onderhouden?', subtitle_nl: 'Gezonde binnenlucht en lager energieverbruik', intro_nl: 'Vuile filters belasten de motor en verspreiden allergenen.', highlight_nl: 'Filters vervangen om de 6–12 maanden levert tot 20% beter rendement.', outro_nl: 'Onderdeel van veel verzekeringspolissen voor woningkwaliteit.' },
+    frequentie: { available: [1, 2], default: 1, options: { '1': { label_nl: 'Jaarlijks' }, '2': { label_nl: 'Halfjaarlijks' } } },
+    contractduur: { available: [0, 3, 5], default: 3, korting_pct: { '0': 0, '3': 5, '5': 5 }, options: { '0': { label_nl: 'Eenmalig' }, '3': { label_nl: '3 jaar' }, '5': { label_nl: '5 jaar' } } },
+    klant_vragen: { bereikbaarheid: { label_nl: 'Bereikbaarheid van de unit', options: [{ value: 'Goed', label_nl: 'Goed bereikbaar' }, { value: 'Beperkt', label_nl: 'Beperkt' }] } }
+  },
+  verwarming: {
+    usps: [
+      { icon: 'flame', text_nl: 'Veilig\ngebruik', text_fr: 'Utilisation\nsûre' },
+      { icon: 'gauge', text_nl: 'Lager\nbrandstofverbruik', text_fr: 'Consommation\nréduite' },
+      { icon: 'shield-check', text_nl: 'Wettelijk\nverplicht', text_fr: 'Obligatoire\nlégalement' }
+    ],
+    motivatie: { title_nl: 'Waarom uw verwarming onderhouden?', subtitle_nl: 'Veilig, zuinig en wettelijk verplicht', intro_nl: 'Een onderhouden ketel werkt veiliger en efficiënter.', highlight_nl: 'Een onderhouden ketel verbruikt tot 5% minder brandstof.', outro_nl: 'Wettelijk verplicht volgens regionale verordeningen.' },
+    frequentie: { available: [1], default: 1, options: { '1': { label_nl: 'Jaarlijks' } } },
+    contractduur: { available: [0, 3, 5], default: 3, korting_pct: { '0': 0, '3': 5, '5': 5 }, options: { '0': { label_nl: 'Eenmalig' }, '3': { label_nl: '3 jaar' }, '5': { label_nl: '5 jaar' } } },
+    klant_vragen: { bereikbaarheid: { label_nl: 'Bereikbaarheid van de ketel', options: [{ value: 'Goed', label_nl: 'Goed bereikbaar' }, { value: 'Beperkt', label_nl: 'Beperkt' }] } }
+  }
+};
+
 /**
  * Slot Y v2 — Inline mockup-preview render. Toont de huidige form-state
  * als visuele weergave van wat de klant ziet. Niet pixel-perfect (geen
@@ -24193,6 +24258,24 @@ function ccRenderInlinePreview() {
   var sec = ccState.sector;
   var merged = ccBuildMergedConfigForPreview();
   var cfg = merged[sec] || {};
+  var defaults = CC_FALLBACK_DEFAULTS[sec] || {};
+
+  // Smart-merge: voor elk veld nemen we de override uit cfg, anders default.
+  // Voor objecten (motivatie, klant_vragen) merge'n we per sub-key — een
+  // partner-override van alleen `title_nl` mag de andere defaults niet
+  // overschrijven met undefined.
+  function mergeWithDefault(cfgVal, defVal) {
+    if (cfgVal == null) return defVal;
+    if (typeof cfgVal !== 'object' || Array.isArray(cfgVal)) return cfgVal;
+    var out = {};
+    var keys = Object.keys(defVal || {}).concat(Object.keys(cfgVal));
+    keys.forEach(function(k) {
+      if (out.hasOwnProperty(k)) return;
+      var c = cfgVal[k]; var d = (defVal || {})[k];
+      out[k] = (c !== undefined && c !== null && c !== '') ? c : d;
+    });
+    return out;
+  }
 
   // Helpers
   function pickLang(obj, baseKey) {
@@ -24217,111 +24300,112 @@ function ccRenderInlinePreview() {
 
   var html = '';
 
-  // ===== USPs =====
-  var usps = Array.isArray(cfg.usps) ? cfg.usps : [];
-  var allUspHidden = usps.length > 0 && usps.every(function(u) { return u && u.visible === false; });
-  var uspsSectionHidden = usps.length === 0 || allUspHidden;
-  if (!uspsSectionHidden || usps.length > 0) {
-    html += '<div class="cc-mock-section">';
-    html += '<p class="cc-mock-section-label">USPs</p>';
-    html += '<div class="cc-mock-uspbar">';
-    for (var i = 0; i < 3; i++) {
-      var u = usps[i] || {};
-      var hidden = u.visible === false;
-      var iconHtml = u.icon ? renderIcon(u.icon) : (u.icon_svg || '');
-      var text = pickLang(u, 'text');
-      var isEmpty = !iconHtml && !text;
-      if (hidden) {
-        html += '<div class="cc-mock-usp" style="opacity:0.35"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text || '(verborgen)') + '</div></div>';
-      } else if (isEmpty) {
-        html += '<div class="cc-mock-usp is-empty"><div class="cc-mock-usp-text">USP ' + (i+1) + '</div></div>';
-      } else {
-        html += '<div class="cc-mock-usp"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text) + '</div></div>';
-      }
+  // ===== USPs (altijd 3 cards, defaults als geen override) =====
+  var cfgUsps = Array.isArray(cfg.usps) ? cfg.usps : [];
+  var defUsps = Array.isArray(defaults.usps) ? defaults.usps : [];
+  html += '<div class="cc-mock-section">';
+  html += '<p class="cc-mock-section-label">USPs</p>';
+  html += '<div class="cc-mock-uspbar">';
+  for (var i = 0; i < 3; i++) {
+    var cfgU = cfgUsps[i] || {};
+    var defU = defUsps[i] || {};
+    var hidden = cfgU.visible === false;
+    var icon = cfgU.icon || defU.icon;
+    var iconHtml = icon ? renderIcon(icon) : (cfgU.icon_svg || '');
+    var text = pickLang(cfgU, 'text') || pickLang(defU, 'text');
+    if (hidden) {
+      html += '<div class="cc-mock-usp" style="opacity:0.35"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text || '(verborgen)') + '</div></div>';
+    } else if (!iconHtml && !text) {
+      html += '<div class="cc-mock-usp is-empty"><div class="cc-mock-usp-text">USP ' + (i+1) + '</div></div>';
+    } else {
+      html += '<div class="cc-mock-usp"><div class="cc-mock-usp-icon">' + iconHtml + '</div><div class="cc-mock-usp-text">' + escHtml(text) + '</div></div>';
     }
-    html += '</div></div>';
   }
+  html += '</div></div>';
 
   // ===== Motivatie-block =====
-  var mot = cfg.motivatie || {};
-  var motHidden = mot.visible === false;
-  var hasMotContent = pickLang(mot, 'title') || pickLang(mot, 'subtitle') || pickLang(mot, 'intro') || pickLang(mot, 'highlight') || pickLang(mot, 'outro');
-  if (hasMotContent || !motHidden) {
-    html += '<div class="cc-mock-section' + (motHidden ? ' is-hidden-pv' : '') + '">';
-    html += '<p class="cc-mock-section-label">Motivatie-block</p>';
-    html += '<div class="cc-mock-motivatie">';
-    var title = pickLang(mot, 'title');
-    var subtitle = pickLang(mot, 'subtitle');
-    var intro = pickLang(mot, 'intro');
-    var highlight = pickLang(mot, 'highlight');
-    var outro = pickLang(mot, 'outro');
-    if (title) html += '<p class="cc-mock-motivatie-title">' + escHtml(title) + '</p>';
-    if (subtitle) html += '<p class="cc-mock-motivatie-subtitle">' + escHtml(subtitle) + '</p>';
-    if (intro) html += '<p>' + escHtml(intro) + '</p>';
-    if (highlight) html += '<div class="cc-mock-highlight"><p>' + escHtml(highlight) + '</p></div>';
-    if (outro) html += '<p>' + escHtml(outro) + '</p>';
-    if (!title && !subtitle && !intro && !highlight && !outro) {
-      html += '<p style="color:var(--grey);font-style:italic">Niets ingevuld — code-default wordt gebruikt.</p>';
-    }
-    html += '</div></div>';
+  var cfgMot = cfg.motivatie || {};
+  var motHidden = cfgMot.visible === false;
+  var mot = mergeWithDefault(cfgMot, defaults.motivatie || {});
+  var title = pickLang(mot, 'title');
+  var subtitle = pickLang(mot, 'subtitle');
+  var intro = pickLang(mot, 'intro');
+  var highlight = pickLang(mot, 'highlight');
+  var outro = pickLang(mot, 'outro');
+  html += '<div class="cc-mock-section' + (motHidden ? ' is-hidden-pv' : '') + '">';
+  html += '<p class="cc-mock-section-label">Motivatie-block</p>';
+  html += '<div class="cc-mock-motivatie">';
+  if (title) html += '<p class="cc-mock-motivatie-title">' + escHtml(title) + '</p>';
+  if (subtitle) html += '<p class="cc-mock-motivatie-subtitle">' + escHtml(subtitle) + '</p>';
+  if (intro) html += '<p>' + escHtml(intro) + '</p>';
+  if (highlight) html += '<div class="cc-mock-highlight"><p>' + escHtml(highlight) + '</p></div>';
+  if (outro) html += '<p>' + escHtml(outro) + '</p>';
+  if (!title && !subtitle && !intro && !highlight && !outro) {
+    html += '<p style="color:var(--grey);font-style:italic">Geen motivatie ingesteld voor deze sector.</p>';
   }
+  html += '</div></div>';
 
-  // ===== Frequentie + Contractduur =====
-  var freq = cfg.frequentie || {};
-  var dur = cfg.contractduur || {};
-  if ((freq.options && Object.keys(freq.options).length) || (dur.options && Object.keys(dur.options).length)) {
-    html += '<div class="cc-mock-section">';
-    html += '<p class="cc-mock-section-label">Opties</p>';
-    html += '<div class="cc-mock-options">';
-    // Frequentie
-    html += '<div class="cc-mock-options-card">';
-    html += '<p class="cc-mock-options-title">Frequentie</p>';
-    var freqAvail = Array.isArray(freq.available) ? freq.available : [1, 2];
-    var freqDefault = freq.default != null ? freq.default : freqAvail[0];
-    freqAvail.forEach(function(k) {
-      var opt = (freq.options || {})[String(k)] || {};
-      var lbl = pickLang(opt, 'label') || ('Optie ' + k);
-      var sub = pickLang(opt, 'sub') || '';
-      var active = (k == freqDefault);
-      html += '<div class="cc-mock-radio' + (active ? ' is-active' : '') + '"><div class="cc-mock-radio-dot"></div><div class="cc-mock-radio-text"><strong>' + escHtml(lbl) + '</strong>' + (sub ? '<small>' + escHtml(sub) + '</small>' : '') + '</div></div>';
-    });
-    html += '</div>';
-    // Contractduur
-    html += '<div class="cc-mock-options-card">';
-    html += '<p class="cc-mock-options-title">Contractduur</p>';
-    var durAvail = Array.isArray(dur.available) ? dur.available : [0, 3, 5];
-    var durDefault = dur.default != null ? dur.default : (durAvail.indexOf(3) >= 0 ? 3 : durAvail[0]);
-    durAvail.forEach(function(k) {
-      var opt = (dur.options || {})[String(k)] || {};
-      var lbl = pickLang(opt, 'label') || (k + ' jaar');
-      var sub = pickLang(opt, 'sub') || '';
-      var korting = (dur.korting_pct || {})[String(k)];
-      if (korting != null && korting > 0 && !sub) sub = korting + '% korting';
-      var active = (k == durDefault);
-      html += '<div class="cc-mock-radio' + (active ? ' is-active' : '') + '"><div class="cc-mock-radio-dot"></div><div class="cc-mock-radio-text"><strong>' + escHtml(lbl) + '</strong>' + (sub ? '<small>' + escHtml(sub) + '</small>' : '') + '</div></div>';
-    });
-    html += '</div>';
-    html += '</div></div>';
-  }
+  // ===== Frequentie + Contractduur (altijd renderen met defaults) =====
+  var freq = mergeWithDefault(cfg.frequentie, defaults.frequentie || {}) || {};
+  var dur = mergeWithDefault(cfg.contractduur, defaults.contractduur || {}) || {};
+  var freqAvail = Array.isArray(freq.available) ? freq.available : [1, 2];
+  var freqDefault = freq.default != null ? freq.default : freqAvail[0];
+  var durAvail = Array.isArray(dur.available) ? dur.available : [0, 3, 5];
+  var durDefault = dur.default != null ? dur.default : (durAvail.indexOf(3) >= 0 ? 3 : durAvail[0]);
+  html += '<div class="cc-mock-section">';
+  html += '<p class="cc-mock-section-label">Opties</p>';
+  html += '<div class="cc-mock-options">';
+  html += '<div class="cc-mock-options-card">';
+  html += '<p class="cc-mock-options-title">Frequentie</p>';
+  freqAvail.forEach(function(k) {
+    var cfgOpt = (cfg.frequentie && cfg.frequentie.options) ? cfg.frequentie.options[String(k)] : null;
+    var defOpt = ((defaults.frequentie && defaults.frequentie.options) || {})[String(k)] || {};
+    var opt = mergeWithDefault(cfgOpt, defOpt) || {};
+    var lbl = pickLang(opt, 'label') || ('Optie ' + k);
+    var sub = pickLang(opt, 'sub') || '';
+    var active = (k == freqDefault);
+    html += '<div class="cc-mock-radio' + (active ? ' is-active' : '') + '"><div class="cc-mock-radio-dot"></div><div class="cc-mock-radio-text"><strong>' + escHtml(lbl) + '</strong>' + (sub ? '<small>' + escHtml(sub) + '</small>' : '') + '</div></div>';
+  });
+  html += '</div>';
+  html += '<div class="cc-mock-options-card">';
+  html += '<p class="cc-mock-options-title">Contractduur</p>';
+  durAvail.forEach(function(k) {
+    var cfgOpt = (cfg.contractduur && cfg.contractduur.options) ? cfg.contractduur.options[String(k)] : null;
+    var defOpt = ((defaults.contractduur && defaults.contractduur.options) || {})[String(k)] || {};
+    var opt = mergeWithDefault(cfgOpt, defOpt) || {};
+    var lbl = pickLang(opt, 'label') || (k + ' jaar');
+    var sub = pickLang(opt, 'sub') || '';
+    var korting = (dur.korting_pct || {})[String(k)];
+    if (korting != null && korting > 0 && !sub) sub = korting + '% korting';
+    var active = (k == durDefault);
+    html += '<div class="cc-mock-radio' + (active ? ' is-active' : '') + '"><div class="cc-mock-radio-dot"></div><div class="cc-mock-radio-text"><strong>' + escHtml(lbl) + '</strong>' + (sub ? '<small>' + escHtml(sub) + '</small>' : '') + '</div></div>';
+  });
+  html += '</div>';
+  html += '</div></div>';
 
-  // ===== Klant-vragen =====
-  var kv = cfg.klant_vragen || {};
-  var kvKeys = ['bereikbaarheid', 'buitenkraan'];
-  var hasKvContent = kvKeys.some(function(k) { return kv[k] && (pickLang(kv[k], 'label') || pickLang(kv[k], 'helper')); });
-  if (hasKvContent) {
+  // ===== Klant-vragen (altijd renderen, met defaults) =====
+  var defKv = defaults.klant_vragen || {};
+  var cfgKv = cfg.klant_vragen || {};
+  var allKvKeys = Object.keys(defKv).concat(Object.keys(cfgKv));
+  var kvKeys = [];
+  allKvKeys.forEach(function(k) { if (kvKeys.indexOf(k) < 0) kvKeys.push(k); });
+  if (kvKeys.length > 0) {
     html += '<div class="cc-mock-section">';
     html += '<p class="cc-mock-section-label">Klant-vragen</p>';
     kvKeys.forEach(function(k) {
-      var v = kv[k];
-      if (!v) return;
-      var hidden = v.visible === false;
+      var cfgV = cfgKv[k];
+      var defV = defKv[k] || {};
+      var v = mergeWithDefault(cfgV, defV) || {};
+      var hidden = cfgV && cfgV.visible === false;
       var lbl = pickLang(v, 'label');
       var helper = pickLang(v, 'helper');
       if (!lbl && !helper) return;
-      html += '<div class="cc-mock-vraag' + (hidden ? '" style="opacity:0.4"' : '"') + '>';
+      html += '<div class="cc-mock-vraag" style="' + (hidden ? 'opacity:0.4' : '') + '">';
       if (lbl) html += '<p class="cc-mock-vraag-label">' + escHtml(lbl) + (hidden ? ' <small style="color:#92400E">(verborgen)</small>' : '') + '</p>';
       if (helper) html += '<p class="cc-mock-vraag-helper">' + escHtml(helper) + '</p>';
-      var opts = Array.isArray(v.options) ? v.options : [];
+      var cfgOpts = Array.isArray(cfgV && cfgV.options) ? cfgV.options : null;
+      var defOpts = Array.isArray(v.options) ? v.options : [];
+      var opts = cfgOpts || defOpts;
       if (opts.length > 0) {
         html += '<div class="cc-mock-vraag-options">';
         opts.forEach(function(o) {
@@ -24333,10 +24417,6 @@ function ccRenderInlinePreview() {
       html += '</div>';
     });
     html += '</div>';
-  }
-
-  if (!html) {
-    html = '<div class="cc-mock-empty">Niets om te tonen — alle velden gebruiken nog de code-default. Vul iets in om de preview live te zien.</div>';
   }
 
   // Sector-header bovenaan
