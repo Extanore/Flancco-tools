@@ -3,7 +3,8 @@
 // =============================================================
 // Host-based routing zodat één Worker meerdere subdomains dekt:
 //
-//   app.flancco-platform.be         → /admin/ als default root
+//   app.flancco-platform.be         → /onboard/ als default root (publieke wizard)
+//   app.flancco-platform.be/admin/  → admin-portaal (directe URL voor ingelogden)
 //   calculator.flancco-platform.be  → /calculator/ als default root
 //   flancco-platform.be (apex)      → 301 naar app.*
 //   www.flancco-platform.be         → 301 naar app.*
@@ -26,12 +27,15 @@ export default {
       return Response.redirect(target.toString(), 301);
     }
 
-    // --- app.flancco-platform.be → admin + portal host
+    // --- app.flancco-platform.be → publieke onboarding-wizard als root
+    // Admins komen rechtstreeks via /admin/ binnen (bookmark of "Inloggen"-CTA op /onboard/).
+    // Prospects landen op /onboard/ — daar staat de "Reeds partner? Inloggen"-knop voor admins
+    // die de root via een gedeelde link bezoeken.
     if (host === "app.flancco-platform.be") {
       if (path === "/" || path === "") {
-        // Preserve query-string (vb. ?token=..., ?page=...) bij root-redirect
+        // Preserve query-string (vb. ?lang=fr, ?utm=...) bij root-redirect
         return Response.redirect(
-          "https://app.flancco-platform.be/admin/" + url.search,
+          "https://app.flancco-platform.be/onboard/" + url.search,
           302,
         );
       }
