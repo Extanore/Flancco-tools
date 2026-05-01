@@ -1483,6 +1483,13 @@
   .cc-split-preview-langtoggle button { background:transparent; border:none; padding:5px 10px; font-size:11px; font-weight:700; color:var(--grey); cursor:pointer; font-family:inherit; letter-spacing:0.04em; transition:0.12s; }
   .cc-split-preview-langtoggle button:not(:last-child) { border-right:1.5px solid var(--rule); }
   .cc-split-preview-langtoggle button.active { background:var(--navy); color:#fff; }
+
+  /* Globale taal-toolbar boven het split-screen — single source of truth voor
+     edit-language. Stuurt zowel form-velden als de inline preview. */
+  .cc-edit-toolbar { display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid var(--rule); border-radius:10px; background:#fff; margin-bottom:14px; box-shadow:0 1px 2px rgba(0,0,0,0.02); }
+  .cc-edit-toolbar-label { font-size:11px; font-weight:700; color:var(--grey); text-transform:uppercase; letter-spacing:0.06em; }
+  .cc-edit-toolbar-hint { font-size:12px; color:var(--grey); margin-left:auto; }
+  @media (max-width: 800px) { .cc-edit-toolbar-hint { display:none; } }
   @media (max-width: 1200px) {
     .cc-split { grid-template-columns:1fr; min-height:0; }
     .cc-split-preview-wrap { position:static; }
@@ -2196,6 +2203,18 @@
 
         <div id="cc-scope-banner" class="cc-banner" style="display:none"></div>
 
+        <!-- Globale taal-toggle: bestuurt zowel form-velden (single-language layout)
+             als de inline preview rechts. Mirrored door tweede toggle in preview-toolbar
+             voor zichtbaarheid bij scrollen door lange forms. -->
+        <div class="cc-edit-toolbar" role="group" aria-label="Bewerktaal">
+          <span class="cc-edit-toolbar-label">Bewerken in</span>
+          <div class="cc-split-preview-langtoggle" role="tablist" aria-label="Bewerktaal">
+            <button type="button" class="active" data-cc-lang="nl" onclick="ccSetPreviewLang('nl')">NL</button>
+            <button type="button" data-cc-lang="fr" onclick="ccSetPreviewLang('fr')">FR</button>
+          </div>
+          <span class="cc-edit-toolbar-hint">Wisselt zowel het form als de preview naar de gekozen taal.</span>
+        </div>
+
         <div class="cc-split">
           <div class="cc-split-form">
             <div id="cc-form" class="cc-form">
@@ -2209,7 +2228,7 @@
                 <span>Live preview</span>
               </div>
               <div class="cc-split-preview-toolbar-right">
-                <div class="cc-split-preview-langtoggle" role="tablist" aria-label="Preview taal">
+                <div class="cc-split-preview-langtoggle" role="tablist" aria-label="Bewerktaal">
                   <button type="button" class="active" data-cc-lang="nl" onclick="ccSetPreviewLang('nl')">NL</button>
                   <button type="button" data-cc-lang="fr" onclick="ccSetPreviewLang('fr')">FR</button>
                 </div>
@@ -25387,11 +25406,17 @@ function ccRenderPopoverContent(target, bodyEl) {
 function ccSetPreviewLang(lang) {
   if (lang !== 'nl' && lang !== 'fr') return;
   ccState.previewLang = lang;
+  // Sync alle toggle-instances (form-side toolbar + preview-side toolbar).
   document.querySelectorAll('.cc-split-preview-langtoggle button').forEach(function(b) {
     b.classList.toggle('active', b.getAttribute('data-cc-lang') === lang);
   });
   ccPushLangToPreview();
-  // Re-render open popover als die actief is — popover-velden hangen af
+  // Re-render het form — alle secties gebruiken single-language layout en hangen
+  // af van ccState.previewLang. Zonder re-render blijven oude lang-velden staan.
+  if (typeof renderCalcConfigForm === 'function') {
+    try { renderCalcConfigForm(); } catch (e) { console.error('cc form re-render:', e); }
+  }
+  // Re-render open popover als die actief is — popover-velden hangen ook af
   // van previewLang (single-language layout).
   if (window.ccPopoverState && ccPopoverState.activeTarget) {
     var body = document.getElementById('cc-popover-body');
@@ -25543,6 +25568,14 @@ function renderCalcConfigForm() {
 
 function renderCcUspsSection() {
   var usps = (ccState.config.usps && Array.isArray(ccState.config.usps)) ? ccState.config.usps : [];
+  // Single-language layout — gestuurd door ccState.previewLang. Wisselen via
+  // de globale taal-toggle bovenaan de pagina (of de mirror in preview-toolbar).
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var langCls = (lang === 'fr') ? 'cc-lang fr' : 'cc-lang';
+  var langLabel = (lang === 'fr') ? 'FR' : 'NL';
+  var fieldKey = (lang === 'fr') ? 'text_fr' : 'text_nl';
+  var textLabel = (lang === 'fr') ? 'Texte' : 'Tekst';
+  var textPh = (lang === 'fr') ? 'ex. Jusqu’à 30% de rendement en plus' : 'bv. Tot 30% meer rendement';
   var cards = '';
   for (var i = 0; i < 3; i++) {
     var u = usps[i] || {};
@@ -25583,19 +25616,15 @@ function renderCcUspsSection() {
         '<button type="button" class="cc-icon-btn" onclick="ccOpenIconPicker(' + i + ')">' + iconBtnInner + '</button>' +
         legacyHint +
       '</div>' +
-      '<div class="cc-grid-2">' +
-        '<div class="cc-field"><label>Tekst <span class="cc-lang">NL</span></label>' +
-          '<textarea rows="3" placeholder="bv. Tot 30% meer rendement" oninput="ccUpdateUsp(' + i + ', \'text_nl\', this.value)">' + esc(u.text_nl || '') + '</textarea></div>' +
-        '<div class="cc-field"><label>Tekst <span class="cc-lang fr">FR</span></label>' +
-          '<textarea rows="3" placeholder="ex. Jusqu’à 30% de rendement en plus" oninput="ccUpdateUsp(' + i + ', \'text_fr\', this.value)">' + esc(u.text_fr || '') + '</textarea></div>' +
-      '</div>' +
+      '<div class="cc-field"><label>' + esc(textLabel) + ' <span class="' + langCls + '">' + langLabel + '</span></label>' +
+        '<textarea rows="3" placeholder="' + esc(textPh) + '" oninput="ccUpdateUsp(' + i + ', \'' + fieldKey + '\', this.value)">' + esc(u[fieldKey] || '') + '</textarea></div>' +
       '<div style="text-align:right"><button type="button" class="cc-link-btn" onclick="ccResetUsp(' + i + ')">Herstel naar code-default</button></div>' +
     '</div>';
   }
   return '<div class="cc-section" id="cc-section-usps">' +
     '<div class="cc-section-header">' +
       '<div><h3 class="cc-section-title">USPs</h3>' +
-      '<p class="cc-section-subtitle">Drie korte verkoopargumenten boven de calculator. Kies een icoon, schrijf 1–2 regels tekst per taal en gebruik het oog om een USP te verbergen zonder de inhoud te verliezen.</p></div>' +
+      '<p class="cc-section-subtitle">Drie korte verkoopargumenten boven de calculator. Kies een icoon, schrijf 1–2 regels tekst en gebruik het oog om een USP te verbergen zonder de inhoud te verliezen. Wissel taal via de toggle bovenaan.</p></div>' +
     '</div>' +
     '<div class="cc-usp-grid">' + cards + '</div>' +
   '</div>';
@@ -25604,23 +25633,21 @@ function renderCcUspsSection() {
 function renderCcMotivatieSection() {
   var m = ccState.config.motivatie || {};
   var visible = (m.visible !== false); // default true
+  // Single-language layout — render alleen veld voor actieve previewLang.
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
   function row(labelNl, labelFr, keyNl, keyFr, isTextarea, placeholderNl, placeholderFr) {
-    function field(lang, key, lbl, ph, val) {
-      var langCls = (lang === 'fr') ? ' fr' : '';
-      var inputAttrs = 'oninput="ccUpdateMotivatie(\'' + key + '\', this.value)"';
-      var placeholderAttr = ph ? ' placeholder="' + esc(ph) + '"' : '';
-      if (isTextarea) {
-        return '<div class="cc-field"><label>' + esc(lbl) + ' <span class="cc-lang' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
-          '<textarea rows="3" ' + inputAttrs + placeholderAttr + '>' + esc(val || '') + '</textarea></div>';
-      } else {
-        return '<div class="cc-field"><label>' + esc(lbl) + ' <span class="cc-lang' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
-          '<input type="text" ' + inputAttrs + placeholderAttr + ' value="' + esc(val || '') + '"></div>';
-      }
-    }
-    return '<div class="cc-grid-2">' +
-      field('nl', keyNl, labelNl, placeholderNl, m[keyNl]) +
-      field('fr', keyFr, labelFr, placeholderFr, m[keyFr]) +
-    '</div>';
+    var lbl = (lang === 'fr') ? labelFr : labelNl;
+    var key = (lang === 'fr') ? keyFr : keyNl;
+    var ph  = (lang === 'fr') ? placeholderFr : placeholderNl;
+    var val = m[key];
+    var langCls = (lang === 'fr') ? ' fr' : '';
+    var inputAttrs = 'oninput="ccUpdateMotivatie(\'' + key + '\', this.value)"';
+    var placeholderAttr = ph ? ' placeholder="' + esc(ph) + '"' : '';
+    var control = isTextarea
+      ? '<textarea rows="3" ' + inputAttrs + placeholderAttr + '>' + esc(val || '') + '</textarea>'
+      : '<input type="text" ' + inputAttrs + placeholderAttr + ' value="' + esc(val || '') + '">';
+    return '<div class="cc-field"><label>' + esc(lbl) + ' <span class="cc-lang' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
+      control + '</div>';
   }
   var hiddenBadge = visible ? '' : '<span class="cc-hidden-badge">Verborgen voor klanten</span>';
   var visBtnLabel = visible ? 'Zichtbaar' : 'Verborgen';
@@ -25655,12 +25682,24 @@ function renderCcFrequentieSection() {
   var available = Array.isArray(f.available) ? f.available.slice() : [];
   var defaultId = (typeof f.default === 'number') ? f.default : null;
   var options = f.options || {};
+  // Single-language layout — gestuurd door ccState.previewLang.
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var langCls = (lang === 'fr') ? 'cc-lang fr' : 'cc-lang';
+  var langLabel = (lang === 'fr') ? 'FR' : 'NL';
+  var labelKey = (lang === 'fr') ? 'label_fr' : 'label_nl';
+  var subKey = (lang === 'fr') ? 'sub_fr' : 'sub_nl';
   var rows = '';
   for (var i = 0; i < CC_FREQ_IDS.length; i++) {
     var id = CC_FREQ_IDS[i];
     var o = options[String(id)] || {};
     var isAvail = available.indexOf(id) >= 0;
     var isDefault = (defaultId === id);
+    var labelPh = (lang === 'fr')
+      ? (id === 1 ? 'Annuel' : 'Semestriel')
+      : (id === 1 ? 'Jaarlijks' : 'Halfjaarlijks');
+    var subPh = (lang === 'fr')
+      ? (id === 1 ? '1 entretien par an' : '2 entretiens par an')
+      : (id === 1 ? '1 onderhoudsbeurt per jaar' : '2 onderhoudsbeurten per jaar');
     rows += '<div class="cc-row-item">' +
       '<div class="cc-row-id">' + (id === 1 ? '1× / jaar' : '2× / jaar') + '</div>' +
       '<div class="cc-row-toggles">' +
@@ -25668,10 +25707,8 @@ function renderCcFrequentieSection() {
         '<label class="cc-row-toggle"><input type="radio" name="cc-freq-default" ' + (isDefault ? 'checked' : '') + ' ' + (isAvail ? '' : 'disabled') + ' onchange="ccUpdateFreqDefault(' + id + ')"> Default</label>' +
       '</div>' +
       '<div class="cc-row-fields">' +
-        '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.label_nl || '') + '" placeholder="Jaarlijks" oninput="ccUpdateFreqOption(' + id + ', \'label_nl\', this.value)"></div>' +
-        '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.label_fr || '') + '" placeholder="Annuel" oninput="ccUpdateFreqOption(' + id + ', \'label_fr\', this.value)"></div>' +
-        '<div class="cc-field"><label>Sub <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.sub_nl || '') + '" placeholder="1 onderhoudsbeurt per jaar" oninput="ccUpdateFreqOption(' + id + ', \'sub_nl\', this.value)"></div>' +
-        '<div class="cc-field"><label>Sub <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.sub_fr || '') + '" placeholder="1 entretien par an" oninput="ccUpdateFreqOption(' + id + ', \'sub_fr\', this.value)"></div>' +
+        '<div class="cc-field"><label>Label <span class="' + langCls + '">' + langLabel + '</span></label><input type="text" value="' + esc(o[labelKey] || '') + '" placeholder="' + esc(labelPh) + '" oninput="ccUpdateFreqOption(' + id + ', \'' + labelKey + '\', this.value)"></div>' +
+        '<div class="cc-field"><label>Sub <span class="' + langCls + '">' + langLabel + '</span></label><input type="text" value="' + esc(o[subKey] || '') + '" placeholder="' + esc(subPh) + '" oninput="ccUpdateFreqOption(' + id + ', \'' + subKey + '\', this.value)"></div>' +
       '</div>' +
     '</div>';
   }
@@ -25691,6 +25728,12 @@ function renderCcContractduurSection() {
   var defaultId = (typeof c.default === 'number') ? c.default : null;
   var korting = c.korting_pct || {};
   var options = c.options || {};
+  // Single-language layout — gestuurd door ccState.previewLang.
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var langCls = (lang === 'fr') ? 'cc-lang fr' : 'cc-lang';
+  var langLabel = (lang === 'fr') ? 'FR' : 'NL';
+  var labelKey = (lang === 'fr') ? 'label_fr' : 'label_nl';
+  var subKey = (lang === 'fr') ? 'sub_fr' : 'sub_nl';
   var rows = '';
   for (var i = 0; i < CC_DUUR_IDS.length; i++) {
     var id = CC_DUUR_IDS[i];
@@ -25700,6 +25743,12 @@ function renderCcContractduurSection() {
     var k = korting[String(id)];
     var kVal = (typeof k === 'number') ? k : '';
     var idLabel = id === 0 ? 'Eenmalig' : (id + ' jaar');
+    var labelPh = (lang === 'fr')
+      ? (id === 0 ? 'Ponctuel' : (id + ' ans'))
+      : (id === 0 ? 'Eenmalig' : (id + ' jaar'));
+    var subPh = (lang === 'fr')
+      ? (id === 0 ? 'Sans engagement de durée' : 'Réduction de 5% sur tous les tarifs')
+      : (id === 0 ? 'Geen looptijdverbintenis' : '5% korting op alle tarieven');
     rows += '<div class="cc-row-item">' +
       '<div class="cc-row-id">' + idLabel + '</div>' +
       '<div class="cc-row-toggles">' +
@@ -25708,10 +25757,8 @@ function renderCcContractduurSection() {
         '<div class="cc-row-extra"><label>Korting %</label><input type="number" min="0" max="100" step="1" value="' + esc(String(kVal)) + '" placeholder="0" oninput="ccUpdateDuurKorting(' + id + ', this.value)"></div>' +
       '</div>' +
       '<div class="cc-row-fields">' +
-        '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.label_nl || '') + '" placeholder="3 jaar" oninput="ccUpdateDuurOption(' + id + ', \'label_nl\', this.value)"></div>' +
-        '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.label_fr || '') + '" placeholder="3 ans" oninput="ccUpdateDuurOption(' + id + ', \'label_fr\', this.value)"></div>' +
-        '<div class="cc-field"><label>Sub <span class="cc-lang">NL</span></label><input type="text" value="' + esc(o.sub_nl || '') + '" placeholder="5% korting op alle tarieven" oninput="ccUpdateDuurOption(' + id + ', \'sub_nl\', this.value)"></div>' +
-        '<div class="cc-field"><label>Sub <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(o.sub_fr || '') + '" placeholder="5% de réduction" oninput="ccUpdateDuurOption(' + id + ', \'sub_fr\', this.value)"></div>' +
+        '<div class="cc-field"><label>Label <span class="' + langCls + '">' + langLabel + '</span></label><input type="text" value="' + esc(o[labelKey] || '') + '" placeholder="' + esc(labelPh) + '" oninput="ccUpdateDuurOption(' + id + ', \'' + labelKey + '\', this.value)"></div>' +
+        '<div class="cc-field"><label>Sub <span class="' + langCls + '">' + langLabel + '</span></label><input type="text" value="' + esc(o[subKey] || '') + '" placeholder="' + esc(subPh) + '" oninput="ccUpdateDuurOption(' + id + ', \'' + subKey + '\', this.value)"></div>' +
       '</div>' +
     '</div>';
   }
@@ -25729,6 +25776,13 @@ function renderCcKlantVragenSection() {
   var kv = ccState.config.klant_vragen || {};
   // Buitenkraan is enkel relevant voor zonnepanelen — tonen we ook alleen daar
   var showBuitenkraan = (ccState.sector === 'zonnepanelen');
+  // Single-language layout — gestuurd door ccState.previewLang.
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var langCls = (lang === 'fr') ? 'cc-lang fr' : 'cc-lang';
+  var langLabel = (lang === 'fr') ? 'FR' : 'NL';
+  var labelKey = (lang === 'fr') ? 'label_fr' : 'label_nl';
+  var helperKey = (lang === 'fr') ? 'helper_fr' : 'helper_nl';
+  var helperPh = (lang === 'fr') ? 'Brève explication' : 'Korte uitleg onder de vraag';
   function questionBlock(qkey, title, defaultOptions) {
     var q = kv[qkey] || {};
     var visible = (q.visible !== false); // default true
@@ -25738,10 +25792,10 @@ function renderCcKlantVragenSection() {
     for (var i = 0; i < defaultOptions.length; i++) {
       var def = defaultOptions[i];
       var existing = opts.find(function(x) { return x.value === def.value; }) || {};
+      var optPh = (lang === 'fr') ? (def.placeholderFr || '') : (def.placeholderNl || '');
       optionsHtml += '<div class="cc-option-row">' +
         '<div class="cc-option-value">' + esc(def.value) + '</div>' +
-        '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input type="text" value="' + esc(existing.label_nl || '') + '" placeholder="' + esc(def.placeholderNl || '') + '" oninput="ccUpdateKvOption(\'' + qkey + '\', \'' + def.value + '\', \'label_nl\', this.value)"></div>' +
-        '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(existing.label_fr || '') + '" placeholder="' + esc(def.placeholderFr || '') + '" oninput="ccUpdateKvOption(\'' + qkey + '\', \'' + def.value + '\', \'label_fr\', this.value)"></div>' +
+        '<div class="cc-field" style="grid-column: 2 / span 2"><label>Label <span class="' + langCls + '">' + langLabel + '</span></label><input type="text" value="' + esc(existing[labelKey] || '') + '" placeholder="' + esc(optPh) + '" oninput="ccUpdateKvOption(\'' + qkey + '\', \'' + def.value + '\', \'' + labelKey + '\', this.value)"></div>' +
       '</div>';
     }
     var hiddenBadge = visible ? '' : '<span class="cc-hidden-badge">Verborgen voor klanten</span>';
@@ -25759,11 +25813,9 @@ function renderCcKlantVragenSection() {
         '</button>' +
         '<button type="button" class="cc-link-btn" onclick="ccResetKvQuestion(\'' + qkey + '\')">Herstel naar code-default</button>' +
       '</div></div>' +
-      '<div class="cc-grid-2" style="margin-top:10px">' +
-        '<div class="cc-field"><label>Vraaglabel <span class="cc-lang">NL</span></label><input type="text" value="' + esc(q.label_nl || '') + '" oninput="ccUpdateKv(\'' + qkey + '\', \'label_nl\', this.value)"></div>' +
-        '<div class="cc-field"><label>Vraaglabel <span class="cc-lang fr">FR</span></label><input type="text" value="' + esc(q.label_fr || '') + '" oninput="ccUpdateKv(\'' + qkey + '\', \'label_fr\', this.value)"></div>' +
-        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang">NL</span></label><textarea rows="3" placeholder="Korte uitleg onder de vraag" oninput="ccUpdateKv(\'' + qkey + '\', \'helper_nl\', this.value)">' + esc(q.helper_nl || '') + '</textarea></div>' +
-        '<div class="cc-field"><label>Helper-tekst <span class="cc-lang fr">FR</span></label><textarea rows="3" placeholder="Brève explication" oninput="ccUpdateKv(\'' + qkey + '\', \'helper_fr\', this.value)">' + esc(q.helper_fr || '') + '</textarea></div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px;margin-top:10px">' +
+        '<div class="cc-field"><label>Vraaglabel <span class="' + langCls + '">' + langLabel + '</span></label><input type="text" value="' + esc(q[labelKey] || '') + '" oninput="ccUpdateKv(\'' + qkey + '\', \'' + labelKey + '\', this.value)"></div>' +
+        '<div class="cc-field"><label>Helper-tekst <span class="' + langCls + '">' + langLabel + '</span></label><textarea rows="3" placeholder="' + esc(helperPh) + '" oninput="ccUpdateKv(\'' + qkey + '\', \'' + helperKey + '\', this.value)">' + esc(q[helperKey] || '') + '</textarea></div>' +
       '</div>' +
       '<div class="cc-question-options">' + optionsHtml + '</div>' +
     '</div>';
