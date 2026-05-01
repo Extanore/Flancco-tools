@@ -10845,7 +10845,12 @@ function slotM_openHelperPopover(beurtId, techId, datum, anchorEl) {
   window.addEventListener('resize', slotM_state._scrollHandler);
 
   var dagen = (typeof getDagenForBeurt === 'function') ? getDagenForBeurt(beurtId) : [];
-  slotM_track('Helper Popover Opened', { multi_day: dagen.length > 1 });
+  var fromView = (typeof currentView === 'string') ? currentView : 'unknown';
+  slotM_track('Planning Helper Popover Open', {
+    beurt_id: beurtId,
+    from_view: fromView,
+    multi_day: dagen.length > 1
+  });
 }
 
 /** Sluit popover, verwijder DOM, reset state, restore focus. */
@@ -11007,8 +11012,14 @@ async function slotM_save() {
   if (lastErr) {
     if (typeof showToast === 'function') showToast('Toevoegen mislukt: ' + lastErr, 'error');
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Voeg toe'; }
-    slotM_track('Helper Popover Saved', {
-      period_days: datums.length, use_uren: slotM_state.useUren, tech_was_bezet: techWasBezet, result: 'error'
+    slotM_track('Planning Helper Popover Save', {
+      beurt_id: slotM_state.beurtId,
+      period_days: datums.length,
+      days: datums.length,
+      extra_techs: 0,
+      use_uren: slotM_state.useUren,
+      tech_was_bezet: techWasBezet,
+      result: 'error'
     });
     return;
   }
@@ -11025,8 +11036,29 @@ async function slotM_save() {
   else msg = 'Technieker toegevoegd voor ' + added + ' dag' + (added === 1 ? '' : 'en');
   if (typeof showToast === 'function') showToast(msg, added > 0 ? 'success' : 'info');
 
-  slotM_track('Helper Popover Saved', {
+  // Audit-log: business-kritieke mutatie (helper-popover toegevoegde extra-tech).
+  // PII-redactie staat in auditLog() centraal; hier loggen we structurele info zodat
+  // incident-onderzoek (bv. "wie heeft Pieter toegevoegd aan opdracht X?") mogelijk is.
+  if (added > 0 && typeof auditLog === 'function') {
+    try {
+      auditLog('beurt_planning_dagen', slotM_state.beurtId, 'helper_popover_extra_tech',
+        null,
+        JSON.stringify({
+          beurt_id: slotM_state.beurtId,
+          tech_id: techId,
+          datums: datums,
+          added: added,
+          override_uren: slotM_state.useUren ? { start: slotM_state.urenStart, end: slotM_state.urenEnd } : null
+        })
+      );
+    } catch (_) { /* auditLog is best-effort */ }
+  }
+
+  slotM_track('Planning Helper Popover Save', {
+    beurt_id: slotM_state.beurtId,
     period_days: datums.length,
+    days: datums.length,
+    extra_techs: added,
     use_uren: slotM_state.useUren,
     tech_was_bezet: techWasBezet,
     added: added,
