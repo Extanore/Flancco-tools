@@ -1612,6 +1612,11 @@
     border:1px solid var(--rule);
     animation:cc-popover-fadein 0.16s ease-out;
   }
+  /* Native [hidden] geeft display:none — onze display:flex hierboven heeft
+     gelijke specificiteit en overschrijft per error de hidden-state. Forceer
+     verberging zodat het lege popover-kader niet op andere pagina's blijft
+     hangen (Dashboard/Contracten/etc.). */
+  .cc-popover[hidden] { display:none !important; }
   @keyframes cc-popover-fadein {
     from { opacity:0; transform:translate(-50%, -50%) scale(0.96); }
     to   { opacity:1; transform:translate(-50%, -50%) scale(1); }
