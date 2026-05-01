@@ -24,6 +24,7 @@ import { renderWerkplanning, type WerkplanningData } from "./templates/werkplann
 import { renderRapportBranded, type RapportBrandedData } from "./templates/rapport_branded.ts";
 import { renderContractSigned, type ContractSignedData } from "./templates/contract_signed.ts";
 import { renderFacturatieOverzicht, type FacturatieOverzichtData } from "./templates/facturatie_overzicht.ts";
+import { renderPartnerContractSigned, type PartnerContractSignedData } from "./templates/partner_contract_signed.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Environment
@@ -63,13 +64,19 @@ const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
 // Template registry
 // ─────────────────────────────────────────────────────────────────────────────
 
-type TemplateName = "werkplanning" | "rapport_branded" | "contract_signed" | "facturatie_overzicht";
+type TemplateName =
+  | "werkplanning"
+  | "rapport_branded"
+  | "contract_signed"
+  | "facturatie_overzicht"
+  | "partner_contract_signed";
 
 const TEMPLATE_NAMES: readonly TemplateName[] = [
   "werkplanning",
   "rapport_branded",
   "contract_signed",
   "facturatie_overzicht",
+  "partner_contract_signed",
 ] as const;
 
 interface TemplateMeta {
@@ -78,6 +85,12 @@ interface TemplateMeta {
   requiresAuth: boolean;
   /** Filename prefix used when uploading the PDF. */
   filenamePrefix: string;
+  /**
+   * Optional override of the storage bucket. Defaults to BUCKET (gen-pdf).
+   * Slot X — partner-onboarding contracts live in their own bucket so RLS
+   * and retention can be tuned independently of operationele PDFs.
+   */
+  bucket?: string;
 }
 
 const TEMPLATES: Record<TemplateName, TemplateMeta> = {
@@ -85,6 +98,15 @@ const TEMPLATES: Record<TemplateName, TemplateMeta> = {
   rapport_branded: { name: "rapport_branded", requiresAuth: true, filenamePrefix: "rapport" },
   contract_signed: { name: "contract_signed", requiresAuth: true, filenamePrefix: "contract" },
   facturatie_overzicht: { name: "facturatie_overzicht", requiresAuth: true, filenamePrefix: "facturatie" },
+  // Slot X — Partner-Flancco contract uit publieke onboarding-wizard.
+  // requiresAuth=false: wizard is publiek; application_id wordt server-side
+  // gevalideerd door de wizard-edge-function VOORDAT deze template wordt aangeroepen.
+  partner_contract_signed: {
+    name: "partner_contract_signed",
+    requiresAuth: false,
+    filenamePrefix: "partner-contract",
+    bucket: "partner-contracts",
+  },
 };
 
 function isTemplateName(value: unknown): value is TemplateName {
@@ -309,7 +331,59 @@ async function renderTemplate(
       return await renderContractSigned(data as ContractSignedData, branding, lang);
     case "facturatie_overzicht":
       return await renderFacturatieOverzicht(coerceFacturatieOverzicht(data), branding, lang);
+    case "partner_contract_signed":
+      return await renderPartnerContractSigned(coercePartnerContractSigned(data), branding, lang);
   }
+}
+
+// Slot X — strikte coercion van partner-contract payload. We falen vroeg op
+// de essentiele juridische velden (bedrijfsnaam, contactpersoon-email, marge)
+// zodat een geldig contract nooit met half-leeg blok in storage belandt.
+function coercePartnerContractSigned(data: Record<string, unknown>): PartnerContractSignedData {
+  const bedrijfsnaam = typeof data.partner_bedrijfsnaam === "string" ? data.partner_bedrijfsnaam.trim() : "";
+  if (!bedrijfsnaam) throw new BadRequest("data.partner_bedrijfsnaam is required");
+
+  const email = typeof data.contactpersoon_email === "string" ? data.contactpersoon_email.trim() : "";
+  if (!email) throw new BadRequest("data.contactpersoon_email is required");
+
+  const margeRaw = data.marge_pct;
+  if (typeof margeRaw !== "number" || !Number.isFinite(margeRaw)) {
+    throw new BadRequest("data.marge_pct is required and must be a number");
+  }
+  if (margeRaw < 0 || margeRaw > 100) {
+    throw new BadRequest("data.marge_pct must be between 0 and 100");
+  }
+
+  const sectorenRaw = Array.isArray(data.sectoren) ? data.sectoren : [];
+  const sectoren = sectorenRaw.filter((s): s is string =>
+    typeof s === "string" && s.trim().length > 0,
+  );
+  if (sectoren.length === 0) {
+    throw new BadRequest("data.sectoren must be a non-empty array of strings");
+  }
+
+  const signingDatum = typeof data.signing_datum === "string" ? data.signing_datum.trim() : "";
+  if (!signingDatum) throw new BadRequest("data.signing_datum is required (ISO timestamp)");
+
+  return {
+    application_id: typeof data.application_id === "string" ? data.application_id : undefined,
+    partner_bedrijfsnaam: bedrijfsnaam,
+    partner_btw_nummer: typeof data.partner_btw_nummer === "string" ? data.partner_btw_nummer : undefined,
+    partner_adres: typeof data.partner_adres === "string" ? data.partner_adres : undefined,
+    partner_postcode: typeof data.partner_postcode === "string" ? data.partner_postcode : undefined,
+    partner_gemeente: typeof data.partner_gemeente === "string" ? data.partner_gemeente : undefined,
+    partner_website: typeof data.partner_website === "string" ? data.partner_website : undefined,
+    contactpersoon_voornaam: typeof data.contactpersoon_voornaam === "string" ? data.contactpersoon_voornaam : undefined,
+    contactpersoon_naam: typeof data.contactpersoon_naam === "string" ? data.contactpersoon_naam : undefined,
+    contactpersoon_email: email,
+    contactpersoon_telefoon: typeof data.contactpersoon_telefoon === "string" ? data.contactpersoon_telefoon : undefined,
+    contactpersoon_functie: typeof data.contactpersoon_functie === "string" ? data.contactpersoon_functie : undefined,
+    sectoren,
+    marge_pct: margeRaw,
+    signing_datum: signingDatum,
+    signing_ip: typeof data.signing_ip === "string" ? data.signing_ip : undefined,
+    handtekening_base64: typeof data.handtekening_base64 === "string" ? data.handtekening_base64 : undefined,
+  };
 }
 
 // Slot D — strikte coercion van facturatie-payload. We accepteren een lege
@@ -413,14 +487,15 @@ async function uploadAndSign(
   bytes: Uint8Array,
   template: TemplateName,
   partnerSlug: string,
-): Promise<UploadResult> {
+): Promise<UploadResult & { bucket: string }> {
   const meta = TEMPLATES[template];
+  const bucket = meta.bucket ?? BUCKET;
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD partition
   const rand = crypto.randomUUID();
   const path = `${partnerSlug}/${today}/${meta.filenamePrefix}-${rand}.pdf`;
 
   const { error: upErr } = await sb.storage
-    .from(BUCKET)
+    .from(bucket)
     .upload(path, bytes, {
       contentType: "application/pdf",
       upsert: false,
@@ -431,7 +506,7 @@ async function uploadAndSign(
   }
 
   const { data: signed, error: signErr } = await sb.storage
-    .from(BUCKET)
+    .from(bucket)
     .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
 
   if (signErr || !signed?.signedUrl) {
@@ -439,7 +514,7 @@ async function uploadAndSign(
   }
 
   const expiresAt = new Date(Date.now() + SIGNED_URL_TTL_SECONDS * 1000).toISOString();
-  return { path, signedUrl: signed.signedUrl, expiresAt };
+  return { path, signedUrl: signed.signedUrl, expiresAt, bucket };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -592,6 +667,7 @@ Deno.serve(async (req: Request) => {
       template,
       partner_slug: branding.slug,
       lang,
+      bucket: upload.bucket,
       url: upload.signedUrl,
       path: upload.path,
       expires_at: upload.expiresAt,

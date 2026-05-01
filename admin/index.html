@@ -1866,6 +1866,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Klanten</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('partner-pipeline')" data-page="partner-pipeline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      <span>Partner-aanvragen</span>
+    </a>
     <a class="nav-item admin-only perm-partners" onclick="showPage('partners')" data-page="partners">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Partners</span>
@@ -2776,6 +2780,9 @@
             <div class="onb-step-dot" data-step="2" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
             <div class="onb-step-dot" data-step="3" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
             <div class="onb-step-dot" data-step="4" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
+            <div class="onb-step-dot" data-step="5" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
+            <div class="onb-step-dot" data-step="6" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
+            <div class="onb-step-dot" data-step="7" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
           </div>
         </div>
 
@@ -2784,7 +2791,7 @@
 
         <!-- Footer -->
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 28px 22px;border-top:1px solid var(--rule);background:#fafafa">
-          <span id="onb-step-label" style="font-size:12px;color:var(--grey);font-weight:500">Stap 1 van 4</span>
+          <span id="onb-step-label" style="font-size:12px;color:var(--grey);font-weight:500">Stap 1 van 7</span>
           <div style="display:flex;gap:8px">
             <button type="button" id="onb-prev-btn" onclick="onbPrev()" style="padding:10px 18px;border:1.5px solid var(--rule);background:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--navy);display:none">Vorige</button>
             <button type="button" id="onb-next-btn" onclick="onbNext()" style="padding:10px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Volgende</button>
@@ -4405,6 +4412,99 @@
         </div>
       </div>
       <div id="flancco-werk-pipeline-wrapper" class="flp-page"></div>
+    </div>
+
+    <!-- ===== Partner Pipeline (admin-only) — kanban van partner_applications ===== -->
+    <div class="page admin-only" id="page-partner-pipeline">
+      <div class="card">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Partner-aanvragen</h2>
+            <p class="dv-subtitle">Kanban-overzicht van inkomende partner-aanvragen — van eerste lead tot live partner</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" onclick="loadPartnerPipeline()" title="Vernieuw lijst">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+              Vernieuwen
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;padding:14px;background:var(--light);border-radius:8px">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Zoek bedrijf</label>
+            <input type="text" id="pa-f-search" placeholder="Bedrijfsnaam…" oninput="renderPartnerPipeline()" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Sector</label>
+            <select id="pa-f-sector" onchange="renderPartnerPipeline()" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;background:white">
+              <option value="">Alle</option>
+              <option value="zonnepanelen">Zonnepanelen</option>
+              <option value="warmtepomp">Warmtepomp</option>
+              <option value="airco">Airco</option>
+              <option value="ventilatie">Ventilatie</option>
+              <option value="cv">CV</option>
+              <option value="droogijsstralen">Droogijsstralen</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Vanaf</label>
+            <input type="date" id="pa-f-van" onchange="renderPartnerPipeline()" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Tot</label>
+            <input type="date" id="pa-f-tot" onchange="renderPartnerPipeline()" style="width:100%;padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+          </div>
+        </div>
+
+        <!-- Stat-strip -->
+        <div id="pa-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px"></div>
+
+        <!-- Kanban -->
+        <div id="pa-kanban" style="display:grid;grid-template-columns:repeat(6,minmax(240px,1fr));gap:14px;overflow-x:auto;padding-bottom:8px"></div>
+
+        <!-- Loader -->
+        <div id="pa-loading" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Aanvragen laden…</div>
+        <div id="pa-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--grey);font-size:13px">Nog geen partner-aanvragen ontvangen.</div>
+      </div>
+    </div>
+
+    <!-- Partner Application Detail Modal -->
+    <div class="modal-overlay" id="modal-pa-detail" style="z-index:9000">
+      <div class="modal" style="max-width:720px;max-height:90vh;overflow-y:auto">
+        <div class="modal-header" style="position:sticky;top:0;background:#fff;z-index:1">
+          <div>
+            <h3 id="pa-d-title">Partner-aanvraag</h3>
+            <small id="pa-d-subtitle" style="color:var(--grey)"></small>
+          </div>
+          <button type="button" class="modal-close" onclick="document.getElementById('modal-pa-detail').classList.remove('open')" aria-label="Sluiten">&times;</button>
+        </div>
+        <div class="modal-body" id="pa-d-body" style="padding:6px 4px 4px"></div>
+      </div>
+    </div>
+
+    <!-- Partner Application Lost-modal -->
+    <div class="modal-overlay" id="modal-pa-lost" style="z-index:9100">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+          <div>
+            <h3>Markeer als verloren</h3>
+            <small style="color:var(--grey)">Reden wordt mee opgeslagen voor analyse</small>
+          </div>
+          <button type="button" class="modal-close" onclick="document.getElementById('modal-pa-lost').classList.remove('open')" aria-label="Sluiten">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-field">
+            <label>Reden *</label>
+            <textarea id="pa-lost-reden" rows="4" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;box-sizing:border-box;font-family:inherit;resize:vertical" placeholder="Bijv. prijs te hoog / kiest concurrent / niet meer geïnteresseerd"></textarea>
+          </div>
+          <div class="modal-buttons">
+            <button type="button" class="btn btn-ghost" onclick="document.getElementById('modal-pa-lost').classList.remove('open')">Annuleren</button>
+            <button type="button" class="btn btn-primary" onclick="confirmPartnerApplicationLost()">Markeer verloren</button>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -6905,7 +7005,7 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes', onderhoud: 'Onderhoud', 'flancco-werk': 'Flancco-werk' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', 'partner-pipeline': 'Partner-aanvragen', contracten: 'Contracten', klanten: 'Klanten', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes', onderhoud: 'Onderhoud', 'flancco-werk': 'Flancco-werk' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'gebruikers') renderGebruikers();
@@ -6939,6 +7039,8 @@ function showPage(name) {
   if (name === 'onderhoud' && typeof showOnderhoudPage === 'function') showOnderhoudPage();
   // Slot W — Flancco-werk (ad-hoc Flancco-interne pipeline)
   if (name === 'flancco-werk' && typeof showFlanccoWerkPage === 'function') showFlanccoWerkPage();
+  // Partner-pipeline (admin) — kanban van partner_applications
+  if (name === 'partner-pipeline' && typeof showPartnerPipelinePage === 'function') showPartnerPipelinePage();
   // Slot 0 — Partner Pipeline View: alleen wanneer een partner naar contracten navigeert.
   // Dit is hun primaire werkomgeving (lijst van eigen klanten + status).
   if (name === 'contracten' && userRole === 'partner') {
@@ -8896,12 +8998,394 @@ function copyInviteInfo() {
 }
 
 // =============================================
+// PARTNER PIPELINE — kanban van partner_applications (admin only)
+// =============================================
+var partnerApplications = [];
+var partnerAppRealtimeChannel = null;
+var PA_STATUSES = [
+  { key:'lead',             label:'Lead',              color:'#6B7280', desc:'Nieuw ingediende aanvraag' },
+  { key:'demo_bekeken',     label:'Demo bekeken',      color:'#0EA5E9', desc:'Demo of materiaal bekeken' },
+  { key:'contract_signed',  label:'Contract getekend', color:'#8B5CF6', desc:'Contract digitaal ondertekend' },
+  { key:'account_created',  label:'Account aangemaakt',color:'#F59E0B', desc:'Login klaar, nog niet geactiveerd' },
+  { key:'live',             label:'Live',              color:'#10B981', desc:'Actieve partner met klanten' },
+  { key:'lost',             label:'Verloren',          color:'#EF4444', desc:'Aanvraag afgehaakt of geweigerd' }
+];
+
+function showPartnerPipelinePage() {
+  loadPartnerPipeline();
+  if (window.flanccoTrack) {
+    try { window.flanccoTrack('Partner Pipeline View', { count: partnerApplications.length }); } catch (_) {}
+  }
+}
+
+async function loadPartnerPipeline() {
+  var loadingEl = document.getElementById('pa-loading');
+  var emptyEl = document.getElementById('pa-empty');
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+  try {
+    var res = await sb.from('partner_applications').select('*').order('created_at', { ascending: false });
+    if (res.error) throw res.error;
+    partnerApplications = res.data || [];
+    if (loadingEl) loadingEl.style.display = 'none';
+    renderPartnerPipeline();
+    setupPartnerAppRealtime();
+  } catch (e) {
+    console.error('loadPartnerPipeline error:', e);
+    if (loadingEl) loadingEl.style.display = 'none';
+    showToast('Fout bij laden partner-aanvragen: ' + (e.message || 'onbekend'), 'error');
+  }
+}
+
+function setupPartnerAppRealtime() {
+  if (partnerAppRealtimeChannel) return;
+  try {
+    partnerAppRealtimeChannel = sb.channel('partner_applications_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_applications' }, function(_payload) {
+        // Throttle: schedule single reload per burst
+        if (window._paReloadTimer) return;
+        window._paReloadTimer = setTimeout(function() {
+          window._paReloadTimer = null;
+          loadPartnerPipeline();
+        }, 600);
+      })
+      .subscribe();
+  } catch (e) { console.warn('partner_applications realtime subscribe failed', e); }
+}
+
+function paFilterApplications() {
+  var search = (document.getElementById('pa-f-search') && document.getElementById('pa-f-search').value || '').trim().toLowerCase();
+  var sectorFilter = (document.getElementById('pa-f-sector') && document.getElementById('pa-f-sector').value || '').trim();
+  var van = (document.getElementById('pa-f-van') && document.getElementById('pa-f-van').value || '').trim();
+  var tot = (document.getElementById('pa-f-tot') && document.getElementById('pa-f-tot').value || '').trim();
+  return (partnerApplications || []).filter(function(a) {
+    if (search) {
+      var hay = ((a.bedrijfsnaam || '') + ' ' + (a.contactpersoon_voornaam || '') + ' ' + (a.contactpersoon_naam || '') + ' ' + (a.contactpersoon_email || '')).toLowerCase();
+      if (hay.indexOf(search) < 0) return false;
+    }
+    if (sectorFilter) {
+      var sectoren = Array.isArray(a.sectoren) ? a.sectoren : [];
+      var match = sectoren.some(function(s) { return String(s).toLowerCase().indexOf(sectorFilter.toLowerCase()) >= 0; });
+      if (!match) return false;
+    }
+    if (van) {
+      if (!a.created_at || a.created_at.slice(0,10) < van) return false;
+    }
+    if (tot) {
+      if (!a.created_at || a.created_at.slice(0,10) > tot) return false;
+    }
+    return true;
+  });
+}
+
+function renderPartnerPipeline() {
+  var kanban = document.getElementById('pa-kanban');
+  var stats = document.getElementById('pa-stats');
+  var emptyEl = document.getElementById('pa-empty');
+  if (!kanban) return;
+
+  var apps = paFilterApplications();
+  if (emptyEl) emptyEl.style.display = (partnerApplications.length === 0 && apps.length === 0) ? 'block' : 'none';
+
+  // Stats-strip
+  if (stats) {
+    var statsHtml = '';
+    PA_STATUSES.forEach(function(st) {
+      var count = apps.filter(function(a) { return a.status === st.key; }).length;
+      statsHtml += '<div style="background:#fff;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;border-left:3px solid ' + st.color + '">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--grey);font-weight:600">' + esc(st.label) + '</div>' +
+        '<div style="font-size:20px;font-weight:700;color:var(--navy);margin-top:2px">' + count + '</div>' +
+        '</div>';
+    });
+    stats.innerHTML = statsHtml;
+  }
+
+  var html = '';
+  PA_STATUSES.forEach(function(st) {
+    var statusApps = apps.filter(function(a) { return a.status === st.key; });
+    html += '<div data-status="' + esc(st.key) + '" style="background:#F9FAFB;border:1px solid var(--rule);border-radius:10px;padding:12px;min-height:200px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;min-width:0">';
+    html += '<span style="width:8px;height:8px;border-radius:50%;background:' + st.color + ';flex-shrink:0"></span>';
+    html += '<span style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(st.label) + '</span>';
+    html += '</div>';
+    html += '<span style="background:' + st.color + ';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0">' + statusApps.length + '</span>';
+    html += '</div>';
+    if (statusApps.length === 0) {
+      html += '<div style="font-size:12px;color:var(--grey);text-align:center;padding:20px 4px;font-style:italic">' + esc(st.desc) + '</div>';
+    } else {
+      statusApps.forEach(function(a) {
+        html += paRenderCard(a);
+      });
+    }
+    html += '</div>';
+  });
+  kanban.innerHTML = html;
+}
+
+function paRenderCard(a) {
+  var bedrijf = esc(a.bedrijfsnaam || '—');
+  var contactNaam = ((a.contactpersoon_voornaam || '') + ' ' + (a.contactpersoon_naam || '')).trim();
+  var contact = esc(contactNaam || a.contactpersoon_email || '—');
+  var btw = esc(a.btw_nummer || '');
+  var marge = (a.marge_pct != null) ? (Number(a.marge_pct).toFixed(0) + '%') : '';
+  var sectoren = Array.isArray(a.sectoren) ? a.sectoren : [];
+  var datum = a.created_at ? new Date(a.created_at).toLocaleDateString('nl-BE', { day:'2-digit', month:'short', year:'2-digit' }) : '';
+  var sectorChips = sectoren.slice(0, 3).map(function(s) {
+    return '<span style="background:#EEF2FF;color:#4F46E5;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">' + esc(s) + '</span>';
+  }).join('');
+  if (sectoren.length > 3) sectorChips += '<span style="font-size:10px;color:var(--grey)">+' + (sectoren.length - 3) + '</span>';
+  var html = '<div style="background:#fff;border:1px solid var(--rule);border-radius:8px;padding:10px 11px;margin-bottom:8px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor=\'var(--navy)\';this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.06)\'" onmouseout="this.style.borderColor=\'var(--rule)\';this.style.boxShadow=\'none\'" onclick="viewPartnerApplication(\'' + esc(a.id) + '\')">';
+  html += '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:3px;line-height:1.3">' + bedrijf + '</div>';
+  html += '<div style="font-size:11px;color:var(--grey);margin-bottom:6px">' + contact + '</div>';
+  if (sectorChips) html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;align-items:center">' + sectorChips + '</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--grey);font-weight:600">';
+  if (btw) html += '<span>' + btw + '</span>';
+  if (marge) html += '<span style="color:#10B981">' + esc(marge) + '</span>';
+  html += '</div>';
+  html += '<div style="margin-top:6px;font-size:10px;color:var(--grey);text-align:right">' + datum + '</div>';
+  html += '</div>';
+  return html;
+}
+
+function viewPartnerApplication(id) {
+  var a = partnerApplications.find(function(x) { return x.id === id; });
+  if (!a) { showToast('Aanvraag niet gevonden', 'error'); return; }
+  var modal = document.getElementById('modal-pa-detail');
+  var titleEl = document.getElementById('pa-d-title');
+  var subEl = document.getElementById('pa-d-subtitle');
+  var bodyEl = document.getElementById('pa-d-body');
+  if (!modal || !bodyEl) return;
+  titleEl.textContent = a.bedrijfsnaam || 'Partner-aanvraag';
+  subEl.textContent = (a.created_at ? new Date(a.created_at).toLocaleString('nl-BE') : '') + (a.status ? ' · status: ' + paStatusLabel(a.status) : '');
+
+  var sectoren = Array.isArray(a.sectoren) ? a.sectoren : [];
+  var sectorChips = sectoren.map(function(s) {
+    return '<span style="background:#EEF2FF;color:#4F46E5;font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;margin:0 4px 4px 0;display:inline-block">' + esc(s) + '</span>';
+  }).join('');
+
+  var statusOpts = PA_STATUSES.map(function(s) {
+    return '<option value="' + esc(s.key) + '"' + (a.status === s.key ? ' selected' : '') + '>' + esc(s.label) + '</option>';
+  }).join('');
+
+  var contactNaam = ((a.contactpersoon_voornaam || '') + ' ' + (a.contactpersoon_naam || '')).trim();
+  var html = '';
+  html += '<div style="padding:18px 22px 8px">';
+
+  // Kerndata
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">';
+  html += paField('Bedrijfsnaam', a.bedrijfsnaam, 'span 2');
+  html += paField('BTW-nummer', a.btw_nummer);
+  html += paField('Marge', a.marge_pct != null ? a.marge_pct + '%' : '—');
+  html += paField('Contactpersoon', contactNaam || '—', 'span 2');
+  html += paField('E-mail', a.contactpersoon_email);
+  html += paField('Telefoon', a.contactpersoon_telefoon || '—');
+  if (a.website) html += paField('Website', a.website, 'span 2');
+  if (a.adres || a.postcode || a.gemeente) {
+    var adresFull = [a.adres, [a.postcode, a.gemeente].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    html += paField('Adres', adresFull, 'span 2');
+  }
+  html += '</div>';
+
+  // Sectoren
+  html += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Sectoren</div>';
+  html += sectorChips || '<span style="color:var(--grey);font-size:13px">—</span>';
+  html += '</div>';
+
+  // Notitie + lost-reden
+  if (a.notitie) {
+    html += '<div style="margin-bottom:14px;padding:10px 12px;background:#F9FAFB;border:1px solid var(--rule);border-radius:8px">';
+    html += '<div style="font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Notitie</div>';
+    html += '<div style="font-size:13px;color:var(--navy);line-height:1.5;white-space:pre-wrap">' + esc(a.notitie) + '</div>';
+    html += '</div>';
+  }
+  if (a.lost_reden) {
+    html += '<div style="margin-bottom:14px;padding:10px 12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px">';
+    html += '<div style="font-size:11px;font-weight:600;color:#B91C1C;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Lost-reden</div>';
+    html += '<div style="font-size:13px;color:#991B1B;line-height:1.5;white-space:pre-wrap">' + esc(a.lost_reden) + '</div>';
+    html += '</div>';
+  }
+
+  // Handtekening preview
+  if (a.contract_handtekening_base64) {
+    html += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Handtekening</div>';
+    html += '<div style="border:1px solid var(--rule);border-radius:8px;padding:10px;background:#fafafa;text-align:center">';
+    var sigSrc = a.contract_handtekening_base64.indexOf('data:') === 0 ? a.contract_handtekening_base64 : ('data:image/png;base64,' + a.contract_handtekening_base64);
+    html += '<img src="' + esc(sigSrc) + '" alt="Handtekening" style="max-width:100%;max-height:120px;object-fit:contain">';
+    html += '</div></div>';
+  }
+
+  // Status-changer
+  html += '<div style="margin-bottom:14px;padding:12px;background:#F9FAFB;border:1px solid var(--rule);border-radius:8px">';
+  html += '<label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Status wijzigen</label>';
+  html += '<div style="display:flex;gap:8px;align-items:center">';
+  html += '<select id="pa-d-status" style="flex:1;padding:9px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;background:white">' + statusOpts + '</select>';
+  html += '<button type="button" class="btn btn-secondary" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'set_status\')">Opslaan</button>';
+  html += '</div>';
+  html += '</div>';
+
+  // Acties
+  html += '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:14px 0 18px;border-top:1px solid var(--rule)">';
+  html += '<button type="button" class="btn btn-ghost" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'mail\')">Stuur e-mail</button>';
+  if (a.contract_pdf_url) {
+    html += '<button type="button" class="btn btn-ghost" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'view_pdf\')">Bekijk contract-PDF</button>';
+  } else if (a.contract_handtekening_base64) {
+    html += '<button type="button" class="btn btn-ghost" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'view_signature\')">Open handtekening</button>';
+  }
+  if (a.status === 'contract_signed' && !a.partner_id) {
+    html += '<button type="button" class="btn btn-primary" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'retrigger_create\')">Maak partner-account</button>';
+  }
+  if (a.status !== 'lost') {
+    html += '<button type="button" class="btn btn-ghost" style="color:#B91C1C;border-color:#FECACA" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'mark_lost\')">Markeer verloren</button>';
+  }
+  html += '</div>';
+
+  html += '</div>';
+  bodyEl.innerHTML = html;
+  modal.classList.add('open');
+}
+
+function paStatusLabel(key) {
+  var s = PA_STATUSES.find(function(x) { return x.key === key; });
+  return s ? s.label : key;
+}
+
+function paField(label, value, gridColumn) {
+  var col = gridColumn ? 'grid-column:' + gridColumn + ';' : '';
+  return '<div style="' + col + '">' +
+    '<div style="font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px">' + esc(label) + '</div>' +
+    '<div style="font-size:13px;color:var(--navy);font-weight:500">' + esc(value || '—') + '</div>' +
+    '</div>';
+}
+
+async function partnerApplicationAction(id, action) {
+  var a = partnerApplications.find(function(x) { return x.id === id; });
+  if (!a) return;
+  if (window.flanccoTrack) {
+    try { window.flanccoTrack('Partner Application Action', { action: action }); } catch (_) {}
+  }
+  if (action === 'set_status') {
+    var sel = document.getElementById('pa-d-status');
+    if (!sel) return;
+    var newStatus = sel.value;
+    if (newStatus === a.status) { showToast('Status ongewijzigd', 'info'); return; }
+    var oldSnap = JSON.stringify({ status: a.status });
+    var upd = await sb.from('partner_applications').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', id);
+    if (upd.error) { showToast('Status-wijziging mislukt: ' + upd.error.message, 'error'); return; }
+    a.status = newStatus;
+    try { auditLog('partner_applications', id, 'status_gewijzigd', oldSnap, JSON.stringify({ status: newStatus })); } catch (_) {}
+    showToast('Status bijgewerkt');
+    document.getElementById('modal-pa-detail').classList.remove('open');
+    renderPartnerPipeline();
+    return;
+  }
+  if (action === 'mail') {
+    var subject = encodeURIComponent('Re: Partner-aanvraag ' + (a.bedrijfsnaam || ''));
+    var to = a.contactpersoon_email || '';
+    if (!to) { showToast('Geen e-mailadres beschikbaar', 'error'); return; }
+    window.location.href = 'mailto:' + to + '?subject=' + subject;
+    return;
+  }
+  if (action === 'view_pdf') {
+    if (!a.contract_pdf_url) { showToast('Geen PDF beschikbaar', 'error'); return; }
+    window.open(a.contract_pdf_url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  if (action === 'view_signature') {
+    if (!a.contract_handtekening_base64) { showToast('Geen handtekening beschikbaar', 'error'); return; }
+    var src = a.contract_handtekening_base64.indexOf('data:') === 0 ? a.contract_handtekening_base64 : ('data:image/png;base64,' + a.contract_handtekening_base64);
+    var w = window.open('', '_blank', 'noopener,noreferrer');
+    if (w && w.document) {
+      w.document.write('<html><head><title>Handtekening</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f3f4f6"><img src="' + src + '" style="max-width:90vw;max-height:90vh;background:#fff;padding:20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></body></html>');
+    }
+    return;
+  }
+  if (action === 'mark_lost') {
+    document.getElementById('modal-pa-detail').classList.remove('open');
+    var lostReden = document.getElementById('pa-lost-reden');
+    if (lostReden) lostReden.value = '';
+    document.getElementById('modal-pa-lost').dataset.targetId = id;
+    document.getElementById('modal-pa-lost').classList.add('open');
+    return;
+  }
+  if (action === 'retrigger_create') {
+    if (!(await confirmDialog({ title: 'Partner-account aanmaken?', message: 'Dit roept de register-partner edge function aan voor "' + (a.bedrijfsnaam || '') + '". Bestaande accounts worden overgeslagen.', confirmLabel: 'Aanmaken', cancelLabel: 'Annuleren' }))) return;
+    try {
+      var session = await sb.auth.getSession();
+      var token = (session && session.data && session.data.session && session.data.session.access_token) || '';
+      var resp = await fetch(SUPA_URL + '/functions/v1/register-partner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY },
+        body: JSON.stringify({ application_id: id })
+      });
+      var json = await resp.json().catch(function() { return null; });
+      if (!resp.ok) throw new Error((json && (json.error || json.message)) || ('HTTP ' + resp.status));
+      showToast('Partner-account aanmaak gestart');
+      try { auditLog('partner_applications', id, 'account_aanmaak_getriggerd', null, JSON.stringify({ source: 'admin_pipeline' })); } catch (_) {}
+      document.getElementById('modal-pa-detail').classList.remove('open');
+      loadPartnerPipeline();
+    } catch (e) {
+      showToast('Account-aanmaak mislukt: ' + (e.message || 'onbekend'), 'error');
+    }
+    return;
+  }
+}
+
+async function confirmPartnerApplicationLost() {
+  var modal = document.getElementById('modal-pa-lost');
+  var id = modal && modal.dataset && modal.dataset.targetId;
+  if (!id) return;
+  var reden = (document.getElementById('pa-lost-reden').value || '').trim();
+  if (!reden) { showToast('Reden is verplicht', 'error'); return; }
+  var a = partnerApplications.find(function(x) { return x.id === id; });
+  var oldSnap = a ? JSON.stringify({ status: a.status, lost_reden: a.lost_reden }) : null;
+  var upd = await sb.from('partner_applications').update({ status: 'lost', lost_reden: reden, updated_at: new Date().toISOString() }).eq('id', id);
+  if (upd.error) { showToast('Mislukt: ' + upd.error.message, 'error'); return; }
+  if (a) { a.status = 'lost'; a.lost_reden = reden; }
+  try { auditLog('partner_applications', id, 'gemarkeerd_verloren', oldSnap, JSON.stringify({ status: 'lost', lost_reden: reden })); } catch (_) {}
+  showToast('Aanvraag gemarkeerd als verloren');
+  modal.classList.remove('open');
+  renderPartnerPipeline();
+}
+
+// =============================================
 // ONBOARDING WIZARD (partner first-login)
 // =============================================
 var onbCurrentStep = 1;
-var onbDraft = { bedrijfsnaam:'', contactpersoon:'', telefoon:'', btw_nummer:'', adres:'', postcode:'', gemeente:'', kleur_primair:'', logo_url:'', newPass:'', newPassConfirm:'' };
+var ONB_TOTAL_STEPS = 7;
+// Step-map: 1=intro/bedrijfsgegevens, 2=calculator-config, 3=team-invite, 4=marketing-kit, 5=branding, 6=wachtwoord/auth, 7=demo-test
+var onbDraft = {
+  bedrijfsnaam:'', contactpersoon:'', telefoon:'', btw_nummer:'', adres:'', postcode:'', gemeente:'',
+  kleur_primair:'', logo_url:'',
+  newPass:'', newPassConfirm:'',
+  // A2 — calculator-config per sector
+  sectorConfigs: {},          // { '<sector>': { usps: [str,...], frequenties: [str,...], contractduren: [int,...] } }
+  selectedSector: null,
+  // A3 — team invite
+  teamInvite: { skip:false, email:'', voornaam:'', naam:'', role:'medewerker_basis' },
+  // A6 — auth-detect
+  authViaMagicLink: false,
+  // A4/A7 telemetrie
+  marketingKitOpened: false,
+  demoOpened: false
+};
 
-function openOnboardingWizard() {
+var ONB_FREQ_OPTIONS = [
+  { key:'jaarlijks',     label:'Jaarlijks' },
+  { key:'halfjaarlijks', label:'Halfjaarlijks' },
+  { key:'kwartaal',      label:'Per kwartaal' },
+  { key:'maandelijks',   label:'Maandelijks' }
+];
+var ONB_DUUR_OPTIONS = [1, 2, 3, 5, 7];
+var ONB_FREQ_DEFAULTS = ['jaarlijks', 'halfjaarlijks', 'kwartaal'];
+var ONB_DUUR_DEFAULTS = [1, 2, 3, 5];
+var ONB_ROLE_PRESETS = [
+  { key:'medewerker_basis',     label:'Medewerker (basis)',  hint:'Eigen klanten + interventies' },
+  { key:'medewerker_uitgebreid',label:'Medewerker (volledig)', hint:'Alle partner-data + facturatie' },
+  { key:'co_owner',             label:'Co-owner',             hint:'Volledige toegang inclusief gebruikersbeheer' }
+];
+
+async function openOnboardingWizard() {
   if (!userPartner) return;
   onbCurrentStep = 1;
   // Prefill draft uit partner-record (wat admin al heeft ingevuld bij invite)
@@ -8916,8 +9400,44 @@ function openOnboardingWizard() {
     kleur_primair: userPartner.kleur_primair || '#098979',
     logo_url: userPartner.logo_url || '',
     newPass: '',
-    newPassConfirm: ''
+    newPassConfirm: '',
+    sectorConfigs: {},
+    selectedSector: null,
+    teamInvite: { skip:false, email:'', voornaam:'', naam:'', role:'medewerker_basis' },
+    authViaMagicLink: false,
+    marketingKitOpened: false,
+    demoOpened: false
   };
+
+  // Prefill via partner_applications indien gelinkt aan deze partner (Wave 1+2 flow)
+  try {
+    var appRes = await sb.from('partner_applications').select('*').eq('partner_id', userPartner.id).maybeSingle();
+    if (appRes && appRes.data) {
+      var app = appRes.data;
+      if (!onbDraft.bedrijfsnaam) onbDraft.bedrijfsnaam = app.bedrijfsnaam || '';
+      if (!onbDraft.btw_nummer) onbDraft.btw_nummer = app.btw_nummer || '';
+      if (!onbDraft.contactpersoon) onbDraft.contactpersoon = ((app.contactpersoon_voornaam || '') + ' ' + (app.contactpersoon_naam || '')).trim();
+      if (!onbDraft.telefoon) onbDraft.telefoon = app.contactpersoon_telefoon || '';
+      if (!onbDraft.adres) onbDraft.adres = app.adres || '';
+      if (!onbDraft.postcode) onbDraft.postcode = app.postcode || '';
+      if (!onbDraft.gemeente) onbDraft.gemeente = app.gemeente || '';
+      var sectorenList = Array.isArray(app.sectoren) ? app.sectoren : [];
+      sectorenList.forEach(function(s) {
+        if (!onbDraft.sectorConfigs[s]) {
+          onbDraft.sectorConfigs[s] = { usps: ['', '', ''], frequenties: ONB_FREQ_DEFAULTS.slice(), contractduren: ONB_DUUR_DEFAULTS.slice() };
+        }
+      });
+      if (sectorenList.length && !onbDraft.selectedSector) onbDraft.selectedSector = sectorenList[0];
+    }
+  } catch (_) { /* prefill is best-effort */ }
+
+  // Detect magic-link auth (geen wachtwoord-stap nodig)
+  try {
+    var sess = await sb.auth.getSession();
+    var amrList = (sess && sess.data && sess.data.session && sess.data.session.user && sess.data.session.user.amr) || [];
+    onbDraft.authViaMagicLink = amrList.some(function(m) { return m && (m.method === 'otp' || m.method === 'magiclink' || m.method === 'email'); });
+  } catch (_) {}
+
   // Logo / initiaal in header
   var logoEl = document.getElementById('onb-logo');
   if (logoEl) {
@@ -8943,33 +9463,17 @@ function renderOnbStep() {
     var s = parseInt(d.dataset.step, 10);
     d.style.background = s <= onbCurrentStep ? '#fff' : 'rgba(255,255,255,0.25)';
   });
-  document.getElementById('onb-step-label').textContent = 'Stap ' + onbCurrentStep + ' van 4';
+  document.getElementById('onb-step-label').textContent = 'Stap ' + onbCurrentStep + ' van ' + ONB_TOTAL_STEPS;
   document.getElementById('onb-prev-btn').style.display = onbCurrentStep === 1 ? 'none' : 'inline-block';
   var nextBtn = document.getElementById('onb-next-btn');
-  nextBtn.textContent = onbCurrentStep === 4 ? 'Afronden' : 'Volgende';
+  nextBtn.textContent = onbCurrentStep === ONB_TOTAL_STEPS ? 'Afronden' : 'Volgende';
 
   var body = document.getElementById('onb-body');
   var html = '';
   if (onbCurrentStep === 1) {
+    // A1 — bedrijfsgegevens met intro-blok
     html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Welkom bij Flancco</h3>';
-    html += '<p style="margin:0 0 18px;color:var(--grey);font-size:13px;line-height:1.55">Bedankt om op te starten als partner. In een paar stappen werken we je profiel af zodat je meteen van start kan met contracten, interventies en rapportages voor je klanten.</p>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">';
-    [
-      { ic:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', t:'Bedrijfsgegevens', s:'Even verifiëren en aanvullen' },
-      { ic:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>', t:'Branding', s:'Logo en huisstijl op calculator' },
-      { ic:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>', t:'Wachtwoord', s:'Vervang tijdelijk wachtwoord' },
-      { ic:'<polyline points="20 6 9 17 4 12"/>', t:'Klaar', s:'Overzicht en eerste stappen' }
-    ].forEach(function(item, i) {
-      html += '<div style="border:1px solid var(--rule);border-radius:8px;padding:12px;display:flex;gap:10px;align-items:flex-start;background:#fff">' +
-        '<div style="width:28px;height:28px;border-radius:6px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + item.ic + '</svg></div>' +
-        '<div><div style="font-size:13px;font-weight:600;color:var(--navy)">' + (i+1) + '. ' + item.t + '</div>' +
-        '<div style="font-size:12px;color:var(--grey);margin-top:2px">' + item.s + '</div></div></div>';
-    });
-    html += '</div>';
-  } else if (onbCurrentStep === 2) {
-    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Bedrijfsgegevens</h3>';
-    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Deze gegevens verschijnen op contracten en facturatie-exports.</p>';
+    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px;line-height:1.55">In zeven stappen werken we je profiel volledig af: gegevens, calculator-instellingen, eerste teamlid, marketing-kit, branding, login en een test-flow.</p>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
     html += onbField('Bedrijfsnaam *', 'onb-bedrijfsnaam', onbDraft.bedrijfsnaam, 'text', 'span 2');
     html += onbField('Contactpersoon', 'onb-contactpersoon', onbDraft.contactpersoon);
@@ -8979,7 +9483,104 @@ function renderOnbStep() {
     html += onbField('Postcode', 'onb-postcode', onbDraft.postcode);
     html += onbField('Gemeente', 'onb-gemeente', onbDraft.gemeente);
     html += '</div>';
+  } else if (onbCurrentStep === 2) {
+    // A2 — calculator-config per sector
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Calculator instellen</h3>';
+    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Wat wil je dat klanten zien op jouw calculator? Stel per sector USP\'s en aanbod-opties in.</p>';
+    var sectorKeys = Object.keys(onbDraft.sectorConfigs);
+    if (sectorKeys.length === 0) {
+      html += '<div style="padding:18px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:13px;color:#78350F;line-height:1.55">';
+      html += 'Geen sectoren gekoppeld aan jouw partner-account. Je kan dit later aanvullen via <strong>Calculator-instellingen</strong> in het admin-dashboard. Klik op <em>Volgende</em> om verder te gaan.';
+      html += '</div>';
+    } else {
+      var activeSector = onbDraft.selectedSector || sectorKeys[0];
+      // Sector-tabs
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">';
+      sectorKeys.forEach(function(s) {
+        var active = s === activeSector;
+        html += '<button type="button" onclick="onbSelectSector(\'' + esc(s) + '\')" style="padding:6px 12px;border:1.5px solid ' + (active ? 'var(--navy)' : 'var(--rule)') + ';background:' + (active ? 'var(--navy)' : '#fff') + ';color:' + (active ? '#fff' : 'var(--navy)') + ';border-radius:18px;font-size:12px;font-weight:600;cursor:pointer">' + esc(s) + '</button>';
+      });
+      html += '</div>';
+      var cfg = onbDraft.sectorConfigs[activeSector];
+      // USPs (5 slots, eerste 3 verplicht)
+      html += '<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">USP\'s — wat overtuigt klanten? (min. 3)</label>';
+      var uspsArr = (cfg.usps && cfg.usps.length) ? cfg.usps.slice(0,5) : ['','',''];
+      while (uspsArr.length < 5) uspsArr.push('');
+      uspsArr.forEach(function(u, i) {
+        html += '<input type="text" data-onb-usp="' + i + '" value="' + esc(u || '') + '" placeholder="USP ' + (i+1) + (i < 3 ? ' *' : ' (optioneel)') + '" style="width:100%;margin-bottom:6px;padding:9px 11px;border:1.5px solid var(--rule);border-radius:7px;font-size:13px;box-sizing:border-box">';
+      });
+      html += '</div>';
+      // Frequentie-opties
+      html += '<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Frequentie-opties</label>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      var selFreq = (cfg.frequenties && cfg.frequenties.length) ? cfg.frequenties : ONB_FREQ_DEFAULTS.slice();
+      ONB_FREQ_OPTIONS.forEach(function(f) {
+        var on = selFreq.indexOf(f.key) >= 0;
+        html += '<button type="button" data-onb-freq="' + esc(f.key) + '" onclick="onbToggleFreq(\'' + esc(f.key) + '\')" style="padding:6px 12px;border:1.5px solid ' + (on ? 'var(--navy)' : 'var(--rule)') + ';background:' + (on ? 'var(--navy)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--navy)') + ';border-radius:18px;font-size:12px;font-weight:600;cursor:pointer">' + esc(f.label) + '</button>';
+      });
+      html += '</div></div>';
+      // Contractduur-opties
+      html += '<div style="margin-bottom:6px"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Contractduur (jaren)</label>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      var selDuur = (cfg.contractduren && cfg.contractduren.length) ? cfg.contractduren : ONB_DUUR_DEFAULTS.slice();
+      ONB_DUUR_OPTIONS.forEach(function(d) {
+        var on = selDuur.indexOf(d) >= 0;
+        html += '<button type="button" onclick="onbToggleDuur(' + d + ')" style="padding:6px 14px;border:1.5px solid ' + (on ? 'var(--navy)' : 'var(--rule)') + ';background:' + (on ? 'var(--navy)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--navy)') + ';border-radius:18px;font-size:12px;font-weight:600;cursor:pointer">' + d + ' jaar</button>';
+      });
+      html += '</div></div>';
+    }
   } else if (onbCurrentStep === 3) {
+    // A3 — eerste team-lid (optioneel)
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Nodig je eerste teamlid uit</h3>';
+    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Optioneel — voeg meteen een collega toe zodat zij ook toegang krijgen. Je kan dit later altijd doen via <strong>Instellingen → Team</strong>.</p>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    html += onbField('Voornaam', 'onb-team-voornaam', onbDraft.teamInvite.voornaam);
+    html += onbField('Naam', 'onb-team-naam', onbDraft.teamInvite.naam);
+    html += onbField('E-mail', 'onb-team-email', onbDraft.teamInvite.email, 'email', 'span 2');
+    html += '<div style="grid-column:span 2"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Rol</label>';
+    html += '<select id="onb-team-role" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:white;box-sizing:border-box">';
+    ONB_ROLE_PRESETS.forEach(function(r) {
+      var sel = r.key === onbDraft.teamInvite.role ? ' selected' : '';
+      html += '<option value="' + esc(r.key) + '"' + sel + '>' + esc(r.label) + ' — ' + esc(r.hint) + '</option>';
+    });
+    html += '</select></div>';
+    html += '</div>';
+    html += '<p style="margin-top:14px;font-size:12px;color:var(--grey);font-style:italic">Laat alle velden leeg om over te slaan. Het teamlid krijgt een uitnodigingsmail met inlog-link.</p>';
+  } else if (onbCurrentStep === 4) {
+    // A4 — marketing-kit preview
+    var partnerSlug = (userPartner && userPartner.slug) || '';
+    var calcUrl = (window.location.origin.indexOf('flancco-platform.be') >= 0)
+      ? 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug)
+      : 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug);
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Marketing-kit klaar voor gebruik</h3>';
+    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Deel je calculator-link met klanten. Hieronder vind je je QR-code en kant-en-klare berichten.</p>';
+    html += '<div style="display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:start;margin-bottom:16px">';
+    html += '<div><div id="onb-qr-canvas" style="width:160px;height:160px;background:#fff;border:1px solid var(--rule);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box"></div>';
+    html += '<button type="button" onclick="onbDownloadQR()" style="margin-top:8px;padding:8px;border:1.5px solid var(--rule);background:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);width:100%">Download QR (PNG)</button></div>';
+    html += '<div>';
+    html += '<div style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Jouw calculator-URL</div>';
+    html += '<div style="padding:9px 11px;background:#F9FAFB;border:1px solid var(--rule);border-radius:7px;font-size:12px;font-family:ui-monospace,monospace;word-break:break-all;margin-bottom:12px">' + esc(calcUrl) + '</div>';
+    var bedrijf = onbDraft.bedrijfsnaam || (userPartner && userPartner.naam) || 'ons bedrijf';
+    var snippets = [
+      { titel:'LinkedIn-post', text:'Goed nieuws voor onze klanten — bij ' + bedrijf + ' bieden we nu jaarlijks onderhoud aan via een transparante, professionele calculator. Bereken meteen je prijs en teken digitaal: ' + calcUrl },
+      { titel:'E-mail aan klant', text:'Beste,\n\nVoor jaarlijks onderhoud bij ' + bedrijf + ' kan je nu in 2 minuten zelf je prijs berekenen en het contract digitaal ondertekenen via deze link: ' + calcUrl + '\n\nMet vriendelijke groeten' },
+      { titel:'WhatsApp-bericht', text:'Hi! Bekijk onze nieuwe online calculator — krijg meteen een prijs op maat en teken digitaal in een paar klikken: ' + calcUrl }
+    ];
+    snippets.forEach(function(sn, i) {
+      html += '<div style="margin-bottom:8px;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:#fff">';
+      html += '<div style="padding:7px 10px;background:#F9FAFB;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center">';
+      html += '<span style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.4px">' + esc(sn.titel) + '</span>';
+      html += '<button type="button" onclick="onbCopySnippet(' + i + ')" data-snippet-idx="' + i + '" style="padding:4px 9px;background:var(--navy);color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">Kopieer</button>';
+      html += '</div>';
+      html += '<textarea readonly id="onb-snippet-' + i + '" rows="3" style="width:100%;border:none;padding:9px 11px;font-size:12px;color:var(--navy);background:#fff;font-family:inherit;resize:none;box-sizing:border-box;line-height:1.4">' + esc(sn.text) + '</textarea>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    html += '<p style="margin-top:6px;font-size:12px;color:var(--grey);font-style:italic">Je vindt deze kit ook later terug onder <strong>Marketing</strong> in de sidebar.</p>';
+    setTimeout(function() { onbRenderQR(calcUrl); }, 30);
+    onbDraft.marketingKitOpened = true;
+  } else if (onbCurrentStep === 5) {
+    // A5 — branding (was Stap 2)
     html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Branding & huisstijl</h3>';
     html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Zorg dat jouw klanten jouw look herkennen op de calculator en rapportages.</p>';
     html += '<div style="display:flex;gap:20px;align-items:flex-start">';
@@ -9001,18 +9602,151 @@ function renderOnbStep() {
     html += '<button type="button" onclick="document.getElementById(\'onb-logo-file\').click()" style="margin-top:8px;padding:8px 12px;border:1.5px solid var(--rule);background:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);width:100%">' + (onbDraft.logo_url ? 'Logo vervangen' : 'Logo uploaden') + '</button>';
     html += '</div>';
     html += '</div>';
-  } else if (onbCurrentStep === 4) {
-    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Nieuw wachtwoord instellen</h3>';
-    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Vervang het tijdelijk wachtwoord door een eigen keuze (min. 10 tekens, sterk advies: mix van letters, cijfers en symbolen).</p>';
-    html += '<div style="display:grid;gap:12px;max-width:420px">';
-    html += onbField('Nieuw wachtwoord *', 'onb-newpass', onbDraft.newPass, 'password');
-    html += onbField('Bevestig wachtwoord *', 'onb-newpass2', onbDraft.newPassConfirm, 'password');
+  } else if (onbCurrentStep === 6) {
+    // A6 — wachtwoord OF magic-link bevestiging
+    if (onbDraft.authViaMagicLink) {
+      html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Inlog bevestigd via e-mail</h3>';
+      html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px;line-height:1.55">Je bent ingelogd via een magic-link uit je e-mail. Geen wachtwoord nodig — je kan voortaan altijd zo inloggen door een nieuwe link aan te vragen op de inlogpagina.</p>';
+      html += '<div style="padding:14px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;font-size:13px;color:#065F46;line-height:1.55">';
+      html += '<strong>Tip:</strong> wil je toch een wachtwoord? Stel het later in via <strong>Instellingen → Account</strong>. Magic-links zijn even veilig en je hoeft niets te onthouden.';
+      html += '</div>';
+    } else {
+      html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Nieuw wachtwoord instellen</h3>';
+      html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Vervang het tijdelijk wachtwoord door een eigen keuze (min. 10 tekens, sterk advies: mix van letters, cijfers en symbolen).</p>';
+      html += '<div style="display:grid;gap:12px;max-width:420px">';
+      html += onbField('Nieuw wachtwoord *', 'onb-newpass', onbDraft.newPass, 'password');
+      html += onbField('Bevestig wachtwoord *', 'onb-newpass2', onbDraft.newPassConfirm, 'password');
+      html += '</div>';
+      html += '<p style="margin-top:16px;padding:10px 12px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#78350F;line-height:1.5">' +
+        '<strong>Veiligheid:</strong> bewaar je wachtwoord in een password manager. Flancco kan een vergeten wachtwoord resetten via de login-pagina.' +
+        '</p>';
+    }
+  } else if (onbCurrentStep === 7) {
+    // A7 — demo-modus test
+    var partnerSlug2 = (userPartner && userPartner.slug) || '';
+    var demoUrl = 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug2) + '&demo=1';
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Test je calculator (demo-modus)</h3>';
+    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px;line-height:1.55">Open je calculator zoals een klant hem ziet en doorloop de flow met fictieve data. Zo weet je precies wat klanten zien en ervaren.</p>';
+    html += '<div style="padding:18px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;text-align:center">';
+    html += '<div style="font-size:13px;color:#0C4A6E;line-height:1.6;margin-bottom:14px">In demo-modus worden ingevulde contracten <strong>niet bewaard</strong> — je kan vrij testen.</div>';
+    html += '<button type="button" onclick="onbOpenDemo()" style="padding:11px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Open calculator in demo-modus</button>';
     html += '</div>';
-    html += '<p style="margin-top:16px;padding:10px 12px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#78350F;line-height:1.5">' +
-      '<strong>Veiligheid:</strong> bewaar je wachtwoord in een password manager. Flancco kan een vergeten wachtwoord resetten via de login-pagina.' +
-      '</p>';
+    html += '<p style="margin-top:16px;font-size:12px;color:var(--grey);line-height:1.55">Klaar met testen? Klik op <strong>Afronden</strong> om naar je dashboard te gaan. Je kan deze test elk moment overdoen via de calculator-URL met <code style="font-size:11px">&amp;demo=1</code>.</p>';
   }
   body.innerHTML = html;
+}
+
+// A2 helpers — sector-config interactie
+function onbSelectSector(sector) {
+  if (!onbCollectStep()) return;
+  onbDraft.selectedSector = sector;
+  renderOnbStep();
+}
+
+function onbToggleFreq(freqKey) {
+  var sector = onbDraft.selectedSector;
+  if (!sector) return;
+  var cfg = onbDraft.sectorConfigs[sector];
+  if (!cfg) return;
+  // Capture USPs first
+  onbCollectStep();
+  cfg = onbDraft.sectorConfigs[sector];
+  if (!cfg.frequenties) cfg.frequenties = ONB_FREQ_DEFAULTS.slice();
+  var idx = cfg.frequenties.indexOf(freqKey);
+  if (idx >= 0) cfg.frequenties.splice(idx, 1);
+  else cfg.frequenties.push(freqKey);
+  if (cfg.frequenties.length === 0) cfg.frequenties = ONB_FREQ_DEFAULTS.slice();
+  renderOnbStep();
+}
+
+function onbToggleDuur(d) {
+  var sector = onbDraft.selectedSector;
+  if (!sector) return;
+  var cfg = onbDraft.sectorConfigs[sector];
+  if (!cfg) return;
+  onbCollectStep();
+  cfg = onbDraft.sectorConfigs[sector];
+  if (!cfg.contractduren) cfg.contractduren = ONB_DUUR_DEFAULTS.slice();
+  var idx = cfg.contractduren.indexOf(d);
+  if (idx >= 0) cfg.contractduren.splice(idx, 1);
+  else cfg.contractduren.push(d);
+  cfg.contractduren.sort(function(a, b) { return a - b; });
+  if (cfg.contractduren.length === 0) cfg.contractduren = ONB_DUUR_DEFAULTS.slice();
+  renderOnbStep();
+}
+
+// A4 — QR + share helpers
+function onbRenderQR(url) {
+  var canvas = document.getElementById('onb-qr-canvas');
+  if (!canvas) return;
+  if (typeof window.QRCode === 'undefined' && typeof window.qrcode === 'undefined') {
+    onbLoadQRLib(function() { onbRenderQR(url); });
+    return;
+  }
+  try {
+    var lib = window.qrcode || window.QRCode;
+    if (typeof lib === 'function' && lib.length >= 2) {
+      // qrcode-generator API: qrcode(typeNumber, errorCorrectionLevel)
+      var qr = lib(0, 'M');
+      qr.addData(url);
+      qr.make();
+      canvas.innerHTML = qr.createImgTag(4, 0);
+      var img = canvas.querySelector('img');
+      if (img) { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.id = 'onb-qr-img'; }
+    } else if (window.QRCode && window.QRCode.toCanvas) {
+      var c = document.createElement('canvas');
+      canvas.innerHTML = '';
+      canvas.appendChild(c);
+      window.QRCode.toCanvas(c, url, { width: 144, margin: 1 }, function() { c.id = 'onb-qr-canvas-el'; });
+    }
+  } catch (e) {
+    canvas.innerHTML = '<div style="font-size:11px;color:var(--grey);padding:10px;text-align:center">QR-code laden mislukt</div>';
+    console.warn('onbRenderQR error', e);
+  }
+}
+
+function onbLoadQRLib(cb) {
+  if (window._onbQRLoading) { setTimeout(function() { onbLoadQRLib(cb); }, 200); return; }
+  window._onbQRLoading = true;
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+  s.onload = function() { window._onbQRLoading = false; cb(); };
+  s.onerror = function() { window._onbQRLoading = false; var c = document.getElementById('onb-qr-canvas'); if (c) c.innerHTML = '<div style="font-size:11px;color:var(--grey);padding:10px;text-align:center">QR-bibliotheek niet bereikbaar</div>'; };
+  document.head.appendChild(s);
+}
+
+function onbDownloadQR() {
+  var img = document.getElementById('onb-qr-img');
+  if (img && img.src) {
+    var link = document.createElement('a');
+    link.href = img.src;
+    link.download = 'flancco-calculator-qr.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    if (window.flanccoTrack) { try { window.flanccoTrack('Onboarding QR Downloaded'); } catch (_) {} }
+    return;
+  }
+  showToast('QR-code nog niet klaar', 'error');
+}
+
+function onbCopySnippet(idx) {
+  var ta = document.getElementById('onb-snippet-' + idx);
+  if (!ta) return;
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('Bericht gekopieerd');
+    if (window.flanccoTrack) { try { window.flanccoTrack('Onboarding Marketing Snippet Copied', { snippet_idx: idx }); } catch (_) {} }
+  } catch (e) { showToast('Kopiëren mislukt — selecteer manueel', 'error'); }
+}
+
+function onbOpenDemo() {
+  var partnerSlug = (userPartner && userPartner.slug) || '';
+  var url = 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug) + '&demo=1';
+  window.open(url, '_blank', 'noopener,noreferrer');
+  onbDraft.demoOpened = true;
+  if (window.flanccoTrack) { try { window.flanccoTrack('Onboarding Demo Opened'); } catch (_) {} }
 }
 
 function onbField(label, id, value, type, gridColumn) {
@@ -9025,7 +9759,7 @@ function onbField(label, id, value, type, gridColumn) {
 }
 
 function onbCollectStep() {
-  if (onbCurrentStep === 2) {
+  if (onbCurrentStep === 1) {
     onbDraft.bedrijfsnaam = (document.getElementById('onb-bedrijfsnaam').value || '').trim();
     onbDraft.contactpersoon = (document.getElementById('onb-contactpersoon').value || '').trim();
     onbDraft.telefoon = (document.getElementById('onb-telefoon').value || '').trim();
@@ -9034,17 +9768,44 @@ function onbCollectStep() {
     onbDraft.postcode = (document.getElementById('onb-postcode').value || '').trim();
     onbDraft.gemeente = (document.getElementById('onb-gemeente').value || '').trim();
     if (!onbDraft.bedrijfsnaam) { showToast('Bedrijfsnaam is verplicht', 'error'); return false; }
+  } else if (onbCurrentStep === 2) {
+    // Capture USPs voor active sector
+    var sector = onbDraft.selectedSector;
+    if (sector && onbDraft.sectorConfigs[sector]) {
+      var uspInputs = document.querySelectorAll('[data-onb-usp]');
+      var usps = [];
+      uspInputs.forEach(function(el) {
+        var v = (el.value || '').trim();
+        if (v) usps.push(v);
+      });
+      onbDraft.sectorConfigs[sector].usps = usps;
+    }
+    // Validate (alleen indien sectoren geconfigureerd; allemaal optioneel via skip-pad in finish)
   } else if (onbCurrentStep === 3) {
+    onbDraft.teamInvite.voornaam = (document.getElementById('onb-team-voornaam').value || '').trim();
+    onbDraft.teamInvite.naam = (document.getElementById('onb-team-naam').value || '').trim();
+    onbDraft.teamInvite.email = (document.getElementById('onb-team-email').value || '').trim();
+    var roleSel = document.getElementById('onb-team-role');
+    onbDraft.teamInvite.role = (roleSel && roleSel.value) || 'medewerker_basis';
+    // Email-validatie alleen als ingevuld
+    if (onbDraft.teamInvite.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(onbDraft.teamInvite.email)) {
+      showToast('Ongeldig e-mailadres', 'error'); return false;
+    }
+  } else if (onbCurrentStep === 5) {
     var hexEl = document.getElementById('onb-kleur-hex');
     var kleurEl = document.getElementById('onb-kleur');
-    var val = (hexEl.value || kleurEl.value || '').trim();
-    if (!/^#[0-9a-fA-F]{6}$/.test(val)) { showToast('Ongeldige hex-kleur', 'error'); return false; }
-    onbDraft.kleur_primair = val;
-  } else if (onbCurrentStep === 4) {
-    onbDraft.newPass = document.getElementById('onb-newpass').value || '';
-    onbDraft.newPassConfirm = document.getElementById('onb-newpass2').value || '';
-    if (onbDraft.newPass.length < 10) { showToast('Wachtwoord moet minstens 10 tekens zijn', 'error'); return false; }
-    if (onbDraft.newPass !== onbDraft.newPassConfirm) { showToast('Wachtwoorden komen niet overeen', 'error'); return false; }
+    if (hexEl && kleurEl) {
+      var val = (hexEl.value || kleurEl.value || '').trim();
+      if (!/^#[0-9a-fA-F]{6}$/.test(val)) { showToast('Ongeldige hex-kleur', 'error'); return false; }
+      onbDraft.kleur_primair = val;
+    }
+  } else if (onbCurrentStep === 6) {
+    if (!onbDraft.authViaMagicLink) {
+      onbDraft.newPass = document.getElementById('onb-newpass').value || '';
+      onbDraft.newPassConfirm = document.getElementById('onb-newpass2').value || '';
+      if (onbDraft.newPass.length < 10) { showToast('Wachtwoord moet minstens 10 tekens zijn', 'error'); return false; }
+      if (onbDraft.newPass !== onbDraft.newPassConfirm) { showToast('Wachtwoorden komen niet overeen', 'error'); return false; }
+    }
   }
   return true;
 }
@@ -9076,12 +9837,12 @@ async function onbPrev() {
 
 async function onbNext() {
   if (!onbCollectStep()) return;
-  if (onbCurrentStep < 4) {
+  if (onbCurrentStep < ONB_TOTAL_STEPS) {
     onbCurrentStep++;
     renderOnbStep();
     return;
   }
-  // Stap 4 = afronden
+  // Laatste stap = afronden
   await onbFinish();
 }
 
@@ -9106,24 +9867,83 @@ async function onbFinish() {
     if (onbDraft.logo_url) patch.logo_url = onbDraft.logo_url;
     var upd = await sb.from('partners').update(patch).eq('id', userPartner.id);
     if (upd.error) throw upd.error;
-    // Audit-log: partner-onboarding voltooid — belangrijke trail voor compliance bij contract-afsluiting.
     auditLog('partners', userPartner.id, 'onboarding_voltooid',
       JSON.stringify(_pickPartnerAuditFields(userPartner)),
       JSON.stringify({ bedrijfsnaam: patch.bedrijfsnaam, contactpersoon: patch.contactpersoon, adres: patch.adres, postcode: patch.postcode, gemeente: patch.gemeente, kleur_primair: patch.kleur_primair, logo_url: patch.logo_url || null, onboarding_completed_at: patch.onboarding_completed_at }));
-    // 2) Wachtwoord updaten
-    var pass = await sb.auth.updateUser({ password: onbDraft.newPass });
-    if (pass.error) throw pass.error;
-    // Audit: wachtwoord gewijzigd via onboarding — geen waarde loggen (security), enkel event.
-    auditLog('auth_users', userPartner.user_id || currentUser.id, 'wachtwoord_gewijzigd', null,
-      JSON.stringify({ bron: 'onboarding_wizard' }));
-    // 3) Lokale state verversen
+
+    // 2) Sector-configs UPSERTen (A2)
+    var sectorEntries = Object.keys(onbDraft.sectorConfigs || {});
+    for (var i = 0; i < sectorEntries.length; i++) {
+      var sk = sectorEntries[i];
+      var cfg = onbDraft.sectorConfigs[sk];
+      if (!cfg) continue;
+      var configPayload = {
+        usps: (cfg.usps || []).filter(function(u) { return u && u.trim().length; }),
+        frequenties: cfg.frequenties && cfg.frequenties.length ? cfg.frequenties : ONB_FREQ_DEFAULTS.slice(),
+        contractduren: cfg.contractduren && cfg.contractduren.length ? cfg.contractduren : ONB_DUUR_DEFAULTS.slice()
+      };
+      try {
+        var ups = await sb.from('sector_config').upsert({
+          partner_id: userPartner.id,
+          sector: sk,
+          config: configPayload,
+          updated_by: (currentUser && currentUser.id) || null,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'partner_id,sector' });
+        if (ups.error) console.warn('sector_config upsert failed for', sk, ups.error);
+        else { try { auditLog('sector_config', null, 'aangemaakt_via_onboarding', null, JSON.stringify({ sector: sk, config: configPayload })); } catch (_) {} }
+      } catch (e) { console.warn('sector_config upsert exception for', sk, e); }
+    }
+
+    // 3) Team-invite (A3) — alleen als email ingevuld
+    if (onbDraft.teamInvite && onbDraft.teamInvite.email) {
+      try {
+        var session = await sb.auth.getSession();
+        var token = (session && session.data && session.data.session && session.data.session.access_token) || '';
+        var inviteResp = await fetch(SUPA_URL + '/functions/v1/invite-partner-member', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY },
+          body: JSON.stringify({
+            email: onbDraft.teamInvite.email,
+            voornaam: onbDraft.teamInvite.voornaam || null,
+            naam: onbDraft.teamInvite.naam || null,
+            role_preset: onbDraft.teamInvite.role,
+            partner_id: userPartner.id
+          })
+        });
+        if (!inviteResp.ok) {
+          var inviteJson = await inviteResp.json().catch(function() { return null; });
+          console.warn('invite-partner-member failed', inviteJson);
+          showToast('Teamlid uitnodigen lukte niet — kan later via Instellingen', 'warning');
+        } else {
+          if (window.flanccoTrack) { try { window.flanccoTrack('Onboarding Team Invite Sent', { role: onbDraft.teamInvite.role }); } catch (_) {} }
+        }
+      } catch (e) { console.warn('invite-partner-member exception', e); }
+    }
+
+    // 4) Wachtwoord updaten (A6) — overslaan bij magic-link auth
+    if (!onbDraft.authViaMagicLink && onbDraft.newPass) {
+      var pass = await sb.auth.updateUser({ password: onbDraft.newPass });
+      if (pass.error) throw pass.error;
+      auditLog('auth_users', userPartner.user_id || currentUser.id, 'wachtwoord_gewijzigd', null,
+        JSON.stringify({ bron: 'onboarding_wizard' }));
+    }
+
+    // 5) Lokale state verversen
     Object.assign(userPartner, patch);
     applyBranding(userPartner);
     closeOnboardingWizard();
     showToast('Welkom op het platform — je account is klaar voor gebruik.');
-    // Refresh relevante views
+    if (window.flanccoTrack) {
+      try { window.flanccoTrack('Onboarding Completed', {
+        sectors_configured: sectorEntries.length,
+        team_invited: !!(onbDraft.teamInvite && onbDraft.teamInvite.email),
+        auth_method: onbDraft.authViaMagicLink ? 'magic_link' : 'password',
+        marketing_kit_opened: !!onbDraft.marketingKitOpened,
+        demo_opened: !!onbDraft.demoOpened
+      }); } catch (_) {}
+    }
     if (typeof renderDashboard === 'function') renderDashboard();
-    // Direct na wizard-afronding: product-tour starten zodat partner platform leert kennen
     setTimeout(function() { startOnboardingTour(); }, 500);
   } catch (e) {
     showToast('Fout bij opslaan: ' + (e.message || 'onbekend'), 'error');
