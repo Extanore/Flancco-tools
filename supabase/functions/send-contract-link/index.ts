@@ -6,6 +6,8 @@
 //
 // Slot S i18n: NL/FR per `contracten.lang` (DB-persistentie). Default fallback NL.
 // Slot T: bedrijf-only contracten (client_contact_id IS NULL) gebruiken bedrijfs-aanhef.
+// Slot C4: branded HTML-shell per partner (logo, kleuren, contact-block) via
+// resolveBranding(); Flancco-default fallback bij slug='flancco' of ontbrekende partner.
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -20,7 +22,7 @@ const corsHeaders = {
 // Sender + reply-to zijn env-var overridable zodat we zonder redeploy kunnen swappen
 // wanneer flancco.be DNS-toegang alsnog beschikbaar wordt.
 const FROM_ADDRESS = Deno.env.get("CONTRACT_FROM_ADDRESS") ?? "contracts@flancco-platform.be";
-const REPLY_TO     = Deno.env.get("CONTRACT_REPLY_TO")     ?? "gillian.geernaert@flancco.be";
+const REPLY_TO_DEFAULT = Deno.env.get("CONTRACT_REPLY_TO") ?? "gillian.geernaert@flancco.be";
 
 // Vaste wettelijke verzend-adres van Flancco BV voor het herroepingsformulier.
 // Overridable via env voor staging/testomgevingen.
@@ -30,6 +32,81 @@ const FLANCCO_LEGAL_EMAIL   = Deno.env.get("FLANCCO_LEGAL_EMAIL")   ?? "gillian.
 const FLANCCO_LEGAL_VAT     = Deno.env.get("FLANCCO_LEGAL_VAT")     ?? "";
 
 type Lang = "nl" | "fr";
+
+interface PartnerRow {
+  id: string;
+  slug: string;
+  naam: string | null;
+  bedrijfsnaam: string | null;
+  kleur_primair: string | null;
+  kleur_donker: string | null;
+  logo_url: string | null;
+  email: string | null;
+  telefoon: string | null;
+  website: string | null;
+  actief: boolean | null;
+}
+
+interface PartnerBranding {
+  id: string | null;
+  slug: string;
+  name: string;
+  primaryColor: string;
+  secondaryColor: string;
+  logoUrl: string;
+  email: string;
+  telefoon: string;
+  website: string;
+  isFlancco: boolean;
+}
+
+const FLANCCO_BRANDING: PartnerBranding = {
+  id: null,
+  slug: "flancco",
+  name: "Flancco BV",
+  primaryColor: "#1A1A2E",
+  secondaryColor: "#E74C3C",
+  logoUrl: "",
+  email: "info@flancco.be",
+  telefoon: "",
+  website: "https://flancco-platform.be",
+  isFlancco: true,
+};
+
+/**
+ * Slot C4 — branding-resolutie. Voor `flancco`-slug of een ontbrekende partner-row vallen
+ * we terug op de Flancco-defaults. Voor commerciële partners (Novectra, CW Solar, ...) gebruiken
+ * we de partner-eigen kleuren, logo en contact-info.
+ */
+function resolveBranding(p: PartnerRow | null): PartnerBranding {
+  if (!p) return FLANCCO_BRANDING;
+  const isFlancco = (p.slug || "").toLowerCase() === "flancco"
+    || /flancco/i.test(p.bedrijfsnaam || p.naam || "");
+  if (isFlancco) {
+    return {
+      ...FLANCCO_BRANDING,
+      id: p.id,
+      slug: p.slug || "flancco",
+      name: p.bedrijfsnaam || p.naam || "Flancco BV",
+      logoUrl: p.logo_url || "",
+      email: p.email || FLANCCO_BRANDING.email,
+      telefoon: p.telefoon || "",
+      website: p.website || FLANCCO_BRANDING.website,
+    };
+  }
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.bedrijfsnaam || p.naam || "Partner",
+    primaryColor: sanitizeHex(p.kleur_primair, FLANCCO_BRANDING.primaryColor),
+    secondaryColor: sanitizeHex(p.kleur_donker, FLANCCO_BRANDING.secondaryColor),
+    logoUrl: p.logo_url || "",
+    email: p.email || "",
+    telefoon: p.telefoon || "",
+    website: p.website || "",
+    isFlancco: false,
+  };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -89,10 +166,16 @@ serve(async (req) => {
       });
     }
 
-    // Fetch contract + partner. `lang` ophalen voor i18n (Slot S).
+    // Fetch contract + partner. Expliciet partner-kolommen selecteren (alleen wat we nodig hebben).
     const { data: contract, error: cErr } = await sb
       .from("contracten")
-      .select("*, partners(*)")
+      .select(`
+        *,
+        partners (
+          id, slug, naam, bedrijfsnaam, kleur_primair, kleur_donker,
+          logo_url, email, telefoon, website, actief
+        )
+      `)
       .eq("id", contract_id)
       .single();
 
@@ -126,7 +209,9 @@ serve(async (req) => {
       });
     }
 
-    const partner = contract.partners;
+    // Slot C4 — partner-branded shell. Default Flancco bij slug='flancco' of ontbrekende partner.
+    const branding = resolveBranding(contract.partners as PartnerRow | null);
+
     // Env-var zodat we staging/prod/legacy kunnen swappen zonder redeploy-per-URL-wijziging.
     // Default: productiedomein op Cloudflare Pages.
     const calculatorBase = (Deno.env.get("CALCULATOR_BASE_URL") ?? "https://calculator.flancco-platform.be").replace(/\/$/, "");
@@ -166,42 +251,21 @@ serve(async (req) => {
       ? `€ ${Number(contract.totaal_incl_btw).toFixed(2).replace(".", ",")}`
       : (lang === "fr" ? "Voir contrat" : "Zie contract");
 
-    const primaryColor = partner?.kleur_primair || "#1A1A2E";
-    const partnerNaam = partner?.bedrijfsnaam || partner?.naam || "Flancco";
-
     // Build email body per taal
     const content = lang === "fr"
-      ? frContent({
-          partnerNaam,
-          primaryColor,
-          partnerLogo: partner?.logo_url || "",
-          partnerEmail: partner?.contact_email || "",
-          partnerTelefoon: partner?.contact_telefoon || "",
-          partnerWebsite: partner?.website || "",
-          greeting: recipient.greeting,
-          sectorenHtml,
-          frequentie: contract.frequentie || "annuel",
-          totaal,
-          tekenUrl,
-        })
-      : nlContent({
-          partnerNaam,
-          primaryColor,
-          partnerLogo: partner?.logo_url || "",
-          partnerEmail: partner?.contact_email || "",
-          partnerTelefoon: partner?.contact_telefoon || "",
-          partnerWebsite: partner?.website || "",
-          greeting: recipient.greeting,
-          sectorenHtml,
-          frequentie: contract.frequentie || "Jaarlijks",
-          totaal,
-          tekenUrl,
-        });
+      ? frContent({ branding, greeting: recipient.greeting, sectorenHtml, frequentie: contract.frequentie || "annuel", totaal, tekenUrl })
+      : nlContent({ branding, greeting: recipient.greeting, sectorenHtml, frequentie: contract.frequentie || "Jaarlijks", totaal, tekenUrl });
 
-    const emailHtml = content.html;
+    const emailHtml = renderShell({
+      branding,
+      lang,
+      headerTitle: content.headerTitle,
+      bodyHtml: content.bodyHtml,
+    });
+
     const subject = lang === "fr"
-      ? `Votre contrat d'entretien de ${partnerNaam} prêt à être signé`
-      : `Uw onderhoudscontract van ${partnerNaam} ter ondertekening`;
+      ? `${branding.name} — Votre contrat d'entretien prêt à être signé`
+      : `${branding.name} — Uw onderhoudscontract ter ondertekening`;
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // BIJLAGEN: herroepingsformulier (altijd) + eventuele contract-PDF (indien al getekend)
@@ -213,6 +277,7 @@ serve(async (req) => {
     const attachmentWarnings: string[] = [];
 
     // 1. Herroepingsformulier — altijd genereren, juridisch verplicht bij contracten op afstand.
+    // Blijft Flancco-juridisch ongeacht de partner — Flancco BV is de contracts-counterparty.
     try {
       const herroepingBytes = await generateHerroepingsformulierPdf({
         partnerName: FLANCCO_LEGAL_NAME,
@@ -264,6 +329,11 @@ serve(async (req) => {
       );
     }
 
+    // Slot C4 — sender-naam toont partner ("Novectra via Flancco") en reply-to gaat naar
+    // partner-eigen mailbox indien beschikbaar; Flancco-default als de partner geen contact-mail heeft.
+    const afzenderNaam = branding.isFlancco ? "Flancco BV" : `${branding.name} via Flancco`;
+    const replyTo = (!branding.isFlancco && branding.email) ? branding.email : REPLY_TO_DEFAULT;
+
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -271,8 +341,8 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${partnerNaam} <${FROM_ADDRESS}>`,
-        reply_to: [REPLY_TO],
+        from: `${afzenderNaam} <${FROM_ADDRESS}>`,
+        reply_to: [replyTo],
         to: [recipient.email],
         subject,
         html: emailHtml,
@@ -297,6 +367,7 @@ serve(async (req) => {
         message: (lang === "fr" ? "E-mail envoyé à " : "Email verzonden naar ") + recipient.email,
         attachments_count: attachments.length,
         company_only: recipient.isCompanyOnly,
+        partner_slug: branding.slug,
         lang,
         ...(attachmentWarnings.length > 0 ? { attachment_warnings: attachmentWarnings } : {}),
       }),
@@ -311,16 +382,11 @@ serve(async (req) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EMAIL TEMPLATES — NL + FR
+// EMAIL TEMPLATES — NL + FR (Slot C4 partner-branded shell)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface BodyContext {
-  partnerNaam: string;
-  primaryColor: string;
-  partnerLogo: string;
-  partnerEmail: string;
-  partnerTelefoon: string;
-  partnerWebsite: string;
+  branding: PartnerBranding;
   greeting: string;
   sectorenHtml: string;
   frequentie: string;
@@ -329,133 +395,138 @@ interface BodyContext {
 }
 
 interface BodyPayload {
-  html: string;
+  headerTitle: string;
+  bodyHtml: string;
 }
 
 function nlContent(c: BodyContext): BodyPayload {
+  const primary = sanitizeHex(c.branding.primaryColor, "#1A1A2E");
+  const accent = sanitizeHex(c.branding.secondaryColor, "#E74C3C");
   return {
-    html: `
-<!DOCTYPE html>
-<html lang="nl">
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;margin-top:32px;margin-bottom:32px;">
-    <tr>
-      <td style="background:${c.primaryColor};padding:32px;text-align:center;">
-        ${c.partnerLogo ? `<img src="${escUrl(c.partnerLogo)}" alt="${escAttr(c.partnerNaam)}" style="max-height:60px;margin-bottom:12px;">` : ""}
-        <h1 style="color:#fff;margin:0;font-size:22px;">${escHtml(c.partnerNaam)}</h1>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:32px;">
-        <h2 style="color:#1a1a2e;margin-top:0;">Uw onderhoudscontract ter ondertekening</h2>
-        <p>${escHtml(c.greeting)},</p>
-        <p>${escHtml(c.partnerNaam)} heeft een onderhoudscontract voor u opgesteld. Hieronder vindt u een beknopt overzicht:</p>
+    headerTitle: "Onderhoudscontract ter ondertekening",
+    bodyHtml: `
+      <h2 style="color:#1a1a2e;margin-top:0;font-size:18px">Uw onderhoudscontract ter ondertekening</h2>
+      <p style="font-size:15px;margin:0 0 16px">${escHtml(c.greeting)},</p>
+      <p style="font-size:14px;line-height:1.7;margin:0 0 16px"><strong>${escHtml(c.branding.name)}</strong> heeft een onderhoudscontract voor u opgesteld. Hieronder vindt u een beknopt overzicht:</p>
 
-        <table style="width:100%;background:#f8f9fa;border-radius:8px;padding:16px;margin:20px 0;">
-          <tr><td style="padding:8px;">
-            <strong>Diensten:</strong>
-            <ul style="margin:8px 0;padding-left:20px;">${c.sectorenHtml}</ul>
-          </td></tr>
-          <tr><td style="padding:8px;">
-            <strong>Frequentie:</strong> ${escHtml(c.frequentie)}
-          </td></tr>
-          <tr><td style="padding:8px;">
-            <strong>Totaal per beurt incl. BTW:</strong> ${c.totaal}
-          </td></tr>
+      <div style="background:#f8f9fa;border-left:3px solid ${accent};border-radius:8px;padding:20px;margin:24px 0">
+        <h3 style="margin:0 0 12px;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">Samenvatting</h3>
+        <p style="margin:0 0 8px;font-size:14px;color:#1f2937"><strong>Diensten</strong></p>
+        <ul style="margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.7;color:#374151">${c.sectorenHtml}</ul>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:6px 0;color:#6b7280">Frequentie</td><td style="padding:6px 0;text-align:right;color:#1f2937">${escHtml(c.frequentie)}</td></tr>
+          <tr style="border-top:2px solid #e5e7eb"><td style="padding:10px 0 0;font-weight:700;color:#1f2937">Totaal per beurt</td><td style="padding:10px 0 0;text-align:right;font-weight:700;font-size:18px;color:${primary}">${c.totaal}</td></tr>
+          <tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#9ca3af;text-align:right">incl. btw</td></tr>
         </table>
+      </div>
 
-        <p style="text-align:center;margin:32px 0;">
-          <a href="${escUrl(c.tekenUrl)}" style="display:inline-block;background:${c.primaryColor};color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600;">
-            Bekijk &amp; teken uw contract
-          </a>
-        </p>
+      <p style="text-align:center;margin:32px 0">
+        <a href="${escUrl(c.tekenUrl)}" style="display:inline-block;background:${primary};color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600;letter-spacing:0.3px">
+          Bekijk &amp; teken uw contract
+        </a>
+      </p>
 
-        <p style="color:#666;font-size:13px;">Deze link is uniek voor u en kan eenmalig worden gebruikt om het contract te ondertekenen.</p>
+      <p style="color:#666;font-size:13px;line-height:1.6;margin:0 0 16px">Deze link is uniek voor u en kan eenmalig worden gebruikt om het contract te ondertekenen.</p>
 
-        <div style="background:#fff8e7;border:1px solid #f0dca0;border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:#7a6520;">
-          <strong>Herroepingsrecht</strong><br>
-          Als consument heeft u het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst
-          zonder opgave van redenen te herroepen, conform EU-richtlijn 2011/83/EU en boek VI WER.
-          Bij deze e-mail vindt u het wettelijke <strong>modelformulier voor herroeping</strong> als bijlage.
-        </div>
-
-        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
-        <p style="color:#888;font-size:13px;">
-          ${escHtml(c.partnerNaam)}<br>
-          ${c.partnerEmail ? `${escHtml(c.partnerEmail)}<br>` : ""}
-          ${c.partnerTelefoon ? `${escHtml(c.partnerTelefoon)}<br>` : ""}
-          ${c.partnerWebsite ? escHtml(c.partnerWebsite) : ""}
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
+      <div style="background:#fff8e7;border:1px solid #f0dca0;border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:#7a6520;line-height:1.6">
+        <strong>Herroepingsrecht</strong><br>
+        Als consument heeft u het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform EU-richtlijn 2011/83/EU en boek VI WER. Bij deze e-mail vindt u het wettelijke <strong>modelformulier voor herroeping</strong> als bijlage.
+      </div>`,
   };
 }
 
 function frContent(c: BodyContext): BodyPayload {
+  const primary = sanitizeHex(c.branding.primaryColor, "#1A1A2E");
+  const accent = sanitizeHex(c.branding.secondaryColor, "#E74C3C");
   return {
-    html: `
-<!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;margin-top:32px;margin-bottom:32px;">
-    <tr>
-      <td style="background:${c.primaryColor};padding:32px;text-align:center;">
-        ${c.partnerLogo ? `<img src="${escUrl(c.partnerLogo)}" alt="${escAttr(c.partnerNaam)}" style="max-height:60px;margin-bottom:12px;">` : ""}
-        <h1 style="color:#fff;margin:0;font-size:22px;">${escHtml(c.partnerNaam)}</h1>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:32px;">
-        <h2 style="color:#1a1a2e;margin-top:0;">Votre contrat d'entretien prêt à être signé</h2>
-        <p>${escHtml(c.greeting)},</p>
-        <p>${escHtml(c.partnerNaam)} a préparé un contrat d'entretien pour vous. Voici un bref aperçu :</p>
+    headerTitle: "Contrat d'entretien prêt à être signé",
+    bodyHtml: `
+      <h2 style="color:#1a1a2e;margin-top:0;font-size:18px">Votre contrat d'entretien prêt à être signé</h2>
+      <p style="font-size:15px;margin:0 0 16px">${escHtml(c.greeting)},</p>
+      <p style="font-size:14px;line-height:1.7;margin:0 0 16px"><strong>${escHtml(c.branding.name)}</strong> a préparé un contrat d'entretien pour vous. Voici un bref aperçu :</p>
 
-        <table style="width:100%;background:#f8f9fa;border-radius:8px;padding:16px;margin:20px 0;">
-          <tr><td style="padding:8px;">
-            <strong>Services :</strong>
-            <ul style="margin:8px 0;padding-left:20px;">${c.sectorenHtml}</ul>
-          </td></tr>
-          <tr><td style="padding:8px;">
-            <strong>Fréquence :</strong> ${escHtml(c.frequentie)}
-          </td></tr>
-          <tr><td style="padding:8px;">
-            <strong>Total par intervention TVA comprise :</strong> ${c.totaal}
-          </td></tr>
+      <div style="background:#f8f9fa;border-left:3px solid ${accent};border-radius:8px;padding:20px;margin:24px 0">
+        <h3 style="margin:0 0 12px;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">Résumé</h3>
+        <p style="margin:0 0 8px;font-size:14px;color:#1f2937"><strong>Services</strong></p>
+        <ul style="margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.7;color:#374151">${c.sectorenHtml}</ul>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:6px 0;color:#6b7280">Fréquence</td><td style="padding:6px 0;text-align:right;color:#1f2937">${escHtml(c.frequentie)}</td></tr>
+          <tr style="border-top:2px solid #e5e7eb"><td style="padding:10px 0 0;font-weight:700;color:#1f2937">Total par intervention</td><td style="padding:10px 0 0;text-align:right;font-weight:700;font-size:18px;color:${primary}">${c.totaal}</td></tr>
+          <tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#9ca3af;text-align:right">TVA comprise</td></tr>
         </table>
+      </div>
 
-        <p style="text-align:center;margin:32px 0;">
-          <a href="${escUrl(c.tekenUrl)}" style="display:inline-block;background:${c.primaryColor};color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600;">
-            Consulter &amp; signer votre contrat
-          </a>
-        </p>
+      <p style="text-align:center;margin:32px 0">
+        <a href="${escUrl(c.tekenUrl)}" style="display:inline-block;background:${primary};color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600;letter-spacing:0.3px">
+          Consulter &amp; signer votre contrat
+        </a>
+      </p>
 
-        <p style="color:#666;font-size:13px;">Ce lien vous est destiné personnellement et ne peut être utilisé qu'une seule fois pour signer le contrat.</p>
+      <p style="color:#666;font-size:13px;line-height:1.6;margin:0 0 16px">Ce lien vous est destiné personnellement et ne peut être utilisé qu'une seule fois pour signer le contrat.</p>
 
-        <div style="background:#fff8e7;border:1px solid #f0dca0;border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:#7a6520;">
-          <strong>Droit de rétractation</strong><br>
-          En tant que consommateur, vous disposez de 14 jours calendrier après la signature pour rétracter cet accord
-          sans justification, conformément à la directive UE 2011/83/UE et au livre VI du CDE.
-          Vous trouverez en pièce jointe le <strong>formulaire légal de rétractation</strong>.
-        </div>
-
-        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
-        <p style="color:#888;font-size:13px;">
-          ${escHtml(c.partnerNaam)}<br>
-          ${c.partnerEmail ? `${escHtml(c.partnerEmail)}<br>` : ""}
-          ${c.partnerTelefoon ? `${escHtml(c.partnerTelefoon)}<br>` : ""}
-          ${c.partnerWebsite ? escHtml(c.partnerWebsite) : ""}
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
+      <div style="background:#fff8e7;border:1px solid #f0dca0;border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:#7a6520;line-height:1.6">
+        <strong>Droit de rétractation</strong><br>
+        En tant que consommateur, vous disposez de 14 jours calendrier après la signature pour rétracter cet accord sans justification, conformément à la directive UE 2011/83/UE et au livre VI du CDE. Vous trouverez en pièce jointe le <strong>formulaire légal de rétractation</strong>.
+      </div>`,
   };
+}
+
+interface ShellOpts {
+  branding: PartnerBranding;
+  lang: Lang;
+  headerTitle: string;
+  bodyHtml: string;
+}
+
+function renderShell(o: ShellOpts): string {
+  const primary = sanitizeHex(o.branding.primaryColor, "#1A1A2E");
+  const headerLogoOrName = o.branding.logoUrl
+    ? `<img src="${escUrl(o.branding.logoUrl)}" alt="${escAttr(o.branding.name)}" style="max-height:48px;max-width:200px;display:block;margin:0 auto" />`
+    : `<h1 style="margin:0;font-size:22px;letter-spacing:1.5px;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">${escHtml(o.branding.name)}</h1>`;
+  const flanccoCredit = o.branding.isFlancco
+    ? ""
+    : `<p style="margin:8px 0 0;font-size:11px;color:#999">${o.lang === "fr" ? "Plateforme propulsée par" : "Platform aangedreven door"} <strong>Flancco BV</strong></p>`;
+  const footerContact = renderFooterContact(o.branding, o.lang);
+  return `<!DOCTYPE html>
+<html lang="${o.lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escHtml(o.headerTitle)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2937">
+<div style="max-width:600px;margin:0 auto;padding:20px">
+  <div style="background:${primary};color:#fff;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center">
+    ${headerLogoOrName}
+  </div>
+  <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+    ${o.bodyHtml}
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb">
+      ${footerContact}
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:16px">
+    ${flanccoCredit}
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+function renderFooterContact(b: PartnerBranding, lang: Lang): string {
+  const labels = lang === "fr"
+    ? { vragen: "Une question ?", website: "Site web" }
+    : { vragen: "Vragen?", website: "Website" };
+  const lines: string[] = [];
+  if (b.telefoon) lines.push(`<span style="color:#4b5563">${escHtml(b.telefoon)}</span>`);
+  if (b.email) lines.push(`<a href="mailto:${escAttr(b.email)}" style="color:${sanitizeHex(b.primaryColor, "#1A1A2E")};text-decoration:none">${escHtml(b.email)}</a>`);
+  if (b.website) lines.push(`<a href="${escUrl(b.website)}" style="color:${sanitizeHex(b.primaryColor, "#1A1A2E")};text-decoration:none">${labels.website}</a>`);
+  if (lines.length === 0) return "";
+  return `<p style="font-size:14px;color:#6b7280;margin:0 0 8px">${labels.vragen}</p>
+    <p style="font-size:14px;margin:0;line-height:1.7">
+      <strong style="color:#1f2937">${escHtml(b.name)}</strong><br>
+      ${lines.join(" &middot; ")}
+    </p>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -508,7 +579,7 @@ async function downloadContractPdf(
  * Aanhef per taal:
  *   - NL persoon:      "Beste {first_name}"
  *   - NL bedrijf-only: "Beste collega's van {company_name}"
- *   - FR persoon:      "Cher client {first_name}" (gebruikt "Bonjour" stijl uit send-confirmation)
+ *   - FR persoon:      "Bonjour {first_name}"
  *   - FR bedrijf-only: "Chers collègues de {company_name}"
  */
 async function resolveRecipient(
@@ -584,4 +655,13 @@ function escUrl(s: string | null | undefined): string {
     return v.replace(/"/g, "%22").replace(/</g, "%3C").replace(/>/g, "%3E");
   }
   return "";
+}
+
+/** Hex-color sanitizer: returnt fallback bij niet-#RRGGBB / #RGB input. */
+function sanitizeHex(value: string | null | undefined, fallback: string): string {
+  const v = String(value ?? "").trim();
+  if (/^#?[0-9a-fA-F]{6}$/.test(v) || /^#?[0-9a-fA-F]{3}$/.test(v)) {
+    return v.startsWith("#") ? v : `#${v}`;
+  }
+  return fallback;
 }

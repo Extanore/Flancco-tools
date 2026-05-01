@@ -259,6 +259,7 @@
   .badge-green { background: #d1fae5; color: #065f46; }
   .badge-orange { background: #fef3c7; color: #92400e; }
   .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-followup { background: #fee2e2; color: #991b1b; font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px; display:inline-block; margin-top:4px; }
   .badge-blue { background: #dbeafe; color: #1e40af; }
   .badge-grey { background: #f3f4f6; color: #4b5563; }
   .badge-zon { background: #FEF3C7; color: #92400E; }
@@ -274,6 +275,8 @@
   .btn-action:hover { border-color: var(--navy); color: var(--navy); }
   .btn-action-red:hover { border-color: var(--red); color: var(--red); }
   .btn-action-danger:hover { border-color: var(--red); color: var(--red); background:#FEF2F2; }
+  .btn-action-followup-active { border-color: var(--red); color: var(--red); background:#FEE2E2; }
+  .btn-action-followup-active:hover { background:#FECACA; }
 
   /* =============================================
      SLOT C — PARTNER PIPELINE BOARD
@@ -281,7 +284,30 @@
      met card-per-contract + hover-actions (bel/email/follow-up).
      Read-only voor partner; eigen contracten via RLS.
      ============================================= */
-  .c-pipeline-board { display:flex; gap:16px; overflow-x:auto; padding:16px 0 4px 0; min-height:400px; }
+  .c-pipeline-board { display:block; padding:8px 0 4px 0; min-height:400px; }
+  .c-pipeline-board-inner { display:flex; gap:16px; overflow-x:auto; padding:8px 0 4px 0; }
+  /* Step-bar — funnel-buckets met counters; klikbaar voor filter */
+  .c-pipeline-stepbar { display:flex; align-items:stretch; gap:0; margin:8px 0 14px; flex-wrap:wrap; }
+  .c-pipeline-step { position:relative; flex:1; min-width:140px; background:#F9FAFB; border:1.5px solid var(--rule); border-right:none; padding:12px 16px 12px 24px; display:flex; flex-direction:column; gap:4px; cursor:pointer; transition:background 0.15s, border-color 0.15s, color 0.15s; text-align:left; font-family:inherit; }
+  .c-pipeline-step:first-child { border-radius:8px 0 0 8px; padding-left:16px; }
+  .c-pipeline-step:last-child { border-right:1.5px solid var(--rule); border-radius:0 8px 8px 0; }
+  .c-pipeline-step[data-with-arrow="true"]::after { content:''; position:absolute; right:-12px; top:50%; transform:translateY(-50%) rotate(45deg); width:22px; height:22px; background:#F9FAFB; border-top:1.5px solid var(--rule); border-right:1.5px solid var(--rule); z-index:2; transition:background 0.15s, border-color 0.15s; }
+  .c-pipeline-step:hover { background:#F3F4F6; }
+  .c-pipeline-step:hover[data-with-arrow="true"]::after { background:#F3F4F6; }
+  .c-pipeline-step.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .c-pipeline-step.active[data-with-arrow="true"]::after { background:var(--navy); border-color:var(--navy); }
+  .c-pipeline-step.active .c-pipeline-step-count { background:rgba(255,255,255,0.2); color:#fff; }
+  .c-pipeline-step-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:inherit; }
+  .c-pipeline-step.active .c-pipeline-step-label { color:#fff; }
+  .c-pipeline-step:not(.active) .c-pipeline-step-label { color:#6B7280; }
+  .c-pipeline-step-count { font-size:18px; font-weight:700; color:var(--navy); background:#fff; align-self:flex-start; padding:2px 10px; border-radius:6px; min-width:30px; text-align:center; line-height:1.3; }
+  @media (max-width: 900px) {
+    .c-pipeline-stepbar { flex-direction:column; }
+    .c-pipeline-step { min-width:0; border-right:1.5px solid var(--rule) !important; border-bottom:none; padding-left:16px !important; border-radius:0 !important; }
+    .c-pipeline-step:first-child { border-radius:8px 8px 0 0 !important; }
+    .c-pipeline-step:last-child { border-radius:0 0 8px 8px !important; }
+    .c-pipeline-step[data-with-arrow="true"]::after { display:none; }
+  }
   .c-pipeline-col { min-width:280px; flex:1; background:#F9FAFB; border-radius:8px; padding:12px; display:flex; flex-direction:column; max-height:70vh; }
   .c-pipeline-col[data-status="concept"] { background:#F9FAFB; }
   .c-pipeline-col[data-status="getekend"] { background:#EFF6FF; }
@@ -314,7 +340,8 @@
   .c-pipeline-card:hover .c-pipeline-followup-flag { opacity:0; }
   .c-pipeline-empty-state { padding:32px 16px; text-align:center; color:var(--grey); font-size:13px; }
   @media (max-width: 768px) {
-    .c-pipeline-board { padding:8px 0; gap:12px; }
+    .c-pipeline-board { padding:8px 0; }
+    .c-pipeline-board-inner { gap:12px; }
     .c-pipeline-col { min-width:240px; padding:10px; }
   }
 
@@ -11654,9 +11681,19 @@ function renderContracten() {
         sectorHtml = '—';
       }
       const totaal = c.totaal_incl_btw ? '€ ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') : '—';
+      // Slot C2 — admin ziet "Follow-up van X" badge wanneer een partner het contract gemarkeerd heeft.
+      let partnerCellExtra = '';
+      if (userRole === 'admin' && c.follow_up_needed === true) {
+        const partnerLabel = (partner?.bedrijfsnaam || partner?.naam || 'partner');
+        partnerCellExtra = '<br><span class="badge badge-followup" title="Follow-up gemarkeerd door ' + esc(partnerLabel) + '">Follow-up van ' + esc(partnerLabel) + '</span>';
+      }
+      // Klant-cel: follow-up indicator naast naam (zichtbaar voor partner zelf en admin).
+      const followIndicator = c.follow_up_needed === true
+        ? ' <span title="Follow-up gemarkeerd" style="display:inline-flex;align-items:center;color:var(--red);vertical-align:middle"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M4 22V4a1 1 0 0 1 1-1h11l-1 4 1 4H6v11H4z"/></svg></span>'
+        : '';
       return `<tr>
-        <td><strong>${c.klant_naam}</strong><br><small style="color:var(--grey)">${c.klant_gemeente || ''}</small></td>
-        <td class="admin-only">${partner?.bedrijfsnaam || partner?.naam || '—'}</td>
+        <td><strong>${c.klant_naam}</strong>${followIndicator}<br><small style="color:var(--grey)">${c.klant_gemeente || ''}</small></td>
+        <td class="admin-only">${partner?.bedrijfsnaam || partner?.naam || '—'}${partnerCellExtra}</td>
         <td>${sectorHtml}</td>
         <td>${c.frequentie || '—'}</td>
         <td>${c.contractduur || '—'}</td>
@@ -11693,18 +11730,57 @@ function updateContractTabCounts() {
 function loadContracten() { renderContracten(); }
 
 // =============================================
-// SLOT C1 — PARTNER PIPELINE BOARD
-// Kanban-style 5-kolommen layout (concept/getekend/actief/verlopen/geannuleerd).
-// Read-only via myContracten() → RLS scoped naar eigen partner_id.
+// SLOT C1 — PARTNER PIPELINE BOARD (funnel)
+// 5-fase funnel: draft → signed → scheduled → completed → invoiced.
+// Klikbare buckets filteren contracten-tabel; read-only via myContracten().
+// Bron: contracten + window._allBeurten (onderhoudsbeurten met gefactureerd_op).
 // =============================================
-var PIPELINE_STATUSES = ['concept', 'getekend', 'actief', 'verlopen', 'geannuleerd'];
+var PIPELINE_STATUSES = ['draft', 'signed', 'scheduled', 'completed', 'invoiced'];
 var PIPELINE_STATUS_LABELS = {
-  concept: 'Concept',
-  getekend: 'Getekend',
-  actief: 'Actief',
-  verlopen: 'Verlopen',
-  geannuleerd: 'Geannuleerd'
+  draft: 'Concept',
+  signed: 'Getekend',
+  scheduled: 'Ingepland',
+  completed: 'Uitgevoerd',
+  invoiced: 'Gefactureerd'
 };
+var PIPELINE_STATUS_HINTS = {
+  draft: 'Nog niet getekend door klant',
+  signed: 'Getekend, geen beurt ingepland',
+  scheduled: 'Minstens 1 beurt ingepland',
+  completed: 'Minstens 1 beurt afgewerkt',
+  invoiced: 'Minstens 1 beurt gefactureerd'
+};
+
+// Bepaal funnel-fase (Slot C1) op basis van contract-status + onderhoudsbeurten.
+// Hoogste-fase-bereikt wint (invoiced > completed > scheduled > signed > draft).
+function computeFunnelStatus(c) {
+  if (!c) return 'draft';
+  // Geannuleerde contracten worden als draft beschouwd (visueel blijft geannuleerd
+  // herkenbaar via badge in de tabel; pipeline-funnel toont enkel actieve flow).
+  if (c.status === 'geannuleerd') return 'draft';
+  var beurten = (window._allBeurten || []).filter(function(b) { return b.contract_id === c.id; });
+  // invoiced: minstens 1 beurt met gefactureerd_op gevuld OF facturatie_status='gefactureerd'.
+  var hasInvoiced = beurten.some(function(b) {
+    return !!b.gefactureerd_op || b.facturatie_status === 'gefactureerd';
+  });
+  if (hasInvoiced) return 'invoiced';
+  // completed: minstens 1 beurt status afgerond/uitgevoerd/afgewerkt.
+  var doneStatuses = { afgerond: 1, afgewerkt: 1, uitgevoerd: 1 };
+  var hasCompleted = beurten.some(function(b) { return doneStatuses[b.status] === 1; });
+  if (hasCompleted) return 'completed';
+  // scheduled: minstens 1 beurt status ingepland of plan_datum gevuld.
+  var hasScheduled = beurten.some(function(b) {
+    return b.status === 'ingepland' || b.status === 'gestart' || (b.plan_datum && b.status !== 'geannuleerd');
+  });
+  if (hasScheduled) return 'scheduled';
+  // signed: contract is getekend (handtekening of status='getekend'/'actief').
+  if (c.status === 'getekend' || c.status === 'actief') return 'signed';
+  if (c.handtekening_data || c.handtekening_url || c.datum_ondertekening) return 'signed';
+  return 'draft';
+}
+
+// Filter-state: welke bucket is geselecteerd? null = alle (geen filter).
+var pipelineActiveBucket = null;
 
 function renderPipeline() {
   var board = document.getElementById('pipeline-board');
@@ -11719,11 +11795,11 @@ function renderPipeline() {
   }
   if (noEl) noEl.style.display = 'none';
 
-  // Groepeer per computed status.
+  // Groepeer per funnel-status.
   var byStatus = {};
   PIPELINE_STATUSES.forEach(function(s) { byStatus[s] = []; });
   contracts.forEach(function(c) {
-    var st = computeStatus(c);
+    var st = computeFunnelStatus(c);
     if (!byStatus[st]) byStatus[st] = [];
     byStatus[st].push(c);
   });
@@ -11739,7 +11815,56 @@ function renderPipeline() {
 
   // Build kolommen via DOM-API (XSS-safe — geen innerHTML met klant-data).
   board.innerHTML = '';
-  PIPELINE_STATUSES.forEach(function(status) {
+
+  // Step-bar bovenaan: 5 klikbare buckets met aantallen.
+  // Klikken filtert het kanban-board op de gekozen bucket; nogmaals klikken = reset.
+  var stepBar = document.createElement('div');
+  stepBar.className = 'c-pipeline-stepbar';
+  stepBar.setAttribute('role', 'tablist');
+  stepBar.setAttribute('aria-label', 'Pipeline-fases filter');
+  PIPELINE_STATUSES.forEach(function(status, idx) {
+    var step = document.createElement('button');
+    step.type = 'button';
+    step.className = 'c-pipeline-step';
+    step.setAttribute('data-status', status);
+    step.setAttribute('role', 'tab');
+    step.setAttribute('aria-selected', pipelineActiveBucket === status ? 'true' : 'false');
+    step.title = PIPELINE_STATUS_HINTS[status] || '';
+    if (pipelineActiveBucket === status) step.classList.add('active');
+    var stepCount = (byStatus[status] || []).length;
+    var lbl = document.createElement('span');
+    lbl.className = 'c-pipeline-step-label';
+    lbl.textContent = PIPELINE_STATUS_LABELS[status] || status;
+    var cnt = document.createElement('span');
+    cnt.className = 'c-pipeline-step-count';
+    cnt.textContent = String(stepCount);
+    step.appendChild(lbl);
+    step.appendChild(cnt);
+    if (idx < PIPELINE_STATUSES.length - 1) {
+      step.setAttribute('data-with-arrow', 'true');
+    }
+    step.addEventListener('click', function() {
+      pipelineActiveBucket = (pipelineActiveBucket === status) ? null : status;
+      if (typeof window.flanccoTrack === 'function') {
+        try { window.flanccoTrack('Pipeline Bucket Clicked', { bucket: status, active: pipelineActiveBucket === status }); } catch (_) {}
+      }
+      renderPipeline();
+    });
+    stepBar.appendChild(step);
+  });
+  board.appendChild(stepBar);
+
+  // Kanban-rij eronder.
+  var boardInner = document.createElement('div');
+  boardInner.className = 'c-pipeline-board-inner';
+  board.appendChild(boardInner);
+
+  // Filter de zichtbare statussen op de actieve bucket (indien gekozen).
+  var visibleStatuses = pipelineActiveBucket
+    ? [pipelineActiveBucket]
+    : PIPELINE_STATUSES;
+
+  visibleStatuses.forEach(function(status) {
     var col = document.createElement('div');
     col.className = 'c-pipeline-col';
     col.setAttribute('data-status', status);
@@ -11769,7 +11894,7 @@ function renderPipeline() {
       });
     }
     col.appendChild(body);
-    board.appendChild(col);
+    boardInner.appendChild(col);
   });
 }
 
@@ -13526,6 +13651,20 @@ function contractActions(c) {
   // Preview + PDF for all statuses
   btns += '<button class="btn-action" onclick="previewContract(\'' + c.id + '\')" title="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>';
   btns += '<button class="btn-action" onclick="downloadContractPDF(\'' + c.id + '\')" title="Download PDF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>';
+  // Slot C2 — partner kan eerstelijns klant-contact: bel / email / follow-up.
+  // Tonen voor partner-rol op tabel-rijen (mirror van pipeline-card actions).
+  if (userRole === 'partner') {
+    var hasTel = !!(c.klant_telefoon && c.klant_telefoon.trim());
+    var hasEmail = !!(c.klant_email && c.klant_email.trim());
+    var followActive = c.follow_up_needed === true;
+    if (hasTel) {
+      btns += '<button class="btn-action" onclick="pipeline_belKlant(\'' + c.id + '\')" title="Bel klant"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>';
+    }
+    if (hasEmail) {
+      btns += '<button class="btn-action" onclick="pipeline_emailKlant(\'' + c.id + '\')" title="Herinner via email"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>';
+    }
+    btns += '<button class="btn-action' + (followActive ? ' btn-action-followup-active' : '') + '" onclick="pipeline_toggleFollowUp(\'' + c.id + '\')" title="' + (followActive ? 'Verwijder follow-up' : 'Markeer als follow-up') + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (followActive ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 4 2 4H6v11"/></svg></button>';
+  }
   if (st === 'concept') {
     btns += '<button class="btn-action" onclick="copyTekenLink(\'' + c.teken_token + '\')" title="Kopieer tekenlink"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>';
     btns += '<button class="btn-action" onclick="sendContractMail(\'' + c.id + '\')" title="Verstuur per mail"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>';
