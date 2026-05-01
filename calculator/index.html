@@ -1538,10 +1538,10 @@ var SECTORS = {
         // waarom we het vragen.
         '<div class="field" style="margin-top:22px"><label>Hoe goed is uw woning bereikbaar voor onze servicewagen?</label>' +
           '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Onze bestelwagen heeft een korte parkeerplaats nodig in de buurt van uw woning om materiaal vlot te lossen.</small>' +
-          '<select id="klant-bereik">' +
+          '<select id="klant-bereik" onchange="calculateAll()">' +
             '<option value="Goed">Goed bereikbaar — bestelwagen kan vlot tot bij de woning</option>' +
             '<option value="Beperkt">Beperkt bereikbaar — smalle straat, paaltjes of obstakels op de oprit</option>' +
-            '<option value="Parkeervergunning">Parkeervergunning nodig — woning in centrum of zone met betalend parkeren</option>' +
+            '<option value="Parkeervergunning">Parkeervergunning nodig — woning in centrum of zone met betalend parkeren (+€25)</option>' +
           '</select></div>' +
         '<div class="field"><label>Is er een werkende buitenkraan beschikbaar?</label>' +
           '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Met een buitenkraan werken we het vlotst; zonder geen probleem — we brengen onze eigen watertank mee.</small>' +
@@ -1553,11 +1553,13 @@ var SECTORS = {
     },
 
     readInputs: function() {
+      var bereikEl = document.getElementById('klant-bereik');
       return {
         pan: Math.max(1, parseInt(document.getElementById('solar-panelen').value) || 1),
         daktype: document.getElementById('solar-daktype').value,
         hoog: document.getElementById('solar-dakhoogte').value === 'hoog',
-        verv: document.getElementById('solar-vervuiling').checked
+        verv: document.getElementById('solar-vervuiling').checked,
+        bereik: bereikEl ? bereikEl.value : 'Goed'
       };
     },
 
@@ -1586,15 +1588,22 @@ var SECTORS = {
 
       var vervPP = getSectorSupplement('zonnepanelen', 'vervuiling') * (1 + marge);
       var hoogBedrag = getSectorSupplement('zonnepanelen', 'hoogtewerker') * (1 + marge);
+      // Parkeervergunning-administratiekost (\u20AC25 vast) \u2014 doorberekend zonder
+      // partner-marge: het is een doorlopende kost (vergunning bij gemeente)
+      // i.p.v. winst-genererende dienst. Transparant zichtbaar in de result-
+      // lines en in de PDF zodat klant geen verrassing krijgt.
+      var parkeerFeeBase = 25;
       var vervC = inputs.verv ? inputs.pan * vervPP : 0;
       var hoogC = inputs.hoog ? hoogBedrag : 0;
-      var subtotalExcl = f.amt + vervC + hoogC;
+      var parkeerC = (inputs.bereik === 'Parkeervergunning') ? parkeerFeeBase : 0;
+      var subtotalExcl = f.amt + vervC + hoogC + parkeerC;
 
       var lines = [{ label: 'Reiniging ' + inputs.pan + ' panelen (' + f.lbl + ')', amount: f.amt }];
       if (vervC > 0) lines.push({ label: 'Vervuiling (' + inputs.pan + ' pan. \u00D7 ' + fmt(vervPP) + ')', amount: vervC });
       if (hoogC > 0) lines.push({ label: 'Hoogtewerker (dakrand > 7,5 m)', amount: hoogC });
+      if (parkeerC > 0) lines.push({ label: 'Parkeervergunning (administratiekost)', amount: parkeerC });
 
-      return { lines: lines, subtotalExcl: subtotalExcl, forfaitLabel: f.lbl, forfaitExcl: f.amt, vervC: vervC, hoogC: hoogC, hoogBedrag: hoogBedrag, vervPP: vervPP };
+      return { lines: lines, subtotalExcl: subtotalExcl, forfaitLabel: f.lbl, forfaitExcl: f.amt, vervC: vervC, hoogC: hoogC, hoogBedrag: hoogBedrag, vervPP: vervPP, parkeerC: parkeerC, parkeerFee: parkeerFeeBase };
     },
 
     renderStaffelTable: function(pricing, partner, btwPct) {
@@ -1665,9 +1674,11 @@ var SECTORS = {
     contractSupplementsTable: function(result, btwMult) {
       var vervBedrag = result.vervPP * btwMult;
       var hoogBedrag = result.hoogBedrag * btwMult;
+      var parkeerBedrag = (result.parkeerFee || 0) * btwMult;
       var rows = '';
       if (vervBedrag > 0) rows += '<tr><td>Hevige vervuiling of mosvorming</td><td>+ ' + fmt(vervBedrag) + ' / paneel</td></tr>';
       if (hoogBedrag > 0) rows += '<tr><td>Hoogtewerker (dakrand > 7,5 m)</td><td>+ ' + fmt(hoogBedrag) + ' / installatie</td></tr>';
+      if (parkeerBedrag > 0) rows += '<tr><td>Parkeervergunning (administratiekost)</td><td>+ ' + fmt(parkeerBedrag) + ' / beurt</td></tr>';
       return rows;
     },
 
@@ -1685,6 +1696,7 @@ var SECTORS = {
       var regels = [{ omschrijving: 'Reiniging ' + inputs.pan + ' zonnepanelen (' + result.forfaitLabel + ')', bedrag: result.forfaitExcl, btw_pct: btwPct }];
       if (result.vervC > 0) regels.push({ omschrijving: 'Hevige vervuiling (' + inputs.pan + ' panelen)', bedrag: result.vervC, btw_pct: btwPct });
       if (result.hoogC > 0) regels.push({ omschrijving: 'Hoogtewerker', bedrag: result.hoogC, btw_pct: btwPct });
+      if (result.parkeerC > 0) regels.push({ omschrijving: 'Parkeervergunning (administratiekost)', bedrag: result.parkeerC, btw_pct: btwPct });
       return regels;
     }
   },
@@ -2574,7 +2586,7 @@ var KLANT_VRAGEN_DEFAULTS = {
       options: [
         { value: 'Goed',                label_nl: 'Goed bereikbaar — bestelwagen kan vlot tot bij de woning',                  label_fr: 'Bien accessible — le véhicule peut s’approcher facilement' },
         { value: 'Beperkt',             label_nl: 'Beperkt bereikbaar — smalle straat, paaltjes of obstakels op de oprit',     label_fr: 'Accès limité — rue étroite, bornes ou obstacles' },
-        { value: 'Parkeervergunning',   label_nl: 'Parkeervergunning nodig — woning in centrum of zone met betalend parkeren', label_fr: 'Permis de stationnement requis — habitation en centre-ville ou zone payante' }
+        { value: 'Parkeervergunning',   label_nl: 'Parkeervergunning nodig — woning in centrum of zone met betalend parkeren (+€25)', label_fr: 'Permis de stationnement requis — habitation en centre-ville ou zone payante (+25€)' }
       ]
     },
     buitenkraan: {
