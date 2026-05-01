@@ -1586,37 +1586,42 @@
   .cc-mock-vraag.is-locked:hover::after,
   .cc-mock-options-card.is-locked:hover::after { opacity:1; }
 
-  /* Popover-shell — floating editor naast aangeklikt element */
+  /* Popover-shell — gecentreerd modal (was: floating naast anchor; user-feedback:
+     onderkant viel buiten viewport bij elementen onderaan de preview). Nu altijd
+     center-screen met backdrop, max-height respecteert viewport zodat lange
+     editors (motivatie, frequentie) volledig scrollbaar zijn binnen de modal. */
+  .cc-popover-backdrop {
+    position:fixed; inset:0; z-index:199;
+    background:rgba(15,23,42,0.42);
+    backdrop-filter:blur(2px);
+    animation:cc-popover-backdrop-fadein 0.16s ease-out;
+  }
+  @keyframes cc-popover-backdrop-fadein {
+    from { opacity:0; }
+    to   { opacity:1; }
+  }
   .cc-popover {
     position:fixed; z-index:200;
-    width:480px; max-width:calc(100vw - 32px);
-    max-height:calc(100vh - 80px); overflow-y:auto;
+    left:50%; top:50%;
+    transform:translate(-50%, -50%);
+    width:520px; max-width:calc(100vw - 32px);
+    max-height:calc(100vh - 48px);
+    display:flex; flex-direction:column;
     background:#fff; border-radius:12px;
-    box-shadow:0 10px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow:0 24px 60px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.10);
     border:1px solid var(--rule);
     animation:cc-popover-fadein 0.16s ease-out;
   }
   @keyframes cc-popover-fadein {
-    from { opacity:0; transform:translateY(-4px) scale(0.98); }
-    to   { opacity:1; transform:translateY(0) scale(1); }
+    from { opacity:0; transform:translate(-50%, -50%) scale(0.96); }
+    to   { opacity:1; transform:translate(-50%, -50%) scale(1); }
   }
-  .cc-popover-arrow {
-    position:absolute; width:12px; height:12px; background:#fff;
-    border-left:1px solid var(--rule); border-top:1px solid var(--rule);
-    transform:rotate(-45deg);
-    /* Position via JS on each open */
-  }
-  .cc-popover-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--rule); }
+  .cc-popover-arrow { display:none; }  /* Niet langer relevant in centered modal */
+  .cc-popover-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--rule); flex-shrink:0; }
   .cc-popover-title { margin:0; font-size:14px; font-weight:600; color:var(--navy); }
   .cc-popover-close { background:transparent; border:0; font-size:22px; color:var(--grey); cursor:pointer; padding:0 4px; line-height:1; }
   .cc-popover-close:hover { color:var(--navy); }
-  .cc-popover-body { padding:18px; }
-
-  /* Mobile/narrow viewport — fall back to centered modal */
-  @media (max-width:640px) {
-    .cc-popover { left:50% !important; top:50% !important; transform:translate(-50%, -50%) !important; }
-    .cc-popover-arrow { display:none; }
-  }
+  .cc-popover-body { padding:18px; overflow-y:auto; flex:1 1 auto; min-height:0; }
 
   /* Compatibility shim — backward-compat tekst-helper voor oud configs met icon_svg */
   .cc-icon-legacy-hint { font-size:11px; color:#92400E; background:#FEF3C7; border:1px solid #FCD34D; border-radius:6px; padding:6px 9px; margin-top:6px; line-height:1.4; }
@@ -25447,7 +25452,8 @@ function ccOpenPopover(target, anchorEl) {
   }
 
   pop.hidden = false;
-  ccPositionPopover(anchorEl);
+  // Backdrop tonen — semi-transparante overlay achter modal voor focus.
+  _ccShowPopoverBackdrop();
   // Focus eerste input voor keyboard-friendly editing
   setTimeout(function() {
     var first = body.querySelector('input,textarea,select,button');
@@ -25455,68 +25461,46 @@ function ccOpenPopover(target, anchorEl) {
   }, 60);
   // Re-bind handlers idempotent (eerst removen om dubbele bind te vermijden)
   document.removeEventListener('keydown', _ccPopoverKeyHandler);
-  document.removeEventListener('mousedown', _ccPopoverOutsideClickHandler);
   document.addEventListener('keydown', _ccPopoverKeyHandler);
-  setTimeout(function() {
-    document.addEventListener('mousedown', _ccPopoverOutsideClickHandler);
-  }, 0);
 }
 
 function ccClosePopover() {
   var pop = document.getElementById('cc-popover');
   if (pop) pop.hidden = true;
+  _ccHidePopoverBackdrop();
   ccPopoverState.activeTarget = null;
   ccPopoverState.anchorEl = null;
   document.removeEventListener('keydown', _ccPopoverKeyHandler);
-  document.removeEventListener('mousedown', _ccPopoverOutsideClickHandler);
 }
 
 function _ccPopoverKeyHandler(e) {
   if (e.key === 'Escape') ccClosePopover();
 }
 
-function _ccPopoverOutsideClickHandler(e) {
-  var pop = document.getElementById('cc-popover');
-  if (!pop || pop.hidden) return;
-  if (pop.contains(e.target)) return;
-  // Klik op een ander cc-mock-section — laat de delegated click-handler dat afhandelen
-  var newTarget = e.target.closest && e.target.closest('[data-cc-edit-target]');
-  if (newTarget) return; // hij zal opnieuw openen via click-handler
-  ccClosePopover();
+// Backdrop = klik-outside-to-close + visuele focus. Idempotent: re-creëren
+// bij re-open zou een dubbele node geven; we hergebruiken hetzelfde element.
+function _ccShowPopoverBackdrop() {
+  var bd = document.getElementById('cc-popover-backdrop');
+  if (!bd) {
+    bd = document.createElement('div');
+    bd.id = 'cc-popover-backdrop';
+    bd.className = 'cc-popover-backdrop';
+    bd.addEventListener('mousedown', function(e) {
+      if (e.target === bd) ccClosePopover();
+    });
+    document.body.appendChild(bd);
+  }
+  bd.style.display = '';
+}
+function _ccHidePopoverBackdrop() {
+  var bd = document.getElementById('cc-popover-backdrop');
+  if (bd) bd.style.display = 'none';
 }
 
-function ccPositionPopover(anchorEl) {
-  var pop = document.getElementById('cc-popover');
-  var arrow = pop && pop.querySelector('.cc-popover-arrow');
-  if (!pop) return;
-  if (!anchorEl || window.innerWidth < 640) {
-    // Mobile/narrow → CSS fallback to centered modal
-    pop.style.left = ''; pop.style.top = '';
-    if (arrow) arrow.style.display = 'none';
-    return;
-  }
-  var rect = anchorEl.getBoundingClientRect();
-  var popW = 480;
-  var spaceRight = window.innerWidth - rect.right;
-  var preferRight = spaceRight >= popW + 24;
-  var left = preferRight ? rect.right + 12 : Math.max(8, rect.left - popW - 12);
-  var top = Math.max(8, Math.min(rect.top, window.innerHeight - 100));
-  pop.style.left = left + 'px';
-  pop.style.top = top + 'px';
-  if (arrow) {
-    arrow.style.display = '';
-    arrow.style.top = (rect.top + rect.height/2 - 6 - top) + 'px';
-    arrow.style.left = preferRight ? '-7px' : 'auto';
-    arrow.style.right = preferRight ? 'auto' : '-7px';
-    arrow.style.transform = preferRight ? 'rotate(-45deg)' : 'rotate(135deg)';
-  }
-}
-
-function _ccPopoverReposition() {
-  if (ccPopoverState.activeTarget && ccPopoverState.anchorEl) {
-    ccPositionPopover(ccPopoverState.anchorEl);
-  }
-}
+// Legacy stubs — popover is nu altijd centered modal. Behouden om bestaande
+// callers (resize/scroll-listeners) niet te breken.
+function ccPositionPopover() { /* no-op: CSS handles centering */ }
+function _ccPopoverReposition() { /* no-op */ }
 
 function _ccPreviewClickHandler(e) {
   var hit = e.target.closest && e.target.closest('[data-cc-edit-target]');
