@@ -25933,7 +25933,18 @@ function ccResetSection(sectionKey) {
 }
 
 function ccEnsureFreq() {
-  if (!ccState.config.frequentie) ccState.config.frequentie = { available: [], options: {} };
+  if (!ccState.config.frequentie) {
+    // Snapshot uit code-defaults zodat checkboxes (Beschikbaar) en radio's
+    // (Default) bij eerste open de werkelijke calculator-state weergeven
+    // i.p.v. lege arrays. Cleanup in ccBuildPersistedConfig strip't dit
+    // weer als gebruiker niets aanpast (gelijk-aan-default = geen override).
+    var defaults = ((typeof CC_FALLBACK_DEFAULTS !== 'undefined' && CC_FALLBACK_DEFAULTS[ccState.sector]) || {}).frequentie || {};
+    ccState.config.frequentie = {
+      available: Array.isArray(defaults.available) ? defaults.available.slice() : [],
+      default:   (typeof defaults.default === 'number') ? defaults.default : null,
+      options:   {}
+    };
+  }
   if (!Array.isArray(ccState.config.frequentie.available)) ccState.config.frequentie.available = [];
   if (!ccState.config.frequentie.options) ccState.config.frequentie.options = {};
 }
@@ -25984,7 +25995,15 @@ function ccCleanupFreq() {
 }
 
 function ccEnsureDuur() {
-  if (!ccState.config.contractduur) ccState.config.contractduur = { available: [], options: {}, korting_pct: {} };
+  if (!ccState.config.contractduur) {
+    var defaults = ((typeof CC_FALLBACK_DEFAULTS !== 'undefined' && CC_FALLBACK_DEFAULTS[ccState.sector]) || {}).contractduur || {};
+    ccState.config.contractduur = {
+      available:    Array.isArray(defaults.available) ? defaults.available.slice() : [],
+      default:      (typeof defaults.default === 'number') ? defaults.default : null,
+      options:      {},
+      korting_pct:  (defaults.korting_pct && typeof defaults.korting_pct === 'object') ? Object.assign({}, defaults.korting_pct) : {}
+    };
+  }
   var c = ccState.config.contractduur;
   if (!Array.isArray(c.available)) c.available = [];
   if (!c.options) c.options = {};
@@ -26142,6 +26161,24 @@ function ccBuildPersistedConfig() {
       var q = cfg.klant_vragen[qk];
       if (q && q.visible === true) delete q.visible;
     });
+  }
+  // Frequentie/Contractduur — drop als exact gelijk aan code-defaults.
+  // ccEnsureFreq/ccEnsureDuur snapshotten defaults bij first-open van popover
+  // zodat checkboxes correct tonen; cleanup voorkomt dat we onnodig override-
+  // rijen schrijven wanneer gebruiker niets heeft aangepast.
+  var sectorDefaults = (typeof CC_FALLBACK_DEFAULTS !== 'undefined' && CC_FALLBACK_DEFAULTS[ccState.sector]) || {};
+  function _ccEqualsDefault(overrideObj, defaultObj) {
+    if (!overrideObj || !defaultObj) return false;
+    // Vergelijk via JSON-stringify; volgorde van keys identiek omdat
+    // ccEnsureFreq/Duur defaults letterlijk kopiëren en gebruiker alleen
+    // bekende keys muteert.
+    try { return JSON.stringify(overrideObj) === JSON.stringify(defaultObj); } catch (_) { return false; }
+  }
+  if (cfg.frequentie && _ccEqualsDefault(cfg.frequentie, sectorDefaults.frequentie)) {
+    delete cfg.frequentie;
+  }
+  if (cfg.contractduur && _ccEqualsDefault(cfg.contractduur, sectorDefaults.contractduur)) {
+    delete cfg.contractduur;
   }
   if (ccIsPartnerScope()) {
     var allowed = {};
