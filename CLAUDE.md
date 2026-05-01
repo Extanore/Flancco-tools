@@ -53,7 +53,7 @@ Flancco-tools/
 │   └── werklocatie-picker-demo.html — Standalone test 3 scenarios
 ├── novectra/index.html            — Calculator voor partner Novectra
 ├── cwsolar/index.html             — Calculator voor partner CW Solar
-├── onboard/v2/index.html          — Publieke partner-onboarding (5 stappen, callback-only flow)
+├── onboard/index.html             — Publieke partner-onboarding (5 stappen, callback-only flow + login-CTA)
 ├── onboard/sign/index.html        — Slot X.2 Mode B remote signing-pagina (NDA-popup + canvas)
 ├── scripts/                       — CI-tooling (geen runtime-dep)
 │   ├── check-supabase-columns.mjs — Schema-drift detectie: vergelijkt geclaimde kolomnamen in HTML/JS-files met werkelijke DB-kolommen via Supabase MCP. Returns non-zero exit-code bij mismatch.
@@ -173,7 +173,7 @@ Slot V (Onderhoud) en Slot W (Flancco-werk) zijn twee nieuwe pipeline-pagina's i
 - `runbook_tooltips` (Toolkit-5) — admin-bewerkbare tooltips, UNIQUE (fase, action_key), 10 NL pre-seed defaults
 
 ### Slot X.2 schema-additions (2026-05-01)
-Admin-driven partner-activation flow vervangt de eerder geplande publieke self-service Pad B (`/onboard/v2/` heeft nu enkel callback-flow). Gillian schermt elke prospect persoonlijk vooraf, opent dan de admin-wizard "Activeer partner" en kiest tussen Mode A (in-person canvas op admin laptop) of Mode B (token-link via mail met NDA-popup vóór pricing). Audit-trail kolommen op `partner_applications`:
+Admin-driven partner-activation flow vervangt de eerder geplande publieke self-service Pad B (`/onboard/` heeft nu enkel callback-flow met "Reeds partner? Inloggen"-CTA rechtsbovenaan). Gillian schermt elke prospect persoonlijk vooraf, opent dan de admin-wizard "Activeer partner" en kiest tussen Mode A (in-person canvas op admin laptop) of Mode B (token-link via mail met NDA-popup vóór pricing). Audit-trail kolommen op `partner_applications`:
 - `created_by_user_id UUID FK auth.users` — admin die de application heeft aangemaakt vanuit de wizard
 - `signing_mode TEXT CHECK (in_person|remote)` — audit welk pad gebruikt werd
 - `signing_token TEXT UNIQUE` + `signing_token_expires_at TIMESTAMPTZ` + `signing_token_used_count INT DEFAULT 0` + `signing_token_max_uses INT DEFAULT 3` — Mode B token-lifecycle (7d TTL, max 3 clicks)

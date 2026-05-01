@@ -1,2096 +1,1501 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex,nofollow">
-  <meta name="description" content="Word partner van Flancco — bouw recurrente onderhoudsomzet onder uw eigen merk zonder eigen techniekers.">
-  <title data-i18n="onboard.meta.title">Word partner — Flancco Platform</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon-flancco.svg">
-  <link rel="alternate icon" type="image/x-icon" href="/favicon-flancco.ico">
-  <link rel="apple-touch-icon" href="/favicon-flancco.svg">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#1A1A2E">
+<title>Word Flancco-partner — Partnership platform</title>
+<meta name="description" content="Recurring omzet uit structureel onderhoud. Wij plannen, voeren uit en rapporteren — onder jouw merk.">
+<link rel="icon" type="image/svg+xml" href="../../favicon-flancco.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+  /* ─────────────────────────────────────────────────────────────────
+     Flancco Partner Onboarding — Versie 2 (briefing-driven)
+     Tone: professioneel, warm, commercieel, direct.
+     Visual: navy + 1 warm accent (coral). Asymmetric grid, witruimte.
+     One sans (Inter) + mono accent (JetBrains Mono) voor cijfers/labels.
+     ───────────────────────────────────────────────────────────────── */
 
-  <!-- Plausible Analytics — privacy-first, cookieless -->
-  <script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.manual.tagged-events.js"></script>
-  <script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
-  <script defer src="/shared/analytics.js"></script>
+  :root {
+    --navy: #1A1A2E;
+    --navy-soft: #2A2A40;
+    --ink: #14141F;
+    --muted: #6B7280;
+    --line: #E5E7EB;
+    --line-soft: #F3F4F6;
+    --bg: #FFFFFF;
+    --bg-soft: #FAFAFA;
+    --accent: #E76F51;          /* coral */
+    --accent-hover: #D85B3D;
+    --accent-tint: #FBE8E2;
+    --okergeel: #F4A261;        /* alternative accent (niet actief) */
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 18px;
+    --shadow: 0 1px 2px rgba(20,20,31,.04), 0 4px 16px rgba(20,20,31,.04);
+    --shadow-lg: 0 8px 32px rgba(20,20,31,.08);
+    --maxw: 1080px;
+    --pad-x: clamp(20px, 5vw, 56px);
+    --t-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    /* Single-font systeem: Inter voor alles. Tabular-nums voor cijfers. */
+    --t-mono: var(--t-sans);
+  }
+  /* Strakke uitlijning voor numerieke labels en cijfers */
+  .num, .progress-label, .step-num, .stat-num, .range-chip {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "ss01" 1;
+  }
 
-  <!-- Sentry — production-only error reporting -->
-  <script src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js" crossorigin="anonymous"></script>
-  <script>
-    (function(){
-      var h = location.hostname;
-      var isProd = /flancco-platform\.be$/.test(h) || /\.pages\.dev$/.test(h);
-      if (!isProd || !window.Sentry) return;
-      Sentry.init({
-        dsn: 'https://9d294eb246d48b01262e4c752c77b231@o4511253859729408.ingest.de.sentry.io/4511253876310096',
-        environment: /\.pages\.dev$/.test(h) ? 'staging' : 'prod',
-        release: 'flancco-onboard@2026-05-01',
-        tracesSampleRate: 0.1,
-        beforeSend: function(event) {
-          try {
-            if (event.request && event.request.data) {
-              var d = event.request.data;
-              ['contract_handtekening_base64','handtekening','password','wachtwoord'].forEach(function(k){ if (d[k]) d[k] = '[REDACTED]'; });
-            }
-          } catch(_){}
-          return event;
-        }
-      });
-    })();
-  </script>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--t-sans);
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.55;
+    font-size: 16px;
+  }
 
-  <!-- i18n (Slot S) — synchroon zodat data-i18n direct gevuld wordt -->
-  <script src="/onboard/i18n/i18n.js"></script>
-  <script src="/onboard/i18n/nl.json.js"></script>
-  <script src="/onboard/i18n/fr.json.js"></script>
+  ::selection { background: var(--accent); color: #fff; }
 
-  <!-- Shared validators (Slot O2) -->
-  <script src="/calculator/shared/validators.js"></script>
+  a { color: inherit; }
 
-  <!-- Supabase JS + jsPDF + html2canvas -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  /* ─── Header + progress ────────────────────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: saturate(160%) blur(8px);
+    -webkit-backdrop-filter: saturate(160%) blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 14px var(--pad-x);
+    display: flex; align-items: center; gap: 24px;
+  }
+  .brand-logo {
+    display: inline-flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .brand-logo svg { width: 30px; height: 30px; display: block; }
+  .brand-mark {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .12em;
+    color: var(--navy);
+  }
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  .progress {
+    flex: 1 1 auto;
+    display: flex; align-items: center; gap: 8px;
+    max-width: 480px;
+  }
+  .progress-track {
+    flex: 1 1 auto;
+    height: 3px;
+    background: var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    position: absolute; inset: 0;
+    width: 20%;
+    background: var(--navy);
+    border-radius: 999px;
+    transition: width 240ms cubic-bezier(.6,.0,.2,1);
+  }
+  .progress-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .topbar-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .lang-switch {
+    display: flex; align-items: center; gap: 2px;
+    background: var(--line-soft);
+    padding: 3px;
+    border-radius: 999px;
+  }
+  .lang-switch button {
+    border: none; background: transparent;
+    font-size: 12.5px;
+    letter-spacing: .04em;
+    padding: 5px 10px;
+    border-radius: 999px;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .lang-switch button.active {
+    background: var(--bg);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
 
-    :root {
-      --primary: #1A1A2E;
-      --primary-soft: #2A2A4A;
-      --accent: #E74C3C;
-      --accent-soft: #F2D7D5;
-      --bg: #F3F4F6;
-      --bg-soft: #FAFAFB;
-      --card: #FFFFFF;
-      --text: #0F172A;
-      --text-soft: #475569;
-      --grey: #6B7280;
-      --grey-light: #9CA3AF;
-      --rule: #E5E7EB;
-      --rule-soft: #F1F2F4;
-      --success: #10B981;
-      --success-soft: #D1FAE5;
-      --warning: #F59E0B;
-      --warning-soft: #FEF3C7;
-      --error: #DC2626;
-      --error-soft: #FEE2E2;
-      --radius-sm: 8px;
-      --radius: 12px;
-      --radius-lg: 16px;
-      --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
-      --shadow: 0 1px 3px rgba(15,23,42,0.06), 0 4px 12px rgba(15,23,42,0.04);
-      --shadow-lg: 0 10px 25px rgba(15,23,42,0.10), 0 6px 12px rgba(15,23,42,0.06);
-    }
+  .login-cta {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .login-cta-label {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .login-cta-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid var(--navy);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--navy);
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    transition: background 160ms ease, color 160ms ease;
+  }
+  .login-cta-btn:hover {
+    background: var(--navy);
+    color: #fff;
+  }
+  .login-cta-btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  @media (max-width: 720px) {
+    .login-cta-label { display: none; }
+    .topbar-right { gap: 10px; }
+  }
+  @media (max-width: 480px) {
+    .login-cta-btn { padding: 6px 10px; font-size: 12px; }
+    .login-cta-btn span { display: none; }
+  }
 
-    html, body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.55;
-      min-height: 100vh;
-      font-size: 15px;
-      -webkit-font-smoothing: antialiased;
-    }
+  /* ─── Page-shell + transitions ─────────────────────────────────── */
+  .page-shell {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: clamp(48px, 9vw, 96px) var(--pad-x) 48px;
+  }
+  .page-shell.hero {
+    padding-top: clamp(72px, 12vw, 120px);
+    padding-bottom: clamp(72px, 10vw, 96px);
+  }
+  .step {
+    display: none;
+    animation: fadeUp 220ms ease-out;
+  }
+  .step.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
-    a { color: var(--primary); }
-    img { max-width: 100%; display: block; }
-    button { font-family: inherit; cursor: pointer; }
-    input, textarea, select { font-family: inherit; }
+  /* ─── Eyebrow + headline + sub ─────────────────────────────────── */
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 22px;
+    display: inline-block;
+  }
+  .eyebrow-light { color: var(--accent); }
+  h1.page-title {
+    font-size: clamp(34px, 5.4vw, 60px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    font-weight: 700;
+    margin: 0 0 22px;
+    max-width: 18ch;
+  }
+  .page-title.lg { max-width: 22ch; font-weight: 800; }
+  .hl-accent { color: var(--accent); }
+  .sub {
+    font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0 0 40px;
+    max-width: 60ch;
+  }
+  .sub strong { color: var(--ink); font-weight: 600; }
 
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  /* ─── Hero (page 1) — gradient + asymmetric grid + dot-grid ──── */
+  .hero-bg {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 80% 55% at 100% 0%, rgba(231,111,81,.10), transparent 55%),
+      radial-gradient(ellipse 60% 45% at 0% 100%, rgba(26,26,46,.05), transparent 60%),
+      var(--bg);
+  }
+  /* Subtle dot-grid (mask voor zachte randen) */
+  .hero-bg::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(20,20,31,.06) 1px, transparent 0);
+    background-size: 32px 32px;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 25%, black 75%, transparent 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, black 25%, black 75%, transparent 100%);
+    opacity: .55;
+  }
+  /* Coral diagonal accent block right-bottom */
+  .hero-bg::after {
+    content: "";
+    position: absolute;
+    right: -100px; top: 50%;
+    width: 260px; height: 260px;
+    background: var(--accent);
+    opacity: .04;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+  }
 
-    /* ─────────── HEADER + PROGRESS ─────────── */
-    .topbar {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: saturate(180%) blur(10px);
-      -webkit-backdrop-filter: saturate(180%) blur(10px);
-      border-bottom: 1px solid var(--rule);
-    }
-    .topbar-inner {
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: 14px 24px;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px;
-    }
-    .brand {
-      display: flex; align-items: center; gap: 10px;
-      text-decoration: none; color: var(--primary);
-      font-weight: 700; letter-spacing: 0.5px;
-      font-size: 15px; text-transform: uppercase;
-    }
-    .brand-mark {
-      width: 28px; height: 28px;
-      background: var(--primary); color: #fff;
-      border-radius: 8px;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; letter-spacing: 0;
-    }
-    .brand-mark .accent { color: var(--accent); }
-    .topbar-right { display: flex; align-items: center; gap: 12px; }
-    .lang-toggle {
-      display: inline-flex; gap: 0;
-      background: var(--bg-soft);
-      border: 1px solid var(--rule);
-      border-radius: 999px;
-      overflow: hidden;
-      font-size: 12px; font-weight: 600;
-    }
-    .lang-toggle button {
-      border: 0; background: transparent;
-      padding: 6px 14px; color: var(--text-soft);
-      transition: background .15s, color .15s;
-    }
-    .lang-toggle button.active {
-      background: var(--primary); color: #fff;
-    }
-    .progress {
-      display: flex; align-items: center; gap: 6px;
-      flex: 1; max-width: 480px; margin: 0 24px;
-    }
-    .progress-bar {
-      flex: 1; height: 6px;
-      background: var(--rule);
-      border-radius: 999px; overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-      border-radius: 999px;
-      transition: width .35s cubic-bezier(.16,.84,.44,1);
-      width: 20%;
-    }
-    .progress-label {
-      font-size: 12px; font-weight: 600; color: var(--text-soft);
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: clamp(40px, 6vw, 72px);
+    align-items: end;
+  }
 
-    /* ─────────── MAIN CONTAINER ─────────── */
-    main {
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: 32px 24px 80px;
-    }
-    .step { display: none; animation: stepFade .25s ease-out; }
-    .step.active { display: block; }
-    @keyframes stepFade {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+  .hero-pains {
+    display: grid; gap: 14px;
+    align-self: end;
+    position: relative;
+  }
+  .hero-pains-eyebrow {
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin: 0 4px 4px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-pains-eyebrow::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .pain-row {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 18px 22px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    transition: border-color 200ms, transform 200ms, box-shadow 200ms;
+    position: relative;
+  }
+  .pain-row:hover {
+    border-color: var(--ink);
+    transform: translateX(2px);
+    box-shadow: var(--shadow);
+  }
+  .pain-row .ic {
+    flex: 0 0 auto;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--line-soft);
+    display: grid; place-items: center;
+    color: var(--navy);
+    transition: background 200ms, color 200ms;
+  }
+  .pain-row:hover .ic { background: var(--accent-tint); color: var(--accent-hover); }
+  .pain-row .ic svg { width: 18px; height: 18px; }
+  .pain-row .pain-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .pain-row .pain-text {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.4;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .pain-row .pain-fix {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--muted);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pain-row .pain-fix::before {
+    content: "→";
+    color: var(--accent);
+    font-weight: 700;
+    flex: 0 0 auto;
+  }
 
-    .card {
-      background: var(--card);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      padding: 36px;
-      margin-bottom: 24px;
-    }
-    .card-header { margin-bottom: 28px; }
-    .card-eyebrow {
-      display: inline-block;
-      font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 10px;
-    }
-    .card-title {
-      font-size: 26px; font-weight: 700;
-      color: var(--primary); line-height: 1.25;
-      margin-bottom: 8px;
-    }
-    .card-subtitle {
-      color: var(--text-soft); font-size: 15px;
-      max-width: 600px;
-    }
+  /* ─── USP-balk (footer-strip per stap) ─────────────────────────── */
+  /* Lichte coral-tint achtergrond — onderscheidend van navy CTA, hierarchy duidelijk:
+     CTA donker = primaire actie, USP warm-tint = ondersteunend bewijs. */
+  .usp-bar {
+    margin-top: clamp(48px, 6vw, 72px);
+    padding: 26px 32px;
+    background: var(--accent-tint);
+    color: var(--ink);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 15.5px;
+    letter-spacing: .005em;
+    line-height: 1.45;
+    position: relative;
+    overflow: hidden;
+  }
+  .usp-bar::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
+  }
+  .usp-bar .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    flex: 0 0 auto;
+    box-shadow: 0 0 0 5px rgba(231,111,81,.30);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 5px rgba(231,111,81,.30); }
+    50%      { box-shadow: 0 0 0 8px rgba(231,111,81,.15); }
+  }
+  .usp-bar strong { color: var(--ink); font-weight: 700; }
 
-    /* ─────────── STEP 1 — DEMO + WELKOM ─────────── */
-    .hero {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-soft) 100%);
-      color: #fff;
-      border-radius: var(--radius-lg);
-      padding: 56px 40px;
-      margin-bottom: 32px;
-      position: relative; overflow: hidden;
-      box-shadow: var(--shadow-lg);
-    }
-    .hero::after {
-      content: ''; position: absolute;
-      top: -100px; right: -100px;
-      width: 320px; height: 320px;
-      background: radial-gradient(circle, rgba(231,76,60,0.18) 0%, transparent 65%);
-      pointer-events: none;
-    }
-    .hero-eyebrow {
-      display: inline-block;
-      background: rgba(255,255,255,0.10);
-      border: 1px solid rgba(255,255,255,0.14);
-      color: #fff;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 11px; font-weight: 600;
-      letter-spacing: 1.4px; text-transform: uppercase;
-      margin-bottom: 20px;
-    }
-    .hero h1 {
-      font-size: clamp(28px, 4vw, 42px);
-      font-weight: 700; line-height: 1.15;
-      max-width: 720px; margin-bottom: 16px;
-      letter-spacing: -0.5px;
-    }
-    .hero p {
-      max-width: 640px;
-      font-size: clamp(15px, 1.2vw, 17px);
-      color: rgba(255,255,255,0.85);
-      margin-bottom: 32px;
-    }
-    .hero-cta {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--accent); color: #fff;
-      border: 0; padding: 14px 28px;
-      border-radius: 12px; font-size: 15px; font-weight: 600;
-      box-shadow: 0 6px 18px rgba(231,76,60,0.35);
-      transition: transform .15s, box-shadow .15s, background .2s;
-    }
-    .hero-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(231,76,60,0.42); background: #C0392B; }
-    .hero-cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-    .hero-trustline {
-      margin-top: 18px; font-size: 13px;
-      color: rgba(255,255,255,0.65);
-    }
-    .usp-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-    .usp-card {
-      background: var(--card);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      padding: 24px;
-      transition: transform .2s, box-shadow .2s, border-color .2s;
-    }
-    .usp-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow);
-      border-color: rgba(26,26,46,0.18);
-    }
-    .usp-icon {
-      width: 44px; height: 44px;
-      background: rgba(231,76,60,0.10);
-      color: var(--accent);
-      border-radius: 10px;
-      display: inline-flex; align-items: center; justify-content: center;
-      margin-bottom: 16px;
-    }
-    .usp-title { font-size: 16px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
-    .usp-text  { font-size: 14px; color: var(--text-soft); line-height: 1.5; }
+  /* ─── Stat-strip onder hero-CTA (concrete proof) ─────────────── */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 0;
+    margin-top: 32px;
+    align-items: stretch;
+    width: fit-content;
+  }
+  .hero-stat {
+    padding: 0 26px;
+    border-left: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .hero-stat:first-child { padding-left: 0; border-left: none; }
+  .hero-stat-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -.025em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-stat-value .accent { color: var(--accent); }
+  .hero-stat-label {
+    font-size: 11.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 600;
+  }
 
-    .why-block {
-      background: var(--bg-soft);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-    }
-    .why-title { font-size: 17px; font-weight: 600; color: var(--primary); margin-bottom: 16px; }
-    .why-list { list-style: none; }
-    .why-list li {
-      display: flex; gap: 12px;
-      padding: 10px 0;
-      font-size: 14px; color: var(--text-soft);
-      border-bottom: 1px solid var(--rule-soft);
-    }
-    .why-list li:last-child { border-bottom: 0; }
-    .why-list li svg { flex-shrink: 0; color: var(--success); margin-top: 2px; }
+  /* ─── CTA-rij ──────────────────────────────────────────────────── */
+  .cta-row {
+    margin-top: 48px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    appearance: none;
+    border: none;
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--t-sans);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: .005em;
+    padding: 14px 24px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 10px;
+    transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  }
+  .btn-primary:hover { background: var(--ink); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary svg { width: 16px; height: 16px; transition: transform 200ms; }
+  .btn-primary:hover svg { transform: translateX(3px); }
+  .btn-primary[disabled] { opacity: .55; cursor: not-allowed; }
+  .btn-primary[disabled]:hover { transform: none; box-shadow: none; background: var(--navy); }
+  .btn-back {
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: none;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--t-sans);
+    padding: 8px 0;
+    letter-spacing: .005em;
+  }
+  .btn-back:hover { color: var(--ink); }
 
-    /* ─────────── FORM PRIMITIVES ─────────── */
-    .field { margin-bottom: 20px; }
-    .field:last-child { margin-bottom: 0; }
-    .field label {
-      display: block;
-      font-size: 13px; font-weight: 600;
-      color: var(--text); margin-bottom: 6px;
-    }
-    .field label .req { color: var(--accent); margin-left: 2px; }
-    .field input[type="text"], .field input[type="email"], .field input[type="tel"], .field input[type="url"], .field textarea {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1.5px solid var(--rule);
-      border-radius: var(--radius-sm);
-      font-size: 15px; color: var(--text); background: var(--card);
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .field input:focus, .field textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(26,26,46,0.10);
-    }
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    .field-row-3 { grid-template-columns: 100px 1fr 1fr; }
-    .field-helper {
-      margin-top: 6px;
-      font-size: 12.5px; color: var(--grey);
-    }
-    .field-error-msg {
-      display: none;
-      margin-top: 6px;
-      font-size: 12.5px; color: var(--error);
-      align-items: center; gap: 6px;
-    }
-    .field.has-error input, .field.has-error textarea {
-      border-color: var(--error);
-      box-shadow: 0 0 0 3px rgba(220,38,38,0.10);
-    }
-    .field.has-error .field-error-msg { display: flex; }
-    .field.is-valid input, .field.is-valid textarea {
-      border-color: var(--success);
-    }
+  /* ─── Stap 2 (Werking) — 3 numbered blocks ─────────────────────── */
+  .steps-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin: 48px 0 0;
+  }
+  .step-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px 26px;
+    background: var(--bg);
+    position: relative;
+    transition: border-color 200ms;
+  }
+  .step-card:hover { border-color: var(--ink); }
+  .step-num {
+    font-size: 12px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: block;
+  }
+  .step-card h3 {
+    font-size: 19px;
+    margin: 0 0 10px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -.005em;
+  }
+  .step-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
 
-    .field-status {
-      display: inline-flex; align-items: center; gap: 6px;
-      margin-top: 6px; font-size: 12.5px;
-      min-height: 18px; opacity: 0; transition: opacity .15s;
-    }
-    .field-status.is-visible { opacity: 1; }
-    .field-status[data-state="loading"] { color: var(--grey); }
-    .field-status[data-state="valid"]   { color: var(--success); }
-    .field-status[data-state="invalid"] { color: var(--error); }
-    .field-status[data-state="error"]   { color: var(--warning); }
-    .vies-spinner { width: 13px; height: 13px; border: 2px solid rgba(107,114,128,0.25); border-top-color: var(--grey); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+  /* ─── Stap 3 (Voorwaarden) — 3 mono-cijfers ────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin: 48px 0 32px;
+  }
+  .stat-card {
+    border-top: 2px solid var(--ink);
+    padding: 24px 4px 0;
+  }
+  .stat-num {
+    font-size: clamp(44px, 6vw, 72px);
+    line-height: 1;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -.035em;
+    display: block;
+    margin-bottom: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-num .accent { color: var(--accent); }
+  /* Smaller-stroke dash zonder cijfers te verplaatsen — scaleX behoudt bounding-box */
+  .stat-num .stat-dash {
+    display: inline-block;
+    font-weight: 500;
+    transform: scaleX(.55);
+    transform-origin: center;
+    color: var(--ink);
+  }
+  .stat-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .stats-note {
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.6;
+    max-width: 64ch;
+    border-left: 2px solid var(--accent);
+    padding: 4px 0 4px 18px;
+    margin: 32px 0 0;
+  }
 
-    .section-h {
-      font-size: 12px; font-weight: 700; letter-spacing: 1.2px;
-      color: var(--text-soft); text-transform: uppercase;
-      margin: 28px 0 14px;
-      padding-bottom: 8px; border-bottom: 1px solid var(--rule);
-    }
-    .section-h:first-child { margin-top: 0; }
+  /* ─── Stap 4 (Sectoren) — 4 sector-cards met icoon ─────────────── */
+  .sector-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin: 48px 0 0;
+  }
+  .sector-block {
+    padding: 22px 24px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: border-color 200ms, transform 200ms, box-shadow 200ms;
+  }
+  .sector-block:hover {
+    border-color: var(--ink);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .sector-icon {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    background: var(--accent-tint);
+    color: var(--navy);
+    display: grid; place-items: center;
+    flex: 0 0 auto;
+  }
+  .sector-icon svg { width: 22px; height: 22px; stroke-width: 1.75; }
+  .sector-block h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    letter-spacing: -.005em;
+    color: var(--ink);
+  }
+  .sector-block p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
 
-    /* ─────────── BUTTONS ─────────── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 13px 24px;
-      border-radius: 10px; border: 1.5px solid transparent;
-      font-size: 14.5px; font-weight: 600;
-      cursor: pointer; transition: all .15s;
-      min-height: 46px;
-    }
-    .btn-primary {
-      background: var(--primary); color: #fff;
-      box-shadow: 0 2px 8px rgba(26,26,46,0.25);
-    }
-    .btn-primary:hover:not(:disabled) { background: #0F0F1F; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,26,46,0.32); }
-    .btn-primary:disabled { background: var(--grey-light); box-shadow: none; cursor: not-allowed; }
-    .btn-accent {
-      background: var(--accent); color: #fff;
-      box-shadow: 0 2px 8px rgba(231,76,60,0.25);
-    }
-    .btn-accent:hover:not(:disabled) { background: #C0392B; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(231,76,60,0.32); }
-    .btn-accent:disabled { background: var(--grey-light); box-shadow: none; cursor: not-allowed; }
-    .btn-outline {
-      background: transparent; color: var(--text);
-      border-color: var(--rule);
-    }
-    .btn-outline:hover { background: var(--bg-soft); border-color: var(--text-soft); }
-    .btn-block { display: flex; width: 100%; }
-    .btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
-    .btn-row {
-      display: flex; gap: 12px;
-      margin-top: 28px;
-      align-items: center; justify-content: space-between;
-    }
-    .btn-row-end { justify-content: flex-end; }
+  /* ─── Stap 4 (Team) — 4 quadrant blocks ────────────────────────── */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin: 48px 0 0;
+  }
+  .team-block {
+    padding: 28px 26px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg);
+  }
+  .team-block.featured {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }
+  .team-block.featured h3 { color: #fff; }
+  .team-block.featured p { color: rgba(255,255,255,.74); }
+  .team-block h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -.005em;
+  }
+  .team-block p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .team-intro {
+    font-size: 17px;
+    color: var(--ink);
+    line-height: 1.55;
+    max-width: 56ch;
+    font-weight: 500;
+    margin: 0 0 4px;
+  }
 
-    /* ─────────── STEP 3 — SECTOR PICKER ─────────── */
-    .sector-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
-      margin-bottom: 8px;
-    }
-    .sector-card {
-      position: relative;
-      display: flex; gap: 14px;
-      padding: 18px 20px;
-      background: var(--card);
-      border: 1.5px solid var(--rule);
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: border-color .15s, background .15s, box-shadow .15s;
-    }
-    .sector-card:hover { border-color: var(--primary); background: var(--bg-soft); }
-    .sector-card input { position: absolute; opacity: 0; pointer-events: none; }
-    .sector-card.selected, .sector-card:has(input:checked) {
-      border-color: var(--primary);
-      background: rgba(26,26,46,0.04);
-      box-shadow: 0 0 0 3px rgba(26,26,46,0.08);
-    }
-    .sector-card.disabled {
-      opacity: 0.55; cursor: not-allowed;
-      background: var(--bg-soft);
-    }
-    .sector-card.disabled:hover { border-color: var(--rule); background: var(--bg-soft); }
-    .sector-icon {
-      width: 44px; height: 44px;
-      background: rgba(231,76,60,0.10);
-      color: var(--accent);
-      border-radius: 10px;
-      display: inline-flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .sector-card.selected .sector-icon, .sector-card:has(input:checked) .sector-icon {
-      background: var(--primary); color: #fff;
-    }
-    .sector-body { flex: 1; min-width: 0; }
-    .sector-title { font-size: 15px; font-weight: 600; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
-    .sector-text { font-size: 13px; color: var(--text-soft); }
-    .sector-badge {
-      display: inline-block;
-      font-size: 10px; font-weight: 700; letter-spacing: 1px;
-      background: var(--warning-soft); color: var(--warning);
-      padding: 3px 8px; border-radius: 4px;
-      text-transform: uppercase;
-    }
+  /* ─── Stap 5 (Start) — Form ────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 20px;
+    margin: 40px 0 0;
+  }
+  .form-row { display: flex; flex-direction: column; gap: 6px; }
+  .form-row.full { grid-column: 1 / -1; }
+  .form-row label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: .14em;
+  }
+  .form-row input,
+  .form-row textarea,
+  .form-row select {
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    background: var(--bg);
+    font-family: var(--t-sans);
+    font-size: 15px;
+    color: var(--ink);
+    width: 100%;
+    transition: border-color 120ms, box-shadow 120ms;
+  }
+  .form-row input:focus,
+  .form-row textarea:focus,
+  .form-row select:focus {
+    outline: none;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(20,20,31,.08);
+  }
+  .form-row textarea { min-height: 96px; resize: vertical; }
+  .form-row .err {
+    font-size: 12.5px;
+    color: var(--accent-hover);
+    min-height: 16px;
+  }
+  .form-row.has-err input,
+  .form-row.has-err textarea,
+  .form-row.has-err select { border-color: var(--accent-hover); }
 
-    .marge-block {
-      background: var(--bg-soft);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      padding: 24px;
-      margin-top: 16px;
-    }
-    .marge-row {
-      display: flex; align-items: center; gap: 16px;
-      margin-top: 14px;
-    }
-    .marge-slider {
-      flex: 1;
-      -webkit-appearance: none; appearance: none;
-      height: 6px; border-radius: 999px;
-      background: var(--rule); outline: none;
-    }
-    .marge-slider::-webkit-slider-thumb {
-      -webkit-appearance: none; appearance: none;
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: var(--primary);
-      cursor: pointer;
-      border: 3px solid #fff;
-      box-shadow: 0 2px 6px rgba(26,26,46,0.30);
-    }
-    .marge-slider::-moz-range-thumb {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--primary); cursor: pointer;
-      border: 3px solid #fff;
-      box-shadow: 0 2px 6px rgba(26,26,46,0.30);
-    }
-    .marge-value {
-      min-width: 80px; text-align: right;
-      font-size: 24px; font-weight: 700;
-      color: var(--primary);
-      font-variant-numeric: tabular-nums;
-    }
+  /* Pill multi-select sectoren */
+  .pill-group {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 4px;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 9px 14px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 120ms, background 120ms, color 120ms;
+  }
+  .pill:hover { border-color: var(--ink); }
+  .pill[aria-pressed="true"] {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: #fff;
+  }
+  .pill-check {
+    width: 14px; height: 14px;
+    border-radius: 999px;
+    border: 1.5px solid currentColor;
+    display: grid; place-items: center;
+    transition: background 120ms;
+  }
+  .pill[aria-pressed="true"] .pill-check { background: var(--accent); border-color: var(--accent); }
+  .pill[aria-pressed="true"] .pill-check svg { display: block; width: 8px; height: 8px; color: #fff; }
+  .pill-check svg { display: none; }
 
-    .preview-block {
-      margin-top: 20px;
-      background: var(--card);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    .preview-head {
-      padding: 16px 20px;
-      display: flex; flex-wrap: wrap; gap: 14px;
-      align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--rule);
-      background: var(--bg-soft);
-    }
-    .preview-head h4 { font-size: 14px; font-weight: 600; color: var(--primary); }
-    .btw-toggle {
-      display: inline-flex;
-      background: var(--card);
-      border: 1px solid var(--rule);
-      border-radius: 999px;
-      overflow: hidden; font-size: 12px; font-weight: 600;
-    }
-    .btw-toggle button {
-      border: 0; background: transparent;
-      padding: 6px 14px; color: var(--text-soft);
-    }
-    .btw-toggle button.active {
-      background: var(--primary); color: #fff;
-    }
-    .preview-sector {
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--rule);
-    }
-    .preview-sector:last-child { border-bottom: 0; }
-    .preview-sector-title {
-      font-size: 13px; font-weight: 600; color: var(--text-soft);
-      letter-spacing: 0.5px; margin-bottom: 12px;
-    }
-    .preview-tiers {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-    .preview-tier {
-      padding: 14px;
-      background: var(--bg-soft);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--rule);
-    }
-    .preview-tier-h {
-      font-size: 11px; font-weight: 700; letter-spacing: 1px;
-      color: var(--text-soft); text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-    .preview-tier-size {
-      font-size: 12px; color: var(--grey);
-      margin-bottom: 12px;
-    }
-    .preview-tier-rows { font-size: 12px; }
-    .preview-tier-rows div {
-      display: flex; justify-content: space-between;
-      padding: 3px 0;
-      color: var(--text-soft);
-    }
-    .preview-tier-rows .row-final {
-      border-top: 1px solid var(--rule);
-      margin-top: 6px; padding-top: 6px;
-      font-weight: 700; color: var(--primary); font-size: 13px;
-    }
-    .preview-tier-rows .row-marge { color: var(--accent); font-weight: 600; }
-    .btw6-hint {
-      font-size: 11.5px; color: var(--grey);
-      padding: 12px 20px;
-      background: var(--warning-soft);
-      border-top: 1px solid var(--warning);
-      display: none;
-    }
-    .preview-block.btw6 .btw6-hint { display: block; }
+  /* Range select (radio-style chips) */
+  .range-group {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 4px;
+  }
+  .range-chip {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    transition: all 120ms;
+  }
+  .range-chip:hover { border-color: var(--ink); }
+  .range-chip[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+    color: var(--ink);
+  }
 
-    /* ─────────── STEP 4 — CONTRACT + SIGNATURE ─────────── */
-    .contract-frame {
-      background: var(--bg-soft);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-      max-height: 540px;
-      overflow-y: auto;
-      font-size: 13.5px; line-height: 1.65;
-      color: var(--text);
-    }
-    .contract-frame h2 {
-      font-size: 17px; font-weight: 700;
-      color: var(--primary); margin-bottom: 8px;
-    }
-    .contract-frame .contract-intro {
-      font-style: italic; color: var(--text-soft);
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--rule);
-    }
-    .contract-frame h3 {
-      font-size: 14px; font-weight: 700;
-      color: var(--primary);
-      margin: 22px 0 10px;
-    }
-    .contract-frame p { margin-bottom: 12px; color: var(--text-soft); }
-    .contract-frame .partijen {
-      background: var(--card);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius-sm);
-      padding: 16px 18px;
-      margin: 18px 0 28px;
-    }
-    .contract-frame .partij {
-      padding: 10px 0;
-      border-bottom: 1px solid var(--rule);
-    }
-    .contract-frame .partij:last-child { border-bottom: 0; }
-    .contract-frame .partij-label {
-      font-size: 11px; font-weight: 700;
-      letter-spacing: 1px; text-transform: uppercase;
-      color: var(--accent); margin-bottom: 4px;
-    }
-    .contract-frame .partij strong { color: var(--text); }
+  .form-cta-row {
+    display: flex; align-items: center; gap: 24px;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .form-microcopy {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 14px 0 0;
+    max-width: 50ch;
+  }
 
-    .accept-row {
-      margin: 24px 0 10px;
-      padding: 16px;
-      background: var(--bg-soft);
-      border: 1.5px solid var(--rule);
-      border-radius: var(--radius-sm);
-      display: flex; gap: 12px;
-      cursor: pointer;
-      transition: border-color .15s, background .15s;
-    }
-    .accept-row:hover { border-color: var(--primary); background: rgba(26,26,46,0.03); }
-    .accept-row input {
-      flex-shrink: 0;
-      width: 20px; height: 20px;
-      accent-color: var(--primary);
-      cursor: pointer; margin-top: 1px;
-    }
-    .accept-row label {
-      font-size: 14px; color: var(--text);
-      cursor: pointer; line-height: 1.5;
-    }
+  /* ─── Footer ──────────────────────────────────────────────────── */
+  .site-footer {
+    border-top: 1px solid var(--line);
+    padding: 24px var(--pad-x);
+    margin-top: 64px;
+    color: var(--muted);
+    font-size: 13px;
+    display: flex; gap: 18px; justify-content: space-between; flex-wrap: wrap;
+    max-width: var(--maxw);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .site-footer a { color: var(--muted); text-decoration: none; }
+  .site-footer a:hover { color: var(--ink); }
 
-    .sig-block { margin-top: 18px; }
-    .sig-label {
-      font-size: 13px; font-weight: 600; color: var(--text);
-      margin-bottom: 8px;
-    }
-    .sig-wrap {
-      position: relative;
-      background: var(--card);
-      border: 2px dashed var(--rule);
-      border-radius: var(--radius);
-      height: 130px;
-      transition: border-color .15s, background .15s;
-    }
-    .sig-wrap.has-sig { border-color: var(--primary); border-style: solid; background: var(--bg-soft); }
-    .sig-wrap canvas {
-      display: block;
-      width: 100%; height: 100%;
-      border-radius: var(--radius);
-      cursor: crosshair;
-      touch-action: none;
-    }
-    .sig-placeholder {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--grey); font-size: 13px;
-      pointer-events: none;
-    }
-    .sig-wrap.has-sig .sig-placeholder { display: none; }
-    .sig-actions {
-      display: flex; gap: 12px;
-      align-items: center; justify-content: space-between;
-      margin-top: 10px;
-      font-size: 12.5px; color: var(--grey);
-    }
-    .sig-clear {
-      background: transparent; border: 0;
-      color: var(--accent); font-size: 12.5px; font-weight: 600;
-      padding: 4px 0;
-    }
-    .sig-clear:hover { text-decoration: underline; }
+  /* ─── Toast (na submit) ──────────────────────────────────────── */
+  .toast-wrap {
+    position: fixed; left: 50%; bottom: 28px;
+    transform: translateX(-50%);
+    z-index: 100;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--ink);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 220ms, transform 220ms;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .toast.err { background: var(--accent-hover); }
 
-    .legal-notice {
-      margin-top: 22px;
-      padding: 12px 14px;
-      background: var(--bg-soft);
-      border-left: 3px solid var(--primary);
-      border-radius: var(--radius-sm);
-      font-size: 12px; color: var(--grey);
-      line-height: 1.6;
-    }
+  /* ─── Success-state pagina 5 ─────────────────────────────────── */
+  .success-state {
+    text-align: center;
+    padding: 48px 0;
+  }
+  .success-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 28px;
+    border-radius: 50%;
+    background: var(--accent-tint);
+    color: var(--accent);
+    display: grid; place-items: center;
+  }
+  .success-icon svg { width: 28px; height: 28px; }
+  .success-state h2 {
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.1;
+    margin: 0 0 14px;
+    letter-spacing: -.02em;
+    font-weight: 700;
+  }
+  .success-state p {
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0 auto;
+    max-width: 50ch;
+  }
 
-    /* ─────────── STEP 5 — SUCCESS ─────────── */
-    .success-icon {
-      width: 72px; height: 72px;
-      background: var(--success-soft);
-      color: var(--success);
-      border-radius: 50%;
-      display: inline-flex; align-items: center; justify-content: center;
-      margin-bottom: 22px;
-    }
-    .next-steps {
-      background: var(--bg-soft);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      padding: 24px 28px;
-      margin-top: 24px;
-    }
-    .next-steps h4 {
-      font-size: 14px; font-weight: 700;
-      color: var(--primary);
-      letter-spacing: 0.4px;
-      margin-bottom: 14px;
-    }
-    .next-steps ol {
-      list-style: none;
-      counter-reset: ns;
-    }
-    .next-steps li {
-      counter-increment: ns;
-      padding: 10px 0 10px 36px;
-      position: relative;
-      font-size: 14px; color: var(--text-soft);
-      line-height: 1.55;
-    }
-    .next-steps li::before {
-      content: counter(ns);
-      position: absolute; left: 0; top: 11px;
-      width: 24px; height: 24px;
-      background: var(--primary); color: #fff;
-      border-radius: 50%;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700;
-    }
-    .magic-success {
-      padding: 18px;
-      background: var(--success-soft);
-      border-left: 3px solid var(--success);
-      border-radius: var(--radius-sm);
-      color: #065F46;
-      font-size: 14px;
-      display: none;
-    }
-    .magic-error {
-      padding: 14px;
-      background: var(--error-soft);
-      border-left: 3px solid var(--error);
-      border-radius: var(--radius-sm);
-      color: #7F1D1D;
-      font-size: 14px;
-      display: none;
-    }
+  /* ─── Mobile (single column) ──────────────────────────────────── */
+  @media (max-width: 768px) {
+    .topbar-inner { gap: 12px; flex-wrap: wrap; }
+    .progress { width: 100%; order: 3; max-width: none; }
+    .lang-switch { margin-left: auto; }
+    .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+    .steps-3 { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; gap: 32px; }
+    .team-grid { grid-template-columns: 1fr; }
+    .sector-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .usp-bar { padding: 18px 22px; font-size: 13.5px; }
+    .cta-row, .form-cta-row { gap: 16px; }
+    .btn-primary { width: 100%; justify-content: center; }
+    .page-shell { padding-top: 40px; padding-bottom: 32px; }
+    .page-shell.hero { padding-top: 56px; }
+  }
 
-    /* ─────────── ALERT/TOAST ─────────── */
-    .alert {
-      display: none;
-      padding: 14px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 13.5px;
-      margin-bottom: 16px;
-      border-left: 3px solid;
-    }
-    .alert.is-visible { display: block; animation: stepFade .25s ease-out; }
-    .alert-error { background: var(--error-soft); color: #7F1D1D; border-left-color: var(--error); }
-    .alert-warning { background: var(--warning-soft); color: #78350F; border-left-color: var(--warning); }
-
-    /* ─────────── RESPONSIVE ─────────── */
-    @media (max-width: 720px) {
-      main { padding: 24px 16px 80px; }
-      .card { padding: 24px 20px; border-radius: var(--radius); }
-      .hero { padding: 36px 24px; }
-      .topbar-inner { padding: 12px 16px; gap: 10px; }
-      .progress { margin: 0 8px; }
-      .progress-label { font-size: 11px; }
-      .usp-grid { grid-template-columns: 1fr; }
-      .sector-grid { grid-template-columns: 1fr; }
-      .field-row { grid-template-columns: 1fr; }
-      .field-row-3 { grid-template-columns: 1fr; }
-      .preview-tiers { grid-template-columns: 1fr; }
-      .btn-row { flex-direction: column-reverse; align-items: stretch; }
-      .btn-row .btn { width: 100%; }
-      .marge-row { flex-direction: column; align-items: stretch; }
-      .marge-value { text-align: left; }
-      .contract-frame { max-height: 380px; padding: 20px; }
-    }
-  </style>
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0ms !important; transition-duration: 0ms !important; }
+  }
+</style>
 </head>
 <body>
 
-<header class="topbar">
+<!-- ─────────────────────────────────────────────────────────────
+     TOPBAR — sticky, brand + progress + lang
+     ───────────────────────────────────────────────────────────── -->
+<header class="topbar" role="banner">
   <div class="topbar-inner">
-    <a class="brand" href="/" aria-label="Flancco">
-      <span class="brand-mark">FL<span class="accent">A</span></span>
-      <span>Flancco</span>
+    <a href="#" class="brand-logo" aria-label="Flancco">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="#1A1A2E"/>
+        <path d="M9 7h14v4.2h-9.6v4h7.2v4.2h-7.2V25H9z" fill="#FFFFFF"/>
+        <circle cx="23.5" cy="22.5" r="3.2" fill="#E74C3C"/>
+      </svg>
+      <span class="brand-mark">FLANCCO</span>
     </a>
-    <div class="progress" role="progressbar" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" aria-label="Onboarding progress">
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:20%"></div></div>
-      <div class="progress-label" id="progress-label">1/5</div>
+    <div class="progress" role="presentation">
+      <div class="progress-track" aria-hidden="true">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <span class="progress-label" id="progress-label">01 / 05</span>
     </div>
     <div class="topbar-right">
-      <div class="lang-toggle" role="group" aria-label="Taalkeuze">
-        <button type="button" id="lang-nl" class="active" aria-pressed="true">NL</button>
-        <button type="button" id="lang-fr" aria-pressed="false">FR</button>
+      <div class="lang-switch" role="group" aria-label="Taal">
+        <button class="active" data-lang="nl" type="button">NL</button>
+        <button data-lang="fr" type="button">FR</button>
+      </div>
+      <div class="login-cta">
+        <span class="login-cta-label">Reeds partner?</span>
+        <a href="https://app.flancco-platform.be/admin/" class="login-cta-btn" aria-label="Inloggen op partnerportaal">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <span>Inloggen</span>
+        </a>
       </div>
     </div>
   </div>
 </header>
 
-<main>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- STEP 1 — DEMO + WELKOM                      -->
-  <!-- ═══════════════════════════════════════════ -->
-  <section class="step active" id="step-1" aria-labelledby="step1-title">
-    <div class="hero">
-      <span class="hero-eyebrow" data-i18n="onboard.step1.eyebrow">Word Flancco-partner</span>
-      <h1 id="step1-title" data-i18n="onboard.step1.heroTitle">Bouw recurrente omzet zonder operationele last.</h1>
-      <p data-i18n="onboard.step1.heroSubtitle">Flancco voert uit, u bewaakt de relatie. Eindklanten bestellen onderhoud onder uw merk via een eigen calculator-pagina, met live-pricing en contracten in maximaal vijf minuten.</p>
-      <button type="button" class="hero-cta" id="cta-start">
-        <span data-i18n="onboard.step1.cta">Start aanvraag</span>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </button>
-      <div class="hero-trustline" data-i18n="onboard.step1.trustline">Geen setup-kosten · transparante marges 10–20% · contract opzegbaar per maand</div>
-    </div>
-
-    <div class="usp-grid">
-      <div class="usp-card">
-        <div class="usp-icon" aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h2"/><path d="M3 15h2"/><path d="M9 3v2"/><path d="M15 3v2"/><path d="M19 9h2"/><path d="M19 15h2"/><path d="M9 19v2"/><path d="M15 19v2"/></svg>
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 1 — WELKOM
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-1" class="step active hero-bg">
+  <section class="page-shell hero">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Partnership platform</span>
+        <h1 class="page-title lg">Jouw klant. Jouw merk. <span class="hl-accent">Ons werk.</span></h1>
+        <p class="sub">Wij <strong>plannen</strong>, <strong>voeren uit</strong> en <strong>rapporteren</strong> — onder jouw merk, voor jouw klanten. Geen extra technici, geen backoffice.</p>
+        <div class="cta-row">
+          <button class="btn-primary" type="button" data-go="2">
+            Ontdek hoe het werkt
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
         </div>
-        <h3 class="usp-title" data-i18n="onboard.step1.usp1Title">Partner-platform voor onderhoud</h3>
-        <p class="usp-text" data-i18n="onboard.step1.usp1Text">White-label calculator met uw logo, kleuren en pricing. Klant tekent digitaal, u krijgt direct de lead.</p>
-      </div>
-      <div class="usp-card">
-        <div class="usp-icon" aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-        </div>
-        <h3 class="usp-title" data-i18n="onboard.step1.usp2Title">Klant-aanvragen onder uw merk</h3>
-        <p class="usp-text" data-i18n="onboard.step1.usp2Text">Volledige klantbeleving in uw branding. Magic-link toegang tot uw eigen partner-portaal met dashboard en contracten.</p>
-      </div>
-      <div class="usp-card">
-        <div class="usp-icon" aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg>
-        </div>
-        <h3 class="usp-title" data-i18n="onboard.step1.usp3Title">Flancco doet de uitvoering</h3>
-        <p class="usp-text" data-i18n="onboard.step1.usp3Text">Wij zijn HVAC-gecertificeerd en regelen techniekers, planning, rapportage en facturatie naar de eindklant.</p>
-      </div>
-    </div>
-
-    <div class="why-block">
-      <h3 class="why-title" data-i18n="onboard.step1.whyTitle">Waarom partners voor Flancco kiezen</h3>
-      <ul class="why-list">
-        <li>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
-          <span data-i18n="onboard.step1.why1">Schaalbaar: voeg moeiteloos sectoren of klanten toe zonder eigen techniekers aan te werven.</span>
-        </li>
-        <li>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
-          <span data-i18n="onboard.step1.why2">Transparant: alle pricing, marges en facturen zichtbaar in real-time — geen verborgen kosten.</span>
-        </li>
-        <li>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
-          <span data-i18n="onboard.step1.why3">Geen setup-fee: u betaalt enkel een planning-fee per uitgevoerde beurt, zonder vaste kosten vooraf.</span>
-        </li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- STEP 2 — BEDRIJFSGEGEVENS + VAT VALIDATIE   -->
-  <!-- ═══════════════════════════════════════════ -->
-  <section class="step" id="step-2" aria-labelledby="step2-title">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-eyebrow">02 / 05</span>
-        <h2 class="card-title" id="step2-title" data-i18n="onboard.step2.title">Bedrijfsgegevens</h2>
-        <p class="card-subtitle" data-i18n="onboard.step2.subtitle">Vul uw BTW-nummer in en de meeste gegevens vullen we automatisch aan.</p>
-      </div>
-
-      <div class="alert alert-error" id="step2-alert" role="alert"></div>
-
-      <div class="section-h" data-i18n="onboard.step2.sectionCompany">Onderneming</div>
-
-      <div class="field" id="field-btw">
-        <label for="inp-btw" data-i18n="onboard.step2.btwLabel">BTW-nummer<span class="req" aria-hidden="true">*</span></label>
-        <input type="text" id="inp-btw" autocomplete="off" inputmode="text" data-i18n-attr="placeholder:onboard.step2.btwPh" placeholder="BE0123456789">
-        <div class="field-helper" data-i18n="onboard.step2.btwHelp">Voer uw Belgisch ondernemingsnummer in. We valideren via VIES en vullen de rest automatisch aan.</div>
-        <div class="field-status" id="status-btw" aria-live="polite"></div>
-        <div class="field-error-msg" id="error-btw" role="alert"></div>
-      </div>
-
-      <div class="field" id="field-bedrijfsnaam">
-        <label for="inp-bedrijfsnaam" data-i18n="onboard.step2.bedrijfsnaamLabel">Bedrijfsnaam<span class="req" aria-hidden="true">*</span></label>
-        <input type="text" id="inp-bedrijfsnaam" autocomplete="organization" data-i18n-attr="placeholder:onboard.step2.bedrijfsnaamPh" placeholder="Voorbeeld BVBA">
-        <div class="field-error-msg" id="error-bedrijfsnaam" role="alert"></div>
-      </div>
-
-      <div class="field" id="field-adres">
-        <label for="inp-adres" data-i18n="onboard.step2.adresLabel">Adres<span class="req" aria-hidden="true">*</span></label>
-        <input type="text" id="inp-adres" autocomplete="street-address" data-i18n-attr="placeholder:onboard.step2.adresPh" placeholder="Straat en huisnummer">
-        <div class="field-error-msg" id="error-adres" role="alert"></div>
-      </div>
-
-      <div class="field-row">
-        <div class="field" id="field-postcode">
-          <label for="inp-postcode" data-i18n="onboard.step2.postcodeLabel">Postcode<span class="req" aria-hidden="true">*</span></label>
-          <input type="text" id="inp-postcode" autocomplete="postal-code" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" data-i18n-attr="placeholder:onboard.step2.postcodePh" placeholder="9000">
-          <div class="field-error-msg" id="error-postcode" role="alert"></div>
-        </div>
-        <div class="field" id="field-gemeente">
-          <label for="inp-gemeente" data-i18n="onboard.step2.gemeenteLabel">Gemeente<span class="req" aria-hidden="true">*</span></label>
-          <input type="text" id="inp-gemeente" autocomplete="address-level2" data-i18n-attr="placeholder:onboard.step2.gemeentePh" placeholder="Gent">
-          <div class="field-error-msg" id="error-gemeente" role="alert"></div>
-        </div>
-      </div>
-
-      <div class="field" id="field-website">
-        <label for="inp-website"><span data-i18n="onboard.step2.websiteLabel">Website</span> <small style="font-weight:400;color:var(--grey)" data-i18n="onboard.common.optional">optioneel</small></label>
-        <input type="url" id="inp-website" autocomplete="url" data-i18n-attr="placeholder:onboard.step2.websitePh" placeholder="https://uwbedrijf.be">
-        <div class="field-error-msg" id="error-website" role="alert"></div>
-      </div>
-
-      <div class="section-h" data-i18n="onboard.step2.sectionContact">Contactpersoon</div>
-
-      <div class="field-row">
-        <div class="field" id="field-voornaam">
-          <label for="inp-voornaam" data-i18n="onboard.step2.voornaamLabel">Voornaam<span class="req" aria-hidden="true">*</span></label>
-          <input type="text" id="inp-voornaam" autocomplete="given-name" data-i18n-attr="placeholder:onboard.step2.voornaamPh" placeholder="Jan">
-          <div class="field-error-msg" id="error-voornaam" role="alert"></div>
-        </div>
-        <div class="field" id="field-naam">
-          <label for="inp-naam" data-i18n="onboard.step2.naamLabel">Achternaam<span class="req" aria-hidden="true">*</span></label>
-          <input type="text" id="inp-naam" autocomplete="family-name" data-i18n-attr="placeholder:onboard.step2.naamPh" placeholder="Janssens">
-          <div class="field-error-msg" id="error-naam" role="alert"></div>
-        </div>
-      </div>
-
-      <div class="field" id="field-email">
-        <label for="inp-email" data-i18n="onboard.step2.emailLabel">E-mailadres<span class="req" aria-hidden="true">*</span></label>
-        <input type="email" id="inp-email" autocomplete="email" data-i18n-attr="placeholder:onboard.step2.emailPh" placeholder="jan@uwbedrijf.be">
-        <div class="field-helper" data-i18n="onboard.step2.emailHelp">Op dit adres ontvangt u uw magic-link en alle partner-communicatie.</div>
-        <div class="field-error-msg" id="error-email" role="alert"></div>
-      </div>
-
-      <div class="field" id="field-telefoon">
-        <label for="inp-telefoon" data-i18n="onboard.step2.telefoonLabel">Telefoon<span class="req" aria-hidden="true">*</span></label>
-        <input type="tel" id="inp-telefoon" autocomplete="tel" data-i18n-attr="placeholder:onboard.step2.telefoonPh" placeholder="+32 470 12 34 56">
-        <div class="field-error-msg" id="error-telefoon" role="alert"></div>
-      </div>
-
-      <div class="btn-row">
-        <button type="button" class="btn btn-outline" data-action="back-to-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-          <span data-i18n="onboard.common.back">Terug</span>
-        </button>
-        <button type="button" class="btn btn-primary" id="btn-step2-next" disabled>
-          <span data-i18n="onboard.common.next">Volgende stap</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- STEP 3 — SECTOREN + MARGE                   -->
-  <!-- ═══════════════════════════════════════════ -->
-  <section class="step" id="step-3" aria-labelledby="step3-title">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-eyebrow">03 / 05</span>
-        <h2 class="card-title" id="step3-title" data-i18n="onboard.step3.title">Sectoren en marge</h2>
-        <p class="card-subtitle" data-i18n="onboard.step3.subtitle">Selecteer de diensten die u onder uw merk aanbiedt en stel uw marge in.</p>
-      </div>
-
-      <div class="section-h" data-i18n="onboard.step3.sectorTitle">Welke sectoren biedt u aan?</div>
-      <p class="card-subtitle" style="margin-bottom:18px" data-i18n="onboard.step3.sectorHelp">Selecteer minstens één sector. U kunt later sectoren toevoegen of pauzeren in uw partner-portaal.</p>
-
-      <div class="alert alert-error" id="step3-alert" role="alert"></div>
-
-      <div class="sector-grid" role="group" aria-label="Sectoren">
-        <label class="sector-card" data-sector="warmtepomp">
-          <input type="checkbox" id="sector-warmtepomp" value="warmtepomp">
-          <span class="sector-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg>
-          </span>
-          <span class="sector-body">
-            <span class="sector-title" data-i18n="onboard.step3.sectorWarmtepompTitle">Warmtepomp-onderhoud</span>
-            <span class="sector-text" data-i18n="onboard.step3.sectorWarmtepompText">Jaarlijkse keuring + reinigingsbeurt voor lucht/water-warmtepompen.</span>
-          </span>
-        </label>
-        <label class="sector-card" data-sector="zonnepanelen">
-          <input type="checkbox" id="sector-zonnepanelen" value="zonnepanelen">
-          <span class="sector-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-          </span>
-          <span class="sector-body">
-            <span class="sector-title" data-i18n="onboard.step3.sectorZonneTitle">Zonnepanelen reiniging</span>
-            <span class="sector-text" data-i18n="onboard.step3.sectorZonneText">Osmosewater-reiniging + opbrengstcontrole voor zonnepaneel-installaties.</span>
-          </span>
-        </label>
-        <label class="sector-card" data-sector="ventilatie">
-          <input type="checkbox" id="sector-ventilatie" value="ventilatie">
-          <span class="sector-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0"/></svg>
-          </span>
-          <span class="sector-body">
-            <span class="sector-title" data-i18n="onboard.step3.sectorVentilatieTitle">Ventilatie-onderhoud</span>
-            <span class="sector-text" data-i18n="onboard.step3.sectorVentilatieText">Onderhoud van systeem C en D met filterwissel en debiet-controle.</span>
-          </span>
-        </label>
-        <div class="sector-card disabled" aria-disabled="true">
-          <span class="sector-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 6V4"/><path d="M18 6V4"/><path d="M6 18v2"/><path d="M18 18v2"/><path d="M2 12h20"/></svg>
-          </span>
-          <span class="sector-body">
-            <span class="sector-title">
-              <span data-i18n="onboard.step3.sectorAhuTitle">Industriële AHU</span>
-              <span class="sector-badge" data-i18n="onboard.step3.sectorAhuBadge">Komt eraan</span>
-            </span>
-            <span class="sector-text" data-i18n="onboard.step3.sectorAhuText">Komt eraan — contacteer ons voor uw specifieke vraag.</span>
-          </span>
-        </div>
-      </div>
-
-      <div class="marge-block">
-        <div class="section-h" style="margin-top:0;border-bottom:0;padding-bottom:0" data-i18n="onboard.step3.margeTitle">Uw marge</div>
-        <p class="card-subtitle" data-i18n="onboard.step3.margeHelp">Eenzelfde marge geldt voor alle sectoren. We berekenen ze bovenop ons Flancco-basisbedrag, vervolgens komt 21% btw bij. U kunt dit later aanpassen.</p>
-        <div class="marge-row">
-          <input type="range" min="10" max="20" step="0.5" value="15" id="inp-marge" class="marge-slider" aria-label="Marge percentage">
-          <div class="marge-value" id="lbl-marge">15.0%</div>
-        </div>
-      </div>
-
-      <div class="preview-block" id="preview-block">
-        <div class="preview-head">
-          <h4 data-i18n="onboard.step3.previewTitle">Voorbeeldprijzen voor uw eindklant</h4>
-          <div class="btw-toggle" role="group" aria-label="BTW-tarief preview">
-            <button type="button" class="active" id="btw-21" data-i18n="onboard.step3.btw21">21%</button>
-            <button type="button" id="btw-6" data-i18n="onboard.step3.btw6">6% (renovatie)</button>
+        <div class="hero-stats" aria-label="Kerncijfers">
+          <div class="hero-stat">
+            <span class="hero-stat-value"><span class="accent">3</span> weken</span>
+            <span class="hero-stat-label">Tot start-up</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value"><span class="accent">€0</span></span>
+            <span class="hero-stat-label">Setup-fee</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value"><span class="accent">1</span> maand</span>
+            <span class="hero-stat-label">Opzegtermijn</span>
           </div>
         </div>
-        <div id="preview-sectors"></div>
-        <div class="btw6-hint" data-i18n="onboard.step3.btw6Hint">Visualisatie — het tarief wordt per klant bepaald op basis van werken en woning-ouderdom.</div>
       </div>
-
-      <div class="btn-row">
-        <button type="button" class="btn btn-outline" data-action="back-to-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-          <span data-i18n="onboard.common.back">Terug</span>
-        </button>
-        <button type="button" class="btn btn-primary" id="btn-step3-next" disabled>
-          <span data-i18n="onboard.common.next">Volgende stap</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- STEP 4 — CONTRACT + AKKOORD + HANDTEKENING  -->
-  <!-- ═══════════════════════════════════════════ -->
-  <section class="step" id="step-4" aria-labelledby="step4-title">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-eyebrow">04 / 05</span>
-        <h2 class="card-title" id="step4-title" data-i18n="onboard.step4.title">Partnercontract</h2>
-        <p class="card-subtitle" data-i18n="onboard.step4.subtitle">Lees het contract zorgvuldig door, vink akkoord aan en plaats uw handtekening om uw aanvraag af te ronden.</p>
-      </div>
-
-      <div class="alert alert-error" id="step4-alert" role="alert"></div>
-
-      <div class="contract-frame" id="contract-frame" tabindex="0" aria-label="Partnercontract">
-        <!-- gerenderd door JS in renderContract() -->
-      </div>
-
-      <div class="accept-row">
-        <input type="checkbox" id="inp-accept">
-        <label for="inp-accept" data-i18n="onboard.step4.accept">Ik heb het contract gelezen en ga akkoord met de bovenstaande voorwaarden.</label>
-      </div>
-
-      <div class="sig-block">
-        <div class="sig-label" data-i18n="onboard.step4.sigLabel">Plaats hier uw handtekening</div>
-        <div class="sig-wrap" id="sig-wrap">
-          <canvas id="sig-canvas"></canvas>
-          <div class="sig-placeholder" data-i18n="onboard.step4.sigLabel">Plaats hier uw handtekening</div>
+      <div class="hero-pains" role="list" aria-label="Herken je dit?">
+        <span class="hero-pains-eyebrow">Herken je dit?</span>
+        <div class="pain-row" role="listitem">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <div class="pain-body">
+            <p class="pain-text">Capaciteitsdruk op je technici.</p>
+            <p class="pain-fix">Wij nemen onderhoud over.</p>
+          </div>
         </div>
-        <div class="sig-actions">
-          <span><span data-i18n="onboard.step4.sigDate">Datum</span>: <strong id="sig-date">—</strong></span>
-          <button type="button" class="sig-clear" id="btn-sig-clear" data-i18n="onboard.step4.sigClear">Wis handtekening</button>
+        <div class="pain-row" role="listitem">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a9 9 0 0 1 9-9 9 9 0 0 1 9 9v6a3 3 0 0 1-3 3h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h4"/><path d="M3 15a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"/></svg>
+          </span>
+          <div class="pain-body">
+            <p class="pain-text">Slapend klantenbestand.</p>
+            <p class="pain-fix">Wordt recurring omzet.</p>
+          </div>
+        </div>
+        <div class="pain-row" role="listitem">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </span>
+          <div class="pain-body">
+            <p class="pain-text">Reactieve oproepen verstoren je planning.</p>
+            <p class="pain-fix">Wordt planmatig.</p>
+          </div>
         </div>
       </div>
-
-      <div class="legal-notice" data-i18n="onboard.step4.legalNotice">Uw IP-adres en device-info worden meegestuurd als onderdeel van het audit-bewijs. Geen gevoelige data worden opgeslagen buiten de noodzaak van deze contractuele relatie.</div>
-
-      <div class="btn-row">
-        <button type="button" class="btn btn-outline" data-action="back-to-3">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-          <span data-i18n="onboard.common.back">Terug</span>
-        </button>
-        <button type="button" class="btn btn-accent" id="btn-step4-submit" disabled>
-          <span id="btn-step4-submit-text" data-i18n="onboard.common.submit">Onderteken & verstuur</span>
-        </button>
-      </div>
+    </div>
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Recurring omzet</strong> bovenop je installatieverkoop — zonder extra technici of backoffice.</span>
     </div>
   </section>
+</main>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- STEP 5 — ACCOUNT AANMAKEN                   -->
-  <!-- ═══════════════════════════════════════════ -->
-  <section class="step" id="step-5" aria-labelledby="step5-title">
-    <div class="card" style="text-align:center">
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 2 — WERKING
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-2" class="step">
+  <section class="page-shell">
+    <span class="eyebrow">Werking</span>
+    <h1 class="page-title">Eén platform. Drie stappen.</h1>
+    <p class="sub">Van contract tot rapport — zonder dat jij je dagelijkse operatie moet herorganiseren.</p>
+
+    <div class="steps-3">
+      <article class="step-card">
+        <span class="step-num">01 — Jij activeert</span>
+        <h3>Contracten en pricing</h3>
+        <p>Wij helpen met contracten en pricing. Jij stuurt ze digitaal uit naar je klanten via je eigen partner-portaal, in jouw branding.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">02 — Wij voeren uit</span>
+        <h3>Planning en uitvoering</h3>
+        <p>Onze planner contacteert je klanten. Onze technici komen langs in jouw uniform, met jouw merk op de werkbon.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">03 — Jij factureert</span>
+        <h3>Rapport en facturatie</h3>
+        <p>Het digitale rapport verschijnt in je dashboard. Jij factureert je eigen klant. De klantrelatie blijft volledig van jou.</p>
+      </article>
+    </div>
+
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Jouw uniform</strong> op de werf, <strong>jouw logo</strong> op de werkbon, <strong>jouw naam</strong> in de mailbox van je klant.</span>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn-back" type="button" data-go="1">← Vorige</button>
+      <button class="btn-primary" type="button" data-go="3">
+        Bekijk de voorwaarden
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 3 — VOORWAARDEN
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-3" class="step">
+  <section class="page-shell">
+    <span class="eyebrow">Voorwaarden</span>
+    <h1 class="page-title">Helder. Geen kleine lettertjes.</h1>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-num"><span class="accent">10</span><span class="stat-dash">–</span><span class="accent">20</span>%</span>
+        <p>Marge naar keuze.</p>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num"><span class="accent">€0</span></span>
+        <p>Setup-fee of installatiekost.</p>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num"><span class="accent">1</span> maand</span>
+        <p>Opzegtermijn — geen langlopende verbintenis.</p>
+      </div>
+    </div>
+
+    <p class="stats-note">
+      Vaste Flancco-basisprijs. Daarbovenop kies jij <strong>10% tot 20% marge</strong> — scherper voor je klant, of premium voor meer winst per beurt. Real-time aanpasbaar in je dashboard.
+    </p>
+
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Schaalbaar</strong> van 10 tot 500+ contracten op dezelfde infrastructuur.</span>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn-back" type="button" data-go="2">← Vorige</button>
+      <button class="btn-primary" type="button" data-go="4">
+        Maak kennis met het team
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 4 — VOOR WIE? (sectoren)
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-4" class="step">
+  <section class="page-shell">
+    <span class="eyebrow">Voor wie?</span>
+    <h1 class="page-title">Vier sectoren waar we vandaag operationeel meedraaien.</h1>
+    <p class="team-intro">Werk je in een andere sector? Vermeld het in je aanmelding — we kijken wat past.</p>
+
+    <div class="sector-grid">
+      <article class="sector-block">
+        <span class="sector-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+        </span>
+        <h3>Warmtepomp</h3>
+        <p>Jaarlijks onderhoud, filterservice en werkingscontrole — koeltechnische handelingen blijven bij jouw eigen technici.</p>
+      </article>
+      <article class="sector-block">
+        <span class="sector-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </span>
+        <h3>Zonnepanelen</h3>
+        <p>Periodieke reiniging en opbrengst-check, met digitaal rapport in jouw branding.</p>
+      </article>
+      <article class="sector-block">
+        <span class="sector-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
+        </span>
+        <h3>Ventilatie</h3>
+        <p>Filterservice, kanaalcheck en debietmeting — gepland binnen je tijdsvenster.</p>
+      </article>
+      <article class="sector-block">
+        <span class="sector-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>
+        </span>
+        <h3>Industriële koeling</h3>
+        <p>Dieptereiniging, ontsmetting van verdampers en visuele controle — koeltechnische handelingen blijven bij jouw eigen technici.</p>
+      </article>
+    </div>
+
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Vast team per sector.</strong> Geen callcenter, geen ticketsysteem, geen wisselende gezichten.</span>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn-back" type="button" data-go="3">← Vorige</button>
+      <button class="btn-primary" type="button" data-go="5">
+        Word partner
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 5 — START
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-5" class="step">
+
+  <!-- ─── Stap 5 — Kwalificatie + callback-form (één pane) ──────── -->
+  <section class="page-shell" id="step-5a-callback">
+    <span class="eyebrow">Aanmelden</span>
+    <h1 class="page-title">Stap op een operatie die draait.</h1>
+    <p class="sub">Wij plannen vandaag onderhoudsbeurten voor installatiepartners. Vertel ons kort waar je staat — daarna bellen we binnen 1 werkdag voor een korte kennismaking van 30 minuten. Geen verkoopdruk, geen verplichting.</p>
+
+    <form id="instap-form" novalidate>
+      <div class="form-grid">
+        <div class="form-row full">
+          <label>Sectoren waarin je actief bent</label>
+          <div class="pill-group" id="pill-sectoren" role="group" aria-label="Sectoren">
+            <button type="button" class="pill" aria-pressed="false" data-value="warmtepomp">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Warmtepomp
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="ventilatie">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Ventilatie
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="industriele_koeling">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Industriële koeling
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="zonnepanelen">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Zonnepanelen
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="andere">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Andere
+            </button>
+          </div>
+          <span class="err" data-err="sectoren"></span>
+        </div>
+
+        <div class="form-row full">
+          <label>Aantal actieve eindklanten in je portefeuille</label>
+          <div class="range-group" id="range-klanten" role="radiogroup" aria-label="Aantal eindklanten">
+            <button type="button" class="range-chip" aria-pressed="false" data-value="<50">&lt; 50</button>
+            <button type="button" class="range-chip" aria-pressed="false" data-value="50-200">50 – 200</button>
+            <button type="button" class="range-chip" aria-pressed="false" data-value="200-500">200 – 500</button>
+            <button type="button" class="range-chip" aria-pressed="false" data-value="500+">500 +</button>
+          </div>
+          <span class="err" data-err="aantal_klanten"></span>
+        </div>
+      </div>
+    </form>
+
+    <h2 style="margin: 40px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -.015em; color: var(--ink);">Je gegevens</h2>
+    <p style="margin: 8px 0 0; color: var(--muted); font-size: 14.5px;">We bellen je binnen 1 werkdag op. 30 minuten, geen verkoopdruk — we vertellen wat we doen, jij vertelt wat je nodig hebt.</p>
+
+    <form id="lead-form" novalidate>
+      <div class="form-grid">
+        <div class="form-row full">
+          <label for="f-bedrijf">Bedrijfsnaam</label>
+          <input id="f-bedrijf" name="bedrijfsnaam" type="text" autocomplete="organization" required>
+          <span class="err" data-err="bedrijfsnaam"></span>
+        </div>
+
+        <div class="form-row">
+          <label for="f-naam">Naam contactpersoon</label>
+          <input id="f-naam" name="contactpersoon_naam" type="text" autocomplete="name" required>
+          <span class="err" data-err="contactpersoon_naam"></span>
+        </div>
+        <div class="form-row">
+          <label for="f-tel">Telefoon</label>
+          <input id="f-tel" name="telefoon" type="tel" inputmode="tel" autocomplete="tel" required>
+          <span class="err" data-err="telefoon"></span>
+        </div>
+
+        <div class="form-row full">
+          <label for="f-email">E-mail</label>
+          <input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" required>
+          <span class="err" data-err="email"></span>
+        </div>
+
+        <div class="form-row full">
+          <label for="f-notitie">Wat zou je graag bespreken in de kennismaking? <span style="text-transform:none;color:var(--muted);font-weight:400;letter-spacing:0;">(optioneel)</span></label>
+          <textarea id="f-notitie" name="notitie" rows="3"></textarea>
+        </div>
+      </div>
+
+      <p class="form-microcopy">We bellen binnen 1 werkdag voor een kennismaking van 30 minuten. Geen verkoopdruk, geen verplichting.</p>
+
+      <div class="form-cta-row">
+        <button class="btn-back" type="button" data-go="4">← Vorige</button>
+        <button class="btn-primary" type="submit" id="submit-btn">
+          Aanmelden
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+        <a href="tel:+32472808182" class="btn-back" style="margin-left:auto;">Liever direct bellen? <strong style="color:var(--ink);font-weight:600;margin-left:6px;">+32 472 80 81 82</strong></a>
+      </div>
+    </form>
+  </section>
+
+  <!-- ─── Success-state ──────────────────────────────────────────── -->
+  <section class="page-shell" id="step-5a-success" style="display:none;">
+    <div class="success-state">
       <div class="success-icon" aria-hidden="true">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h2 class="card-title" id="step5-title" data-i18n="onboard.step5.title">Bedankt — contract is geregistreerd</h2>
-      <p class="card-subtitle" style="margin:0 auto 28px" data-i18n="onboard.step5.subtitle">We hebben uw aanvraag ontvangen. Stuur uzelf een magic-link om uw partner-portaal te activeren.</p>
-
-      <div style="max-width:420px;margin:0 auto;text-align:left">
-        <div class="field">
-          <label for="inp-magic-email" data-i18n="onboard.step5.emailLabel">Magic-link verzenden naar</label>
-          <input type="email" id="inp-magic-email" readonly>
-        </div>
-        <button type="button" class="btn btn-primary btn-block" id="btn-magic-send">
-          <span id="btn-magic-send-text" data-i18n="onboard.step5.sendBtn">Verstuur magic-link</span>
-        </button>
-
-        <div class="magic-success" id="magic-success" role="status"></div>
-        <div class="magic-error" id="magic-error" role="alert"></div>
-      </div>
-
-      <div class="next-steps">
-        <h4 data-i18n="onboard.step5.nextStepsTitle">Wat gebeurt er nu?</h4>
-        <ol>
-          <li data-i18n="onboard.step5.nextStep1">U logt in via de magic-link en kiest een wachtwoord voor uw partner-portaal.</li>
-          <li data-i18n="onboard.step5.nextStep2">U vindt direct uw eigen white-label calculator-link — klaar om te delen met klanten.</li>
-          <li data-i18n="onboard.step5.nextStep3">Onze account-manager neemt binnen 1 werkdag contact op voor een korte kennismaking en finetuning.</li>
-        </ol>
-      </div>
+      <h2>Bedankt — we bellen binnen 1 werkdag.</h2>
+      <p>Je ontvangt zo meteen een bevestigingsmail. Geen mail in je inbox? Check spam-folder of bel ons gerust direct op <strong style="color:var(--ink);">+32 472 80 81 82</strong>.</p>
     </div>
   </section>
 
 </main>
 
+<footer class="site-footer">
+  <span>© 2026 Flancco BV — Brugge, België</span>
+  <span>
+    <a href="mailto:gillian.geernaert@flancco.be">gillian.geernaert@flancco.be</a>
+    &nbsp;·&nbsp;
+    <a href="https://flancco-platform.be" target="_blank" rel="noopener">flancco-platform.be</a>
+  </span>
+</footer>
+
+<div class="toast-wrap" aria-live="polite" aria-atomic="true">
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- Plausible analytics (no-op without DNS) -->
+<script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.js"></script>
+
 <script>
-/**
- * Slot X — Partner Onboarding Wizard
- * --------------------------------------------------------------
- * Single-page wizard met 5 stappen, lokale draft-persistentie,
- * inline VAT-validatie via edge function `validate-vat`, en
- * inline PDF-generatie via jsPDF + html2canvas (no storage upload
- * in MVP — PDF base64 + handtekening base64 in DB rij).
- *
- * Pattern-bron:
- *   • Step-toggle + signature pad: calculator/index.html (regel 5403, 5854-5886)
- *   • PDF render: vereenvoudigde versie van generateContractPDFShared
- *     (calculator/index.html:1461) — geen iframe nodig want we renderen
- *     direct de #contract-frame via html2canvas, simpler voor MVP
- *   • Validation: window.flanccoValidators (calculator/shared/validators.js)
- *   • i18n: window.flanccoI18n (calculator/i18n/i18n.js, kopie in /onboard/i18n/)
- *
- * Plausible-events:
- *   Onboarding Stap 1 View, Onboarding Stap 2 BTW Valid, Onboarding Stap 2 Complete,
- *   Onboarding Stap 3 Marge Set (props.marge_pct), Onboarding Stap 3 Sectors Selected
- *   (props.sectors), Onboarding Stap 4 Submit Success / Submit Failed,
- *   Onboarding Stap 5 Account Created.
- */
-(function () {
+(function(){
   'use strict';
 
-  // ─── Config ──────────────────────────────────────────────
+  // Supabase config (anon-key publiek; alleen RPC-call op anon-allowed endpoint)
   var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
-  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTUxNjIsImV4cCI6MjA5MTM5MTE2Mn0.INfUSpG5N0iXiXO52NB4bTfVmQpkxXgjI6mEIqWO-6s';
-  var sb = window.supabase && window.supabase.createClient
-    ? window.supabase.createClient(SUPA_URL, SUPA_KEY)
-    : null;
-  var DRAFT_KEY = 'flancco_onboard_draft';
-  var DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dagen
+  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MDMyMDAsImV4cCI6MjA2MDQ3OTIwMH0.7iRHwNFfdNAgPcFxBZ4VtHdNdFfHgaVRQ7fUxWAvjuI';
+
   var TOTAL_STEPS = 5;
+  var currentStep = 1;
 
-  // Voorbeeldprijzen per sector (Flancco-basis excl. BTW excl. marge,
-  // voor MVP hardcoded zoals gevraagd; later: load from public.pricing).
-  var SAMPLE_BASIS = {
-    warmtepomp:   { small: 100, medium: 145, large: 245 },  // resp. 6kW / 12kW / 16kW + boiler
-    zonnepanelen: { small:  78, medium: 117, large: 190 },  // resp. 10p / 20p / 40p
-    ventilatie:   { small: 260, medium: 313, large: 391 }   // resp. C-compact / D-woning / D-multi
-  };
-
-  // ─── State ───────────────────────────────────────────────
-  var state = {
-    step: 1,
-    btwValidated: false,
-    btwValidatedPayload: null,
-    btwTimer: null,
-    sigCtx: null,
-    sigDrawing: false,
-    sigHasContent: false,
-    submitting: false,
-    applicationId: null,
-    btwPreview: 21
-  };
-
-  // ─── i18n helpers ────────────────────────────────────────
-  function t(key, params) {
-    if (window.flanccoI18n && typeof window.flanccoI18n.t === 'function') {
-      return window.flanccoI18n.t(key, params);
-    }
-    return key;
-  }
-  function applyI18n() {
-    if (window.flanccoI18n && typeof window.flanccoI18n.applyI18n === 'function') {
-      window.flanccoI18n.applyI18n();
-    }
-  }
-  function track(name, props) {
-    try {
-      if (typeof window.flanccoTrack === 'function') {
-        window.flanccoTrack(name, props);
-      }
-    } catch (_) {}
-  }
-
-  // ─── Draft persistence ──────────────────────────────────
-  function saveDraft() {
-    try {
-      var data = {
-        ts: Date.now(),
-        step: state.step,
-        bedrijfsnaam: val('inp-bedrijfsnaam'),
-        btw_nummer: val('inp-btw'),
-        btw_validated_payload: state.btwValidatedPayload,
-        adres: val('inp-adres'),
-        postcode: val('inp-postcode'),
-        gemeente: val('inp-gemeente'),
-        website: val('inp-website'),
-        contactpersoon_voornaam: val('inp-voornaam'),
-        contactpersoon_naam: val('inp-naam'),
-        contactpersoon_email: val('inp-email'),
-        contactpersoon_telefoon: val('inp-telefoon'),
-        sectoren: getSelectedSectors(),
-        marge_pct: parseFloat(val('inp-marge') || '15')
-      };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
-    } catch (_) {}
-  }
-  function loadDraft() {
-    try {
-      var raw = localStorage.getItem(DRAFT_KEY);
-      if (!raw) return null;
-      var d = JSON.parse(raw);
-      if (!d || !d.ts || Date.now() - d.ts > DRAFT_TTL_MS) {
-        localStorage.removeItem(DRAFT_KEY);
-        return null;
-      }
-      return d;
-    } catch (_) { return null; }
-  }
-  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (_) {} }
-
-  // ─── DOM helpers ─────────────────────────────────────────
-  function $(id) { return document.getElementById(id); }
-  function val(id) { var el = $(id); return el ? (el.value || '').trim() : ''; }
-  function setVal(id, v) { var el = $(id); if (el && v != null) el.value = v; }
-  function show(id) { var el = $(id); if (el) el.style.display = ''; }
-  function hide(id) { var el = $(id); if (el) el.style.display = 'none'; }
-  function setError(fieldId, errorKey) {
-    var f = $('field-' + fieldId);
-    var msg = $('error-' + fieldId);
-    if (!f || !msg) return;
-    if (errorKey) {
-      f.classList.add('has-error');
-      f.classList.remove('is-valid');
-      msg.textContent = t('onboard.step2.errors.' + errorKey);
-    } else {
-      f.classList.remove('has-error');
-      msg.textContent = '';
-    }
-  }
-  function setValid(fieldId) {
-    var f = $('field-' + fieldId);
-    if (f) { f.classList.remove('has-error'); f.classList.add('is-valid'); }
-    var msg = $('error-' + fieldId);
-    if (msg) msg.textContent = '';
-  }
-  function setAlert(stepId, msg) {
-    var a = $(stepId + '-alert');
-    if (!a) return;
-    if (msg) { a.textContent = msg; a.classList.add('is-visible'); }
-    else { a.textContent = ''; a.classList.remove('is-visible'); }
-  }
-
-  // ─── Step navigation ─────────────────────────────────────
+  // ─── Step navigation ─────────────────────────────────────────
   function goToStep(n) {
-    var s = parseInt(n, 10);
-    if (!s || s < 1 || s > TOTAL_STEPS) return;
-    document.querySelectorAll('.step').forEach(function (el) { el.classList.remove('active'); });
-    var target = $('step-' + s);
-    if (target) target.classList.add('active');
-    state.step = s;
-    var pct = Math.round((s / TOTAL_STEPS) * 100);
-    var fill = $('progress-fill');
-    if (fill) fill.style.width = pct + '%';
-    var lbl = $('progress-label');
-    if (lbl) lbl.textContent = s + '/' + TOTAL_STEPS;
-    var bar = document.querySelector('.progress[role="progressbar"]');
-    if (bar) bar.setAttribute('aria-valuenow', String(s));
-    saveDraft();
-    track('Onboarding Step View', { step: s });
+    if (n < 1 || n > TOTAL_STEPS) return;
+    var current = document.getElementById('step-' + currentStep);
+    var next = document.getElementById('step-' + n);
+    if (!next) return;
+
+    if (current) current.classList.remove('active');
+    next.classList.add('active');
+    currentStep = n;
+
+    // Progress
+    document.getElementById('progress-fill').style.width = (n / TOTAL_STEPS * 100) + '%';
+    document.getElementById('progress-label').textContent = String(n).padStart(2,'0') + ' / 0' + TOTAL_STEPS;
+
+    // Scroll top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Plausible event
+    track('Onboard V2 Step View', { step: String(n) });
+  }
+
+  document.querySelectorAll('[data-go]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = parseInt(btn.getAttribute('data-go'), 10);
+      track('Onboard V2 Step Complete', { from: String(currentStep), to: String(target) });
+      goToStep(target);
+    });
+  });
+
+  // ─── Lang switch (placeholder — alleen actief-state) ────────
+  document.querySelectorAll('.lang-switch button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.lang-switch button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      track('Onboard V2 Lang Switch', { lang: b.getAttribute('data-lang') });
+      // FR-vertaling later (briefing vraagt MVP NL)
+    });
+  });
+
+  // ─── Form helpers (declared early — used by sectoren listener) ─
+  function setErr(field, msg) {
+    var node = document.querySelector('[data-err="'+field+'"]');
+    if (node) node.textContent = msg || '';
+    var row = node ? node.closest('.form-row') : null;
+    if (row) row.classList.toggle('has-err', !!msg);
+  }
+  function clearErr(field){ setErr(field, ''); }
+
+  function getSectoren() {
+    return Array.from(document.querySelectorAll('#pill-sectoren .pill[aria-pressed="true"]'))
+      .map(function(p){return p.getAttribute('data-value');});
+  }
+  function getRangeKlanten() {
+    var active = document.querySelector('#range-klanten .range-chip[aria-pressed="true"]');
+    return active ? active.getAttribute('data-value') : null;
+  }
+
+  // ─── Pad-keuze state + UI updaters ───────────────────────────
+  var DRAFT_KEY = 'flancco_onboard_v2_draft';
+  function loadDraft() {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); }
+    catch (_) { return {}; }
+  }
+  function saveDraft(patch) {
+    try {
+      var d = loadDraft();
+      Object.assign(d, patch);
+      d._ts = Date.now();
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    } catch (_) {}
+  }
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
+  }
+
+  function persistInstapState() {
+    saveDraft({ sectoren: getSectoren(), range: getRangeKlanten() });
+  }
+
+  // ─── Sectoren-pills (multi) ──────────────────────────────────
+  document.querySelectorAll('#pill-sectoren .pill').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      var pressed = pill.getAttribute('aria-pressed') === 'true';
+      pill.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+      clearErr('sectoren');
+      persistInstapState();
+    });
+  });
+
+  // ─── Range-klanten (single) ──────────────────────────────────
+  document.querySelectorAll('#range-klanten .range-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      document.querySelectorAll('#range-klanten .range-chip').forEach(function(c){
+        c.setAttribute('aria-pressed', c === chip ? 'true' : 'false');
+      });
+      clearErr('aantal_klanten');
+      persistInstapState();
+    });
+  });
+
+  // ─── Pane-toggle (callback ↔ success) ────────────────────────
+  var paneCallback = document.getElementById('step-5a-callback');
+  var paneSuccessCallback = document.getElementById('step-5a-success');
+
+  function showSuccessPane() {
+    if (paneCallback) paneCallback.style.display = 'none';
+    if (paneSuccessCallback) paneSuccessCallback.style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ─── VALIDATION (Step 2) ─────────────────────────────────
-  var V = window.flanccoValidators || {};
-
-  function validateBTWFormat(value) {
-    if (!value) return false;
-    return V.REGEX_VAT_BE ? V.REGEX_VAT_BE.test(value.replace(/[\s.\-]/g, '')) : /^BE0?\d{9,10}$/i.test(value.replace(/[\s.\-]/g, ''));
+  // ─── Inline live-validatie callback-form ─────────────────────
+  function validateCallbackField(name) {
+    var f = document.getElementById('lead-form');
+    if (!f) return true;
+    var v = (f[name] && f[name].value || '').trim();
+    if (name === 'bedrijfsnaam' && v.length < 2) { setErr('bedrijfsnaam', 'Vul je bedrijfsnaam in.'); return false; }
+    if (name === 'contactpersoon_naam' && v.length < 2) { setErr('contactpersoon_naam', 'Vul je naam in.'); return false; }
+    if (name === 'telefoon' && v.length < 6) { setErr('telefoon', 'Telefoon ontbreekt of is te kort.'); return false; }
+    if (name === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setErr('email', 'Ongeldig e-mailadres.'); return false; }
+    clearErr(name);
+    return true;
   }
-  function validateEmail(v) { return V.email ? V.email(v) : /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
-  function validatePhone(v) { return V.phoneAny ? V.phoneAny(v) : /^[0-9+\s().\-]{8,20}$/.test(v); }
-  function validatePostcode(v) { return /^[1-9]\d{3}$/.test(v); }
-  function validateUrl(v) {
-    if (!v) return true;
-    try { var u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; }
-    catch (_) { return false; }
-  }
+  ['bedrijfsnaam','contactpersoon_naam','telefoon','email'].forEach(function(name){
+    var f = document.getElementById('lead-form');
+    if (!f || !f[name]) return;
+    f[name].addEventListener('blur', function(){ validateCallbackField(name); });
+    f[name].addEventListener('input', function(){
+      var row = f[name].closest('.form-row');
+      if (row && row.classList.contains('has-err')) validateCallbackField(name);
+    });
+  });
 
-  function setVATStatus(state, key) {
-    var sEl = $('status-btw');
-    if (!sEl) return;
-    if (!state) {
-      sEl.classList.remove('is-visible');
-      sEl.removeAttribute('data-state');
-      sEl.innerHTML = '';
-      return;
+  function validateCallbackForm() {
+    var ok = true;
+    ['bedrijfsnaam','contactpersoon_naam','telefoon','email'].forEach(function(name){
+      if (!validateCallbackField(name)) ok = false;
+    });
+    // Sectoren + range zijn kwalificatie-velden — verplicht bij submit
+    if (getSectoren().length === 0) {
+      setErr('sectoren', 'Kies minstens 1 sector zodat we ons goed kunnen voorbereiden.');
+      ok = false;
     }
-    sEl.setAttribute('data-state', state);
-    sEl.classList.add('is-visible');
-    if (state === 'loading') {
-      sEl.innerHTML = '<span class="vies-spinner"></span><span>' + escapeHtml(t(key)) + '</span>';
-    } else {
-      var icon = state === 'valid' ? '✓' : (state === 'invalid' ? '✕' : '!');
-      sEl.innerHTML = '<span aria-hidden="true">' + icon + '</span><span>' + escapeHtml(t(key)) + '</span>';
+    if (!getRangeKlanten()) {
+      setErr('aantal_klanten', 'Kies het aantal installaties zodat we ons goed kunnen voorbereiden.');
+      ok = false;
     }
+    return ok;
   }
 
-  async function validateVATWithEdge(btw) {
-    setVATStatus('loading', 'onboard.step2.btwValidating');
-    state.btwValidated = false;
-    state.btwValidatedPayload = null;
+  function showToast(msg, isErr){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.toggle('err', !!isErr);
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 4200);
+  }
+
+  function track(name, props){
     try {
-      var resp = await fetch(SUPA_URL + '/functions/v1/validate-vat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-        body: JSON.stringify({ btw_nummer: btw })
-      });
-      if (!resp.ok && resp.status !== 200) {
-        setVATStatus('error', 'onboard.step2.btwError');
+      if (typeof window.plausible === 'function') {
+        window.plausible(name, { props: props || {} });
+      } else if (window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.')) {
+        console.log('[plausible-stub]', name, props);
+      }
+    } catch (_) {}
+  }
+
+  // ─── Pad A Callback-form submit ──────────────────────────────
+  var leadForm = document.getElementById('lead-form');
+  if (leadForm) {
+    leadForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      if (!validateCallbackForm()) {
+        showToast('Kies eerst minstens 1 sector en het aantal installaties zodat we ons goed kunnen voorbereiden.', true);
+        // Scroll naar eerste error voor zichtbaarheid
+        var firstErrRow = document.querySelector('.form-row.has-err');
+        if (firstErrRow) firstErrRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      var data = await resp.json();
-      if (data && data.valid === true) {
-        state.btwValidated = true;
-        state.btwValidatedPayload = data;
-        setVATStatus('valid', 'onboard.step2.btwValid');
-        // Auto-fill from VIES payload if fields empty
-        if (data.bedrijfsnaam && !val('inp-bedrijfsnaam')) setVal('inp-bedrijfsnaam', data.bedrijfsnaam);
-        else if (data.name && !val('inp-bedrijfsnaam')) setVal('inp-bedrijfsnaam', data.name);
-        if (data.adres && !val('inp-adres')) setVal('inp-adres', data.adres);
-        else if (data.address && !val('inp-adres')) setVal('inp-adres', data.address);
-        if (data.postcode && !val('inp-postcode')) setVal('inp-postcode', data.postcode);
-        if (data.gemeente && !val('inp-gemeente')) setVal('inp-gemeente', data.gemeente);
-        else if (data.city && !val('inp-gemeente')) setVal('inp-gemeente', data.city);
-        validateAll();
-      } else if (data && data.valid === false) {
-        setVATStatus('invalid', 'onboard.step2.btwInvalid');
-      } else {
-        setVATStatus('error', 'onboard.step2.btwError');
-      }
-    } catch (err) {
-      setVATStatus('error', 'onboard.step2.btwError');
-    }
-    validateAll();
-  }
+      var sectoren = getSectoren();
+      var range = getRangeKlanten();
 
-  function onBTWInput() {
-    var v = val('inp-btw').replace(/[\s.\-]/g, '').toUpperCase();
-    setVal('inp-btw', v);
-    if (state.btwTimer) clearTimeout(state.btwTimer);
-    state.btwValidated = false;
-    state.btwValidatedPayload = null;
-    if (!v) {
-      setVATStatus(null);
-      validateAll();
-      return;
-    }
-    if (!validateBTWFormat(v)) {
-      setVATStatus('invalid', 'onboard.step2.errors.btwFormat');
-      validateAll();
-      return;
-    }
-    state.btwTimer = setTimeout(function () { validateVATWithEdge(v); }, 600);
-  }
+      var btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = 'Versturen…';
 
-  function validateAll() {
-    var ok = true;
-    var btw = val('inp-btw');
-    if (!btw) { setError('btw', 'btwRequired'); ok = false; }
-    else if (!validateBTWFormat(btw)) { setError('btw', 'btwFormat'); ok = false; }
-    else { setError('btw', null); if (state.btwValidated) setValid('btw'); }
+      var notitie = (leadForm.notitie.value || '').trim();
+      var ip = null;
 
-    var bn = val('inp-bedrijfsnaam');
-    if (!bn) { setError('bedrijfsnaam', 'bedrijfsnaamRequired'); ok = false; } else { setValid('bedrijfsnaam'); }
-
-    var adr = val('inp-adres');
-    if (!adr) { setError('adres', 'adresRequired'); ok = false; } else { setValid('adres'); }
-
-    var pc = val('inp-postcode');
-    if (!pc || !validatePostcode(pc)) { setError('postcode', 'postcodeRequired'); ok = false; } else { setValid('postcode'); }
-
-    var gem = val('inp-gemeente');
-    if (!gem) { setError('gemeente', 'gemeenteRequired'); ok = false; } else { setValid('gemeente'); }
-
-    var web = val('inp-website');
-    if (web && !validateUrl(web)) { setError('website', 'websiteInvalid'); ok = false; } else { setError('website', null); if (web) setValid('website'); }
-
-    var vn = val('inp-voornaam');
-    if (!vn) { setError('voornaam', 'voornaamRequired'); ok = false; } else { setValid('voornaam'); }
-
-    var na = val('inp-naam');
-    if (!na) { setError('naam', 'naamRequired'); ok = false; } else { setValid('naam'); }
-
-    var em = val('inp-email');
-    if (!em) { setError('email', 'emailRequired'); ok = false; }
-    else if (!validateEmail(em)) { setError('email', 'emailInvalid'); ok = false; }
-    else { setValid('email'); }
-
-    var tel = val('inp-telefoon');
-    if (!tel) { setError('telefoon', 'telefoonRequired'); ok = false; }
-    else if (!validatePhone(tel)) { setError('telefoon', 'telefoonInvalid'); ok = false; }
-    else { setValid('telefoon'); }
-
-    var btn = $('btn-step2-next');
-    if (btn) btn.disabled = !ok;
-
-    saveDraft();
-    return ok;
-  }
-
-  // ─── STEP 3 — sectors + marge + preview ──────────────────
-  function getSelectedSectors() {
-    var arr = [];
-    ['warmtepomp', 'zonnepanelen', 'ventilatie'].forEach(function (s) {
-      var cb = $('sector-' + s);
-      if (cb && cb.checked) arr.push(s);
-    });
-    return arr;
-  }
-
-  function fmtEur(amount) {
-    return '€ ' + (Math.round(amount * 100) / 100).toFixed(2).replace('.', ',');
-  }
-
-  function renderPricingPreview() {
-    var sectors = getSelectedSectors();
-    var marge = parseFloat(val('inp-marge') || '15');
-    var btwPct = state.btwPreview === 6 ? 6 : 21;
-    var container = $('preview-sectors');
-    if (!container) return;
-
-    if (sectors.length === 0) {
-      container.innerHTML = '<div class="preview-sector" style="padding:24px;text-align:center;color:var(--grey);font-size:13px">' +
-        escapeHtml(t('onboard.step3.errors.sectorRequired')) + '</div>';
-      return;
-    }
-
-    var html = '';
-    sectors.forEach(function (sec) {
-      var basis = SAMPLE_BASIS[sec];
-      if (!basis) return;
-      var labels = {
-        warmtepomp: t('onboard.step3.sectorWarmtepompTitle'),
-        zonnepanelen: t('onboard.step3.sectorZonneTitle'),
-        ventilatie: t('onboard.step3.sectorVentilatieTitle')
-      };
-      var sizes = {
-        small:  t('onboard.step3.sampleSizes.' + sec + '.small'),
-        medium: t('onboard.step3.sampleSizes.' + sec + '.medium'),
-        large:  t('onboard.step3.sampleSizes.' + sec + '.large')
-      };
-      html += '<div class="preview-sector">' +
-        '<div class="preview-sector-title">' + escapeHtml(labels[sec]) + '</div>' +
-        '<div class="preview-tiers">' +
-          renderTier('small',  basis.small,  marge, btwPct, sizes.small) +
-          renderTier('medium', basis.medium, marge, btwPct, sizes.medium) +
-          renderTier('large',  basis.large,  marge, btwPct, sizes.large) +
-        '</div>' +
-        '</div>';
-    });
-    container.innerHTML = html;
-
-    var pBlock = $('preview-block');
-    if (pBlock) {
-      if (btwPct === 6) pBlock.classList.add('btw6');
-      else pBlock.classList.remove('btw6');
-    }
-  }
-
-  function renderTier(size, basis, marge, btwPct, sizeLabel) {
-    var marge_amt = basis * (marge / 100);
-    var excl_btw = basis + marge_amt;
-    var incl_btw = excl_btw * (1 + btwPct / 100);
-    var sizeKey = size === 'small' ? 'previewSmall' : (size === 'medium' ? 'previewMedium' : 'previewLarge');
-    return '<div class="preview-tier">' +
-      '<div class="preview-tier-h">' + escapeHtml(t('onboard.step3.' + sizeKey)) + '</div>' +
-      '<div class="preview-tier-size">' + escapeHtml(sizeLabel || '') + '</div>' +
-      '<div class="preview-tier-rows">' +
-        '<div><span>' + escapeHtml(t('onboard.step3.previewBasis')) + '</span><span>' + fmtEur(basis) + '</span></div>' +
-        '<div class="row-marge"><span>' + escapeHtml(t('onboard.step3.previewMarge')) + ' (' + marge.toFixed(1) + '%)</span><span>+ ' + fmtEur(marge_amt) + '</span></div>' +
-        '<div><span>' + escapeHtml(t('onboard.step3.previewExclBtw')) + '</span><span>' + fmtEur(excl_btw) + '</span></div>' +
-        '<div class="row-final"><span>' + escapeHtml(t('onboard.step3.previewInclBtw')) + ' (' + btwPct + '%)</span><span>' + fmtEur(incl_btw) + '</span></div>' +
-      '</div>' +
-      '</div>';
-  }
-
-  function validateStep3() {
-    var sectors = getSelectedSectors();
-    var ok = sectors.length > 0;
-    var btn = $('btn-step3-next');
-    if (btn) btn.disabled = !ok;
-    setAlert('step3', ok ? null : t('onboard.step3.errors.sectorRequired'));
-    return ok;
-  }
-
-  // ─── STEP 4 — render contract + signature ───────────────
-  function escapeHtml(s) {
-    if (s == null) return '';
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c;
-    });
-  }
-
-  function renderContract() {
-    var sectors = getSelectedSectors();
-    var marge = parseFloat(val('inp-marge') || '15');
-    var sectorenLabels = {
-      warmtepomp: t('onboard.step3.sectorWarmtepompTitle'),
-      zonnepanelen: t('onboard.step3.sectorZonneTitle'),
-      ventilatie: t('onboard.step3.sectorVentilatieTitle')
-    };
-    var sectorenStr = sectors.map(function (s) { return sectorenLabels[s]; }).join(', ');
-
-    var partner = {
-      bedrijfsnaam: val('inp-bedrijfsnaam'),
-      btw: val('inp-btw'),
-      adres: val('inp-adres') + ', ' + val('inp-postcode') + ' ' + val('inp-gemeente'),
-      contact: val('inp-voornaam') + ' ' + val('inp-naam'),
-      email: val('inp-email'),
-      tel: val('inp-telefoon')
-    };
-
-    var html = '<h2>' + escapeHtml(t('onboard.step4.contractTitle')) + '</h2>' +
-      '<p class="contract-intro">' + escapeHtml(t('onboard.step4.contractIntro')) + '</p>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.partijTitel')) + '</h3>' +
-      '<div class="partijen">' +
-        '<div class="partij">' +
-          '<div class="partij-label">' + escapeHtml(t('onboard.step4.partijFlanccoLabel')) + '</div>' +
-          '<strong>Flancco BV</strong><br>' +
-          escapeHtml(t('onboard.step4.partijFlanccoLine1')) + '<br>' +
-          escapeHtml(t('onboard.step4.partijFlanccoLine2')) +
-        '</div>' +
-        '<div class="partij">' +
-          '<div class="partij-label">' + escapeHtml(t('onboard.step4.partijPartner')) + '</div>' +
-          '<strong>' + escapeHtml(partner.bedrijfsnaam) + '</strong><br>' +
-          escapeHtml(partner.adres) + '<br>' +
-          'BTW: ' + escapeHtml(partner.btw) + '<br>' +
-          escapeHtml(t('onboard.step2.voornaamLabel')) + '/' + escapeHtml(t('onboard.step2.naamLabel').toLowerCase()) + ': ' + escapeHtml(partner.contact) + '<br>' +
-          escapeHtml(partner.email) + ' · ' + escapeHtml(partner.tel) +
-        '</div>' +
-      '</div>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.artikel1Titel')) + '</h3>' +
-      '<p>' + escapeHtml(t('onboard.step4.artikel1', { sectoren: sectorenStr })) + '</p>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.artikel2Titel')) + '</h3>' +
-      '<p>' + escapeHtml(t('onboard.step4.artikel2', { marge: marge.toFixed(1) })) + '</p>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.artikel3Titel')) + '</h3>' +
-      '<p>' + escapeHtml(t('onboard.step4.artikel3')) + '</p>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.artikel4Titel')) + '</h3>' +
-      '<p>' + escapeHtml(t('onboard.step4.artikel4')) + '</p>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.artikel5Titel')) + '</h3>' +
-      '<p>' + escapeHtml(t('onboard.step4.artikel5')) + '</p>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.artikel6Titel')) + '</h3>' +
-      '<p>' + escapeHtml(t('onboard.step4.artikel6')) + '</p>' +
-
-      '<h3>' + escapeHtml(t('onboard.step4.artikel7Titel')) + '</h3>' +
-      '<p>' + escapeHtml(t('onboard.step4.artikel7')) + '</p>' +
-
-      '<p style="margin-top:24px;font-size:12.5px;color:var(--grey)">' + escapeHtml(t('onboard.step4.contractFooter')) + '</p>';
-
-    var frame = $('contract-frame');
-    if (frame) frame.innerHTML = html;
-
-    // Update sig date
-    var datum = new Date();
-    var dateStr = datum.toLocaleDateString((window.flanccoI18n && window.flanccoI18n.getLang() === 'fr') ? 'fr-BE' : 'nl-BE');
-    var dEl = $('sig-date');
-    if (dEl) dEl.textContent = dateStr;
-  }
-
-  // ─── Signature Pad (calculator-pattern) ─────────────────
-  function initSignaturePad() {
-    var canvas = $('sig-canvas');
-    if (!canvas) return;
-    var wrap = canvas.parentElement;
-    canvas.width = wrap.offsetWidth;
-    canvas.height = wrap.offsetHeight;
-    state.sigCtx = canvas.getContext('2d');
-    state.sigCtx.strokeStyle = '#0F172A';
-    state.sigCtx.lineWidth = 2;
-    state.sigCtx.lineCap = 'round';
-    state.sigCtx.lineJoin = 'round';
-    state.sigHasContent = false;
-
-    canvas.addEventListener('mousedown', sigStart);
-    canvas.addEventListener('mousemove', sigMove);
-    canvas.addEventListener('mouseup', sigEnd);
-    canvas.addEventListener('mouseleave', sigEnd);
-    canvas.addEventListener('touchstart', function (e) { e.preventDefault(); sigStart(e.touches[0]); }, { passive: false });
-    canvas.addEventListener('touchmove', function (e) { e.preventDefault(); sigMove(e.touches[0]); }, { passive: false });
-    canvas.addEventListener('touchend', sigEnd);
-  }
-  function sigPos(e) {
-    var canvas = $('sig-canvas');
-    var rect = canvas.getBoundingClientRect();
-    return { x: (e.clientX - rect.left) * (canvas.width / rect.width), y: (e.clientY - rect.top) * (canvas.height / rect.height) };
-  }
-  function sigStart(e) { state.sigDrawing = true; var p = sigPos(e); state.sigCtx.beginPath(); state.sigCtx.moveTo(p.x, p.y); }
-  function sigMove(e) {
-    if (!state.sigDrawing) return;
-    var p = sigPos(e);
-    state.sigCtx.lineTo(p.x, p.y); state.sigCtx.stroke();
-    if (!state.sigHasContent) {
-      state.sigHasContent = true;
-      var w = $('sig-wrap'); if (w) w.classList.add('has-sig');
-    }
-    checkAccept();
-  }
-  function sigEnd() { state.sigDrawing = false; }
-  function clearSig() {
-    var canvas = $('sig-canvas');
-    if (!canvas || !state.sigCtx) return;
-    state.sigCtx.clearRect(0, 0, canvas.width, canvas.height);
-    state.sigHasContent = false;
-    var w = $('sig-wrap'); if (w) w.classList.remove('has-sig');
-    checkAccept();
-  }
-  function checkAccept() {
-    var accepted = $('inp-accept') && $('inp-accept').checked;
-    var btn = $('btn-step4-submit');
-    if (btn) btn.disabled = !(accepted && state.sigHasContent && !state.submitting);
-  }
-
-  // ─── PDF generation ─────────────────────────────────────
-  async function generateContractPDFBlob() {
-    if (!window.jspdf || !window.html2canvas) {
-      throw new Error('jsPDF/html2canvas niet geladen');
-    }
-    var sourceFrame = $('contract-frame');
-    if (!sourceFrame) throw new Error('contract-frame niet gevonden');
-
-    // Renderdoc in een tijdelijke container met print-vriendelijke styling
-    var box = document.createElement('div');
-    box.style.cssText = 'position:fixed;left:-10000px;top:0;width:780px;background:#fff;padding:32px;font-family:Inter,-apple-system,sans-serif;color:#0F172A;font-size:13px;line-height:1.6';
-    box.innerHTML = sourceFrame.innerHTML +
-      '<div style="margin-top:36px;display:flex;gap:32px;align-items:flex-end;border-top:1px solid #E5E7EB;padding-top:18px">' +
-        '<div style="flex:1"><div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#6B7280;text-transform:uppercase;margin-bottom:6px">' + escapeHtml(t('onboard.step4.sigLabel')) + '</div>' +
-          '<img src="' + ($('sig-canvas') ? $('sig-canvas').toDataURL('image/png') : '') + '" alt="" style="max-width:240px;height:auto;border-bottom:1px solid #1A1A2E;padding-bottom:4px">' +
-          '<div style="font-size:11px;color:#475569;margin-top:6px"><strong>' + escapeHtml(val('inp-voornaam') + ' ' + val('inp-naam')) + '</strong> · ' + escapeHtml(val('inp-bedrijfsnaam')) + '</div>' +
-          '<div style="font-size:11px;color:#475569">' + escapeHtml(t('onboard.step4.sigDate')) + ': ' + escapeHtml($('sig-date') ? $('sig-date').textContent : '') + '</div>' +
-        '</div></div>';
-    document.body.appendChild(box);
-
-    try {
-      var canvas = await window.html2canvas(box, {
-        scale: 2, useCORS: true, allowTaint: false,
-        backgroundColor: '#ffffff', logging: false, windowWidth: 780
-      });
-      var jsPDF = window.jspdf.jsPDF;
-      var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      var pageW = pdf.internal.pageSize.getWidth();
-      var pageH = pdf.internal.pageSize.getHeight();
-      var marginX = 15, marginY = 18;
-      var contentW = pageW - 2 * marginX;
-      var contentH = pageH - 2 * marginY;
-      var pxPerMm = canvas.width / contentW;
-      var sliceMax = Math.floor(contentH * pxPerMm);
-      var y = 0, page = 0;
-      while (y < canvas.height) {
-        var sliceH = Math.min(sliceMax, canvas.height - y);
-        var pc = document.createElement('canvas');
-        pc.width = canvas.width; pc.height = sliceH;
-        var ctx = pc.getContext('2d');
-        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pc.width, pc.height);
-        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, pc.width, sliceH);
-        if (page > 0) pdf.addPage();
-        var sliceMm = sliceH / pxPerMm;
-        pdf.addImage(pc.toDataURL('image/png'), 'PNG', marginX, marginY, contentW, sliceMm);
-        y += sliceH; page++;
-      }
-      return pdf.output('datauristring'); // returns "data:application/pdf;base64,...."
-    } finally {
-      box.remove();
-    }
-  }
-
-  async function fetchSigningIp() {
-    try {
-      var resp = await fetch('https://api.ipify.org?format=json', { method: 'GET' });
-      if (!resp.ok) return null;
-      var d = await resp.json();
-      return d && d.ip ? d.ip : null;
-    } catch (_) { return null; }
-  }
-
-  async function submitContract() {
-    if (state.submitting) return;
-    var btn = $('btn-step4-submit');
-    var btnTxt = $('btn-step4-submit-text');
-    var origText = btnTxt ? btnTxt.textContent : '';
-    if (!$('inp-accept').checked || !state.sigHasContent) {
-      setAlert('step4', t('onboard.step4.errorMissingAccept'));
-      return;
-    }
-    state.submitting = true;
-    if (btn) btn.disabled = true;
-    if (btnTxt) btnTxt.textContent = t('onboard.step4.submitting');
-    setAlert('step4', null);
-
-    try {
-      // 1. Collect IP (best-effort)
-      var signingIp = await fetchSigningIp();
-
-      // 2. Render contract PDF as data-URI (Wave 2: actively used; uploaded to
-      //    `partner-contracts` bucket via edge function `upload-partner-contract`
-      //    after RPC-success. Render is wrapped in try/catch zodat een PDF-render
-      //    failure de application-creation NIET blokkeert.)
-      var pdfDataUri = null;
+      // IP fetch (non-blocking, 2.5s timeout)
       try {
-        pdfDataUri = await generateContractPDFBlob();
-      } catch (pdfErr) {
-        console.warn('[onboard] PDF-render failed (non-blocking):', pdfErr && pdfErr.message);
-        track('Onboarding Stap 4 PDF Render Failed', { msg: (pdfErr && pdfErr.message || '').substring(0, 120) });
-      }
-
-      // 3. Build payload
-      var lang = (window.flanccoI18n && window.flanccoI18n.getLang()) || 'nl';
-      var sigBase64 = $('sig-canvas') ? $('sig-canvas').toDataURL('image/png') : null;
-      var canvasOnly = sigBase64 ? sigBase64.replace(/^data:image\/png;base64,/, '') : null;
+        var ipResp = await Promise.race([
+          fetch('https://api.ipify.org?format=json').then(function(r){return r.json();}),
+          new Promise(function(_, rej){ setTimeout(function(){rej(new Error('timeout'));}, 2500); })
+        ]);
+        ip = ipResp && ipResp.ip;
+      } catch (_) { /* ignore */ }
 
       var payload = {
-        status: 'contract_signed',
-        bedrijfsnaam: val('inp-bedrijfsnaam'),
-        btw_nummer: val('inp-btw'),
-        btw_validated_payload: state.btwValidatedPayload,
-        contactpersoon_voornaam: val('inp-voornaam'),
-        contactpersoon_naam: val('inp-naam'),
-        contactpersoon_email: val('inp-email'),
-        contactpersoon_telefoon: val('inp-telefoon'),
-        website: val('inp-website') || null,
-        adres: val('inp-adres'),
-        postcode: val('inp-postcode'),
-        gemeente: val('inp-gemeente'),
-        sectoren: getSelectedSectors(),
-        marge_pct: parseFloat(val('inp-marge') || '15'),
-        contract_signed_at: new Date().toISOString(),
-        signing_ip: signingIp,
-        signing_user_agent: (navigator.userAgent || '').substring(0, 500),
-        contract_handtekening_base64: canvasOnly,
-        contract_pdf_url: null,
-        lang: lang
+        status: 'lead',
+        bedrijfsnaam: leadForm.bedrijfsnaam.value.trim(),
+        contactpersoon_naam: leadForm.contactpersoon_naam.value.trim(),
+        contactpersoon_email: leadForm.email.value.trim(),
+        contactpersoon_telefoon: leadForm.telefoon.value.trim(),
+        sectoren: sectoren,
+        marge_pct: 10, // placeholder voor lead-status; partner kiest 10-20% in self-service of na callback
+        lang: 'nl',
+        signing_ip: ip,
+        signing_user_agent: navigator.userAgent.slice(0, 250),
+        notitie: [
+          'Range eindklanten: ' + (range || 'onbekend'),
+          notitie ? 'Bespreking: ' + notitie : null
+        ].filter(Boolean).join('\n'),
+        lead_bron: 'onboard-v2-callback'
       };
 
-      // 4. Call RPC anon_create_partner_application
-      if (!sb) throw new Error('Supabase client niet geladen');
-      var rpcResp = await sb.rpc('anon_create_partner_application', { payload: payload });
-      if (rpcResp.error) {
-        var msg = rpcResp.error.message || '';
-        if (/rate_limit/i.test(msg)) {
-          throw new Error(t('onboard.common.errorRateLimit'));
-        }
-        throw new Error(msg || t('onboard.step4.errorSubmit'));
-      }
-      var data = rpcResp.data;
-      if (!data || !data.ok || !data.id) throw new Error(t('onboard.step4.errorSubmit'));
-
-      state.applicationId = data.id;
-      state.contractPdfUrl = null;
-      track('Onboarding Stap 4 Submit Success', {
-        sectors_count: payload.sectoren.length,
-        marge_pct: payload.marge_pct,
-        lang: lang
-      });
-
-      // 5. Upload PDF to `partner-contracts` bucket (best-effort, non-blocking).
-      //    Faalt deze stap, dan blijft de application-rij intact en kan een
-      //    admin de PDF later regenereren vanuit de DB-data.
-      if (pdfDataUri) {
-        try {
-          fetch(SUPA_URL + '/functions/v1/upload-partner-contract', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-            body: JSON.stringify({ application_id: data.id, pdf_base64: pdfDataUri })
-          }).then(function (resp) {
-            if (!resp.ok) {
-              console.warn('[onboard] PDF upload failed:', resp.status);
-              track('Onboarding Stap 4 PDF Upload Failed', { status: resp.status });
-              return null;
-            }
-            return resp.json();
-          }).then(function (upData) {
-            if (upData && upData.ok && upData.pdf_url) {
-              state.contractPdfUrl = upData.pdf_url;
-              console.log('[onboard] PDF uploaded', upData.already_uploaded ? '(already_uploaded)' : '(new)');
-            }
-          }).catch(function (e) {
-            console.warn('[onboard] PDF upload exception:', e && e.message);
-          });
-        } catch (e) {
-          console.warn('[onboard] PDF upload setup failed:', e && e.message);
-        }
-      }
-
-      // 6. Trigger confirmation mail (best-effort, non-blocking)
       try {
-        fetch(SUPA_URL + '/functions/v1/send-partner-application-confirmation', {
+        var resp = await fetch(SUPA_URL + '/rest/v1/rpc/anon_create_partner_application', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-          body: JSON.stringify({ application_id: data.id })
-        }).catch(function () { /* fire-and-forget */ });
-      } catch (_) {}
+          headers: {
+            'apikey': SUPA_KEY,
+            'Authorization': 'Bearer ' + SUPA_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ payload: payload })
+        });
 
-      // 7. Pre-fill magic-link email and navigate to step 5
-      setVal('inp-magic-email', val('inp-email'));
-      clearDraft();
-      goToStep(5);
-    } catch (err) {
-      console.error('[onboard] submit failed', err);
-      track('Onboarding Stap 4 Submit Failed', { msg: (err && err.message || '').substring(0, 120) });
-      setAlert('step4', err && err.message ? err.message : t('onboard.step4.errorSubmit'));
-      if (btn) btn.disabled = false;
-      if (btnTxt) btnTxt.textContent = origText || t('onboard.common.submit');
-    } finally {
-      state.submitting = false;
-      checkAccept();
-    }
-  }
-
-  // ─── STEP 5 — magic link ────────────────────────────────
-  async function sendMagicLink() {
-    var btn = $('btn-magic-send');
-    var btnTxt = $('btn-magic-send-text');
-    var origTxt = btnTxt ? btnTxt.textContent : '';
-    var em = val('inp-magic-email');
-    if (!em || !validateEmail(em)) return;
-
-    btn.disabled = true;
-    if (btnTxt) btnTxt.textContent = t('onboard.step5.sending');
-    hide('magic-success'); hide('magic-error');
-
-    try {
-      var lang = (window.flanccoI18n && window.flanccoI18n.getLang()) || 'nl';
-      var resp = await fetch(SUPA_URL + '/functions/v1/register-partner', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-        body: JSON.stringify({ application_id: state.applicationId, email: em, lang: lang })
-      });
-      var data = await resp.json().catch(function () { return null; });
-      if (!resp.ok) {
-        var em2 = data && (data.error || data.message) || ('HTTP ' + resp.status);
-        throw new Error(em2);
-      }
-      var ok = $('magic-success');
-      if (ok) {
-        ok.style.display = 'block';
-        ok.innerHTML = '<strong>' + escapeHtml(t('onboard.step5.success', { email: em })) + '</strong><br><small>' + escapeHtml(t('onboard.step5.successHint')) + '</small>';
-      }
-      track('Onboarding Stap 5 Account Created', { lang: lang });
-    } catch (err) {
-      console.error('[onboard] magic-link failed', err);
-      var er = $('magic-error');
-      if (er) {
-        er.style.display = 'block';
-        er.textContent = (err && err.message) ? err.message : t('onboard.step5.errorGeneric');
-      }
-      btn.disabled = false;
-      if (btnTxt) btnTxt.textContent = origTxt || t('onboard.step5.sendBtn');
-    }
-  }
-
-  // ─── EVENT WIRING ───────────────────────────────────────
-  function wireEvents() {
-    // Lang toggle
-    $('lang-nl').addEventListener('click', function () {
-      if (window.flanccoI18n) window.flanccoI18n.setLang('nl');
-      $('lang-nl').classList.add('active'); $('lang-nl').setAttribute('aria-pressed', 'true');
-      $('lang-fr').classList.remove('active'); $('lang-fr').setAttribute('aria-pressed', 'false');
-      if (state.step >= 3) renderPricingPreview();
-      if (state.step === 4) renderContract();
-    });
-    $('lang-fr').addEventListener('click', function () {
-      if (window.flanccoI18n) window.flanccoI18n.setLang('fr');
-      $('lang-fr').classList.add('active'); $('lang-fr').setAttribute('aria-pressed', 'true');
-      $('lang-nl').classList.remove('active'); $('lang-nl').setAttribute('aria-pressed', 'false');
-      if (state.step >= 3) renderPricingPreview();
-      if (state.step === 4) renderContract();
-    });
-    if (window.flanccoI18n && typeof window.flanccoI18n.onLangChange === 'function') {
-      window.flanccoI18n.onLangChange(function (lang) {
-        if (lang === 'nl') {
-          $('lang-nl').classList.add('active'); $('lang-fr').classList.remove('active');
-        } else {
-          $('lang-fr').classList.add('active'); $('lang-nl').classList.remove('active');
+        if (!resp.ok) {
+          var errBody = await resp.text();
+          console.error('[lead-submit]', resp.status, errBody);
+          throw new Error('HTTP ' + resp.status);
         }
-      });
-    }
 
-    // Step 1
-    $('cta-start').addEventListener('click', function () {
-      track('Onboarding Stap 1 Cta Click');
-      goToStep(2);
-    });
+        track('Onboard V2 Lead Submitted', {
+          path: 'callback',
+          sectors_count: String(sectoren.length),
+          range: range || 'unknown'
+        });
 
-    // Step 2
-    $('inp-btw').addEventListener('input', onBTWInput);
-    $('inp-btw').addEventListener('blur', function () {
-      var v = val('inp-btw').replace(/[\s.\-]/g, '').toUpperCase();
-      if (v && validateBTWFormat(v) && !state.btwValidated) validateVATWithEdge(v);
-      validateAll();
-    });
-    ['inp-bedrijfsnaam', 'inp-adres', 'inp-postcode', 'inp-gemeente', 'inp-website',
-     'inp-voornaam', 'inp-naam', 'inp-email', 'inp-telefoon'].forEach(function (id) {
-      var el = $(id);
-      if (el) {
-        el.addEventListener('input', validateAll);
-        el.addEventListener('blur', validateAll);
-      }
-    });
-    document.querySelector('[data-action="back-to-1"]').addEventListener('click', function () { goToStep(1); });
-    $('btn-step2-next').addEventListener('click', function () {
-      if (!validateAll()) return;
-      track('Onboarding Stap 2 Complete', { btw_validated: state.btwValidated });
-      goToStep(3);
-    });
+        clearDraft();
+        showSuccessPane();
 
-    // Step 3
-    document.querySelectorAll('input[type="checkbox"][id^="sector-"]').forEach(function (cb) {
-      cb.addEventListener('change', function () {
-        var card = cb.closest('.sector-card');
-        if (card) card.classList.toggle('selected', cb.checked);
-        renderPricingPreview();
-        validateStep3();
-        track('Onboarding Stap 3 Sectors Selected', { sectors: getSelectedSectors().join(','), count: getSelectedSectors().length });
-        saveDraft();
-      });
-    });
-    $('inp-marge').addEventListener('input', function () {
-      var v = parseFloat($('inp-marge').value);
-      $('lbl-marge').textContent = v.toFixed(1) + '%';
-      renderPricingPreview();
-      saveDraft();
-    });
-    $('inp-marge').addEventListener('change', function () {
-      track('Onboarding Stap 3 Marge Set', { marge_pct: parseFloat($('inp-marge').value) });
-    });
-    $('btw-21').addEventListener('click', function () {
-      state.btwPreview = 21;
-      $('btw-21').classList.add('active'); $('btw-6').classList.remove('active');
-      renderPricingPreview();
-    });
-    $('btw-6').addEventListener('click', function () {
-      state.btwPreview = 6;
-      $('btw-6').classList.add('active'); $('btw-21').classList.remove('active');
-      renderPricingPreview();
-    });
-    document.querySelector('[data-action="back-to-2"]').addEventListener('click', function () { goToStep(2); });
-    $('btn-step3-next').addEventListener('click', function () {
-      if (!validateStep3()) return;
-      goToStep(4);
-      renderContract();
-      // delay a frame to ensure layout, then init signature
-      requestAnimationFrame(function () { initSignaturePad(); });
-    });
-
-    // Step 4
-    $('inp-accept').addEventListener('change', checkAccept);
-    $('btn-sig-clear').addEventListener('click', clearSig);
-    document.querySelector('[data-action="back-to-3"]').addEventListener('click', function () { goToStep(3); });
-    $('btn-step4-submit').addEventListener('click', submitContract);
-
-    // Step 5
-    $('btn-magic-send').addEventListener('click', sendMagicLink);
-
-    // Resize → re-init signature pad if step 4 visible
-    window.addEventListener('resize', function () {
-      if (state.step === 4 && $('sig-canvas')) {
-        var existing = $('sig-canvas').toDataURL('image/png');
-        initSignaturePad();
-        if (state.sigHasContent && existing) {
-          var img = new Image();
-          img.onload = function () { state.sigCtx.drawImage(img, 0, 0, $('sig-canvas').width, $('sig-canvas').height); };
-          img.src = existing;
-        }
+      } catch (err) {
+        console.error('[lead-submit]', err);
+        showToast('Verzenden lukte niet. Bel ons gerust direct op +32 472 80 81 82.', true);
+        btn.disabled = false;
+        btn.innerHTML = 'Aanmelden <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
       }
     });
   }
 
-  // ─── INIT ───────────────────────────────────────────────
-  function restoreDraft() {
+  // ─── Init ────────────────────────────────────────────────────
+  // Restore draft state (sectoren + range) als gebruiker terugkeert
+  (function restoreDraft(){
     var d = loadDraft();
-    if (!d) return;
-    setVal('inp-btw', d.btw_nummer || '');
-    setVal('inp-bedrijfsnaam', d.bedrijfsnaam || '');
-    setVal('inp-adres', d.adres || '');
-    setVal('inp-postcode', d.postcode || '');
-    setVal('inp-gemeente', d.gemeente || '');
-    setVal('inp-website', d.website || '');
-    setVal('inp-voornaam', d.contactpersoon_voornaam || '');
-    setVal('inp-naam', d.contactpersoon_naam || '');
-    setVal('inp-email', d.contactpersoon_email || '');
-    setVal('inp-telefoon', d.contactpersoon_telefoon || '');
+    if (!d || !d._ts) return;
+    // Vervalt na 7 dagen
+    if (Date.now() - d._ts > 7 * 24 * 60 * 60 * 1000) { clearDraft(); return; }
     if (Array.isArray(d.sectoren)) {
-      d.sectoren.forEach(function (s) {
-        var cb = $('sector-' + s);
-        if (cb) {
-          cb.checked = true;
-          var card = cb.closest('.sector-card');
-          if (card) card.classList.add('selected');
-        }
+      d.sectoren.forEach(function(v){
+        var p = document.querySelector('#pill-sectoren .pill[data-value="'+v+'"]');
+        if (p) p.setAttribute('aria-pressed', 'true');
       });
     }
-    if (d.marge_pct != null) {
-      setVal('inp-marge', String(d.marge_pct));
-      $('lbl-marge').textContent = parseFloat(d.marge_pct).toFixed(1) + '%';
+    if (d.range) {
+      var c = document.querySelector('#range-klanten .range-chip[data-value="'+d.range+'"]');
+      if (c) c.setAttribute('aria-pressed', 'true');
     }
-    if (d.btw_validated_payload) {
-      state.btwValidated = true;
-      state.btwValidatedPayload = d.btw_validated_payload;
-      setVATStatus('valid', 'onboard.step2.btwValid');
-    }
-    if (d.step && d.step > 1 && d.step <= 4) {
-      goToStep(d.step);
-      if (d.step >= 3) renderPricingPreview();
-      if (d.step === 4) {
-        renderContract();
-        requestAnimationFrame(initSignaturePad);
-      }
-    }
-  }
+  })();
 
-  function init() {
-    if (!sb) {
-      console.error('[onboard] Supabase client niet geladen — check CDN');
-      setAlert('step2', t('onboard.common.errorGeneric'));
-    }
-    applyI18n();
-    wireEvents();
-    track('Onboarding Stap 1 View');
-    restoreDraft();
-    renderPricingPreview();
-  }
+  goToStep(1);
+  track('Onboard V2 Loaded', {});
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
 })();
 </script>
-
 </body>
 </html>
