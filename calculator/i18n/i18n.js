@@ -295,7 +295,15 @@
     setLangFromPostcode: setLangFromPostcode,
     onLangChange: onLangChange,
     registerDict: registerDict,
-    applyI18n: applyI18n
+    applyI18n: applyI18n,
+    // Slot S — read-only access voor consumers die expliciet een specifieke
+    // taal willen renderen los van de huidige UI-lang (bv. PDF-templates die
+    // een eerder ondertekend FR-contract opnieuw genereren in een NL-admin
+    // sessie). Returns een nieuwe shallow-copy zodat caller-mutaties geen
+    // impact hebben op de interne registry.
+    getDicts: function () {
+      return { nl: dictionaries.nl, fr: dictionaries.fr };
+    }
   };
   // Convenience global voor inline calls in HTML / event handlers.
   global.t = t;

@@ -697,6 +697,24 @@
   .tech-cb input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--navy); cursor: pointer; }
   .tech-cb svg { flex-shrink: 0; }
 
+  /* Slot A3 — Cert-vervalt-badge in technieker-overzicht (icon + tekst, kleur ondersteunend).
+     Geen kleur-only signaal: icoon + tekstlabel + tooltip dragen samen de informatie. */
+  .cert-badge-row {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; line-height: 1.4;
+    margin-left: 8px; vertical-align: middle;
+    cursor: help;
+  }
+  .cert-badge-row.cert-badge-verlopen,
+  .cert-badge-row.cert-badge-urgent {
+    background: #FEE2E2; color: #991B1B; border: 1px solid rgba(220,38,38,0.25);
+  }
+  .cert-badge-row.cert-badge-binnenkort {
+    background: #FEF3C7; color: #92400E; border: 1px solid rgba(245,158,11,0.3);
+  }
+  .cert-badge-row svg { width: 11px; height: 11px; flex-shrink: 0; }
+
   /* TECH MODAL — certificeringen */
   .tech-cert-section {
     background: var(--light); border: 1.5px solid var(--rule); border-radius: 10px; padding: 12px;
@@ -6806,6 +6824,17 @@ function showPage(name) {
   if (name === 'onderhoud' && typeof showOnderhoudPage === 'function') showOnderhoudPage();
   // Slot W — Flancco-werk (ad-hoc Flancco-interne pipeline)
   if (name === 'flancco-werk' && typeof showFlanccoWerkPage === 'function') showFlanccoWerkPage();
+  // Slot 0 — Partner Pipeline View: alleen wanneer een partner naar contracten navigeert.
+  // Dit is hun primaire werkomgeving (lijst van eigen klanten + status).
+  if (name === 'contracten' && userRole === 'partner') {
+    try {
+      if (window.flanccoTrack) {
+        window.flanccoTrack('Partner Pipeline View', {
+          partner: (userPartner && userPartner.slug) || 'unknown'
+        });
+      }
+    } catch (_e) {}
+  }
 }
 
 // =============================================
@@ -11396,7 +11425,8 @@ function exportPartnerFacturatieCsv() {
   a.click();
   URL.revokeObjectURL(a.href);
 
-  // Slot 0 — analytics
+  // Slot 0 — analytics. Detail-event + umbrella 'Partner Facturatie Export'
+  // (laatste stelt eenvoudige funnel-vergelijk CSV vs PDF mogelijk).
   try {
     if (window.flanccoTrack) {
       window.flanccoTrack('Facturatie Export CSV', {
@@ -11404,6 +11434,11 @@ function exportPartnerFacturatieCsv() {
         periode_type: s.periodeType,
         aantal_rijen: rows.length,
         alleen_gefactureerd: s.alleenGefactureerd
+      });
+      window.flanccoTrack('Partner Facturatie Export', {
+        partner: slug || 'unknown',
+        format: 'csv',
+        period: s.periodeType || 'maand'
       });
     }
   } catch (_e) {}
@@ -11492,7 +11527,7 @@ async function exportPartnerFacturatiePdf() {
       // Direct openen in nieuw tabblad
       window.open(pdfUrl, '_blank', 'noopener');
       showToast('PDF gegenereerd');
-      // Slot 0 — analytics
+      // Slot 0 — analytics (detail + umbrella event).
       try {
         if (window.flanccoTrack) {
           window.flanccoTrack('Facturatie Export PDF', {
@@ -11500,6 +11535,11 @@ async function exportPartnerFacturatiePdf() {
             periode_type: s.periodeType,
             aantal_rijen: rows.length,
             alleen_gefactureerd: s.alleenGefactureerd
+          });
+          window.flanccoTrack('Partner Facturatie Export', {
+            partner: userPartner.slug || 'unknown',
+            format: 'pdf',
+            period: s.periodeType || 'maand'
           });
         }
       } catch (_e) {}
@@ -17842,6 +17882,63 @@ async function deleteTeamLid(teamLidId) {
 // =============================================
 var expandedTechId = null;
 
+/**
+ * Slot A3 — Cert-vervalt-status helpers (mirror van planning.html-versie zodat
+ * beide pagina's identieke semantiek hebben). Returnt 'verlopen' | 'urgent' (<30d)
+ * | 'binnenkort' (<90d) | null. Pure visuele warning, geen blokkering.
+ */
+function getCertExpiryStatus(techId) {
+  if (!techId || !Array.isArray(allTechCertificeringen)) return null;
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+  var in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+  var status = null;
+  for (var i = 0; i < allTechCertificeringen.length; i++) {
+    var c = allTechCertificeringen[i];
+    if (!c || c.technieker_id !== techId || !c.vervaldatum) continue;
+    var vd = new Date(c.vervaldatum); vd.setHours(0, 0, 0, 0);
+    if (vd < today) return 'verlopen';
+    if (vd < in30 && status !== 'urgent') status = 'urgent';
+    else if (vd < in90 && !status) status = 'binnenkort';
+  }
+  return status;
+}
+function getCertEarliestExpiryDays(techId) {
+  if (!techId || !Array.isArray(allTechCertificeringen)) return null;
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var earliest = null;
+  for (var i = 0; i < allTechCertificeringen.length; i++) {
+    var c = allTechCertificeringen[i];
+    if (!c || c.technieker_id !== techId || !c.vervaldatum) continue;
+    var vd = new Date(c.vervaldatum); vd.setHours(0, 0, 0, 0);
+    var diff = Math.round((vd - today) / 86400000);
+    if (earliest === null || diff < earliest) earliest = diff;
+  }
+  return earliest;
+}
+/**
+ * Bouwt cert-badge HTML voor een technieker, of '' als geen warning. Tekst-label
+ * + icoon + kleur — geen kleur-only signaal (a11y).
+ */
+function buildTechCertBadge(techId) {
+  var status = getCertExpiryStatus(techId);
+  if (!status) return '';
+  var days = getCertEarliestExpiryDays(techId);
+  var label, tooltip;
+  if (status === 'verlopen') {
+    label = 'Cert. verlopen';
+    tooltip = days !== null ? ('Certificaat ' + Math.abs(days) + ' dagen verlopen') : 'Certificaat verlopen';
+  } else if (status === 'urgent') {
+    label = 'Cert. <' + (days !== null ? days : 30) + 'd';
+    tooltip = 'Certificaat vervalt binnen ' + (days !== null ? days : 30) + ' dagen';
+  } else {
+    label = 'Cert. <' + (days !== null ? days : 90) + 'd';
+    tooltip = 'Certificaat vervalt binnen ' + (days !== null ? days : 90) + ' dagen';
+  }
+  var icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  return '<span class="cert-badge-row cert-badge-' + status + '" title="' + esc(tooltip) + '" aria-label="' + esc(tooltip) + '">' + icon + esc(label) + '</span>';
+}
+
 function renderTechniekers() {
   renderPersoneelCounts();
   var search = (document.getElementById('tech-search').value || '').toLowerCase();
@@ -17885,9 +17982,11 @@ function renderTechniekers() {
       ? ' <span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB">Uit dienst sinds ' + esc(t.uit_dienst_sinds) + '</span>'
       : '';
 
+    // Slot A3 — cert-badge naast de naam in het overzicht (verlopen/<30d/<90d).
+    var certBadge = buildTechCertBadge(t.id);
     var mainRow = '<tr class="exp-main' + (isExpanded ? ' expanded' : '') + '" data-tech="' + t.id + '"' + rowStyle + ' onclick="toggleTechDetail(\'' + t.id + '\')">' +
       '<td class="exp-chevron-cell"><button type="button" class="exp-chevron-btn" onclick="event.stopPropagation();toggleTechDetail(\'' + t.id + '\')" aria-label="Details tonen">' + chevronSvg + '</button></td>' +
-      '<td><strong>' + esc((t.voornaam || '') + ' ' + t.naam) + '</strong>' + exBadge + '</td>' +
+      '<td><strong>' + esc((t.voornaam || '') + ' ' + t.naam) + '</strong>' + certBadge + exBadge + '</td>' +
       '<td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:' + (rolColors[rol] || '#6B7280') + '18;color:' + (rolColors[rol] || '#6B7280') + ';font-weight:600">' + (rolLabels[rol] || rol) + '</span></td>' +
       '<td onclick="event.stopPropagation()">' + (t.telefoon ? '<a href="tel:' + esc(t.telefoon) + '">' + esc(t.telefoon) + '</a>' : '—') + '</td>' +
       '<td onclick="event.stopPropagation()">' + (t.email ? '<a href="mailto:' + esc(t.email) + '">' + esc(t.email) + '</a>' : '—') + '</td>' +

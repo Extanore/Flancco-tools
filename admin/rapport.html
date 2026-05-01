@@ -2188,6 +2188,8 @@ async function saveRapport() {
       var uploadRes = await sb.storage.from('handtekeningen').upload(path, fotos[i].file, { contentType: fotos[i].file.type });
       if (!uploadRes.error) fotoUrls.push(SUPA_URL + '/storage/v1/object/public/handtekeningen/' + path);
     }
+    // Beschikbaar maken voor edge-function payload (rapport_branded.fotos[])
+    window._rapport_lastFotoUrls = fotoUrls.slice();
 
     var details = currentContract.sector_details || {};
     var formule = null, systeem = null;
@@ -2287,7 +2289,10 @@ async function saveRapport() {
       }));
     }
 
-    // Generate PDF and upload to Storage
+    // Generate PDF and upload to Storage.
+    // ref vooraf in lastSavedRef plaatsen zodat rapport_branded payload (contract_nummer)
+    // én legacy buildPDF() (lastSavedRef in header/footer) consistent zijn.
+    lastSavedRef = ref;
     var pdfBlob = await generatePDFBlob();
     if (pdfBlob) {
       var pdfPath = 'rapporten/' + ref + '.pdf';
@@ -2314,21 +2319,242 @@ async function saveRapport() {
 
 // ═══════════════════════════════
 // PDF GENERATIE
+// ───────────────────────────────
+// Primair pad: Slot P edge function `generate-pdf` met template `rapport_branded`.
+// Voordelen t.o.v. legacy client-side jsPDF:
+//   - Centrale partner-branding (logo, kleur_primair, kleur_donker) via branding-loader
+//   - Storage-trail in `gen-pdf` bucket (audit + her-download mogelijk)
+//   - Server-side rendering (consistente typografie, geen client-discrepanties)
+//   - Dual-language support (NL/FR) via lang-parameter
+// Fallback: legacy jsPDF-pad blijft beschikbaar als de edge function niet bereikbaar is
+// (5xx, network error, missing session). Dit garandeert dat `Rapport opslaan` nooit
+// faalt door PDF-generatie alleen.
 // ═══════════════════════════════
-async function generatePDFBlob() {
+
+var GEN_PDF_URL = SUPA_URL + '/functions/v1/generate-pdf';
+var GEN_PDF_TIMEOUT_MS = 30000;
+
+// Bouwt summary-strings voor het rapport_branded template uit de wizard-state.
+// rapport_branded verwacht prozaïsche bevindingen / aanbevelingen — geen
+// gestructureerde tabellen — dus we synthetiseren die uit de checklist + interventies.
+function buildRapportBrandedPayloadData() {
+  var c = currentContract || {};
+  var b = currentBeurt || {};
+
+  // ─ Bevindingen: NOK-checklist-items + alg. opmerkingen
+  var bevindingenLines = [];
+  try {
+    var checkData = getChecklistData();
+    var items = activeChecklistItems.length > 0 ? activeChecklistItems : (CHECKLISTS[b.sector] || []);
+    items.forEach(function(item) {
+      var v = checkData[item.key] || {};
+      if (v.status === 'nok') {
+        var line = '• ' + item.label;
+        if (v.note) line += ': ' + v.note;
+        bevindingenLines.push(line);
+      }
+    });
+  } catch(_) {}
+  try {
+    var icZones = getICZonesData();
+    if (icZones && icZones.length) {
+      bevindingenLines.push('Behandelde zones: ' + icZones.length);
+      icZones.forEach(function(z, i) {
+        var lbl = (z.zone_naam || ('Zone ' + (i+1))) + (z.opmerkingen ? ' — ' + z.opmerkingen : '');
+        bevindingenLines.push('  · ' + lbl);
+      });
+    }
+  } catch(_) {}
+  try {
+    var k = getKlussenData();
+    if (k && (k.omschrijving || k.meerwerk)) {
+      if (k.omschrijving) bevindingenLines.push(k.omschrijving);
+      if (k.meerwerk) bevindingenLines.push('Meerwerk: ' + k.meerwerk);
+    }
+  } catch(_) {}
+  var opm = '';
+  try { opm = (document.getElementById('rapport-opmerkingen').value || '').trim(); } catch(_) {}
+  if (opm) bevindingenLines.push(opm);
+
+  // ─ Aanbevelingen: open interventies + doorgespeeld-naar-partner items
+  var aanbevelingenLines = [];
+  try {
+    var ints = getInterventies();
+    ints.forEach(function(iv) {
+      if (!iv.omschrijving) return;
+      var prefix = (iv.ernst === 'urgent' ? '[URGENT] ' : iv.ernst === 'laag' ? '[Laag] ' : '');
+      var suffix = iv.opgelost_ter_plaatse ? ' (opgelost ter plaatse)' : ' (open — actie door ' + iv.actie_door + ')';
+      aanbevelingenLines.push('• ' + prefix + iv.omschrijving + suffix);
+    });
+  } catch(_) {}
+
+  // ─ Materiaal: enkel klant-relevante regels (geen prijzen — feedback_uren_materiaal_intern)
+  var materiaalLines = [];
+  try {
+    var mat = getMateriaalData();
+    mat.forEach(function(m) {
+      if (!m.naam) return;
+      materiaalLines.push('• ' + m.naam + (m.aantal && m.aantal !== 1 ? ' (' + m.aantal + 'x)' : ''));
+    });
+  } catch(_) {}
+
+  // ─ Foto's: public URLs in `handtekeningen`-bucket — pre-uploaded door saveRapport
+  // Bij downloadPDF (post-save) zijn deze beschikbaar via lastSavedFotoUrls.
+  // Bij in-flight save delen we ze direct mee via fnArg.
+  var fotoUrlList = (typeof window._rapport_lastFotoUrls !== 'undefined' && Array.isArray(window._rapport_lastFotoUrls))
+    ? window._rapport_lastFotoUrls.slice(0, 6)
+    : [];
+
+  // ─ Handtekening: base64 dataURI uit canvas (rapport_branded accepteert beide)
+  var sigImage = null, sigNaam = null, sigDatum = null;
+  try {
+    if (handtekeningData && handtekeningData.enabled && handtekeningData.image) {
+      sigImage = handtekeningData.image;
+      sigNaam = handtekeningData.naam || null;
+      sigDatum = b.plan_datum || new Date().toISOString().split('T')[0];
+    }
+  } catch(_) {}
+
+  return {
+    beurt_id: b.id || null,
+    contract_id: c.id || null,
+    contract_nummer: c.contract_nummer || lastSavedRef || null,
+    klant_naam: c.klant_naam || null,
+    klant_adres: c.klant_adres || null,
+    klant_postcode: c.klant_postcode || null,
+    klant_gemeente: c.klant_gemeente || null,
+    klant_email: c.klant_email || null,
+    klant_telefoon: c.klant_telefoon || null,
+    datum: b.plan_datum || new Date().toISOString().split('T')[0],
+    aantal_panelen: c.aantal_panelen || null,
+    frequentie: c.frequentie || null,
+    contractduur: c.contractduur || null,
+    sector: b.sector || null,
+    bevindingen: bevindingenLines.length ? bevindingenLines.join('\n') : null,
+    aanbevelingen: aanbevelingenLines.length ? aanbevelingenLines.join('\n') : null,
+    materiaal: materiaalLines.length ? materiaalLines.join('\n') : null,
+    fotos: fotoUrlList,
+    handtekening_url: sigImage,
+    handtekening_naam: sigNaam,
+    handtekening_datum: sigDatum
+  };
+}
+
+// Roept de Slot P edge function aan; returnt {url, path, blob} bij succes, null bij failure.
+async function generatePDFViaEdge() {
+  var partnerSlug = (currentPartner && (currentPartner.slug || '')) || 'flancco';
+  var lang = 'nl'; // toekomstig: detecteer via klant-taal-veld
+
+  var session = null;
+  try {
+    var sess = await sb.auth.getSession();
+    session = sess && sess.data && sess.data.session;
+  } catch (_) {}
+  if (!session || !session.access_token) {
+    console.warn('[generatePDFViaEdge] geen actieve sessie; fallback naar legacy jsPDF');
+    return null;
+  }
+
+  var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+  var timeoutId = ctrl ? setTimeout(function() { try { ctrl.abort(); } catch (_) {} }, GEN_PDF_TIMEOUT_MS) : null;
+
+  try {
+    var resp = await fetch(GEN_PDF_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({
+        template: 'rapport_branded',
+        partner_slug: partnerSlug,
+        lang: lang,
+        data: buildRapportBrandedPayloadData()
+      }),
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if (timeoutId) clearTimeout(timeoutId);
+    if (!resp.ok) {
+      var errBody = null;
+      try { errBody = await resp.json(); } catch(_) {}
+      console.warn('[generatePDFViaEdge] edge function HTTP ' + resp.status, errBody);
+      return null;
+    }
+    var json = await resp.json();
+    var url = json && (json.url || json.signedUrl);
+    if (!url) {
+      console.warn('[generatePDFViaEdge] response zonder URL', json);
+      return null;
+    }
+    return { url: url, path: json.path || null, expires_at: json.expires_at || null };
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId);
+    console.warn('[generatePDFViaEdge] fetch-fout:', err && err.message ? err.message : err);
+    return null;
+  }
+}
+
+// Fetcht de signed URL terug als Blob — nodig voor saveRapport() upload-flow naar
+// `handtekeningen`-bucket (behoud van publieke pdf_url in DB).
+async function fetchPDFAsBlob(url) {
+  try {
+    var r = await fetch(url, { method: 'GET' });
+    if (!r.ok) return null;
+    return await r.blob();
+  } catch (e) { console.warn('[fetchPDFAsBlob] mislukt', e); return null; }
+}
+
+// Legacy fallback — onveranderd, alleen verplaatst naar private helper.
+async function _legacyGeneratePDFBlob() {
   try {
     var { jsPDF } = window.jspdf;
     var doc = new jsPDF('p', 'mm', 'a4');
     await buildPDF(doc);
     return doc.output('blob');
-  } catch(e) { console.warn('PDF generation failed:', e); return null; }
+  } catch(e) { console.warn('[legacyGeneratePDFBlob] mislukt', e); return null; }
 }
 
+// Public API: gebruikt door saveRapport() voor PDF-upload naar `handtekeningen`-bucket.
+// Probeert eerst de centrale edge function; valt graceful terug op legacy jsPDF.
+async function generatePDFBlob() {
+  var edge = await generatePDFViaEdge();
+  if (edge && edge.url) {
+    var blob = await fetchPDFAsBlob(edge.url);
+    if (blob) {
+      // Bewaar URL + path voor latere download / debug
+      window._rapport_lastEdgeUrl = edge.url;
+      window._rapport_lastEdgePath = edge.path;
+      return blob;
+    }
+  }
+  // Fallback — partner-branding wordt dan client-side toegepast door buildPDF()
+  console.warn('[generatePDFBlob] valt terug op legacy jsPDF (edge function niet beschikbaar)');
+  return await _legacyGeneratePDFBlob();
+}
+
+// Download-knop op succes-scherm: probeert edge function (verse signed URL),
+// valt terug op legacy jsPDF lokale download.
 async function downloadPDF() {
+  var edge = await generatePDFViaEdge();
+  if (edge && edge.url) {
+    // Direct download via browser — opent in nieuwe tab als browser pop-up blokkeert
+    var a = document.createElement('a');
+    a.href = edge.url;
+    a.download = (lastSavedRef || 'rapport') + '.pdf';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+  // Fallback: client-side genereren + lokale save
+  console.warn('[downloadPDF] valt terug op legacy jsPDF');
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF('p', 'mm', 'a4');
   await buildPDF(doc);
-  doc.save(lastSavedRef + '.pdf');
+  doc.save((lastSavedRef || 'rapport') + '.pdf');
 }
 
 async function buildPDF(doc) {

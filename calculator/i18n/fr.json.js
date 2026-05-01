@@ -149,6 +149,181 @@
       ctaBack: '\u2190 Modifier',
       ctaNext: 'D\'accord, aller au contrat \u2192'
     },
+    // Slot S \u2014 R\u00e9capitulatif in-browser (\u00e9tape de revue)
+    summary: {
+      benefits: 'Ce que nous faisons pour vous',
+      calc: 'Votre calcul',
+      yourData: 'Vos coordonn\u00e9es',
+      labelNaam: 'Nom',
+      labelAdres: 'Adresse',
+      labelEmail: 'E-mail',
+      labelTelefoon: 'T\u00e9l\u00e9phone',
+      transport: 'D\u00e9placement ({km} km au-del\u00e0 de la zone gratuite)',
+      contractKorting: 'Remise contrat ({duur} ans, \u2212{pct}%)',
+      perBeurtTotaal: 'Total par entretien',
+      btwNote: 'TVA {pct}% incluse \u00b7 {freq} \u00b7 {duur}',
+      perJaar2: 'Par an (2 entretiens) : {bedrag}',
+      tipUpsell: '<strong>Astuce :</strong> Choisissez un contrat de 3 ou 5 ans et \u00e9conomisez 5% sur chaque entretien. Soit {savings} de remise par entretien. <a href="#" data-action="adjust-duur">Modifier</a>'
+    },
+    // Slot S \u2014 Dictionnaire contrat-PDF + rendu in-browser du contrat.
+    // Toujours en parit\u00e9 avec nl.json.js. Utilis\u00e9 par buildContractHTMLShared
+    // (PDF) et generateContract() (rendu in-browser dans le calculator).
+    contract: {
+      htmlLang: 'fr',
+      title: 'Contrat',
+      header: {
+        dienstverlening: 'Contrat de prestation de services'
+      },
+      partijen: {
+        tussen: 'Entre',
+        gevestigdTe: '\u00e9tabli \u00e0',
+        hiernaDienstverlener: 'ci-apr\u00e8s \u00ab le Prestataire \u00bb,',
+        en: 'Et',
+        hiernaKlant: 'ci-apr\u00e8s \u00ab le Client \u00bb, ensemble \u00ab les Parties \u00bb.'
+      },
+      label: {
+        naamBedrijfsnaam: 'Nom / Raison sociale',
+        adres: 'Adresse',
+        postcodeGemeente: 'Code postal + Commune',
+        contactpersoon: 'Personne de contact',
+        telefoon: 'T\u00e9l\u00e9phone',
+        email: 'E-mail',
+        btwNummer: 'Num\u00e9ro de TVA'
+      },
+      artikelPrefix: 'Article',
+      artikel: {
+        voorwerp: {
+          heading: 'Objet',
+          intro: 'Le Prestataire s\'engage \u00e0 ex\u00e9cuter les prestations suivantes \u00e0 l\'adresse mentionn\u00e9e ci-dessus :'
+        },
+        tarieven: {
+          heading: 'Tarifs',
+          inclBtw: 'Tous les montants sont en euros et TVA {pct}% incluse.',
+          omschrijving: 'Description',
+          bedrag: 'Montant',
+          bijkomendeKosten: 'Frais suppl\u00e9mentaires',
+          tarief: 'Tarif',
+          uwBerekening: 'Votre calcul',
+          uwPrijsoverzicht: 'Aper\u00e7u de votre prix',
+          subtotaalExcl: 'Sous-total HTVA',
+          btwLine: 'TVA {pct}%',
+          totaalPerBeurt: 'Total par entretien TVAC',
+          totaalPerBeurtPlain: 'Total par entretien : {bedrag} TVA {pct}% incluse',
+          perJaar: 'Par an (2 entretiens) : {bedrag}',
+          totaalIncl: 'Total TVAC',
+          transportLine: 'D\u00e9placement : {km} km \u00d7 {tarief} = {totaal}',
+          kortingLine: 'Remise contrat ({duur} ans, -{pct}%) : - {bedrag}',
+          verplaatsingBoven: 'D\u00e9placement au-del\u00e0 de {km} km'
+        },
+        frequentie: {
+          heading: 'Fr\u00e9quence',
+          gekozen: 'Fr\u00e9quence choisie : <strong>{freq}</strong>',
+          inplanning: 'Les entretiens sont planifi\u00e9s de commun accord. Le Prestataire contacte le Client au moins deux (2) semaines \u00e0 l\'avance.'
+        },
+        contractduur: {
+          heading: 'Dur\u00e9e du contrat',
+          gekozen: 'Dur\u00e9e choisie : <strong>{duur}</strong>',
+          body: 'Pour un contrat de 3 ou 5 ans, une remise de 5% est appliqu\u00e9e. Le contrat prend cours \u00e0 la date de signature. Sauf r\u00e9siliation \u00e9crite (pr\u00e9avis de 2 mois), il est tacitement reconduit chaque ann\u00e9e.'
+        },
+        prijsindexatie: {
+          heading: 'Indexation des prix',
+          body: 'Les tarifs sont index\u00e9s annuellement sur base de l\'indice des prix \u00e0 la consommation (IPC).'
+        },
+        facturatie: {
+          heading: 'Facturation et paiement',
+          body: 'Les factures sont payables dans les 30 jours calendrier suivant la date de facturation.'
+        },
+        uitvoering: {
+          heading: 'Ex\u00e9cution',
+          body: 'Le Prestataire effectue l\'entretien avec son propre personnel qualifi\u00e9. Le Client assure le libre acc\u00e8s \u00e0 la (aux) installation(s).'
+        },
+        annulatie: {
+          heading: 'Annulation',
+          bodyVar: 'En cas d\'annulation moins de 48 heures avant l\'intervention planifi\u00e9e, des frais d\'annulation de {bedrag} sont factur\u00e9s.',
+          bodyDefault: 'En cas d\'annulation moins de 48 heures avant l\'intervention planifi\u00e9e, des frais d\'annulation sont factur\u00e9s.'
+        },
+        aansprakelijkheid: {
+          heading: 'Responsabilit\u00e9',
+          body: 'Le Prestataire est assur\u00e9 en responsabilit\u00e9 professionnelle et d\'exploitation. Il n\'est pas responsable des dommages pr\u00e9existants ni des dommages indirects.'
+        },
+        attestBtw6: {
+          heading: 'Attestation TVA r\u00e9duite (6%)',
+          verklaring: 'D\u00e9claration sur l\'honneur du donneur d\'ordre',
+          intro: 'Le soussign\u00e9, <strong>{naam}</strong>, d\u00e9clare sur l\'honneur que :',
+          introCompact: 'Le soussign\u00e9, <strong>{naam}</strong>, d\u00e9clare sur l\'honneur que le b\u00e2timent{adresPart} est utilis\u00e9 depuis plus de 10 ans comme habitation priv\u00e9e, que les travaux sont factur\u00e9s directement \u00e0 l\'utilisateur final, et que l\'habitation est utilis\u00e9e principalement \u00e0 des fins priv\u00e9es.',
+          adresPartTpl: ' situ\u00e9 \u00e0 <strong>{adres}</strong>',
+          li1Tpl: 'Le b\u00e2timent situ\u00e9 \u00e0 <strong>{adres}</strong> est utilis\u00e9 depuis plus de 10 ans comme habitation priv\u00e9e',
+          li2: 'Les travaux sont factur\u00e9s directement \u00e0 l\'utilisateur final',
+          li3: 'L\'habitation est utilis\u00e9e principalement \u00e0 des fins priv\u00e9es',
+          disclaimer: 'En cas de d\u00e9claration inexacte, le donneur d\'ordre est responsable de la diff\u00e9rence entre le taux r\u00e9duit (6%) et le taux normal (21%) de TVA, major\u00e9e des \u00e9ventuelles amendes et int\u00e9r\u00eats.'
+        },
+        herroeping: {
+          heading: 'Droit de r\u00e9tractation',
+          bodyShort: 'Le Client a le droit de se r\u00e9tracter sans motif dans les 14 jours calendrier suivant la signature, conform\u00e9ment \u00e0 la directive europ\u00e9enne 2011/83/UE.',
+          bodyLong: 'Le Client a le droit de se r\u00e9tracter sans motif dans les 14 jours calendrier suivant la signature, conform\u00e9ment \u00e0 la directive europ\u00e9enne 2011/83/UE. Le formulaire de r\u00e9tractation est joint \u00e0 l\'e-mail de confirmation.'
+        }
+      },
+      sig: {
+        heading: 'Signature',
+        intro: 'Par sa signature, le Client d\u00e9clare accepter toutes les dispositions du pr\u00e9sent contrat.',
+        repBy: 'Repr\u00e9sent\u00e9 par le Prestataire',
+        datum: 'Date',
+        deKlant: 'Le Client',
+        naam: 'Nom',
+        namens: 'Au nom de',
+        signaturePlaceholder: 'Signez ici',
+        signatureLabel: 'Signature :',
+        signatureHint: 'signez avec votre souris ou votre doigt',
+        wissen: 'Effacer',
+        handtekeningAlt: 'Signature',
+        accept: 'Je, <strong>{naam}</strong>, d\u00e9clare avoir lu le pr\u00e9sent contrat et accepter toutes les conditions et tarifs qui y sont mentionn\u00e9s. Je comprends que cette signature num\u00e9rique est juridiquement valable conform\u00e9ment au r\u00e8glement europ\u00e9en eIDAS.',
+        acceptBedrijfOnly: 'Le soussign\u00e9 d\u00e9clare \u00eatre habilit\u00e9 \u00e0 engager <strong>{naam}</strong> dans le pr\u00e9sent contrat, en avoir pris connaissance et accepter toutes les conditions et tarifs qui y sont mentionn\u00e9s. Cette signature num\u00e9rique est juridiquement valable conform\u00e9ment au r\u00e8glement europ\u00e9en eIDAS.'
+      },
+      sectorLabel: {
+        zonnepanelen: 'Panneaux solaires',
+        warmtepomp: 'Pompe \u00e0 chaleur',
+        ventilatie: 'Ventilation',
+        verwarming: 'Chauffage',
+        ic: 'Industrial Cleaning',
+        klussen: 'Petits travaux'
+      },
+      freq: {
+        jaarlijks: 'Annuel (1x/an)',
+        halfjaarlijks: 'Semestriel (2x/an)',
+        eenmalig: 'Unique',
+        jaarlijksShort: 'Annuel (1\u00d7)',
+        halfjaarlijksShort: 'Semestriel (2\u00d7)'
+      },
+      duur: {
+        eenmalig: 'Intervention unique',
+        jaarSuffix: ' ans',
+        jaarKorting: ' ans (5% de remise)'
+      },
+      daktype: {
+        hellend: 'toiture inclin\u00e9e',
+        plat: 'toiture plate',
+        grond: 'installation au sol'
+      },
+      formule: {
+        allin: 'all-in',
+        basic: 'basic',
+        allinFull: 'formule all-in',
+        basicFull: 'formule basic'
+      },
+      sectorDesc: {
+        zonnepanelenLine: 'nettoyage de {n} panneaux solaires ({daktype})',
+        warmtepompLine: 'entretien de {n} unit\u00e9(s) int\u00e9rieure(s) ({formule})',
+        ventilatieLine: 'entretien syst\u00e8me de ventilation {systeem} avec {n} bouches',
+        verwarmingLine: 'entretien chaudi\u00e8re {keteltype}'
+      },
+      defaults: {
+        nvt: 's.o.',
+        emDash: '\u2014'
+      },
+      currency: {
+        eurDefault: '\u20ac 20'
+      }
+    },
     step3: {
       title: 'Votre contrat',
       subtitle: 'V\u00e9rifiez le contrat ci-dessous et signez num\u00e9riquement.',

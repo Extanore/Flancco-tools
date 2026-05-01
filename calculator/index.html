@@ -662,8 +662,8 @@
       <div class="card">
         <div class="card-title" data-i18n="step1.cards.btw">BTW-tarief</div>
         <div class="radio-group" id="btw-group">
-          <label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculateAll();toggleBtwAttest()"><div class="radio-text"><span data-i18n="step1.cards.btw21">21% BTW</span><small data-i18n="step1.cards.btw21sub">Standaardtarief</small></div></label>
-          <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="onBtw6Selected();calculateAll();toggleBtwAttest()"><div class="radio-text"><span data-i18n="step1.cards.btw6">6% BTW</span><small data-i18n="step1.cards.btw6sub">Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small><small class="radio-disabled-hint" data-i18n="step1.cards.btw6disabled">Enkel beschikbaar voor Belgische postcodes</small></div></label>
+          <label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculateAll();toggleBtwAttest();trackBtwKeuze('21')"><div class="radio-text"><span data-i18n="step1.cards.btw21">21% BTW</span><small data-i18n="step1.cards.btw21sub">Standaardtarief</small></div></label>
+          <label class="radio-option" id="btw6-option" style="display:none"><input type="radio" name="btw" value="6" onchange="onBtw6Selected();calculateAll();toggleBtwAttest();trackBtwKeuze('6')"><div class="radio-text"><span data-i18n="step1.cards.btw6">6% BTW</span><small data-i18n="step1.cards.btw6sub">Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</small><small class="radio-disabled-hint" data-i18n="step1.cards.btw6disabled">Enkel beschikbaar voor Belgische postcodes</small></div></label>
         </div>
         <!--
           Slot O2 — Verklaring op eer (KB nr. 20 / AR n° 20)
@@ -1160,7 +1160,45 @@ function getPartnerBranding(partner, sector) {
 // Rendert dezelfde HTML-layout als admin/preview zodat klant-download en admin-download
 // pixel-identiek zijn. Sectie M van implementatieplan.
 // ═══════════════════════════════════════════
-function buildContractHTMLShared(c, p) {
+function buildContractHTMLShared(c, p, opts) {
+  opts = opts || {};
+  // Slot S \u2014 taalkeuze: expliciet > c.lang (post-sign) > huidige UI-lang > 'nl'.
+  // Fallback-cascade: een PDF-render mag nooit crashen op missing dict; default 'nl'.
+  var lang = opts.lang
+    || (c && c.lang)
+    || ((window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || null)
+    || 'nl';
+  if (lang !== 'nl' && lang !== 'fr') lang = 'nl';
+
+  // Mini-resolver: tap rechtstreeks in de geregistreerde dictionaries (niet
+  // window.t) zodat de PDF de chosen `lang` rendert ook als de huidige UI-lang
+  // anders is \u2014 bv. NL-admin die een FR-getekend contract opnieuw download.
+  function _ttRaw(dict, key) {
+    if (!dict) return null;
+    var parts = key.split('.');
+    var cur = dict;
+    for (var i = 0; i < parts.length; i++) {
+      if (cur == null || typeof cur !== 'object') return null;
+      cur = cur[parts[i]];
+    }
+    return (typeof cur === 'string') ? cur : null;
+  }
+  function _interp(str, vars) {
+    if (!vars || !str) return str;
+    return str.replace(/\{(\w+)\}/g, function(_, k) {
+      return Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : '{' + k + '}';
+    });
+  }
+  function tt(key, vars) {
+    var dicts = (window.flanccoI18n && window.flanccoI18n.getDicts && window.flanccoI18n.getDicts()) || null;
+    var primary = dicts && dicts[lang];
+    var fallback = dicts && dicts.nl;
+    var s = _ttRaw(primary, key);
+    if (s == null) s = _ttRaw(fallback, key);
+    if (s == null) s = key;
+    return _interp(s, vars);
+  }
+
   var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
   var branding = getPartnerBranding(p, contractSector);
   var pName = branding.naam;
@@ -1168,14 +1206,30 @@ function buildContractHTMLShared(c, p) {
 
   var sectoren = c.sectoren || [];
   var pricing = c.pricing_breakdown || {};
-  var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming', ic: 'Industrial Cleaning', klussen: 'Klussen' };
-  var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
-  var duurTxt = c.contractduur === 'eenmalig' ? 'Eenmalige interventie' : (c.contractduur || 'n.v.t.');
-  var today = c.datum_ondertekening ? new Date(c.datum_ondertekening).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+  var sectorLabels = {
+    zonnepanelen: tt('contract.sectorLabel.zonnepanelen'),
+    warmtepomp: tt('contract.sectorLabel.warmtepomp'),
+    ventilatie: tt('contract.sectorLabel.ventilatie'),
+    verwarming: tt('contract.sectorLabel.verwarming'),
+    ic: tt('contract.sectorLabel.ic'),
+    klussen: tt('contract.sectorLabel.klussen')
+  };
+  var freqTxt = c.frequentie === 'halfjaarlijks'
+    ? tt('contract.freq.halfjaarlijks')
+    : c.frequentie === 'eenmalig'
+      ? tt('contract.freq.eenmalig')
+      : tt('contract.freq.jaarlijks');
+  var duurTxt = c.contractduur === 'eenmalig'
+    ? tt('contract.duur.eenmalig')
+    : (c.contractduur || tt('contract.defaults.nvt'));
+  var localeTag = lang === 'fr' ? 'fr-BE' : 'nl-BE';
+  var today = c.datum_ondertekening
+    ? new Date(c.datum_ondertekening).toLocaleDateString(localeTag, { day: 'numeric', month: 'long', year: 'numeric' })
+    : new Date().toLocaleDateString(localeTag, { day: 'numeric', month: 'long', year: 'numeric' });
   var pAdres = p ? [p.adres, p.postcode, p.gemeente].filter(Boolean).join(', ') : '';
   var pBtw = p ? (p.btw_nummer || '') : '';
 
-  var html = '<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>' + esc(pName) + ' \u2014 Contract</title>';
+  var html = '<!DOCTYPE html><html lang="' + esc(tt('contract.htmlLang')) + '"><head><meta charset="UTF-8"><title>' + esc(pName) + ' \u2014 ' + esc(tt('contract.title')) + '</title>';
   html += '<style>';
   html += ':root{--primary:' + primary + ';--primary-bg:' + primary + '12;--primary-light:' + primary + '30}';
   html += 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:800px;margin:0 auto;padding:40px 24px;color:#1f2937;background:#fff}';
@@ -1206,16 +1260,20 @@ function buildContractHTMLShared(c, p) {
   html += '</style></head><body>';
 
   html += '<div class="contract-header"><h1>' + esc(pName) + '</h1>';
-  html += '<p style="font-size:14px;color:#374151;margin:8px 0 4px">Dienstverleningsovereenkomst</p>';
+  html += '<p style="font-size:14px;color:#374151;margin:8px 0 4px">' + esc(tt('contract.header.dienstverlening')) + '</p>';
   var dienstTxt = [];
   sectoren.forEach(function(s) {
     var sec = s.sector || s;
     var label = sectorLabels[sec] || sec;
     if (s.configs) {
       s.configs.forEach(function(cfg) {
-        if (sec === 'zonnepanelen') dienstTxt.push(label + ': ' + (cfg.pan || '') + ' panelen, ' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling'));
-        else if (sec === 'warmtepomp') dienstTxt.push(label + ': ' + (cfg.binnenunits || 1) + ' binnenunit(s), ' + (cfg.formule === 'allin' ? 'all-in' : 'basic'));
-        else if (sec === 'ventilatie') dienstTxt.push(label + ': systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen');
+        if (sec === 'zonnepanelen') {
+          var dak = cfg.daktype === 'hellend' ? tt('contract.daktype.hellend') : cfg.daktype === 'plat' ? tt('contract.daktype.plat') : tt('contract.daktype.grond');
+          dienstTxt.push(label + ': ' + (cfg.pan || '') + ' panelen, ' + dak);
+        } else if (sec === 'warmtepomp') {
+          var f = cfg.formule === 'allin' ? tt('contract.formule.allin') : tt('contract.formule.basic');
+          dienstTxt.push(label + ': ' + (cfg.binnenunits || 1) + ' binnenunit(s), ' + f);
+        } else if (sec === 'ventilatie') dienstTxt.push(label + ': systeem ' + cfg.systeem + ', ' + cfg.ventielen + ' ventielen');
         else if (sec === 'verwarming') dienstTxt.push(label + ': ' + cfg.keteltype + 'ketel');
         else dienstTxt.push(label);
       });
@@ -1224,35 +1282,44 @@ function buildContractHTMLShared(c, p) {
   html += '<p>' + esc(dienstTxt.length ? dienstTxt.join('; ') + ' \u2014 ' : '') + esc(today) + '</p></div>';
 
   // Partijen
-  html += '<p style="font-size:13px;color:#6b7280">Tussen <strong>' + esc(pName) + '</strong>';
-  if (pAdres) html += ', gevestigd te ' + esc(pAdres);
+  html += '<p style="font-size:13px;color:#6b7280">' + esc(tt('contract.partijen.tussen')) + ' <strong>' + esc(pName) + '</strong>';
+  if (pAdres) html += ', ' + esc(tt('contract.partijen.gevestigdTe')) + ' ' + esc(pAdres);
   if (pBtw) html += ', ' + esc(pBtw);
-  html += ', hierna "de Dienstverlener",</p>';
-  html += '<p style="font-size:13px;color:#6b7280">En</p>';
+  html += ', ' + esc(tt('contract.partijen.hiernaDienstverlener')) + '</p>';
+  html += '<p style="font-size:13px;color:#6b7280">' + esc(tt('contract.partijen.en')) + '</p>';
   html += '<div style="margin:12px 0 24px">';
-  html += '<div class="data-row"><span class="data-label">Naam / Bedrijfsnaam</span><span class="data-value">' + esc(c.klant_naam || '\u2014') + '</span></div>';
+  html += '<div class="data-row"><span class="data-label">' + esc(tt('contract.label.naamBedrijfsnaam')) + '</span><span class="data-value">' + esc(c.klant_naam || tt('contract.defaults.emDash')) + '</span></div>';
   var adres = [c.klant_adres, c.klant_postcode, c.klant_gemeente].filter(Boolean).join(', ');
-  if (adres) html += '<div class="data-row"><span class="data-label">Adres</span><span class="data-value">' + esc(adres) + '</span></div>';
-  if (c.klant_contact) html += '<div class="data-row"><span class="data-label">Contactpersoon</span><span class="data-value">' + esc(c.klant_contact) + '</span></div>';
-  if (c.klant_telefoon) html += '<div class="data-row"><span class="data-label">Telefoon</span><span class="data-value">' + esc(c.klant_telefoon) + '</span></div>';
-  if (c.klant_email) html += '<div class="data-row"><span class="data-label">E-mail</span><span class="data-value">' + esc(c.klant_email) + '</span></div>';
+  if (adres) html += '<div class="data-row"><span class="data-label">' + esc(tt('contract.label.adres')) + '</span><span class="data-value">' + esc(adres) + '</span></div>';
+  if (c.klant_contact) html += '<div class="data-row"><span class="data-label">' + esc(tt('contract.label.contactpersoon')) + '</span><span class="data-value">' + esc(c.klant_contact) + '</span></div>';
+  if (c.klant_telefoon) html += '<div class="data-row"><span class="data-label">' + esc(tt('contract.label.telefoon')) + '</span><span class="data-value">' + esc(c.klant_telefoon) + '</span></div>';
+  if (c.klant_email) html += '<div class="data-row"><span class="data-label">' + esc(tt('contract.label.email')) + '</span><span class="data-value">' + esc(c.klant_email) + '</span></div>';
   html += '</div>';
-  html += '<p style="font-size:13px;color:#6b7280">hierna "de Klant", gezamenlijk "de Partijen".</p>';
+  html += '<p style="font-size:13px;color:#6b7280">' + esc(tt('contract.partijen.hiernaKlant')) + '</p>';
+
+  var ART = tt('contract.artikelPrefix');
 
   // Art 1 — Voorwerp
   var artNum = 1;
-  html += '<h2>Artikel ' + artNum + ' \u2014 Voorwerp</h2>';
-  html += '<p>De Dienstverlener verbindt zich ertoe de volgende diensten uit te voeren op het hierboven vermelde adres:</p><ul>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.voorwerp.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.artikel.voorwerp.intro')) + '</p><ul>';
   sectoren.forEach(function(s) {
     var sec = s.sector || s;
     var label = sectorLabels[sec] || sec;
     html += '<li><strong>' + esc(label) + '</strong>';
     if (s.configs) {
       s.configs.forEach(function(cfg) {
-        if (sec === 'zonnepanelen') html += ': reiniging van ' + (cfg.pan || '') + ' zonnepanelen (' + (cfg.daktype === 'hellend' ? 'hellend dak' : cfg.daktype === 'plat' ? 'plat dak' : 'grondopstelling') + ')';
-        else if (sec === 'warmtepomp') html += ': onderhoud van ' + (cfg.binnenunits || 1) + ' binnenunit(s) (' + (cfg.formule === 'allin' ? 'all-in formule' : 'basic formule') + ')';
-        else if (sec === 'ventilatie') html += ': onderhoud ventilatiesysteem ' + cfg.systeem + ' met ' + cfg.ventielen + ' ventielen';
-        else if (sec === 'verwarming') html += ': onderhoud ' + cfg.keteltype + 'ketel';
+        if (sec === 'zonnepanelen') {
+          var dak = cfg.daktype === 'hellend' ? tt('contract.daktype.hellend') : cfg.daktype === 'plat' ? tt('contract.daktype.plat') : tt('contract.daktype.grond');
+          html += ': ' + tt('contract.sectorDesc.zonnepanelenLine', { n: (cfg.pan || ''), daktype: dak });
+        } else if (sec === 'warmtepomp') {
+          var f = cfg.formule === 'allin' ? tt('contract.formule.allinFull') : tt('contract.formule.basicFull');
+          html += ': ' + tt('contract.sectorDesc.warmtepompLine', { n: (cfg.binnenunits || 1), formule: f });
+        } else if (sec === 'ventilatie') {
+          html += ': ' + tt('contract.sectorDesc.ventilatieLine', { systeem: cfg.systeem, n: cfg.ventielen });
+        } else if (sec === 'verwarming') {
+          html += ': ' + tt('contract.sectorDesc.verwarmingLine', { keteltype: cfg.keteltype });
+        }
       });
     }
     html += '</li>';
@@ -1261,11 +1328,11 @@ function buildContractHTMLShared(c, p) {
   artNum++;
 
   // Art — Tarieven
-  html += '<h2>Artikel ' + artNum + ' \u2014 Tarieven</h2>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.tarieven.heading')) + '</h2>';
   var btwPct = pricing.btwPct || 21;
-  html += '<p>Alle bedragen zijn in euro en inclusief ' + btwPct + '% btw.</p>';
+  html += '<p>' + esc(tt('contract.artikel.tarieven.inclBtw', { pct: btwPct })) + '</p>';
   if (pricing.lines) {
-    html += '<table class="pricing-table"><tr><th>Omschrijving</th><th style="text-align:right">Bedrag</th></tr>';
+    html += '<table class="pricing-table"><tr><th>' + esc(tt('contract.artikel.tarieven.omschrijving')) + '</th><th style="text-align:right">' + esc(tt('contract.artikel.tarieven.bedrag')) + '</th></tr>';
     pricing.lines.forEach(function(l) {
       if (l.type === 'header') {
         html += '<tr><td colspan="2" style="font-weight:600;background:#f9fafb;color:#374151">' + esc(l.label) + '</td></tr>';
@@ -1276,7 +1343,7 @@ function buildContractHTMLShared(c, p) {
     });
     html += '</table>';
   }
-  html += '<div class="total-box"><p style="font-weight:600;margin:0 0 8px;color:var(--primary)">Uw prijsoverzicht</p>';
+  html += '<div class="total-box"><p style="font-weight:600;margin:0 0 8px;color:var(--primary)">' + esc(tt('contract.artikel.tarieven.uwPrijsoverzicht')) + '</p>';
   if (pricing.lines) {
     pricing.lines.forEach(function(l) {
       if (l.type !== 'header') {
@@ -1284,71 +1351,75 @@ function buildContractHTMLShared(c, p) {
         html += '<div class="line"><span>' + esc(l.label) + '</span><span>' + amt + '</span></div>';
       }
     });
-    if (typeof pricing.subtotalExcl === 'number') html += '<div class="line sub"><span>Subtotaal excl. BTW</span><span>\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',',') + '</span></div>';
-    if (typeof pricing.btwBedrag === 'number') html += '<div class="line"><span>BTW ' + btwPct + '%</span><span>\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',',') + '</span></div>';
-    if (typeof pricing.totaalIncl === 'number') html += '<div class="line grand"><span>Totaal per beurt incl. BTW</span><span>\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',',') + '</span></div>';
+    if (typeof pricing.subtotalExcl === 'number') html += '<div class="line sub"><span>' + esc(tt('contract.artikel.tarieven.subtotaalExcl')) + '</span><span>\u20AC ' + pricing.subtotalExcl.toFixed(2).replace('.',',') + '</span></div>';
+    if (typeof pricing.btwBedrag === 'number') html += '<div class="line"><span>' + esc(tt('contract.artikel.tarieven.btwLine', { pct: btwPct })) + '</span><span>\u20AC ' + pricing.btwBedrag.toFixed(2).replace('.',',') + '</span></div>';
+    if (typeof pricing.totaalIncl === 'number') html += '<div class="line grand"><span>' + esc(tt('contract.artikel.tarieven.totaalPerBeurt')) + '</span><span>\u20AC ' + pricing.totaalIncl.toFixed(2).replace('.',',') + '</span></div>';
   } else if (c.totaal_incl_btw) {
-    html += '<div class="line grand"><span>Totaal incl. BTW</span><span>\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') + '</span></div>';
+    html += '<div class="line grand"><span>' + esc(tt('contract.artikel.tarieven.totaalIncl')) + '</span><span>\u20AC ' + parseFloat(c.totaal_incl_btw).toFixed(2).replace('.',',') + '</span></div>';
   }
   html += '</div>';
   artNum++;
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Frequentie</h2>';
-  html += '<p>Gekozen frequentie: <strong>' + esc(freqTxt) + '</strong></p>';
-  html += '<p>De onderhoudsbeurten worden in onderling overleg ingepland. De Dienstverlener contacteert de Klant minstens twee (2) weken op voorhand.</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.frequentie.heading')) + '</h2>';
+  html += '<p>' + tt('contract.artikel.frequentie.gekozen', { freq: esc(freqTxt) }) + '</p>';
+  html += '<p>' + esc(tt('contract.artikel.frequentie.inplanning')) + '</p>';
   artNum++;
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Contractduur</h2>';
-  html += '<p>Gekozen contractduur: <strong>' + esc(duurTxt) + '</strong></p>';
-  html += '<p>Bij een contract van 3 of 5 jaar wordt een korting van 5% toegepast. Het contract vangt aan op de datum van ondertekening. Behoudens schriftelijke opzegging (2 maanden opzegtermijn) wordt het stilzwijgend verlengd per jaar.</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.contractduur.heading')) + '</h2>';
+  html += '<p>' + tt('contract.artikel.contractduur.gekozen', { duur: esc(duurTxt) }) + '</p>';
+  html += '<p>' + esc(tt('contract.artikel.contractduur.body')) + '</p>';
   artNum++;
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Prijsindexatie</h2>';
-  html += '<p>Tarieven worden jaarlijks ge\u00EFndexeerd op basis van de consumptieprijsindex (CPI).</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.prijsindexatie.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.artikel.prijsindexatie.body')) + '</p>';
   artNum++;
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Facturatie en betaling</h2>';
-  html += '<p>Facturen zijn betaalbaar binnen 30 kalenderdagen na factuurdatum.</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.facturatie.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.artikel.facturatie.body')) + '</p>';
   artNum++;
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Uitvoering</h2>';
-  html += '<p>De Dienstverlener voert het onderhoud uit met eigen gekwalificeerd personeel. De Klant zorgt voor vrije toegang tot de installatie(s).</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.uitvoering.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.artikel.uitvoering.body')) + '</p>';
   artNum++;
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Annulatie</h2>';
-  html += '<p>Bij annulatie minder dan 48 uur v\u00F3\u00F3r de geplande interventie wordt een annulatiekost aangerekend.</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.annulatie.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.artikel.annulatie.bodyDefault')) + '</p>';
   artNum++;
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Aansprakelijkheid</h2>';
-  html += '<p>De Dienstverlener is verzekerd voor beroeps- en uitbatingsaansprakelijkheid. Niet aansprakelijk voor reeds bestaande schade of indirecte gevolgschade.</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.aansprakelijkheid.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.artikel.aansprakelijkheid.body')) + '</p>';
   artNum++;
 
   if (btwPct === 6) {
-    html += '<h2>Artikel ' + artNum + ' \u2014 Attest verlaagd btw-tarief (6%)</h2>';
+    html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.attestBtw6.heading')) + '</h2>';
     html += '<div style="border:1px solid #d1d5db;border-radius:8px;padding:16px 20px;margin-bottom:8px;background:#FAFAF5">';
-    html += '<p style="margin:0 0 8px"><strong>Verklaring op eer door de opdrachtgever</strong></p>';
-    html += '<p style="margin:0">Ondergetekende, <strong>' + esc(c.klant_naam || '') + '</strong>, verklaart op eer dat het gebouw' + (adres ? ' gelegen te <strong>' + esc(adres) + '</strong>' : '') + ' langer dan 10 jaar in gebruik is als priv\u00E9woning, de werken rechtstreeks aan de eindverbruiker worden gefactureerd, en de woning hoofdzakelijk voor priv\u00E9doeleinden wordt aangewend.</p>';
+    html += '<p style="margin:0 0 8px"><strong>' + esc(tt('contract.artikel.attestBtw6.verklaring')) + '</strong></p>';
+    var adresPart = adres ? tt('contract.artikel.attestBtw6.adresPartTpl', { adres: esc(adres) }) : '';
+    // introCompact bevat zelf <strong>{naam}</strong> en {adresPart} (al-pre-rendered HTML).
+    // Geen volledige esc() over de output: bron-string is vertaler-gecontroleerd
+    // en geinterpoleerde waarden (naam, adres) zijn al ge-esc'd v\u00F3\u00F3r insert.
+    html += '<p style="margin:0">' + tt('contract.artikel.attestBtw6.introCompact', { naam: esc(c.klant_naam || ''), adresPart: adresPart }) + '</p>';
     html += '</div>';
     artNum++;
   }
 
-  html += '<h2>Artikel ' + artNum + ' \u2014 Herroepingsrecht</h2>';
-  html += '<p>De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU.</p>';
+  html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.herroeping.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.artikel.herroeping.bodyShort')) + '</p>';
   artNum++;
 
   // Ondertekening
-  html += '<h2>Ondertekening</h2>';
-  html += '<p>Door ondertekening verklaart de Klant akkoord te gaan met alle bepalingen van deze Overeenkomst.</p>';
+  html += '<h2>' + esc(tt('contract.sig.heading')) + '</h2>';
+  html += '<p>' + esc(tt('contract.sig.intro')) + '</p>';
   html += '<div class="sig-grid">';
-  html += '<div class="sig-box"><h3>' + esc(pName) + '</h3><div class="sig-line">Vertegenwoordigd door de Dienstverlener</div><div class="sig-line">Datum: ' + esc(today) + '</div></div>';
-  html += '<div class="sig-box"><h3>De Klant</h3><div class="sig-line">Naam: <strong>' + esc(c.klant_naam || '') + '</strong></div>';
+  html += '<div class="sig-box"><h3>' + esc(pName) + '</h3><div class="sig-line">' + esc(tt('contract.sig.repBy')) + '</div><div class="sig-line">' + esc(tt('contract.sig.datum')) + ': ' + esc(today) + '</div></div>';
+  html += '<div class="sig-box"><h3>' + esc(tt('contract.sig.deKlant')) + '</h3><div class="sig-line">' + esc(tt('contract.sig.naam')) + ': <strong>' + esc(c.klant_naam || '') + '</strong></div>';
   var sigSrc = c.handtekening_url || c.handtekening_data || c.handtekening || '';
   var sigDatum = c.datum_ondertekening || today;
   if (sigSrc) {
-    html += '<div style="margin:12px 0"><img src="' + esc(sigSrc) + '" style="max-width:200px;max-height:80px" alt="Handtekening"></div>';
-    html += '<div class="sig-line">Datum: ' + esc(sigDatum) + '</div>';
+    html += '<div style="margin:12px 0"><img src="' + esc(sigSrc) + '" style="max-width:200px;max-height:80px" alt="' + esc(tt('contract.sig.handtekeningAlt')) + '"></div>';
+    html += '<div class="sig-line">' + esc(tt('contract.sig.datum')) + ': ' + esc(sigDatum) + '</div>';
   } else {
-    html += '<div class="sig-area"></div><div class="sig-line">Datum:</div>';
+    html += '<div class="sig-area"></div><div class="sig-line">' + esc(tt('contract.sig.datum')) + ':</div>';
   }
   html += '</div></div>';
 
@@ -1385,7 +1456,7 @@ async function ensureJsPDFShared() {
  * Genereer branded contract-PDF voor de calculator-context.
  * @param {Object} c       — contract-object (signingContract of gelijkaardig)
  * @param {Object} p       — partner-object (signingPartner)
- * @param {Object} [opts]  { autoDownload?: bool=true, filename?: string, returnBlob?: bool }
+ * @param {Object} [opts]  { autoDownload?: bool=true, filename?: string, returnBlob?: bool, lang?: 'nl'|'fr' }
  */
 async function generateContractPDFShared(c, p, opts) {
   opts = opts || {};
@@ -1393,7 +1464,9 @@ async function generateContractPDFShared(c, p, opts) {
   await ensureHtml2CanvasShared();
   if (!window.jspdf) throw new Error('jsPDF niet geladen');
 
-  var html = buildContractHTMLShared(c, p);
+  // Slot S — geef caller-lang (indien meegegeven) door aan de HTML-builder; zonder
+  // expliciete keuze valt builder zelf terug op c.lang > UI-lang > 'nl'.
+  var html = buildContractHTMLShared(c, p, { lang: opts.lang });
 
   var iframe = document.createElement('iframe');
   iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;height:100vh;border:0;visibility:hidden';
@@ -3878,8 +3951,10 @@ async function submitSigning() {
     // Geen PII; alleen contract-meta + partner-slug.
     if (typeof window.flanccoTrack === 'function') {
       try {
+        var _signSlug = (p && p.slug) || 'unknown';
+        window.flanccoTrack('Calculator Signature Complete', { partner: _signSlug, flow: 'signing-link' });
         window.flanccoTrack('Contract Signed', {
-          partner: (p && p.slug) || 'unknown',
+          partner: _signSlug,
           flow: 'signing-link',
           frequentie: c.frequentie || 'jaarlijks',
           duur_jaar: String(c.contractduur || 0),
@@ -5306,9 +5381,25 @@ function trackVies(result, country) {
   try { window.flanccoTrack('VIES Validation', { result: result, country: country || 'unknown' }); } catch (_) {}
 }
 
+// Slot 0 — BTW-keuze tracking. Vuurt bij elke radio-change op stap 1.
+// 'BTW6 Selected' bestaat al als specifiek event; deze versie geeft de
+// generieke split (6 vs 21) voor funnel-vergelijk.
+function trackBtwKeuze(btwPct) {
+  if (typeof window.flanccoTrack !== 'function') return;
+  try {
+    var _slug = (typeof partner !== 'undefined' && partner && partner.slug) || 'unknown';
+    window.flanccoTrack('Calculator BTW Keuze', { btw: String(btwPct || ''), partner: _slug });
+  } catch (_) {}
+}
+
 // ═══════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════
+// Slot 0 — onthou laatste stap voor 'Calculator Step Complete'-event (ervan
+// uitgaande dat een navigatie naar een hogere stap = vorige stap voltooid).
+var _calcLastStep = null;
+var _calcDropOffHandle = null;
+
 function goToStep(n) {
   document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById('step-' + n).classList.add('active');
@@ -5325,6 +5416,34 @@ function goToStep(n) {
     if (i < idx) tab.classList.add('done');
     if (i === idx) tab.classList.add('active');
   });
+
+  // Slot 0 — funnel-instrumentatie (geen PII; partner-slug en stap-id only).
+  try {
+    if (typeof window.flanccoTrack === 'function') {
+      var _slug = (window.partner && window.partner.slug) || (typeof partner !== 'undefined' && partner && partner.slug) || 'unknown';
+      var _stepStr = String(n);
+      // Vorige stap als 'voltooid' loggen wanneer we vooruit navigeren.
+      if (_calcLastStep != null && _calcLastStep !== _stepStr) {
+        var _prevIdx = allSteps.indexOf(_calcLastStep);
+        var _curIdx = allSteps.indexOf(_stepStr);
+        if (_prevIdx >= 0 && _curIdx > _prevIdx) {
+          window.flanccoTrack('Calculator Step Complete', { step: _calcLastStep, partner: _slug });
+        }
+      }
+      window.flanccoTrack('Calculator Step View', { step: _stepStr, partner: _slug });
+      _calcLastStep = _stepStr;
+
+      // Drop-off-handler één keer per sessie installeren (lazy; partner-slug kan
+      // nog 'unknown' zijn bij stap 0/1 voor partner geladen is — getter leest
+      // pas bij unload uit zodat correcte slug wordt vastgelegd).
+      if (!_calcDropOffHandle && typeof window.flanccoTrackDropOff === 'function') {
+        _calcDropOffHandle = window.flanccoTrackDropOff(
+          function () { return _calcLastStep || _stepStr; },
+          (window.partner && window.partner.slug) || _slug
+        );
+      }
+    }
+  } catch (_) { /* analytics nooit blokkerend */ }
 
   // Slot O2 — bij intrede stap 2: warmup postcode-data + refresh CTA-progress
   if (String(n) === '2') {
@@ -5412,6 +5531,11 @@ function goToSummary() {
     }
   }
 
+  // Slot S \u2014 i18n-helper voor in-browser samenvatting + contract-render. Gebruikt
+  // `window.t` zodat tekst meeschaalt met huidige UI-lang (zelf-trigger via setLang).
+  var T = (window.t && typeof window.t === 'function')
+    ? window.t
+    : function(k){ return k; };
   var s = sharedState;
   var naam = esc(document.getElementById('klant-naam').value);
   var straat = esc(document.getElementById('klant-straat').value);
@@ -5420,14 +5544,14 @@ function goToSummary() {
   var gem = esc(document.getElementById('klant-gemeente').value);
   var email = esc(document.getElementById('klant-email').value);
   var tel = esc(document.getElementById('klant-tel').value);
-  var freqTxt = s.freq === 1 ? 'Jaarlijks (1\u00D7)' : 'Halfjaarlijks (2\u00D7)';
-  var duurTxt = s.duur === 0 ? 'Eenmalige interventie' : s.duur + ' jaar';
+  var freqTxt = s.freq === 1 ? T('contract.freq.jaarlijksShort') : T('contract.freq.halfjaarlijksShort');
+  var duurTxt = s.duur === 0 ? T('contract.duur.eenmalig') : s.duur + T('contract.duur.jaarSuffix');
   var btwMult = 1 + s.btwPct / 100;
 
   var html = '';
 
   // Section 1: What you get (combine benefits from all selected sectors)
-  html += '<div class="summary-section"><h3>Wat wij voor u doen</h3><div class="summary-benefits">';
+  html += '<div class="summary-section"><h3>' + esc(T('summary.benefits')) + '</h3><div class="summary-benefits">';
   selectedSectors.forEach(function(sec) {
     var cfg = SECTORS[sec];
     if (cfg) html += cfg.summaryBenefits();
@@ -5435,7 +5559,7 @@ function goToSummary() {
   html += '</div></div>';
 
   // Section 2: Pricing breakdown
-  html += '<div class="summary-section"><h3>Uw berekening</h3><div class="summary-lines">';
+  html += '<div class="summary-section"><h3>' + esc(T('summary.calc')) + '</h3><div class="summary-lines">';
 
   // Per-sector lines
   selectedSectors.forEach(function(sec) {
@@ -5452,25 +5576,25 @@ function goToSummary() {
 
   // Shared costs
   if (s.transportExcl > 0) {
-    html += '<div class="summary-line"><span>Verplaatsing (' + s.extraKm + ' km boven gratis zone)</span><span>' + fmt(s.transportExcl * btwMult) + '</span></div>';
+    html += '<div class="summary-line"><span>' + esc(T('summary.transport', { km: s.extraKm })) + '</span><span>' + fmt(s.transportExcl * btwMult) + '</span></div>';
   }
   if (s.discountAmount > 0) {
     var _kPct = Math.round((s.korting || 0) * 100);
-    html += '<div class="summary-line"><span>Contractkorting (' + s.duur + ' jaar, &minus;' + _kPct + '%)</span><span>&minus; ' + fmt(s.discountAmount * btwMult) + '</span></div>';
+    html += '<div class="summary-line"><span>' + esc(T('summary.contractKorting', { duur: s.duur, pct: _kPct })) + '</span><span>&minus; ' + fmt(s.discountAmount * btwMult) + '</span></div>';
   }
 
   html += '</div><hr class="summary-divider">';
-  html += '<div class="summary-lines"><div class="summary-line summary-line-total"><span>Totaal per beurt</span><span>' + fmtTotal(s.total) + '</span></div></div>';
-  html += '<div class="summary-sub">incl. ' + s.btwPct + '% btw &middot; ' + freqTxt + ' &middot; ' + duurTxt + '</div>';
-  if (s.freq === 2) html += '<div class="summary-sub" style="margin-top:4px;font-weight:600;color:var(--black)">Per jaar (2 beurten): ' + fmtTotal(s.total * 2) + '</div>';
+  html += '<div class="summary-lines"><div class="summary-line summary-line-total"><span>' + esc(T('summary.perBeurtTotaal')) + '</span><span>' + fmtTotal(s.total) + '</span></div></div>';
+  html += '<div class="summary-sub">' + esc(T('summary.btwNote', { pct: s.btwPct, freq: freqTxt, duur: duurTxt })) + '</div>';
+  if (s.freq === 2) html += '<div class="summary-sub" style="margin-top:4px;font-weight:600;color:var(--black)">' + esc(T('summary.perJaar2', { bedrag: fmtTotal(s.total * 2) })) + '</div>';
   html += '</div>';
 
   // Section 3: Customer data
-  html += '<div class="summary-section"><h3>Uw gegevens</h3><dl class="summary-klant">';
-  html += '<dt>Naam</dt><dd>' + naam + '</dd>';
-  html += '<dt>Adres</dt><dd>' + straat + ' ' + huisnr + ', ' + pc + ' ' + gem + '</dd>';
-  html += '<dt>Email</dt><dd>' + email + '</dd>';
-  html += '<dt>Telefoon</dt><dd>' + tel + '</dd>';
+  html += '<div class="summary-section"><h3>' + esc(T('summary.yourData')) + '</h3><dl class="summary-klant">';
+  html += '<dt>' + esc(T('summary.labelNaam')) + '</dt><dd>' + naam + '</dd>';
+  html += '<dt>' + esc(T('summary.labelAdres')) + '</dt><dd>' + straat + ' ' + huisnr + ', ' + pc + ' ' + gem + '</dd>';
+  html += '<dt>' + esc(T('summary.labelEmail')) + '</dt><dd>' + email + '</dd>';
+  html += '<dt>' + esc(T('summary.labelTelefoon')) + '</dt><dd>' + tel + '</dd>';
 
   // Sector-specific descriptions
   selectedSectors.forEach(function(sec) {
@@ -5487,7 +5611,9 @@ function goToSummary() {
     var savings = fmtTotal(s.total * 0.05);
     html += '<div class="summary-tip">';
     html += '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 3.5v5m0 2.5h.01" stroke="#B8960C" stroke-width="1.5" stroke-linecap="round"/></svg>';
-    html += '<span><strong>Tip:</strong> Kies een contract van 3 of 5 jaar en bespaar 5% op elke beurt. Dat is ' + savings + ' korting per beurt. <a href="#" onclick="goToStep(1);return false;" style="color:#7A6520;font-weight:600;">Aanpassen</a></span>';
+    // Tip-tekst bevat HTML (<strong>, <a>) \u2014 nooit esc() over de hele string;
+    // savings is reeds via fmtTotal() veilig (cijfer + euroteken).
+    html += '<span style="color:#7A6520">' + T('summary.tipUpsell', { savings: savings }).replace('data-action="adjust-duur"', 'onclick="goToStep(1);return false;" style="color:#7A6520;font-weight:600;"') + '</span>';
     html += '</div>';
   }
 
@@ -5501,6 +5627,12 @@ function goToSummary() {
 function generateContract() {
   // Slot O1 — defensieve sync vóór render (idempotent)
   if (typeof syncKlantSubtypeToFields === 'function') { try { syncKlantSubtypeToFields(); } catch (_) {} }
+  // Slot S — i18n-helper + locale-tag voor in-browser contract-render
+  var T = (window.t && typeof window.t === 'function')
+    ? window.t
+    : function(k){ return k; };
+  var langCur = (window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl';
+  var localeTag = langCur === 'fr' ? 'fr-BE' : 'nl-BE';
   var s = sharedState;
   var naam = esc(document.getElementById('klant-naam').value);
   var straat = esc(document.getElementById('klant-straat').value);
@@ -5508,13 +5640,13 @@ function generateContract() {
   var adres = straat + ' ' + huisnr;
   var pc = esc(document.getElementById('klant-postcode').value);
   var gem = esc(document.getElementById('klant-gemeente').value);
-  var btw = esc(document.getElementById('klant-btw').value) || '\u2014';
+  var btw = esc(document.getElementById('klant-btw').value) || T('contract.defaults.emDash');
   var contact = esc(document.getElementById('klant-contact').value);
   var tel = esc(document.getElementById('klant-tel').value);
   var email = esc(document.getElementById('klant-email').value);
-  var freqTxt = s.freq === 1 ? 'Jaarlijks (1\u00D7)' : 'Halfjaarlijks (2\u00D7)';
-  var duurTxt = s.duur === 0 ? 'Eenmalige interventie' : s.duur + ' jaar (5% korting)';
-  var today = new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+  var freqTxt = s.freq === 1 ? T('contract.freq.jaarlijksShort') : T('contract.freq.halfjaarlijksShort');
+  var duurTxt = s.duur === 0 ? T('contract.duur.eenmalig') : s.duur + T('contract.duur.jaarKorting');
+  var today = new Date().toLocaleDateString(localeTag, { day: 'numeric', month: 'long', year: 'numeric' });
   var pNaam = esc(getPartnerDisplayName(partner, selectedSectors[0] || null));
   var pAdres = esc([partner.adres, partner.postcode, partner.gemeente].filter(Boolean).join(', '));
   var pBtw = esc(partner.btw_nummer || '');
@@ -5531,27 +5663,28 @@ function generateContract() {
   // Build contract HTML
   var html = '<div class="contract-header">' +
     '<h1>' + pNaam + '</h1>' +
-    '<p style="font-size:14px;color:var(--dark);margin:8px 0 4px">Dienstverleningsovereenkomst</p>' +
+    '<p style="font-size:14px;color:var(--dark);margin:8px 0 4px">' + esc(T('contract.header.dienstverlening')) + '</p>' +
     '<p>' + dienstenTxt + ' \u2014 ' + today + '</p></div>';
 
   // Parties
-  html += '<p style="font-size:13px;color:var(--grey);margin-bottom:20px">Tussen <strong>' + pNaam + '</strong>' +
-    (pAdres ? ', gevestigd te ' + pAdres : '') + (pBtw ? ', ' + pBtw : '') + ', hierna "de Dienstverlener",</p>' +
-    '<p style="font-size:13px;color:var(--grey)">En</p>' +
+  html += '<p style="font-size:13px;color:var(--grey);margin-bottom:20px">' + esc(T('contract.partijen.tussen')) + ' <strong>' + pNaam + '</strong>' +
+    (pAdres ? ', ' + esc(T('contract.partijen.gevestigdTe')) + ' ' + pAdres : '') + (pBtw ? ', ' + pBtw : '') + ', ' + esc(T('contract.partijen.hiernaDienstverlener')) + '</p>' +
+    '<p style="font-size:13px;color:var(--grey)">' + esc(T('contract.partijen.en')) + '</p>' +
     '<div style="margin:12px 0 24px">' +
-    '<div class="data-row"><span class="data-label">Naam / Bedrijfsnaam</span><span class="data-value">' + naam + '</span></div>' +
-    '<div class="data-row"><span class="data-label">Adres</span><span class="data-value">' + adres + '</span></div>' +
-    '<div class="data-row"><span class="data-label">Postcode + Gemeente</span><span class="data-value">' + pc + ' ' + gem + '</span></div>' +
-    '<div class="data-row"><span class="data-label">BTW-nummer</span><span class="data-value">' + btw + '</span></div>' +
+    '<div class="data-row"><span class="data-label">' + esc(T('contract.label.naamBedrijfsnaam')) + '</span><span class="data-value">' + naam + '</span></div>' +
+    '<div class="data-row"><span class="data-label">' + esc(T('contract.label.adres')) + '</span><span class="data-value">' + adres + '</span></div>' +
+    '<div class="data-row"><span class="data-label">' + esc(T('contract.label.postcodeGemeente')) + '</span><span class="data-value">' + pc + ' ' + gem + '</span></div>' +
+    '<div class="data-row"><span class="data-label">' + esc(T('contract.label.btwNummer')) + '</span><span class="data-value">' + btw + '</span></div>' +
     // Slot T A5: contactpersoon-rij alleen tonen als ingevuld (in bedrijf-only mode is dit veld leeg)
-    (contact ? '<div class="data-row"><span class="data-label">Contactpersoon</span><span class="data-value">' + contact + '</span></div>' : '') +
-    '<div class="data-row"><span class="data-label">Telefoon</span><span class="data-value">' + tel + '</span></div>' +
-    '<div class="data-row"><span class="data-label">E-mail</span><span class="data-value">' + email + '</span></div></div>' +
-    '<p style="font-size:13px;color:var(--grey)">hierna "de Klant", gezamenlijk "de Partijen".</p>';
+    (contact ? '<div class="data-row"><span class="data-label">' + esc(T('contract.label.contactpersoon')) + '</span><span class="data-value">' + contact + '</span></div>' : '') +
+    '<div class="data-row"><span class="data-label">' + esc(T('contract.label.telefoon')) + '</span><span class="data-value">' + tel + '</span></div>' +
+    '<div class="data-row"><span class="data-label">' + esc(T('contract.label.email')) + '</span><span class="data-value">' + email + '</span></div></div>' +
+    '<p style="font-size:13px;color:var(--grey)">' + esc(T('contract.partijen.hiernaKlant')) + '</p>';
 
   // Article 1: Subject
-  html += '<h2>Artikel 1 \u2014 Voorwerp</h2>' +
-    '<p>De Dienstverlener verbindt zich ertoe de volgende diensten uit te voeren op het hierboven vermelde adres:</p><ul>';
+  var ART2 = T('contract.artikelPrefix');
+  html += '<h2>' + esc(ART2) + ' 1 \u2014 ' + esc(T('contract.artikel.voorwerp.heading')) + '</h2>' +
+    '<p>' + esc(T('contract.artikel.voorwerp.intro')) + '</p><ul>';
   selectedSectors.forEach(function(sec) {
     var cfg = SECTORS[sec];
     var result = sectorResults[sec];
@@ -5571,8 +5704,8 @@ function generateContract() {
   });
 
   // Pricing article
-  html += '<h2>Artikel ' + artNum + ' \u2014 Tarieven</h2>';
-  html += '<p>Alle bedragen zijn in euro en inclusief ' + s.btwPct + '% btw.</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.tarieven.heading')) + '</h2>';
+  html += '<p>' + esc(T('contract.artikel.tarieven.inclBtw', { pct: s.btwPct })) + '</p>';
 
   // Per-sector pricing tables
   selectedSectors.forEach(function(sec) {
@@ -5594,7 +5727,7 @@ function generateContract() {
   });
   // Transport supplement
   var transBedrag = s.transPKM * (1 + parseFloat(partner.marge_pct) / 100) * btwMult;
-  if (transBedrag > 0) suppRows += '<tr><td>Verplaatsing boven ' + s.freeKm + ' km</td><td>+ ' + fmt(transBedrag) + ' / km</td></tr>';
+  if (transBedrag > 0) suppRows += '<tr><td>' + esc(T('contract.artikel.tarieven.verplaatsingBoven', { km: s.freeKm })) + '</td><td>+ ' + fmt(transBedrag) + ' / km</td></tr>';
   // Annulatie
   var annulatie = 0;
   selectedSectors.forEach(function(sec) {
@@ -5603,11 +5736,11 @@ function generateContract() {
   });
 
   if (suppRows) {
-    html += '<table class="pricing-table" style="margin-top:16px"><tr><th>Bijkomende kosten</th><th>Tarief</th></tr>' + suppRows + '</table>';
+    html += '<table class="pricing-table" style="margin-top:16px"><tr><th>' + esc(T('contract.artikel.tarieven.bijkomendeKosten')) + '</th><th>' + esc(T('contract.artikel.tarieven.tarief')) + '</th></tr>' + suppRows + '</table>';
   }
 
   // Pricing summary box
-  html += '<div class="highlight-box" style="margin-top:20px"><p><strong>Uw berekening:</strong></p>';
+  html += '<div class="highlight-box" style="margin-top:20px"><p><strong>' + esc(T('contract.artikel.tarieven.uwBerekening')) + ':</strong></p>';
   selectedSectors.forEach(function(sec) {
     var result = sectorResults[sec];
     var cfg = SECTORS[sec];
@@ -5616,87 +5749,91 @@ function generateContract() {
       html += '<p>' + line.label + ': ' + fmtClean(line.amount * btwMult) + '</p>';
     });
   });
-  if (s.transportExcl > 0) html += '<p>Verplaatsing: ' + s.extraKm + ' km \u00D7 ' + fmtClean(transBedrag) + ' = ' + fmtClean(s.transportExcl * btwMult) + '</p>';
-  if (s.discountAmount > 0) html += '<p>Contractkorting (' + s.duur + ' jaar, -' + Math.round((s.korting || 0) * 100) + '%): - ' + fmtClean(s.discountAmount * btwMult) + '</p>';
-  html += '<p style="font-weight:700;font-size:15px;margin-top:8px">Totaal per beurt: ' + fmtCleanTotal(s.total) + ' incl. ' + s.btwPct + '% btw</p>';
-  if (s.freq === 2) html += '<p style="font-weight:600">Per jaar (2 beurten): ' + fmtCleanTotal(s.total * 2) + '</p>';
+  if (s.transportExcl > 0) html += '<p>' + esc(T('contract.artikel.tarieven.transportLine', { km: s.extraKm, tarief: fmtClean(transBedrag), totaal: fmtClean(s.transportExcl * btwMult) })) + '</p>';
+  if (s.discountAmount > 0) html += '<p>' + esc(T('contract.artikel.tarieven.kortingLine', { duur: s.duur, pct: Math.round((s.korting || 0) * 100), bedrag: fmtClean(s.discountAmount * btwMult) })) + '</p>';
+  html += '<p style="font-weight:700;font-size:15px;margin-top:8px">' + esc(T('contract.artikel.tarieven.totaalPerBeurtPlain', { bedrag: fmtCleanTotal(s.total), pct: s.btwPct })) + '</p>';
+  if (s.freq === 2) html += '<p style="font-weight:600">' + esc(T('contract.artikel.tarieven.perJaar', { bedrag: fmtCleanTotal(s.total * 2) })) + '</p>';
   html += '</div>';
   artNum++;
 
   // Frequency
-  html += '<h2>Artikel ' + artNum + ' \u2014 Frequentie</h2>' +
-    '<p>Gekozen frequentie: <strong>' + freqTxt + '</strong></p>' +
-    '<p>De onderhoudsbeurten worden in onderling overleg ingepland. De Dienstverlener contacteert de Klant minstens twee (2) weken op voorhand.</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.frequentie.heading')) + '</h2>' +
+    '<p>' + T('contract.artikel.frequentie.gekozen', { freq: esc(freqTxt) }) + '</p>' +
+    '<p>' + esc(T('contract.artikel.frequentie.inplanning')) + '</p>';
   artNum++;
 
   // Duration
-  html += '<h2>Artikel ' + artNum + ' \u2014 Contractduur</h2>' +
-    '<p>Gekozen contractduur: <strong>' + duurTxt + '</strong></p>' +
-    '<p>Bij een contract van 3 of 5 jaar wordt een korting van 5% toegepast. Het contract vangt aan op de datum van ondertekening. Behoudens schriftelijke opzegging (2 maanden opzegtermijn) wordt het stilzwijgend verlengd per jaar.</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.contractduur.heading')) + '</h2>' +
+    '<p>' + T('contract.artikel.contractduur.gekozen', { duur: esc(duurTxt) }) + '</p>' +
+    '<p>' + esc(T('contract.artikel.contractduur.body')) + '</p>';
   artNum++;
 
   // Indexation
-  html += '<h2>Artikel ' + artNum + ' \u2014 Prijsindexatie</h2><p>Tarieven worden jaarlijks ge\u00EFndexeerd op basis van de consumptieprijsindex (CPI).</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.prijsindexatie.heading')) + '</h2><p>' + esc(T('contract.artikel.prijsindexatie.body')) + '</p>';
   artNum++;
 
   // Payment
-  html += '<h2>Artikel ' + artNum + ' \u2014 Facturatie en betaling</h2><p>Facturen zijn betaalbaar binnen 30 kalenderdagen na factuurdatum.</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.facturatie.heading')) + '</h2><p>' + esc(T('contract.artikel.facturatie.body')) + '</p>';
   artNum++;
 
   // Execution
-  html += '<h2>Artikel ' + artNum + ' \u2014 Uitvoering</h2><p>De Dienstverlener voert het onderhoud uit met eigen gekwalificeerd personeel. De Klant zorgt voor vrije toegang tot de installatie(s).</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.uitvoering.heading')) + '</h2><p>' + esc(T('contract.artikel.uitvoering.body')) + '</p>';
   artNum++;
 
   // Cancellation
-  html += '<h2>Artikel ' + artNum + ' \u2014 Annulatie</h2><p>Bij annulatie minder dan 48 uur v\u00F3\u00F3r de geplande interventie wordt een annulatiekost van ' + (annulatie > 0 ? fmt(annulatie) : '\u20AC 20') + ' aangerekend.</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.annulatie.heading')) + '</h2><p>' + esc(T('contract.artikel.annulatie.bodyVar', { bedrag: (annulatie > 0 ? fmt(annulatie) : T('contract.currency.eurDefault')) })) + '</p>';
   artNum++;
 
   // Liability
-  html += '<h2>Artikel ' + artNum + ' \u2014 Aansprakelijkheid</h2><p>De Dienstverlener is verzekerd voor beroeps- en uitbatingsaansprakelijkheid. Niet aansprakelijk voor reeds bestaande schade of indirecte gevolgschade.</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.aansprakelijkheid.heading')) + '</h2><p>' + esc(T('contract.artikel.aansprakelijkheid.body')) + '</p>';
   artNum++;
 
   // BTW attest (if 6%)
   if (s.btwPct === 6) {
-    html += '<h2>Artikel ' + artNum + ' \u2014 Attest verlaagd btw-tarief (6%)</h2>' +
+    html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.attestBtw6.heading')) + '</h2>' +
       '<div style="border:1px solid #ccc;border-radius:8px;padding:16px 20px;margin-bottom:8px;background:#FAFAF5">' +
-      '<p style="margin:0 0 8px"><strong>Verklaring op eer door de opdrachtgever</strong></p>' +
-      '<p style="margin:0 0 4px">Ondergetekende, <strong>' + naam + '</strong>, verklaart op eer dat:</p>' +
+      '<p style="margin:0 0 8px"><strong>' + esc(T('contract.artikel.attestBtw6.verklaring')) + '</strong></p>' +
+      // intro bevat <strong>{naam}</strong> + ":" \u2014 geen esc() over hele tpl.
+      '<p style="margin:0 0 4px">' + T('contract.artikel.attestBtw6.intro', { naam: naam }) + '</p>' +
       '<ul style="margin:6px 0;padding-left:20px">' +
-      '<li>Het gebouw gelegen te <strong>' + straat + ' ' + huisnr + ', ' + pc + ' ' + gem + '</strong> langer dan 10 jaar in gebruik is als priv\u00E9woning</li>' +
-      '<li>De werken rechtstreeks aan de eindverbruiker worden gefactureerd</li>' +
-      '<li>De woning hoofdzakelijk voor priv\u00E9doeleinden wordt aangewend</li></ul>' +
-      '<p style="margin:6px 0 0;font-size:12px;color:#666">Bij onjuiste verklaring is de opdrachtgever aansprakelijk voor het verschil tussen het verlaagd (6%) en het normaal (21%) btw-tarief, vermeerderd met eventuele boetes en interesten.</p></div>';
+      // li1 bevat <strong>{adres}</strong> \u2014 adres-string is reeds ge-esc'd via straat/huisnr/pc/gem.
+      '<li>' + T('contract.artikel.attestBtw6.li1Tpl', { adres: straat + ' ' + huisnr + ', ' + pc + ' ' + gem }) + '</li>' +
+      '<li>' + esc(T('contract.artikel.attestBtw6.li2')) + '</li>' +
+      '<li>' + esc(T('contract.artikel.attestBtw6.li3')) + '</li></ul>' +
+      '<p style="margin:6px 0 0;font-size:12px;color:#666">' + esc(T('contract.artikel.attestBtw6.disclaimer')) + '</p></div>';
     artNum++;
   }
 
   // Withdrawal right
-  html += '<h2>Artikel ' + artNum + ' \u2014 Herroepingsrecht</h2>' +
-    '<p>De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU. Het herroepingsformulier wordt meegestuurd met de bevestigingsmail.</p>';
+  html += '<h2>' + esc(ART2) + ' ' + artNum + ' \u2014 ' + esc(T('contract.artikel.herroeping.heading')) + '</h2>' +
+    '<p>' + esc(T('contract.artikel.herroeping.bodyLong')) + '</p>';
   artNum++;
 
   // Slot T A5: bedrijf-only mode → "namens [bedrijfsnaam]" wording in accept-text + naam-regel
   var subtypeForSig = (typeof getKlantSubtype === 'function') ? getKlantSubtype() : 'particulier';
   var bedrijfOnlyForSig = (subtypeForSig === 'bedrijf' && typeof getBedrijfOnlyMode === 'function' && getBedrijfOnlyMode() === 'bedrijf');
   var sigNaamLine = bedrijfOnlyForSig
-    ? '<div class="sig-line">Namens: <strong>' + naam + '</strong></div>'
-    : '<div class="sig-line">Naam: <strong>' + naam + '</strong></div>';
+    ? '<div class="sig-line">' + esc(T('contract.sig.namens')) + ': <strong>' + naam + '</strong></div>'
+    : '<div class="sig-line">' + esc(T('contract.sig.naam')) + ': <strong>' + naam + '</strong></div>';
+  // accept-tpl bevat <strong>{naam}</strong> — naam is reeds ge-esc'd, geen
+  // dubbel-esc op de gehele template-output.
   var acceptText = bedrijfOnlyForSig
-    ? 'Ondergetekende verklaart gemachtigd te zijn om namens <strong>' + naam + '</strong> deze overeenkomst aan te gaan, deze gelezen te hebben en akkoord te gaan met alle hierin vermelde voorwaarden en tarieven. Deze digitale ondertekening is rechtsgeldig conform de EU eIDAS-verordening.'
-    : 'Ik, <strong>' + naam + '</strong>, verklaar deze overeenkomst gelezen te hebben en ga akkoord met alle hierin vermelde voorwaarden en tarieven. Ik begrijp dat deze digitale ondertekening rechtsgeldig is conform de EU eIDAS-verordening.';
+    ? T('contract.sig.acceptBedrijfOnly', { naam: naam })
+    : T('contract.sig.accept', { naam: naam });
 
   // Signature
-  html += '<h2>Ondertekening</h2><p>Door ondertekening verklaart de Klant akkoord te gaan met alle bepalingen van deze Overeenkomst.</p>' +
+  html += '<h2>' + esc(T('contract.sig.heading')) + '</h2><p>' + esc(T('contract.sig.intro')) + '</p>' +
     '<div class="sig-grid"><div class="sig-box"><h3>' + pNaam + '</h3>' +
-    '<div class="sig-line">Vertegenwoordigd door de Dienstverlener</div>' +
-    '<div class="sig-line">Datum: <span>' + today + '</span></div></div>' +
-    '<div class="sig-box"><h3>De Klant</h3>' +
+    '<div class="sig-line">' + esc(T('contract.sig.repBy')) + '</div>' +
+    '<div class="sig-line">' + esc(T('contract.sig.datum')) + ': <span>' + today + '</span></div></div>' +
+    '<div class="sig-box"><h3>' + esc(T('contract.sig.deKlant')) + '</h3>' +
     sigNaamLine +
-    '<div class="sig-line" style="margin-top:8px"><label style="font-size:13px;font-weight:500">Datum:</label>' +
+    '<div class="sig-line" style="margin-top:8px"><label style="font-size:13px;font-weight:500">' + esc(T('contract.sig.datum')) + ':</label>' +
     '<input type="date" class="sig-input" id="sig-datum" value="' + new Date().toISOString().split('T')[0] + '"></div>' +
-    '<div class="sig-line" style="margin-top:16px"><label style="font-size:13px;font-weight:500">Handtekening: <small style="color:var(--grey);font-weight:400">teken met uw muis of vinger</small></label>' +
+    '<div class="sig-line" style="margin-top:16px"><label style="font-size:13px;font-weight:500">' + esc(T('contract.sig.signatureLabel')) + ' <small style="color:var(--grey);font-weight:400">' + esc(T('contract.sig.signatureHint')) + '</small></label>' +
     '<div class="sig-canvas-wrap" id="sig-wrap"><canvas id="sig-canvas" width="560" height="100"></canvas>' +
-    '<div class="sig-placeholder">Teken hier uw handtekening</div></div>' +
-    '<span class="sig-clear" onclick="clearSig()">Wissen</span></div></div></div>' +
+    '<div class="sig-placeholder">' + esc(T('contract.sig.signaturePlaceholder')) + '</div></div>' +
+    '<span class="sig-clear" onclick="clearSig()">' + esc(T('contract.sig.wissen')) + '</span></div></div></div>' +
     '<div class="accept-box"><label><input type="checkbox" id="accept-check" onchange="checkAccept()">' +
     '<div class="accept-text">' + acceptText + '</div></label></div>' +
     '<p style="text-align:center;font-size:11px;color:var(--grey);margin-top:32px;padding-top:16px;border-top:1px solid var(--rule)">' +
@@ -6152,8 +6289,13 @@ async function submitContract() {
     // Slot 0 — anonieme conversie-meting. Geen PII (geen e-mail, geen naam, geen adres).
     if (typeof window.flanccoTrack === 'function') {
       try {
+        var _sigSlug = (partner && partner.slug) || 'unknown';
+        // Stap-3 (handtekening) als voltooid markeren + signature-event afzonderlijk
+        // voor funnel-segmentatie tussen "tekent toch niet" vs "tekent en bouncet".
+        window.flanccoTrack('Calculator Step Complete', { step: '3', partner: _sigSlug });
+        window.flanccoTrack('Calculator Signature Complete', { partner: _sigSlug });
         window.flanccoTrack('Contract Signed', {
-          partner: (partner && partner.slug) || 'unknown',
+          partner: _sigSlug,
           sectors: (selectedSectors || []).join('+') || 'none',
           frequentie: s.freq === 1 ? 'jaarlijks' : 'halfjaarlijks',
           duur_jaar: String(s.duur || 0),
@@ -6162,6 +6304,8 @@ async function submitContract() {
         });
       } catch (_) { /* analytics nooit blokkerend */ }
     }
+    // Drop-off-listener uitschakelen — gebruiker is succesvol klaar.
+    try { if (_calcDropOffHandle && typeof _calcDropOffHandle.cancel === 'function') _calcDropOffHandle.cancel(); } catch (_) {}
 
     // Genereer PDF → trigger download → upload naar Storage → trigger bevestigingsmail met bijlagen.
     // Volgorde is belangrijk: pdf_url moet op de contract-rij staan VOOR de Edge Function wordt

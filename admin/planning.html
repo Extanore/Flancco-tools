@@ -238,6 +238,13 @@
     background: #FEF3C7; color: #92400E; border: 1px solid rgba(245,158,11,0.3);
   }
   .cert-badge svg { width: 11px; height: 11px; flex-shrink: 0; }
+  /* Compact variant: icon-only badge naast tech-naam in week-grid + day-view header.
+     Geen tekstlabel — tooltip + aria-label dragen het detail. */
+  .cert-badge.cert-badge-compact {
+    width: 18px; height: 18px; padding: 0; gap: 0;
+    border-radius: 50%; justify-content: center;
+  }
+  .cert-badge.cert-badge-compact svg { width: 12px; height: 12px; }
   .beschikbaar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .beschikbaar-naam { font-size: 15px; font-weight: 700; color: var(--navy); }
   .beschikbaar-badge {
@@ -4937,6 +4944,10 @@ function switchView(view) {
     b.classList.toggle('active', b.dataset.view === view);
   });
   renderView();
+  // Slot 0 — funnel: welke views worden gebruikt? Geen PII, alleen view-naam.
+  if (typeof window.flanccoTrack === 'function') {
+    try { window.flanccoTrack('Planning View Change', { view: String(view || '') }); } catch (_) {}
+  }
 }
 
 function toggleSidebar() {
@@ -5332,10 +5343,28 @@ function renderWeekView() {
     var pct = geplandUren / contractUren;
     var urenKleur = pct > 1 ? 'var(--red)' : pct >= 0.6 ? 'var(--green)' : 'var(--orange)';
 
+    // Slot A3 — Cert-badge in week-grid technieker-cell. Compact (geen tekst, enkel
+    // icon-only badge naast de naam) zodat de rij niet breder wordt; tooltip bevat
+    // het detail. Pure visuele warning, geen blokkering.
+    var weekCertStatus = getCertExpiryStatus(tech.id);
+    var weekCertBadgeHtml = '';
+    if (weekCertStatus) {
+      var weekCertDays = getCertEarliestExpiryDays(tech.id);
+      var weekCertTooltip;
+      if (weekCertStatus === 'verlopen') {
+        weekCertTooltip = weekCertDays !== null ? ('Certificaat ' + Math.abs(weekCertDays) + 'd verlopen') : 'Certificaat verlopen';
+      } else if (weekCertStatus === 'urgent') {
+        weekCertTooltip = 'Certificaat vervalt binnen ' + (weekCertDays !== null ? weekCertDays : 30) + ' dagen';
+      } else {
+        weekCertTooltip = 'Certificaat vervalt binnen ' + (weekCertDays !== null ? weekCertDays : 90) + ' dagen';
+      }
+      var weekCertIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+      weekCertBadgeHtml = '<span class="cert-badge cert-badge-compact cert-badge-' + weekCertStatus + '" title="' + esc(weekCertTooltip) + '" aria-label="' + esc(weekCertTooltip) + '">' + weekCertIcon + '</span>';
+    }
     html += '<td><div class="tech-name-cell">' +
       '<div class="tech-avatar">' + esc(getTechInitials(tech)) + '</div>' +
-      '<div style="display:flex;flex-direction:column">' +
-        '<span class="tech-name-text">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + '</span>' +
+      '<div style="display:flex;flex-direction:column;min-width:0">' +
+        '<span class="tech-name-text">' + esc(tech.voornaam) + ' ' + esc(tech.naam) + weekCertBadgeHtml + '</span>' +
         '<span style="font-size:11px;font-weight:600;color:' + urenKleur + '">' +
           geplandUren.toFixed(1) + 'u/' + contractUren + 'u' +
         '</span>' +
@@ -5779,7 +5808,23 @@ function renderDayView() {
         'aria-label="Werkplanning exporteren voor ' + esc(tech.voornaam + ' ' + tech.naam) + '" ' +
         'title="Werkplanning exporteren">' + wpeIcon + '</button>';
     }
-    html += '<th>' + esc(tech.voornaam) + ' ' + esc(tech.naam) + wpeBtn + '</th>';
+    // Slot A3 — Cert-badge in day-view header. Compact icon-only variant naast de naam.
+    var dayCertStatus = getCertExpiryStatus(tech.id);
+    var dayCertBadgeHtml = '';
+    if (dayCertStatus) {
+      var dayCertDays = getCertEarliestExpiryDays(tech.id);
+      var dayCertTooltip;
+      if (dayCertStatus === 'verlopen') {
+        dayCertTooltip = dayCertDays !== null ? ('Certificaat ' + Math.abs(dayCertDays) + 'd verlopen') : 'Certificaat verlopen';
+      } else if (dayCertStatus === 'urgent') {
+        dayCertTooltip = 'Certificaat vervalt binnen ' + (dayCertDays !== null ? dayCertDays : 30) + ' dagen';
+      } else {
+        dayCertTooltip = 'Certificaat vervalt binnen ' + (dayCertDays !== null ? dayCertDays : 90) + ' dagen';
+      }
+      var dayCertIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+      dayCertBadgeHtml = '<span class="cert-badge cert-badge-compact cert-badge-' + dayCertStatus + '" title="' + esc(dayCertTooltip) + '" aria-label="' + esc(dayCertTooltip) + '">' + dayCertIcon + '</span>';
+    }
+    html += '<th>' + esc(tech.voornaam) + ' ' + esc(tech.naam) + dayCertBadgeHtml + wpeBtn + '</th>';
   });
   html += '</tr></thead><tbody>';
 

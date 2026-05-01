@@ -78,6 +78,72 @@
     }
   }
 
+  /**
+   * Drop-off-detectie voor multi-step flows (calculator, wizard). Vuurt één
+   * keer een event af zodra de gebruiker de tab verlaat (sluit, navigeert weg
+   * of mobile-app terug naar achtergrond) ZONDER de flow te voltooien.
+   *
+   * Idempotent: koppelt aan zowel `beforeunload` als `pagehide` (Safari /
+   * iOS-vriendelijk) en gebruikt een interne flag zodat het event maar één
+   * keer afgaat — ongeacht welk pad eerst vuurt.
+   *
+   * Bij voltooien van de flow (bv. handtekening geplaatst) moet caller
+   * `cancel()` aanroepen op het returned handle om dubbele tellingen te
+   * voorkomen.
+   *
+   * @param {function|number|string} stepProvider — getter voor de huidige
+   *        stap; mag een functie zijn die `String|number` returnt, of een
+   *        statische waarde. Wordt op het moment van drop-off uitgelezen, niet
+   *        bij setup, zodat de juiste stap wordt geregistreerd.
+   * @param {string} [partner] — partner-slug voor segmentatie.
+   * @returns {{cancel: function}} — handle met `.cancel()` om de listener
+   *        te verwijderen na succesvolle voltooiing.
+   *
+   * @example
+   *   var dropOff = flanccoTrackDropOff(function () { return currentStep; }, 'novectra');
+   *   // ... later, na succesvol ondertekenen:
+   *   dropOff.cancel();
+   */
+  function flanccoTrackDropOff(stepProvider, partner) {
+    var triggered = false;
+    var canceled = false;
+
+    function readStep() {
+      try {
+        if (typeof stepProvider === 'function') return String(stepProvider());
+        if (stepProvider != null) return String(stepProvider);
+      } catch (_) { /* noop */ }
+      return 'unknown';
+    }
+
+    function fire() {
+      if (triggered || canceled) return;
+      triggered = true;
+      try {
+        flanccoTrack('Calculator Drop Off', {
+          step: readStep(),
+          partner: (typeof partner === 'string' && partner) || 'unknown'
+        });
+      } catch (_) { /* analytics nooit blokkerend */ }
+    }
+
+    try {
+      global.addEventListener('beforeunload', fire);
+      global.addEventListener('pagehide', fire);
+    } catch (_) { /* SSR / test-env */ }
+
+    return {
+      cancel: function () {
+        canceled = true;
+        try {
+          global.removeEventListener('beforeunload', fire);
+          global.removeEventListener('pagehide', fire);
+        } catch (_) { /* noop */ }
+      }
+    };
+  }
+
   global.flanccoTrack = flanccoTrack;
   global.flanccoTrackPageView = flanccoTrackPageView;
+  global.flanccoTrackDropOff = flanccoTrackDropOff;
 })(typeof window !== 'undefined' ? window : this);

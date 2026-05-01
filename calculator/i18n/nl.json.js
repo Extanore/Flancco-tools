@@ -127,6 +127,181 @@
       ctaNext: 'Bekijk samenvatting \u2192',
       ctaBack: '\u2190 Terug'
     },
+    // Slot S \u2014 In-browser samenvatting (review-step) labels
+    summary: {
+      benefits: 'Wat wij voor u doen',
+      calc: 'Uw berekening',
+      yourData: 'Uw gegevens',
+      labelNaam: 'Naam',
+      labelAdres: 'Adres',
+      labelEmail: 'Email',
+      labelTelefoon: 'Telefoon',
+      transport: 'Verplaatsing ({km} km boven gratis zone)',
+      contractKorting: 'Contractkorting ({duur} jaar, \u2212{pct}%)',
+      perBeurtTotaal: 'Totaal per beurt',
+      btwNote: 'incl. {pct}% btw \u00b7 {freq} \u00b7 {duur}',
+      perJaar2: 'Per jaar (2 beurten): {bedrag}',
+      tipUpsell: '<strong>Tip:</strong> Kies een contract van 3 of 5 jaar en bespaar 5% op elke beurt. Dat is {savings} korting per beurt. <a href="#" data-action="adjust-duur">Aanpassen</a>'
+    },
+    // Slot S \u2014 Contract-PDF + in-browser contract-render dictionary.
+    // Spiegel altijd in fr.json.js. Wordt gebruikt door buildContractHTMLShared
+    // (PDF-pad) en generateContract() (review-pad in calculator).
+    contract: {
+      htmlLang: 'nl',
+      title: 'Contract',
+      header: {
+        dienstverlening: 'Dienstverleningsovereenkomst'
+      },
+      partijen: {
+        tussen: 'Tussen',
+        gevestigdTe: 'gevestigd te',
+        hiernaDienstverlener: 'hierna "de Dienstverlener",',
+        en: 'En',
+        hiernaKlant: 'hierna "de Klant", gezamenlijk "de Partijen".'
+      },
+      label: {
+        naamBedrijfsnaam: 'Naam / Bedrijfsnaam',
+        adres: 'Adres',
+        postcodeGemeente: 'Postcode + Gemeente',
+        contactpersoon: 'Contactpersoon',
+        telefoon: 'Telefoon',
+        email: 'E-mail',
+        btwNummer: 'BTW-nummer'
+      },
+      artikelPrefix: 'Artikel',
+      artikel: {
+        voorwerp: {
+          heading: 'Voorwerp',
+          intro: 'De Dienstverlener verbindt zich ertoe de volgende diensten uit te voeren op het hierboven vermelde adres:'
+        },
+        tarieven: {
+          heading: 'Tarieven',
+          inclBtw: 'Alle bedragen zijn in euro en inclusief {pct}% btw.',
+          omschrijving: 'Omschrijving',
+          bedrag: 'Bedrag',
+          bijkomendeKosten: 'Bijkomende kosten',
+          tarief: 'Tarief',
+          uwBerekening: 'Uw berekening',
+          uwPrijsoverzicht: 'Uw prijsoverzicht',
+          subtotaalExcl: 'Subtotaal excl. BTW',
+          btwLine: 'BTW {pct}%',
+          totaalPerBeurt: 'Totaal per beurt incl. BTW',
+          totaalPerBeurtPlain: 'Totaal per beurt: {bedrag} incl. {pct}% btw',
+          perJaar: 'Per jaar (2 beurten): {bedrag}',
+          totaalIncl: 'Totaal incl. BTW',
+          transportLine: 'Verplaatsing: {km} km \u00d7 {tarief} = {totaal}',
+          kortingLine: 'Contractkorting ({duur} jaar, -{pct}%): - {bedrag}',
+          verplaatsingBoven: 'Verplaatsing boven {km} km'
+        },
+        frequentie: {
+          heading: 'Frequentie',
+          gekozen: 'Gekozen frequentie: <strong>{freq}</strong>',
+          inplanning: 'De onderhoudsbeurten worden in onderling overleg ingepland. De Dienstverlener contacteert de Klant minstens twee (2) weken op voorhand.'
+        },
+        contractduur: {
+          heading: 'Contractduur',
+          gekozen: 'Gekozen contractduur: <strong>{duur}</strong>',
+          body: 'Bij een contract van 3 of 5 jaar wordt een korting van 5% toegepast. Het contract vangt aan op de datum van ondertekening. Behoudens schriftelijke opzegging (2 maanden opzegtermijn) wordt het stilzwijgend verlengd per jaar.'
+        },
+        prijsindexatie: {
+          heading: 'Prijsindexatie',
+          body: 'Tarieven worden jaarlijks ge\u00efndexeerd op basis van de consumptieprijsindex (CPI).'
+        },
+        facturatie: {
+          heading: 'Facturatie en betaling',
+          body: 'Facturen zijn betaalbaar binnen 30 kalenderdagen na factuurdatum.'
+        },
+        uitvoering: {
+          heading: 'Uitvoering',
+          body: 'De Dienstverlener voert het onderhoud uit met eigen gekwalificeerd personeel. De Klant zorgt voor vrije toegang tot de installatie(s).'
+        },
+        annulatie: {
+          heading: 'Annulatie',
+          bodyVar: 'Bij annulatie minder dan 48 uur v\u00f3\u00f3r de geplande interventie wordt een annulatiekost van {bedrag} aangerekend.',
+          bodyDefault: 'Bij annulatie minder dan 48 uur v\u00f3\u00f3r de geplande interventie wordt een annulatiekost aangerekend.'
+        },
+        aansprakelijkheid: {
+          heading: 'Aansprakelijkheid',
+          body: 'De Dienstverlener is verzekerd voor beroeps- en uitbatingsaansprakelijkheid. Niet aansprakelijk voor reeds bestaande schade of indirecte gevolgschade.'
+        },
+        attestBtw6: {
+          heading: 'Attest verlaagd btw-tarief (6%)',
+          verklaring: 'Verklaring op eer door de opdrachtgever',
+          intro: 'Ondergetekende, <strong>{naam}</strong>, verklaart op eer dat:',
+          introCompact: 'Ondergetekende, <strong>{naam}</strong>, verklaart op eer dat het gebouw{adresPart} langer dan 10 jaar in gebruik is als priv\u00e9woning, de werken rechtstreeks aan de eindverbruiker worden gefactureerd, en de woning hoofdzakelijk voor priv\u00e9doeleinden wordt aangewend.',
+          adresPartTpl: ' gelegen te <strong>{adres}</strong>',
+          li1Tpl: 'Het gebouw gelegen te <strong>{adres}</strong> langer dan 10 jaar in gebruik is als priv\u00e9woning',
+          li2: 'De werken rechtstreeks aan de eindverbruiker worden gefactureerd',
+          li3: 'De woning hoofdzakelijk voor priv\u00e9doeleinden wordt aangewend',
+          disclaimer: 'Bij onjuiste verklaring is de opdrachtgever aansprakelijk voor het verschil tussen het verlaagd (6%) en het normaal (21%) btw-tarief, vermeerderd met eventuele boetes en interesten.'
+        },
+        herroeping: {
+          heading: 'Herroepingsrecht',
+          bodyShort: 'De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU.',
+          bodyLong: 'De Klant heeft het recht om binnen 14 kalenderdagen na ondertekening deze overeenkomst zonder opgave van redenen te herroepen, conform de Europese richtlijn 2011/83/EU. Het herroepingsformulier wordt meegestuurd met de bevestigingsmail.'
+        }
+      },
+      sig: {
+        heading: 'Ondertekening',
+        intro: 'Door ondertekening verklaart de Klant akkoord te gaan met alle bepalingen van deze Overeenkomst.',
+        repBy: 'Vertegenwoordigd door de Dienstverlener',
+        datum: 'Datum',
+        deKlant: 'De Klant',
+        naam: 'Naam',
+        namens: 'Namens',
+        signaturePlaceholder: 'Teken hier uw handtekening',
+        signatureLabel: 'Handtekening:',
+        signatureHint: 'teken met uw muis of vinger',
+        wissen: 'Wissen',
+        handtekeningAlt: 'Handtekening',
+        accept: 'Ik, <strong>{naam}</strong>, verklaar deze overeenkomst gelezen te hebben en ga akkoord met alle hierin vermelde voorwaarden en tarieven. Ik begrijp dat deze digitale ondertekening rechtsgeldig is conform de EU eIDAS-verordening.',
+        acceptBedrijfOnly: 'Ondergetekende verklaart gemachtigd te zijn om namens <strong>{naam}</strong> deze overeenkomst aan te gaan, deze gelezen te hebben en akkoord te gaan met alle hierin vermelde voorwaarden en tarieven. Deze digitale ondertekening is rechtsgeldig conform de EU eIDAS-verordening.'
+      },
+      sectorLabel: {
+        zonnepanelen: 'Zonnepanelen',
+        warmtepomp: 'Warmtepomp',
+        ventilatie: 'Ventilatie',
+        verwarming: 'Verwarming',
+        ic: 'Industrial Cleaning',
+        klussen: 'Klussen'
+      },
+      freq: {
+        jaarlijks: 'Jaarlijks (1x/jaar)',
+        halfjaarlijks: 'Halfjaarlijks (2x/jaar)',
+        eenmalig: 'Eenmalig',
+        jaarlijksShort: 'Jaarlijks (1\u00d7)',
+        halfjaarlijksShort: 'Halfjaarlijks (2\u00d7)'
+      },
+      duur: {
+        eenmalig: 'Eenmalige interventie',
+        jaarSuffix: ' jaar',
+        jaarKorting: ' jaar (5% korting)'
+      },
+      daktype: {
+        hellend: 'hellend dak',
+        plat: 'plat dak',
+        grond: 'grondopstelling'
+      },
+      formule: {
+        allin: 'all-in',
+        basic: 'basic',
+        allinFull: 'all-in formule',
+        basicFull: 'basic formule'
+      },
+      sectorDesc: {
+        zonnepanelenLine: 'reiniging van {n} zonnepanelen ({daktype})',
+        warmtepompLine: 'onderhoud van {n} binnenunit(s) ({formule})',
+        ventilatieLine: 'onderhoud ventilatiesysteem {systeem} met {n} ventielen',
+        verwarmingLine: 'onderhoud {keteltype}ketel'
+      },
+      defaults: {
+        nvt: 'n.v.t.',
+        emDash: '\u2014'
+      },
+      currency: {
+        eurDefault: '\u20ac 20'
+      }
+    },
     klantType: {
       title: 'U bent\u2026',
       subtitle: 'Selecteer het type klant zodat we de juiste gegevens vragen.',
