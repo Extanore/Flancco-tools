@@ -24608,12 +24608,31 @@ function _ccEnsurePath(root) {
 // naar "delete key" zodat de payload schoon blijft. Live re-render van
 // preview gebeurt via ccMarkDirty() (debounced 200ms via push-timer) +
 // directe ccRenderInlinePreview() voor instant feedback in de mockup.
-function _ccBindInput(el, getter, setter) {
+// Bind input met optionele default-fallback. Als geen override-waarde aanwezig
+// is, wordt het veld voorgevuld met `defaultValue` (de code-default tekst)
+// zodat gebruiker direct kan editen op basis van de standaard. Als gebruiker
+// het veld terugtypt naar de default-tekst (of leeg maakt) → setter('') wist
+// de override en de fallback-logica in ccRenderInlinePreview pakt weer de
+// code-default op. Subtiele property: gelijk-aan-default = "geen override"
+// behoudt de fallback-semantiek (lege key in JSONB).
+function _ccBindInput(el, getter, setter, defaultValue) {
   if (!el) return;
-  try { var initial = getter(); el.value = (initial == null ? '' : String(initial)); } catch (_) {}
+  var defStr = (defaultValue == null) ? '' : String(defaultValue);
+  try {
+    var initial = getter();
+    var hasOverride = (initial != null && initial !== '');
+    el.value = hasOverride ? String(initial) : defStr;
+  } catch (_) {}
   el.addEventListener('input', function() {
     try {
-      setter(el.value);
+      // Wis override als waarde gelijk is aan default of leeg → fallback
+      // naar code-default blijft werken bij volgende render.
+      if (el.value === '' || el.value === defStr) {
+        setter('');
+      } else {
+        setter(el.value);
+      }
+      ccMarkDirty();
       ccRenderInlinePreview();
     } catch (e) { console.error('cc-popover bind setter:', e); }
   });
@@ -24647,28 +24666,43 @@ function _ccBindRadio(el, isSelectedGetter, onSelect) {
   });
 }
 
-// Veld-template: NL/FR-paar (input of textarea) in 2-koloms grid.
-// Geeft HTML-string. IDs worden via _ccBindInput later opgehaald.
-function _ccFieldPairHtml(opts) {
-  // opts: { labelNl, labelFr, idNl, idFr, valNl, valFr,
-  //         placeholderNl, placeholderFr, isTextarea, rows, accent }
+// Veld-template: ÉÉN veld voor de actieve taal (uit ccState.previewLang).
+// User-feedback: NL+FR side-by-side voelt te druk. Toon alleen huidige taal,
+// gebruiker switcht via de preview-language-toggle (NL/FR knop bovenaan
+// preview); bij wisseling re-rendert ccSetPreviewLang() de open popover.
+// Backward-compat: oude callers van _ccFieldPairHtml mogen blijven werken
+// dankzij wrapper hieronder.
+function _ccFieldHtml(opts) {
+  // opts: { lang, label, id, val, placeholder, isTextarea, rows, accent }
+  var lang = (opts.lang === 'fr') ? 'fr' : 'nl';
   var rows = opts.rows || 3;
   var accentStyle = opts.accent ? ' style="border-left:3px solid var(--primary,#098979);padding-left:10px"' : '';
-  function field(lang, lbl, id, val, ph) {
-    var langCls = (lang === 'fr') ? 'cc-lang fr' : 'cc-lang';
-    var phAttr = ph ? ' placeholder="' + esc(ph) + '"' : '';
-    var control = opts.isTextarea
-      ? '<textarea id="' + esc(id) + '" rows="' + rows + '"' + phAttr + '>' + esc(val == null ? '' : val) + '</textarea>'
-      : '<input id="' + esc(id) + '" type="text" value="' + esc(val == null ? '' : val) + '"' + phAttr + '>';
-    return '<div class="cc-field"' + accentStyle + '>' +
-      '<label>' + esc(lbl) + ' <span class="' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
-      control +
-    '</div>';
-  }
-  return '<div class="cc-grid-2">' +
-    field('nl', opts.labelNl, opts.idNl, opts.valNl, opts.placeholderNl) +
-    field('fr', opts.labelFr, opts.idFr, opts.valFr, opts.placeholderFr) +
+  var langCls = (lang === 'fr') ? 'cc-lang fr' : 'cc-lang';
+  var phAttr = opts.placeholder ? ' placeholder="' + esc(opts.placeholder) + '"' : '';
+  var v = opts.val == null ? '' : opts.val;
+  var control = opts.isTextarea
+    ? '<textarea id="' + esc(opts.id) + '" rows="' + rows + '"' + phAttr + '>' + esc(v) + '</textarea>'
+    : '<input id="' + esc(opts.id) + '" type="text" value="' + esc(v) + '"' + phAttr + '>';
+  return '<div class="cc-field"' + accentStyle + '>' +
+    '<label>' + esc(opts.label) + ' <span class="' + langCls + '">' + (lang === 'fr' ? 'FR' : 'NL') + '</span></label>' +
+    control +
   '</div>';
+}
+
+// Backward-compat shim: oude callers krijgen single-language-render
+// gebaseerd op de huidige preview-lang. Ze mogen nog labelNl/labelFr/idNl/
+// idFr/valNl/valFr/placeholderNl/placeholderFr passeren — we kiezen de
+// juiste set automatisch.
+function _ccFieldPairHtml(opts) {
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var label = (lang === 'fr') ? opts.labelFr : opts.labelNl;
+  var id = (lang === 'fr') ? opts.idFr : opts.idNl;
+  var val = (lang === 'fr') ? opts.valFr : opts.valNl;
+  var ph  = (lang === 'fr') ? opts.placeholderFr : opts.placeholderNl;
+  return _ccFieldHtml({
+    lang: lang, label: label, id: id, val: val, placeholder: ph,
+    isTextarea: opts.isTextarea, rows: opts.rows, accent: opts.accent
+  });
 }
 
 // Visibility-rij (label + checkbox-toggle) — gemeenschappelijk voor alle editors.
@@ -24749,14 +24783,19 @@ function _ccRenderUspEditor(target, bodyEl) {
         '<label>Icoon</label>' +
         '<button id="cc-popover-usp-icon-btn" type="button" class="cc-icon-btn">' + iconBtnInner + '</button>' +
       '</div>' +
-      _ccFieldPairHtml({
-        labelNl: 'Tekst', labelFr: 'Texte',
-        idNl: 'cc-popover-usp-text-nl', idFr: 'cc-popover-usp-text-fr',
-        valNl: u.text_nl || '', valFr: u.text_fr || '',
-        placeholderNl: defU.text_nl || 'bv. Tot 30% meer rendement',
-        placeholderFr: defU.text_fr || 'ex. Jusqu’à 30% de rendement',
-        isTextarea: true, rows: 3
-      }) +
+      (function() {
+        var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+        var fieldKey = (lang === 'fr') ? 'text_fr' : 'text_nl';
+        var defText = (lang === 'fr' ? defU.text_fr : defU.text_nl) || '';
+        return _ccFieldHtml({
+          lang: lang,
+          label: (lang === 'fr') ? 'Texte' : 'Tekst',
+          id: 'cc-popover-usp-text',
+          val: u[fieldKey] || '',
+          placeholder: defText,
+          isTextarea: true, rows: 3
+        });
+      })() +
       _ccResetLinkHtml('cc-popover-usp-reset', 'Gebruik code-default voor deze USP') +
       _ccCloseButtonHtml() +
     '</div>';
@@ -24775,17 +24814,20 @@ function _ccRenderUspEditor(target, bodyEl) {
     }
   );
 
-  // Bind: tekst NL / FR (via bestaande mutator → cleanup + dirty)
-  _ccBindInput(
-    document.getElementById('cc-popover-usp-text-nl'),
-    function() { var uu = ccState.config.usps[idx] || {}; return uu.text_nl || ''; },
-    function(v) { ccUpdateUsp(idx, 'text_nl', v); }
-  );
-  _ccBindInput(
-    document.getElementById('cc-popover-usp-text-fr'),
-    function() { var uu = ccState.config.usps[idx] || {}; return uu.text_fr || ''; },
-    function(v) { ccUpdateUsp(idx, 'text_fr', v); }
-  );
+  // Bind: tekst alleen voor actieve taal — defaultValue zorgt voor voorvulling
+  // van code-default, en clear-on-equal verwijdert override als gebruiker
+  // alles weer naar de default heeft getypt.
+  (function() {
+    var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+    var fieldKey = (lang === 'fr') ? 'text_fr' : 'text_nl';
+    var defText = (lang === 'fr' ? defU.text_fr : defU.text_nl) || '';
+    _ccBindInput(
+      document.getElementById('cc-popover-usp-text'),
+      function() { var uu = ccState.config.usps[idx] || {}; return uu[fieldKey] || ''; },
+      function(v) { ccUpdateUsp(idx, fieldKey, v); },
+      defText
+    );
+  })();
 
   // Bind: icon-button → opent bestaande Lucide icon-picker. Na keuze
   // re-renderen we het popover-body zodat de nieuwe icon-preview verschijnt.
@@ -24835,44 +24877,35 @@ function _ccRenderMotivatieEditor(target, bodyEl) {
 
   _ccSetPopoverTitle('Motivatie-block bewerken');
 
+  // Single-language layout — alleen velden voor actieve previewLang.
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var keySuffix = '_' + lang;
+  var labels = (lang === 'fr')
+    ? { title: 'Titre', subtitle: 'Sous-titre', intro: 'Introduction', highlight: 'Highlight (mis en avant)', outro: 'Conclusion' }
+    : { title: 'Titel', subtitle: 'Subtitel', intro: 'Intro', highlight: 'Highlight (visueel benadrukt)', outro: 'Outro' };
+
+  function fieldFor(baseKey, isTextarea, rows, accent) {
+    var k = baseKey + keySuffix;
+    return _ccFieldHtml({
+      lang: lang,
+      label: labels[baseKey],
+      id: 'cc-popover-mot-' + baseKey,
+      val: m[k] || '',
+      placeholder: defaults[k] || '',
+      isTextarea: !!isTextarea,
+      rows: rows || 2,
+      accent: !!accent
+    });
+  }
+
   bodyEl.innerHTML =
     '<div style="display:flex;flex-direction:column;gap:12px">' +
       _ccVisibilityRowHtml('cc-popover-mot-vis', 'Zichtbaar voor klanten', visible) +
-      _ccFieldPairHtml({
-        labelNl: 'Titel', labelFr: 'Titre',
-        idNl: 'cc-popover-mot-title-nl', idFr: 'cc-popover-mot-title-fr',
-        valNl: m.title_nl, valFr: m.title_fr,
-        placeholderNl: defaults.title_nl, placeholderFr: defaults.title_fr,
-        isTextarea: false
-      }) +
-      _ccFieldPairHtml({
-        labelNl: 'Subtitel', labelFr: 'Sous-titre',
-        idNl: 'cc-popover-mot-subtitle-nl', idFr: 'cc-popover-mot-subtitle-fr',
-        valNl: m.subtitle_nl, valFr: m.subtitle_fr,
-        placeholderNl: defaults.subtitle_nl, placeholderFr: defaults.subtitle_fr,
-        isTextarea: false
-      }) +
-      _ccFieldPairHtml({
-        labelNl: 'Intro', labelFr: 'Introduction',
-        idNl: 'cc-popover-mot-intro-nl', idFr: 'cc-popover-mot-intro-fr',
-        valNl: m.intro_nl, valFr: m.intro_fr,
-        placeholderNl: defaults.intro_nl, placeholderFr: defaults.intro_fr,
-        isTextarea: true, rows: 2
-      }) +
-      _ccFieldPairHtml({
-        labelNl: 'Highlight (visueel benadrukt)', labelFr: 'Highlight (mis en avant)',
-        idNl: 'cc-popover-mot-highlight-nl', idFr: 'cc-popover-mot-highlight-fr',
-        valNl: m.highlight_nl, valFr: m.highlight_fr,
-        placeholderNl: defaults.highlight_nl, placeholderFr: defaults.highlight_fr,
-        isTextarea: true, rows: 2, accent: true
-      }) +
-      _ccFieldPairHtml({
-        labelNl: 'Outro', labelFr: 'Conclusion',
-        idNl: 'cc-popover-mot-outro-nl', idFr: 'cc-popover-mot-outro-fr',
-        valNl: m.outro_nl, valFr: m.outro_fr,
-        placeholderNl: defaults.outro_nl, placeholderFr: defaults.outro_fr,
-        isTextarea: true, rows: 2
-      }) +
+      fieldFor('title', false) +
+      fieldFor('subtitle', false) +
+      fieldFor('intro', true, 2) +
+      fieldFor('highlight', true, 2, true) +
+      fieldFor('outro', true, 2) +
       _ccResetLinkHtml('cc-popover-mot-reset', 'Reset alle velden naar code-default') +
       _ccCloseButtonHtml() +
     '</div>';
@@ -24889,21 +24922,15 @@ function _ccRenderMotivatieEditor(target, bodyEl) {
     }
   );
 
-  // Bind alle 10 tekstvelden via bestaande ccUpdateMotivatie mutator
-  var motKeys = ['title_nl','title_fr','subtitle_nl','subtitle_fr','intro_nl','intro_fr','highlight_nl','highlight_fr','outro_nl','outro_fr'];
-  var motIdMap = {
-    title_nl:'cc-popover-mot-title-nl', title_fr:'cc-popover-mot-title-fr',
-    subtitle_nl:'cc-popover-mot-subtitle-nl', subtitle_fr:'cc-popover-mot-subtitle-fr',
-    intro_nl:'cc-popover-mot-intro-nl', intro_fr:'cc-popover-mot-intro-fr',
-    highlight_nl:'cc-popover-mot-highlight-nl', highlight_fr:'cc-popover-mot-highlight-fr',
-    outro_nl:'cc-popover-mot-outro-nl', outro_fr:'cc-popover-mot-outro-fr'
-  };
-  motKeys.forEach(function(k) {
-    var el = document.getElementById(motIdMap[k]);
+  // Bind 5 tekstvelden voor de actieve taal — defaults voorgevuld via _ccBindInput
+  ['title','subtitle','intro','highlight','outro'].forEach(function(baseKey) {
+    var fullKey = baseKey + keySuffix;
+    var el = document.getElementById('cc-popover-mot-' + baseKey);
     _ccBindInput(
       el,
-      function() { var mm = ccState.config.motivatie || {}; return mm[k] || ''; },
-      function(v) { ccUpdateMotivatie(k, v); }
+      function() { var mm = ccState.config.motivatie || {}; return mm[fullKey] || ''; },
+      function(v) { ccUpdateMotivatie(fullKey, v); },
+      defaults[fullKey] || ''
     );
   });
 
@@ -24943,6 +24970,14 @@ function _ccRenderMotivatieEditor(target, bodyEl) {
 // Renders één frequentie/contractduur-optie-card. Gebruikt door beide editors.
 function _ccRenderOptCardHtml(prefix, id, idLabel, isAvail, isDefault, opt, defOpt, kortingVal) {
   // prefix = 'freq' of 'duur'; id is numeric (1,2 of 0,3,5).
+  // Single-language layout — alleen actieve taal (sync met previewLang).
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var labelKey = 'label_' + lang;
+  var subKey = 'sub_' + lang;
+  var langChip = (lang === 'fr') ? '<span class="cc-lang fr">FR</span>' : '<span class="cc-lang">NL</span>';
+  var labelTxt = (lang === 'fr') ? 'Libellé' : 'Label';
+  var subTxt = (lang === 'fr') ? 'Sous-texte' : 'Sub-tekst';
+
   var kortingHtml = '';
   if (prefix === 'duur') {
     var kVal = (typeof kortingVal === 'number') ? String(kortingVal) : '';
@@ -24960,11 +24995,9 @@ function _ccRenderOptCardHtml(prefix, id, idLabel, isAvail, isDefault, opt, defO
         '<label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input id="cc-popover-' + prefix + '-default-' + id + '" type="radio" name="cc-popover-' + prefix + '-default"' + (isDefault ? ' checked' : '') + (isAvail ? '' : ' disabled') + '> Default</label>' +
       '</div>' +
     '</div>' +
-    '<div class="cc-grid-2">' +
-      '<div class="cc-field"><label>Label <span class="cc-lang">NL</span></label><input id="cc-popover-' + prefix + '-label-nl-' + id + '" type="text" value="' + esc(opt.label_nl || '') + '" placeholder="' + esc((defOpt && defOpt.label_nl) || '') + '"></div>' +
-      '<div class="cc-field"><label>Label <span class="cc-lang fr">FR</span></label><input id="cc-popover-' + prefix + '-label-fr-' + id + '" type="text" value="' + esc(opt.label_fr || '') + '" placeholder="' + esc((defOpt && defOpt.label_fr) || '') + '"></div>' +
-      '<div class="cc-field"><label>Sub-tekst <span class="cc-lang">NL</span></label><input id="cc-popover-' + prefix + '-sub-nl-' + id + '" type="text" value="' + esc(opt.sub_nl || '') + '" placeholder="' + esc((defOpt && defOpt.sub_nl) || '') + '"></div>' +
-      '<div class="cc-field"><label>Sub-tekst <span class="cc-lang fr">FR</span></label><input id="cc-popover-' + prefix + '-sub-fr-' + id + '" type="text" value="' + esc(opt.sub_fr || '') + '" placeholder="' + esc((defOpt && defOpt.sub_fr) || '') + '"></div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+      '<div class="cc-field"><label>' + labelTxt + ' ' + langChip + '</label><input id="cc-popover-' + prefix + '-label-' + lang + '-' + id + '" type="text" value="' + esc(opt[labelKey] || '') + '" placeholder="' + esc((defOpt && defOpt[labelKey]) || '') + '"></div>' +
+      '<div class="cc-field"><label>' + subTxt + ' ' + langChip + '</label><input id="cc-popover-' + prefix + '-sub-' + lang + '-' + id + '" type="text" value="' + esc(opt[subKey] || '') + '" placeholder="' + esc((defOpt && defOpt[subKey]) || '') + '"></div>' +
     '</div>' +
     (kortingHtml ? '<div style="margin-top:8px">' + kortingHtml + '</div>' : '') +
   '</div>';
@@ -25035,8 +25068,12 @@ function _ccRenderFrequentieEditor(target, bodyEl) {
         ccUpdateFreqDefault(id);
       }
     );
-    ['label_nl','label_fr','sub_nl','sub_fr'].forEach(function(k) {
+    // Single-language: bind alleen velden voor actieve previewLang
+    var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+    ['label_' + lang, 'sub_' + lang].forEach(function(k) {
       var idAttr = 'cc-popover-freq-' + k.replace('_','-') + '-' + id;
+      var defOpt = ((CC_FALLBACK_DEFAULTS[ccState.sector] || {}).frequentie || {}).options || {};
+      var defVal = (defOpt[String(id)] || {})[k] || '';
       _ccBindInput(
         document.getElementById(idAttr),
         function() {
@@ -25044,7 +25081,8 @@ function _ccRenderFrequentieEditor(target, bodyEl) {
           var oo = ccState.config.frequentie.options[String(id)] || {};
           return oo[k] || '';
         },
-        function(v) { ccUpdateFreqOption(id, k, v); }
+        function(v) { ccUpdateFreqOption(id, k, v); },
+        defVal
       );
     });
   });
@@ -25127,8 +25165,11 @@ function _ccRenderContractduurEditor(target, bodyEl) {
         ccUpdateDuurDefault(id);
       }
     );
-    ['label_nl','label_fr','sub_nl','sub_fr'].forEach(function(k) {
+    var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+    ['label_' + lang, 'sub_' + lang].forEach(function(k) {
       var idAttr = 'cc-popover-duur-' + k.replace('_','-') + '-' + id;
+      var defOpt = ((CC_FALLBACK_DEFAULTS[ccState.sector] || {}).contractduur || {}).options || {};
+      var defVal = (defOpt[String(id)] || {})[k] || '';
       _ccBindInput(
         document.getElementById(idAttr),
         function() {
@@ -25136,7 +25177,8 @@ function _ccRenderContractduurEditor(target, bodyEl) {
           var oo = ccState.config.contractduur.options[String(id)] || {};
           return oo[k] || '';
         },
-        function(v) { ccUpdateDuurOption(id, k, v); }
+        function(v) { ccUpdateDuurOption(id, k, v); },
+        defVal
       );
     });
     _ccBindInput(
@@ -25200,22 +25242,29 @@ function _ccRenderKlantVraagEditor(target, bodyEl) {
     return {};
   }
 
+  // Single-language: alleen actieve previewLang
+  var lang = (ccState.previewLang === 'fr') ? 'fr' : 'nl';
+  var labelKey = 'label_' + lang;
+  var helperKey = 'helper_' + lang;
+
   var optionsHtml = '';
   for (var oi = 0; oi < fixedOptions.length; oi++) {
     var def = fixedOptions[oi];
     var existing = findExistingOpt(def.value);
     var safeVal = def.value;
     var safeId = safeVal.replace(/[^a-zA-Z0-9]/g, '_');
+    var defPh = (lang === 'fr') ? def.placeholderFr : def.placeholderNl;
     optionsHtml += '<div data-cc-pop-opt-value="' + esc(safeVal) + '" style="border:1px solid var(--rule);border-radius:8px;padding:10px 12px;background:#FAFAFB">' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
         '<span style="font-size:11px;font-weight:700;color:var(--grey);background:#EEF2F7;padding:3px 8px;border-radius:999px;letter-spacing:0.04em;text-transform:uppercase">value: ' + esc(safeVal) + '</span>' +
         '<span style="font-size:11px;color:var(--grey)">(read-only)</span>' +
       '</div>' +
-      _ccFieldPairHtml({
-        labelNl: 'Optie-label', labelFr: 'Libellé option',
-        idNl: 'cc-popover-kv-opt-nl-' + safeId, idFr: 'cc-popover-kv-opt-fr-' + safeId,
-        valNl: existing.label_nl || '', valFr: existing.label_fr || '',
-        placeholderNl: def.placeholderNl, placeholderFr: def.placeholderFr,
+      _ccFieldHtml({
+        lang: lang,
+        label: (lang === 'fr') ? 'Libellé option' : 'Optie-label',
+        id: 'cc-popover-kv-opt-' + lang + '-' + safeId,
+        val: existing[labelKey] || '',
+        placeholder: defPh,
         isTextarea: false
       }) +
     '</div>';
@@ -25224,18 +25273,20 @@ function _ccRenderKlantVraagEditor(target, bodyEl) {
   bodyEl.innerHTML =
     '<div style="display:flex;flex-direction:column;gap:12px">' +
       _ccVisibilityRowHtml('cc-popover-kv-vis', 'Zichtbaar voor klanten', visible) +
-      _ccFieldPairHtml({
-        labelNl: 'Vraag-label', labelFr: 'Libellé question',
-        idNl: 'cc-popover-kv-label-nl', idFr: 'cc-popover-kv-label-fr',
-        valNl: q.label_nl || '', valFr: q.label_fr || '',
-        placeholderNl: defQ.label_nl || '', placeholderFr: defQ.label_fr || '',
+      _ccFieldHtml({
+        lang: lang,
+        label: (lang === 'fr') ? 'Libellé question' : 'Vraag-label',
+        id: 'cc-popover-kv-label',
+        val: q[labelKey] || '',
+        placeholder: defQ[labelKey] || '',
         isTextarea: false
       }) +
-      _ccFieldPairHtml({
-        labelNl: 'Helper-tekst', labelFr: 'Texte d’aide',
-        idNl: 'cc-popover-kv-helper-nl', idFr: 'cc-popover-kv-helper-fr',
-        valNl: q.helper_nl || '', valFr: q.helper_fr || '',
-        placeholderNl: defQ.helper_nl || 'Korte uitleg onder de vraag', placeholderFr: defQ.helper_fr || 'Brève explication',
+      _ccFieldHtml({
+        lang: lang,
+        label: (lang === 'fr') ? 'Texte d’aide' : 'Helper-tekst',
+        id: 'cc-popover-kv-helper',
+        val: q[helperKey] || '',
+        placeholder: defQ[helperKey] || ((lang === 'fr') ? 'Brève explication' : 'Korte uitleg onder de vraag'),
         isTextarea: true, rows: 2
       }) +
       '<div>' +
@@ -25260,37 +25311,26 @@ function _ccRenderKlantVraagEditor(target, bodyEl) {
   );
 
   _ccBindInput(
-    document.getElementById('cc-popover-kv-label-nl'),
-    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.label_nl || ''; },
-    function(v) { ccUpdateKv(key, 'label_nl', v); }
+    document.getElementById('cc-popover-kv-label'),
+    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq[labelKey] || ''; },
+    function(v) { ccUpdateKv(key, labelKey, v); },
+    defQ[labelKey] || ''
   );
   _ccBindInput(
-    document.getElementById('cc-popover-kv-label-fr'),
-    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.label_fr || ''; },
-    function(v) { ccUpdateKv(key, 'label_fr', v); }
-  );
-  _ccBindInput(
-    document.getElementById('cc-popover-kv-helper-nl'),
-    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.helper_nl || ''; },
-    function(v) { ccUpdateKv(key, 'helper_nl', v); }
-  );
-  _ccBindInput(
-    document.getElementById('cc-popover-kv-helper-fr'),
-    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq.helper_fr || ''; },
-    function(v) { ccUpdateKv(key, 'helper_fr', v); }
+    document.getElementById('cc-popover-kv-helper'),
+    function() { var qq = (ccState.config.klant_vragen || {})[key] || {}; return qq[helperKey] || ''; },
+    function(v) { ccUpdateKv(key, helperKey, v); },
+    defQ[helperKey] || ''
   );
 
   fixedOptions.forEach(function(def) {
     var safeId = def.value.replace(/[^a-zA-Z0-9]/g, '_');
+    var defPh = (lang === 'fr') ? def.placeholderFr : def.placeholderNl;
     _ccBindInput(
-      document.getElementById('cc-popover-kv-opt-nl-' + safeId),
-      function() { return findExistingOpt(def.value).label_nl || ''; },
-      function(v) { ccUpdateKvOption(key, def.value, 'label_nl', v); }
-    );
-    _ccBindInput(
-      document.getElementById('cc-popover-kv-opt-fr-' + safeId),
-      function() { return findExistingOpt(def.value).label_fr || ''; },
-      function(v) { ccUpdateKvOption(key, def.value, 'label_fr', v); }
+      document.getElementById('cc-popover-kv-opt-' + lang + '-' + safeId),
+      function() { return findExistingOpt(def.value)[labelKey] || ''; },
+      function(v) { ccUpdateKvOption(key, def.value, labelKey, v); },
+      defPh || ''
     );
   });
 
@@ -25340,6 +25380,14 @@ function ccSetPreviewLang(lang) {
     b.classList.toggle('active', b.getAttribute('data-cc-lang') === lang);
   });
   ccPushLangToPreview();
+  // Re-render open popover als die actief is — popover-velden hangen af
+  // van previewLang (single-language layout).
+  if (window.ccPopoverState && ccPopoverState.activeTarget) {
+    var body = document.getElementById('cc-popover-body');
+    if (body && typeof ccRenderPopoverContent === 'function') {
+      try { ccRenderPopoverContent(ccPopoverState.activeTarget, body); } catch (_) {}
+    }
+  }
 }
 
 function ccOpenPreviewNewTab() {
