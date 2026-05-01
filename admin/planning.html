@@ -4019,8 +4019,9 @@ async function checkAuth() {
   // Method 3: check localStorage directly and setSession
   if (!session) {
     try {
-      var key = 'sb-dhuqpxwwavqyxaelxuzl-auth-token';
-      var stored = localStorage.getItem(key);
+      // Pattern-match Supabase auth-token-key (project-ref-agnostisch).
+      var key = Object.keys(localStorage).find(function(k){return /^sb-.+-auth-token$/.test(k);});
+      var stored = key ? localStorage.getItem(key) : null;
       if (stored) {
         var parsed = JSON.parse(stored);
         if (parsed.access_token && parsed.refresh_token) {

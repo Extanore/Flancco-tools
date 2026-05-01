@@ -52,7 +52,9 @@
       if (!b || !b.kleur_donker) return;
       // Stale-cache guard: cache van een andere user negeren.
       try {
-        var authRaw = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+        // Pattern-match Supabase auth-token-key (project-ref-agnostisch).
+        var authKey = Object.keys(localStorage).find(function(k){return /^sb-.+-auth-token$/.test(k);});
+        var authRaw = authKey ? localStorage.getItem(authKey) : null;
         if (authRaw) {
           var auth = JSON.parse(authRaw);
           var sessionUserId = auth && auth.user && auth.user.id;

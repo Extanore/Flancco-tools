@@ -77,7 +77,10 @@
       // (Geen session in localStorage = geen vergelijking mogelijk = cache toepassen,
       // want first-time load of hard-reload zonder tab-state.)
       try {
-        var authRaw = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+        // Pattern-match Supabase auth-token-key (project-ref-agnostisch).
+        // Voorkomt dat we breken bij Supabase-project-migratie.
+        var authKey = Object.keys(localStorage).find(function(k){return /^sb-.+-auth-token$/.test(k);});
+        var authRaw = authKey ? localStorage.getItem(authKey) : null;
         if (authRaw) {
           var auth = JSON.parse(authRaw);
           var sessionUserId = auth && auth.user && auth.user.id;
@@ -126,7 +129,9 @@
       var r = JSON.parse(raw);
       if (!r || !r.role) return;
       try {
-        var authRaw = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+        // Pattern-match Supabase auth-token-key (project-ref-agnostisch).
+        var authKey = Object.keys(localStorage).find(function(k){return /^sb-.+-auth-token$/.test(k);});
+        var authRaw = authKey ? localStorage.getItem(authKey) : null;
         if (authRaw) {
           var auth = JSON.parse(authRaw);
           var sessionUserId = auth && auth.user && auth.user.id;

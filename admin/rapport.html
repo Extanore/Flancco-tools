@@ -993,7 +993,9 @@ async function init() {
   if (!session) { try { var ref = await sb.auth.refreshSession(); session = ref.data.session; } catch(e) {} }
   if (!session) {
     try {
-      var stored = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+      // Pattern-match Supabase auth-token-key (project-ref-agnostisch).
+      var authKey = Object.keys(localStorage).find(function(k){return /^sb-.+-auth-token$/.test(k);});
+      var stored = authKey ? localStorage.getItem(authKey) : null;
       if (stored) { var p = JSON.parse(stored); if (p.access_token && p.refresh_token) { var set = await sb.auth.setSession({ access_token: p.access_token, refresh_token: p.refresh_token }); session = set.data.session; } }
     } catch(e) {}
   }
