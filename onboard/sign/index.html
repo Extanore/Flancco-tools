@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#1A1A2E">
+<title>Partner-overeenkomst ondertekenen — Flancco</title>
+<meta name="description" content="Bevestig de vertrouwelijkheidsverklaring en onderteken je partnerovereenkomst met Flancco.">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/svg+xml" href="../../favicon-flancco.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.js"></script>
+<style>
+  :root {
+    --navy: #1A1A2E;
+    --navy-soft: #2A2A40;
+    --ink: #14141F;
+    --muted: #6B7280;
+    --muted-soft: #9CA3AF;
+    --line: #E5E7EB;
+    --line-soft: #F1EFEC;
+    --bg: #FAF7F4;
+    --bg-card: #FFFFFF;
+    --accent: #E76F51;
+    --accent-hover: #D85B3D;
+    --accent-tint: #FCE4DA;
+    --ok: #2A9D8F;
+    --warn: #B45309;
+    --danger: #B91C1C;
+    --radius-sm: 6px;
+    --radius: 12px;
+    --radius-lg: 18px;
+    --shadow: 0 1px 2px rgba(20,20,31,.04), 0 6px 22px rgba(20,20,31,.06);
+    --shadow-lg: 0 12px 40px rgba(20,20,31,.12);
+    --maxw: 1080px;
+    --pad-x: clamp(20px, 5vw, 56px);
+    --t-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    font-family: var(--t-sans);
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  ::selection { background: var(--accent); color: #fff; }
+  a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+  .num, .stat-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+  /* ─── Topbar ─────────────────────────────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(250,247,244,.94);
+    backdrop-filter: saturate(160%) blur(8px);
+    -webkit-backdrop-filter: saturate(160%) blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto;
+    padding: 14px var(--pad-x);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .brand-logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+  .brand-logo svg { width: 28px; height: 28px; display: block; }
+  .brand-mark { font-weight: 700; font-size: 13px; letter-spacing: .12em; color: var(--navy); }
+  .top-meta {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: .04em;
+    font-weight: 500;
+  }
+
+  /* ─── Page-shell ─────────────────────────────────────────────── */
+  .page-shell {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: clamp(40px, 6vw, 72px) var(--pad-x) 64px;
+  }
+
+  .pane { display: none; animation: fadeUp 240ms ease-out; }
+  .pane.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Loading state ──────────────────────────────────────────── */
+  .loader-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 50vh; gap: 16px; text-align: center;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 700ms linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-label { font-size: 14px; color: var(--muted); letter-spacing: .04em; }
+
+  /* ─── Headers, eyebrows ──────────────────────────────────────── */
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: inline-block;
+  }
+  h1.page-title {
+    font-size: clamp(28px, 4.4vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -.022em;
+    font-weight: 700;
+    margin: 0 0 14px;
+    max-width: 22ch;
+  }
+  .sub {
+    font-size: clamp(15px, 1.4vw, 17px);
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 0 0 36px;
+    max-width: 60ch;
+  }
+  .sub strong { color: var(--ink); font-weight: 600; }
+
+  /* ─── Cards / sections ───────────────────────────────────────── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: clamp(20px, 3vw, 32px);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 13px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--navy);
+    font-weight: 700; margin: 0 0 14px;
+  }
+  .card-meta {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-top: 4px;
+  }
+  .meta-item .meta-label { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .meta-item .meta-value { font-size: 15px; color: var(--ink); font-weight: 600; margin-top: 2px; }
+
+  /* ─── Pricing-tabel ──────────────────────────────────────────── */
+  .pricing-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pricing-table th, .pricing-table td {
+    text-align: left;
+    padding: 14px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14.5px;
+  }
+  .pricing-table th {
+    background: var(--line-soft);
+    font-weight: 600;
+    font-size: 11.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .pricing-table tr:last-child td { border-bottom: none; }
+  .pricing-table td.num { text-align: right; font-feature-settings: "tnum" 1; }
+  .pricing-table .row-total td {
+    background: var(--accent-tint);
+    color: var(--navy);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .pricing-help {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  /* ─── Contract-tekst ─────────────────────────────────────────── */
+  .contract-body {
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  .contract-body h3 {
+    font-size: 14px; letter-spacing: .04em;
+    color: var(--navy); margin: 22px 0 8px; font-weight: 700;
+  }
+  .contract-body p { margin: 0 0 12px; }
+  .contract-body p strong { color: var(--ink); }
+
+  /* ─── Signature canvas ───────────────────────────────────────── */
+  .sig-card { background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(20px, 3vw, 28px); box-shadow: var(--shadow); }
+  .sig-label { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--navy); font-weight: 700; margin-bottom: 14px; }
+  .sig-wrap { position: relative; border: 1.5px dashed var(--line); border-radius: 10px; background: #FFFFFF; overflow: hidden; }
+  .sig-wrap.has-sig { border-style: solid; border-color: var(--accent); }
+  .sig-canvas { display: block; width: 100%; height: 200px; cursor: crosshair; touch-action: none; }
+  .sig-placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted-soft); font-size: 14px; font-weight: 500;
+    pointer-events: none; transition: opacity 200ms;
+  }
+  .sig-wrap.has-sig .sig-placeholder { opacity: 0; }
+  .sig-clear {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--t-sans);
+    transition: border-color 160ms, color 160ms;
+  }
+  .sig-clear:hover { border-color: var(--ink); color: var(--ink); }
+  .sig-help { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+  .sig-error { margin-top: 10px; font-size: 13px; color: var(--danger); font-weight: 500; display: none; }
+  .sig-error.show { display: block; }
+
+  /* ─── CTA buttons ────────────────────────────────────────────── */
+  .actions { display: flex; gap: 12px; margin-top: 28px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    border: none;
+    background: var(--navy);
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--t-sans);
+    letter-spacing: .01em;
+    display: inline-flex; align-items: center; gap: 10px;
+    transition: background 180ms, transform 120ms;
+  }
+  .btn:hover:not(:disabled) { background: var(--navy-soft); }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--muted);
+    padding: 14px 18px;
+  }
+  .btn.ghost:hover:not(:disabled) { color: var(--ink); background: var(--line-soft); }
+  .btn svg { width: 18px; height: 18px; }
+
+  .note-row {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex; align-items: flex-start; gap: 10px;
+    line-height: 1.55;
+  }
+  .note-row svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: var(--muted); }
+
+  /* ─── NDA modal ──────────────────────────────────────────────── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(20,20,31,.78);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    display: none;
+    align-items: flex-start; justify-content: center;
+    z-index: 100;
+    overflow-y: auto;
+    padding: 32px 16px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    max-width: 720px; width: 100%;
+    box-shadow: var(--shadow-lg);
+    margin: auto;
+    display: flex; flex-direction: column;
+    max-height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+  .modal-head {
+    padding: 28px clamp(24px, 4vw, 40px) 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-eyebrow {
+    font-size: 11.5px; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent);
+    font-weight: 700; margin: 0 0 8px;
+  }
+  .modal-title {
+    font-size: clamp(22px, 3vw, 28px);
+    line-height: 1.15; margin: 0;
+    letter-spacing: -.02em; font-weight: 700;
+    color: var(--ink);
+  }
+  .modal-body {
+    padding: 24px clamp(24px, 4vw, 40px);
+    overflow-y: auto;
+    flex: 1 1 auto;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  .modal-body p { margin: 0 0 14px; }
+  .modal-body strong { color: var(--navy); font-weight: 600; }
+  .modal-body ol { padding-left: 20px; margin: 0 0 14px; }
+  .modal-body li { margin-bottom: 12px; }
+  .modal-foot {
+    padding: 18px clamp(24px, 4vw, 40px) 24px;
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .check-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    cursor: pointer;
+    padding: 8px 0;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .check-row input[type="checkbox"] {
+    width: 20px; height: 20px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .check-row strong { font-weight: 600; }
+  .modal-foot .btn { align-self: flex-end; }
+
+  /* ─── Success pane ───────────────────────────────────────────── */
+  .success-wrap {
+    text-align: center;
+    padding: clamp(40px, 8vw, 80px) 0;
+  }
+  .success-icon {
+    width: 72px; height: 72px;
+    margin: 0 auto 24px;
+    background: var(--accent-tint);
+    color: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .success-icon svg { width: 36px; height: 36px; }
+  .success-title {
+    font-size: clamp(28px, 4vw, 38px);
+    margin: 0 0 14px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+  .success-sub {
+    font-size: 16px; color: var(--muted);
+    max-width: 48ch; margin: 0 auto 30px;
+  }
+  .success-actions {
+    display: flex; flex-direction: column; gap: 12px;
+    align-items: center;
+  }
+  .redirect-note {
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: .03em;
+  }
+  .redirect-count { color: var(--accent); font-weight: 600; }
+
+  /* ─── Error pane ─────────────────────────────────────────────── */
+  .err-wrap {
+    text-align: center;
+    padding: clamp(40px, 8vw, 80px) 0;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+  .err-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 22px;
+    background: #FEF2F2;
+    color: var(--danger);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .err-icon svg { width: 32px; height: 32px; }
+  .err-title { font-size: clamp(24px, 3.4vw, 32px); margin: 0 0 12px; font-weight: 700; letter-spacing: -.018em; }
+  .err-sub { font-size: 15px; color: var(--muted); margin: 0 0 22px; line-height: 1.6; }
+  .err-contact {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    text-align: left;
+    margin: 0 auto 18px;
+    max-width: 420px;
+  }
+  .err-contact-label { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  .err-contact-row { font-size: 14.5px; color: var(--ink); margin-bottom: 4px; }
+  .err-contact-row strong { font-weight: 600; }
+
+  /* ─── Toast ──────────────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--ink);
+    color: #fff;
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-size: 14px; font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transition: opacity 200ms, transform 200ms;
+    z-index: 200;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { background: var(--danger); }
+
+  /* ─── Mobile tweaks ──────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .topbar-inner { padding: 12px 18px; }
+    .top-meta { display: none; }
+    .actions { flex-direction: column; align-items: stretch; }
+    .actions .btn { width: 100%; justify-content: center; }
+    .modal { max-height: calc(100vh - 32px); }
+    .modal-foot .btn { align-self: stretch; width: 100%; justify-content: center; }
+  }
+
+  /* Visual focus styles for keyboard users */
+  button:focus-visible, a:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<a class="brand-logo" style="position:absolute;left:-9999px" href="#main">Naar inhoud</a>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand-logo" href="https://flancco-platform.be" aria-label="Flancco">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="#1A1A2E"/>
+        <text x="16" y="22" font-family="Inter, sans-serif" font-weight="700" font-size="14" text-anchor="middle" fill="#fff">F</text>
+        <circle cx="22" cy="11" r="3" fill="#E76F51"/>
+      </svg>
+      <span class="brand-mark">FLANCCO</span>
+    </a>
+    <span class="top-meta">Beveiligde partner-overeenkomst</span>
+  </div>
+</header>
+
+<main id="main" class="page-shell">
+
+  <!-- Loading pane -->
+  <section id="pane-loading" class="pane active" aria-live="polite">
+    <div class="loader-wrap">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loader-label">Link verifiëren...</div>
+    </div>
+  </section>
+
+  <!-- Error pane -->
+  <section id="pane-error" class="pane" aria-live="polite">
+    <div class="err-wrap">
+      <div class="err-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <h1 id="err-title" class="err-title">Ongeldige link</h1>
+      <p id="err-sub" class="err-sub">Deze link kon niet worden geverifieerd.</p>
+      <div class="err-contact">
+        <div class="err-contact-label">Heeft u hulp nodig?</div>
+        <div class="err-contact-row"><strong>Gillian Geernaert</strong></div>
+        <div class="err-contact-row">Business Development Flancco</div>
+        <div class="err-contact-row"><a href="mailto:gillian.geernaert@flancco.be">gillian.geernaert@flancco.be</a></div>
+        <div class="err-contact-row"><a href="tel:+32472808182">+32 472 80 81 82</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contract pane (shown after NDA) -->
+  <section id="pane-contract" class="pane" aria-labelledby="contract-title">
+    <span class="eyebrow">Stap 2 van 2 — Onderteken uw overeenkomst</span>
+    <h1 id="contract-title" class="page-title">Welkom <span id="ct-firstname"></span>.</h1>
+    <p class="sub">Hieronder vindt u de afgesproken commerciële voorwaarden en de partnerovereenkomst. Lees aandachtig na, zet uw handtekening en uw onboarding wordt afgewerkt.</p>
+
+    <!-- Partner-context -->
+    <div class="card">
+      <h2 class="card-title">Uw bedrijfsgegevens</h2>
+      <div class="card-meta">
+        <div class="meta-item">
+          <div class="meta-label">Bedrijf</div>
+          <div class="meta-value" id="meta-bedrijf">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Contactpersoon</div>
+          <div class="meta-value" id="meta-contact">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">E-mail</div>
+          <div class="meta-value" id="meta-email">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Sectoren</div>
+          <div class="meta-value" id="meta-sectoren">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="card">
+      <h2 class="card-title">Pricing — uw marge: <span id="pr-marge"></span>%</h2>
+      <table class="pricing-table" aria-label="Voorbeeldprojecten met uw marge">
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th class="num" style="text-align:right">Flancco-forfait</th>
+            <th class="num" style="text-align:right">Uw marge</th>
+            <th class="num" style="text-align:right">Planning fee</th>
+            <th class="num" style="text-align:right">Eindklant (incl. btw)</th>
+          </tr>
+        </thead>
+        <tbody id="pr-tbody"></tbody>
+      </table>
+      <p class="pricing-help">Formule: <strong>(Flancco-forfait + uw marge + planning fee) × 1,21 btw</strong>. Marge wordt op de Flancco-forfait toegepast. Planning fee dekt agendabeheer, klant-communicatie en rapportage.</p>
+    </div>
+
+    <!-- Contract text -->
+    <div class="card">
+      <h2 class="card-title">Partner-overeenkomst</h2>
+      <div id="contract-body" class="contract-body"></div>
+    </div>
+
+    <!-- Signature -->
+    <div class="sig-card">
+      <div class="sig-label">Uw handtekening</div>
+      <div id="sig-wrap" class="sig-wrap">
+        <canvas id="sig-canvas" class="sig-canvas" width="800" height="200" aria-label="Handtekening-vak"></canvas>
+        <div class="sig-placeholder">Teken met uw muis of vinger</div>
+        <button type="button" class="sig-clear" id="sig-clear" aria-label="Handtekening wissen">Wissen</button>
+      </div>
+      <div class="sig-help">Door te ondertekenen aanvaardt u de bovenstaande partner-overeenkomst.</div>
+      <div class="sig-error" id="sig-error">Plaats eerst uw handtekening in het vak hierboven.</div>
+
+      <div class="actions">
+        <button type="button" class="btn primary" id="btn-sign" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          <span>Onderteken &amp; bevestig</span>
+        </button>
+        <button type="button" class="btn ghost" id="btn-clear-2">Wissen</button>
+      </div>
+      <div class="note-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Beveiligde signing-flow. IP-adres, tijdstip en browser worden geregistreerd ter wettelijke verificatie.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Success pane -->
+  <section id="pane-success" class="pane" aria-live="polite">
+    <div class="success-wrap">
+      <div class="success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h1 class="success-title">Bedankt — uw partnerschap is bevestigd</h1>
+      <p class="success-sub">U ontvangt binnen enkele minuten een bevestigingsmail met een ondertekende kopie. Onze planning neemt binnenkort contact op om de eerste opdrachten te bespreken.</p>
+      <div class="success-actions">
+        <button type="button" class="btn" id="btn-pdf-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Download getekend contract (PDF)</span>
+        </button>
+      </div>
+      <div class="redirect-note">U wordt doorgestuurd naar het partner-platform binnen <span class="redirect-count" id="redirect-count">5</span> seconden.</div>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- NDA modal -->
+<div id="nda-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nda-title">
+  <div class="modal" tabindex="-1">
+    <div class="modal-head">
+      <p class="modal-eyebrow">Stap 1 van 2 — Vertrouwelijkheidsverklaring</p>
+      <h2 id="nda-title" class="modal-title">Vertrouwelijkheidsverklaring — Flancco Partner Pricing</h2>
+    </div>
+    <div class="modal-body">
+      <p>Door op deze pagina door te klikken bevestig ik, in mijn hoedanigheid van vertegenwoordiger van <strong id="nda-bedrijf">[BEDRIJFSNAAM]</strong>, het volgende:</p>
+      <ol>
+        <li><strong>Vertrouwelijke informatie</strong> — Ik begrijp dat de prijszetting, marges, planning fees, voorwaarden en bijhorende bedrijfsinformatie van Flancco BV die op de volgende pagina's worden getoond ("Vertrouwelijke Informatie") commercieel gevoelig zijn en als bedrijfsgeheim worden behandeld in de zin van Boek XI, Titel 8/1 van het Wetboek van Economisch Recht en de Belgische wet van 30 juli 2018 betreffende de bescherming van bedrijfsgeheimen.</li>
+        <li><strong>Geheimhouding</strong> — Ik verbind mij ertoe deze Vertrouwelijke Informatie strikt vertrouwelijk te behandelen. Ik zal deze informatie niet bekendmaken, doorgeven, kopiëren, publiceren of op enige andere wijze ter beschikking stellen aan derden, met uitzondering van mijn eigen werknemers of professionele adviseurs die deze informatie strikt nodig hebben voor de evaluatie van een mogelijke samenwerking met Flancco BV en die zelf gebonden zijn aan een vergelijkbare geheimhoudingsplicht.</li>
+        <li><strong>Beperkt gebruik</strong> — Ik zal de Vertrouwelijke Informatie uitsluitend gebruiken voor het doel waarvoor zij is verstrekt, met name de evaluatie van een mogelijk partnerschap met Flancco BV. Elk ander gebruik, inclusief commercieel gebruik, vergelijkende analyses voor concurrerende doeleinden of doorgave aan concurrenten van Flancco BV, is uitdrukkelijk verboden.</li>
+        <li><strong>Geldigheidsduur</strong> — Deze geheimhoudingsverplichting geldt vanaf het ogenblik van bevestiging tot vijf (5) jaar na het einde van enig commercieel contact tussen mijzelf, mijn bedrijf en Flancco BV, ook indien geen samenwerking tot stand komt.</li>
+        <li><strong>Schadevergoeding</strong> — Bij schending van deze verplichting kan Flancco BV de geleden schade verhalen, met inbegrip van gederfde winst en imagoschade. Daarnaast behoudt Flancco BV alle wettelijke rechten zoals voorzien in het Wetboek van Economisch Recht.</li>
+        <li><strong>Toepasselijk recht en jurisdictie</strong> — Op deze verklaring is Belgisch recht van toepassing. Geschillen vallen onder de exclusieve bevoegdheid van de ondernemingsrechtbanken te Gent.</li>
+      </ol>
+      <p>Door hieronder te klikken op <strong>"Ik ga akkoord en bevestig"</strong> verklaar ik (a) gemachtigd te zijn deze verklaring af te leggen namens mijn bedrijf, (b) deze verklaring volledig gelezen en begrepen te hebben, en (c) gebonden te zijn aan de hierboven uiteengezette voorwaarden.</p>
+    </div>
+    <div class="modal-foot">
+      <label class="check-row">
+        <input type="checkbox" id="nda-check">
+        <span>Ik ga akkoord en bevestig — ik bevestig dat ik gemachtigd ben deze verklaring af te leggen namens mijn bedrijf en dat ik gebonden ben aan de bovenstaande voorwaarden.</span>
+      </label>
+      <button type="button" class="btn primary" id="btn-nda-accept" disabled>
+        <span>Bevestigen</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ─── Config ─────────────────────────────────────────────────
+  var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
+  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MDMyMDAsImV4cCI6MjA2MDQ3OTIwMH0.7iRHwNFfdNAgPcFxBZ4VtHdNdFfHgaVRQ7fUxWAvjuI';
+  var NDA_VERSION = 'v1.0-nl';
+  var REDIRECT_URL = 'https://app.flancco-platform.be';
+  var REDIRECT_DELAY_SEC = 5;
+  var PLANNING_FEE_DEFAULT = 25;
+
+  // Hardcoded pricing examples (per spec)
+  var PRICING_EXAMPLES = [
+    { label: 'Klein project',  desc: '2 panelen / 1 toestel',     forfait: 120 },
+    { label: 'Medium project', desc: '8 panelen / 4 toestellen',  forfait: 380 },
+    { label: 'Groot project',  desc: '24 panelen / 12 toestellen', forfait: 960 }
+  ];
+
+  // ─── State ──────────────────────────────────────────────────
+  var state = {
+    token: null,
+    appData: null,
+    ip: null,
+    ndaAcked: false,
+    signed: false,
+    signingTs: null,
+    pageLoadTs: Date.now()
+  };
+
+  // ─── Helpers ────────────────────────────────────────────────
+  function $(sel) { return document.querySelector(sel); }
+  function $$(sel) { return document.querySelectorAll(sel); }
+
+  function showPane(id) {
+    var panes = ['pane-loading','pane-error','pane-contract','pane-success'];
+    panes.forEach(function(p){
+      var el = document.getElementById(p);
+      if (el) el.classList.toggle('active', p === id);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function flanccoTrack(name, props) {
+    try {
+      if (typeof window.plausible === 'function') {
+        window.plausible(name, { props: props || {} });
+      } else if (window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.')) {
+        console.log('[plausible-stub]', name, props);
+      }
+    } catch (_) {}
+  }
+
+  function showToast(msg, isErr) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.toggle('err', !!isErr);
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function(){ t.classList.remove('show'); }, 4500);
+  }
+
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function formatEUR(n) {
+    if (typeof n !== 'number' || !isFinite(n)) return '—';
+    return new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
+  }
+
+  function formatDate(d) {
+    if (!d) return '—';
+    var dt = d instanceof Date ? d : new Date(d);
+    return dt.toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  function tokenShort(t) { return (t || '').slice(0, 8); }
+
+  // ─── Supabase RPC ───────────────────────────────────────────
+  async function rpc(fn, args) {
+    var resp = await fetch(SUPA_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(args || {})
+    });
+    var txt = await resp.text();
+    var json = null;
+    try { json = txt ? JSON.parse(txt) : null; } catch(_) {}
+    if (!resp.ok) {
+      var msg = (json && (json.message || json.hint || json.code)) || ('HTTP ' + resp.status);
+      var err = new Error(msg);
+      err.status = resp.status;
+      err.body = json;
+      err.code = (json && (json.message || json.code)) || null;
+      // Postgres RAISE EXCEPTION text typically lives in json.message
+      throw err;
+    }
+    return json;
+  }
+
+  // ─── IP fetch (3s timeout) ──────────────────────────────────
+  async function fetchIp() {
+    if (state.ip) return state.ip;
+    try {
+      var ctrl = new AbortController();
+      var timer = setTimeout(function(){ ctrl.abort(); }, 3000);
+      try {
+        var res = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal, cache: 'no-store' });
+        if (res && res.ok) {
+          var j = await res.json();
+          if (j && typeof j.ip === 'string' && j.ip.length > 0 && j.ip.length <= 45) {
+            state.ip = j.ip;
+          }
+        }
+      } finally { clearTimeout(timer); }
+    } catch (_) { /* ignore */ }
+    return state.ip;
+  }
+
+  // ─── Error pane mapping ─────────────────────────────────────
+  function showErrorPane(code, fallbackMessage) {
+    var titleEl = document.getElementById('err-title');
+    var subEl = document.getElementById('err-sub');
+    var map = {
+      'no_token':              ['Geen geldige link', 'Het ondertekenings-token ontbreekt in de URL. Open de link rechtstreeks vanuit de e-mail die u van ons ontvangen heeft.'],
+      'invalid_token':         ['Ongeldige link', 'Deze link is niet (meer) geldig. Mogelijk werd hij beschadigd bij het kopiëren — probeer opnieuw via uw oorspronkelijke e-mail.'],
+      'token_not_found':       ['Ongeldige link', 'Deze link werd niet teruggevonden in ons systeem. Mogelijk is hij verlopen of ingetrokken.'],
+      'token_expired':         ['Deze link is verlopen', 'De geldigheidsduur van deze ondertekenings-link is verstreken. Vraag een nieuwe link aan via Gillian — wij sturen u meteen een verse link.'],
+      'token_max_uses_reached':['Link reeds te vaak geopend', 'Deze ondertekenings-link is al meermaals geopend en kan om veiligheidsredenen niet meer gebruikt worden. Contacteer Gillian voor een nieuwe link.'],
+      'already_signed':        ['Reeds ondertekend', 'Dit contract werd reeds ondertekend. U ontving een bevestigingsmail met de getekende kopie. Heeft u die niet ontvangen? Contacteer Gillian.'],
+      'token_invalid_or_expired':['Link niet meer geldig', 'Deze link is niet meer bruikbaar voor deze actie. Contacteer Gillian voor een nieuwe link.'],
+      'token_invalid_or_already_signed_or_no_nda':['Ondertekenen niet mogelijk', 'Deze handtekening kon niet geregistreerd worden. Mogelijk is het contract al ondertekend, of werd de vertrouwelijkheidsverklaring niet bevestigd. Contacteer Gillian.'],
+      'invalid_signature':     ['Handtekening ongeldig', 'Uw handtekening kon niet verwerkt worden. Probeer opnieuw of contacteer Gillian.']
+    };
+    var entry = map[code] || ['Ongeldige link', fallbackMessage || 'Deze link kon niet worden geverifieerd. Contacteer Gillian voor een nieuwe link.'];
+    titleEl.textContent = entry[0];
+    subEl.textContent = entry[1];
+    showPane('pane-error');
+    flanccoTrack('Sign Error', { error_code: code || 'unknown', token_short: tokenShort(state.token) });
+  }
+
+  function extractErrorCode(err) {
+    if (!err) return 'unknown';
+    var msg = String(err.code || err.message || '').toLowerCase();
+    var known = ['invalid_token','token_not_found','token_expired','token_max_uses_reached','already_signed','token_invalid_or_expired','token_invalid_or_already_signed_or_no_nda','invalid_signature'];
+    for (var i=0; i<known.length; i++) {
+      if (msg.indexOf(known[i]) !== -1) return known[i];
+    }
+    return 'unknown';
+  }
+
+  // ─── Render helpers ─────────────────────────────────────────
+  function fullName(d) {
+    return [d.contactpersoon_voornaam, d.contactpersoon_naam].filter(Boolean).join(' ').trim() || '—';
+  }
+
+  function sectorenLabel(d) {
+    var s = d.sectoren;
+    if (Array.isArray(s) && s.length) {
+      var pretty = s.map(function(x){
+        var v = String(x || '').replace(/_/g, ' ');
+        return v.charAt(0).toUpperCase() + v.slice(1);
+      });
+      return pretty.join(', ');
+    }
+    return '—';
+  }
+
+  function renderNDA(d) {
+    document.getElementById('nda-bedrijf').textContent = d.bedrijfsnaam || '[uw bedrijf]';
+  }
+
+  function renderContractMeta(d) {
+    document.getElementById('ct-firstname').textContent = (d.contactpersoon_voornaam || fullName(d)).split(' ')[0];
+    document.getElementById('meta-bedrijf').textContent = d.bedrijfsnaam || '—';
+    document.getElementById('meta-contact').textContent = fullName(d);
+    document.getElementById('meta-email').textContent = d.contactpersoon_email || '—';
+    document.getElementById('meta-sectoren').textContent = sectorenLabel(d);
+    document.getElementById('pr-marge').textContent = (typeof d.marge_pct === 'number') ? d.marge_pct : '—';
+  }
+
+  function renderPricing(d) {
+    var marge = typeof d.marge_pct === 'number' ? d.marge_pct : 0;
+    var planFee = PLANNING_FEE_DEFAULT;
+    var rows = '';
+    PRICING_EXAMPLES.forEach(function(ex){
+      var margeAmt = ex.forfait * (marge / 100);
+      var subtotal = ex.forfait + margeAmt + planFee;
+      var total = subtotal * 1.21;
+      rows += '<tr>';
+      rows +=   '<td><strong>' + escapeHtml(ex.label) + '</strong><br><span style="font-size:12.5px;color:var(--muted)">' + escapeHtml(ex.desc) + '</span></td>';
+      rows +=   '<td class="num">' + formatEUR(ex.forfait) + '</td>';
+      rows +=   '<td class="num">' + formatEUR(margeAmt) + '</td>';
+      rows +=   '<td class="num">' + formatEUR(planFee) + '</td>';
+      rows +=   '<td class="num"><strong>' + formatEUR(total) + '</strong></td>';
+      rows += '</tr>';
+    });
+    document.getElementById('pr-tbody').innerHTML = rows;
+  }
+
+  function renderContractBody(d) {
+    var bedrijf = escapeHtml(d.bedrijfsnaam || '—');
+    var voornaam = escapeHtml(d.contactpersoon_voornaam || '');
+    var naam = escapeHtml(d.contactpersoon_naam || '');
+    var sectorenStr = escapeHtml(sectorenLabel(d));
+    var margePct = (typeof d.marge_pct === 'number') ? d.marge_pct : 0;
+    var datum = escapeHtml(formatDate(new Date()));
+
+    var html = '';
+    html += '<h3>Tussen</h3>';
+    html += '<p><strong>Flancco BV</strong> (BTW BE.xxxx.xxx.xxx, ondernemingsnummer xxxxxxxxxx, gevestigd te [adres])<br>hierna <strong>"Flancco"</strong></p>';
+    html += '<h3>En</h3>';
+    html += '<p><strong>' + bedrijf + '</strong> (BTW [BTW_NUMMER], gevestigd te [ADRES])<br>vertegenwoordigd door <strong>' + voornaam + ' ' + naam + '</strong><br>hierna <strong>"Partner"</strong></p>';
+    html += '<h3>Voorwerp van de overeenkomst</h3>';
+    html += '<p>Flancco verbindt zich ertoe voor rekening van Partner technische onderhouds- en reinigingsdiensten uit te voeren op de installaties die Partner heeft geleverd of geïnstalleerd bij zijn eindklanten, dit binnen de volgende sectoren: <strong>' + sectorenStr + '</strong>.</p>';
+    html += '<h3>Prijszetting</h3>';
+    html += '<p>Flancco hanteert een vaste forfaitstructuur per beurt op basis van projectomvang. Partner past op deze forfait een marge toe van <strong>' + margePct + '%</strong>, vermeerderd met de planning fee van Flancco. Het totaalbedrag wordt aan de eindklant gefactureerd in overeenstemming met de modaliteiten zoals tussen Partner en eindklant overeengekomen.</p>';
+    html += '<h3>Looptijd en opzeg</h3>';
+    html += '<p>Deze overeenkomst gaat in op de datum van ondertekening en geldt voor onbepaalde duur. Beide partijen kunnen de overeenkomst beëindigen mits een opzegtermijn van één (1) maand, schriftelijk of per e-mail meegedeeld.</p>';
+    html += '<h3>White-label uitvoering</h3>';
+    html += '<p>Flancco voert de werken uit onder het merk en in opdracht van Partner. Partner blijft de exclusieve commerciële relatie met de eindklant.</p>';
+    html += '<h3>GDPR</h3>';
+    html += '<p>Beide partijen erkennen de bepalingen van de AVG (Verordening 2016/679). Persoonsgegevens van eindklanten worden door Flancco uitsluitend verwerkt in het kader van de uitvoering van deze overeenkomst.</p>';
+    html += '<h3>Toepasselijk recht</h3>';
+    html += '<p>Op deze overeenkomst is uitsluitend Belgisch recht van toepassing. Geschillen vallen onder de exclusieve bevoegdheid van de ondernemingsrechtbanken te Gent.</p>';
+    html += '<p style="margin-top:18px"><strong>Voor akkoord, ' + datum + '.</strong></p>';
+
+    document.getElementById('contract-body').innerHTML = html;
+  }
+
+  // ─── Signature canvas ───────────────────────────────────────
+  var sigCanvas = null;
+  var sigCtx = null;
+  var sigDrawing = false;
+  var sigHasSig = false;
+
+  function initSignaturePad() {
+    sigCanvas = document.getElementById('sig-canvas');
+    if (!sigCanvas) return;
+    sigCtx = sigCanvas.getContext('2d');
+    // High-DPI scaling for crispness, keep canvas attribute width as fixed
+    var dpr = window.devicePixelRatio || 1;
+    var rect = sigCanvas.getBoundingClientRect();
+    var targetW = Math.max(800, Math.round(rect.width * dpr));
+    var targetH = Math.round(200 * dpr);
+    sigCanvas.width = targetW;
+    sigCanvas.height = targetH;
+
+    sigCtx.lineWidth = 2.4 * dpr;
+    sigCtx.lineCap = 'round';
+    sigCtx.lineJoin = 'round';
+    sigCtx.strokeStyle = '#1A1A2E';
+
+    function getPos(e) {
+      var r = sigCanvas.getBoundingClientRect();
+      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - r.left) * (sigCanvas.width / r.width),
+        y: (clientY - r.top)  * (sigCanvas.height / r.height)
+      };
+    }
+    function start(e) {
+      e.preventDefault();
+      sigDrawing = true;
+      var p = getPos(e);
+      sigCtx.beginPath();
+      sigCtx.moveTo(p.x, p.y);
+    }
+    function draw(e) {
+      if (!sigDrawing) return;
+      e.preventDefault();
+      var p = getPos(e);
+      sigCtx.lineTo(p.x, p.y);
+      sigCtx.stroke();
+      if (!sigHasSig) {
+        sigHasSig = true;
+        document.getElementById('sig-wrap').classList.add('has-sig');
+        updateSignBtn();
+      }
+    }
+    function end() { sigDrawing = false; }
+
+    sigCanvas.addEventListener('mousedown', start);
+    sigCanvas.addEventListener('mousemove', draw);
+    sigCanvas.addEventListener('mouseup', end);
+    sigCanvas.addEventListener('mouseleave', end);
+    sigCanvas.addEventListener('touchstart', start, { passive: false });
+    sigCanvas.addEventListener('touchmove', draw, { passive: false });
+    sigCanvas.addEventListener('touchend', end);
+  }
+
+  function clearSignature() {
+    if (!sigCtx) return;
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    sigHasSig = false;
+    document.getElementById('sig-wrap').classList.remove('has-sig');
+    document.getElementById('sig-error').classList.remove('show');
+    updateSignBtn();
+  }
+
+  function updateSignBtn() {
+    var btn = document.getElementById('btn-sign');
+    btn.disabled = !sigHasSig || state.signed;
+  }
+
+  function getSignatureBase64() {
+    if (!sigHasSig || !sigCanvas) return null;
+    // Render with white background so the PNG is print-friendly
+    var out = document.createElement('canvas');
+    out.width = sigCanvas.width;
+    out.height = sigCanvas.height;
+    var octx = out.getContext('2d');
+    octx.fillStyle = '#FFFFFF';
+    octx.fillRect(0, 0, out.width, out.height);
+    octx.drawImage(sigCanvas, 0, 0);
+    return out.toDataURL('image/png');
+  }
+
+  // ─── NDA modal ──────────────────────────────────────────────
+  function openNDA() {
+    var m = document.getElementById('nda-modal');
+    m.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    // Focus trap basics: focus modal container first
+    setTimeout(function(){
+      var modalEl = m.querySelector('.modal');
+      if (modalEl) modalEl.focus();
+    }, 50);
+  }
+  function closeNDA() {
+    var m = document.getElementById('nda-modal');
+    m.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  // Focus-trap for NDA modal
+  function setupNdaFocusTrap() {
+    var m = document.getElementById('nda-modal');
+    m.addEventListener('keydown', function(e){
+      if (!m.classList.contains('show')) return;
+      if (e.key !== 'Tab') return;
+      var focusables = m.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex="0"], a[href]');
+      if (!focusables.length) return;
+      var first = focusables[0];
+      var last  = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    });
+    // Escape suppressed — modal NIET sluitbaar zonder akkoord
+    m.addEventListener('keydown', function(e){ if (e.key === 'Escape') e.preventDefault(); });
+  }
+
+  // ─── Submit handlers ────────────────────────────────────────
+  async function onNdaAccept() {
+    var btn = document.getElementById('btn-nda-accept');
+    var check = document.getElementById('nda-check');
+    if (!check.checked) return;
+    btn.disabled = true;
+    var origInner = btn.innerHTML;
+    btn.innerHTML = '<span>Bevestigen...</span>';
+
+    try {
+      await fetchIp();
+      await rpc('public_acknowledge_confidentiality', {
+        p_token: state.token,
+        p_ip: state.ip,
+        p_user_agent: (navigator.userAgent || '').slice(0, 500),
+        p_version: NDA_VERSION
+      });
+      state.ndaAcked = true;
+      flanccoTrack('Sign NDA Accepted', { application_id: state.appData && state.appData.application_id });
+      closeNDA();
+      showPane('pane-contract');
+    } catch (err) {
+      console.error('[nda-ack]', err);
+      var code = extractErrorCode(err);
+      if (code === 'invalid_token' || code === 'token_invalid_or_expired') {
+        showErrorPane(code);
+      } else {
+        showToast('Bevestigen lukte niet. Probeer opnieuw of contacteer Gillian.', true);
+        btn.disabled = !check.checked;
+        btn.innerHTML = origInner;
+      }
+    }
+  }
+
+  async function onSign() {
+    var btn = document.getElementById('btn-sign');
+    if (!sigHasSig) {
+      document.getElementById('sig-error').classList.add('show');
+      return;
+    }
+    document.getElementById('sig-error').classList.remove('show');
+    btn.disabled = true;
+    var origInner = btn.innerHTML;
+    btn.innerHTML = '<span>Bezig met ondertekenen...</span>';
+
+    try {
+      await fetchIp();
+      var base64 = getSignatureBase64();
+      if (!base64) throw new Error('invalid_signature');
+
+      await rpc('public_record_remote_signing', {
+        p_token: state.token,
+        p_handtekening_base64: base64,
+        p_ip: state.ip,
+        p_user_agent: (navigator.userAgent || '').slice(0, 500)
+      });
+
+      state.signed = true;
+      state.signingTs = new Date();
+      state.signatureBase64 = base64;
+      var dur = Math.round((Date.now() - state.pageLoadTs) / 1000);
+      flanccoTrack('Sign Contract Signed', {
+        application_id: state.appData && state.appData.application_id,
+        duration_seconds: String(dur)
+      });
+      showPane('pane-success');
+      startRedirectCountdown();
+      // Generate PDF in background, auto-trigger download
+      generateContractPDF({ autoDownload: true }).catch(function(e){
+        console.warn('[pdf-auto]', e);
+      });
+    } catch (err) {
+      console.error('[sign]', err);
+      var code = extractErrorCode(err);
+      if (['invalid_token','token_invalid_or_already_signed_or_no_nda','invalid_signature','already_signed'].indexOf(code) !== -1) {
+        showErrorPane(code);
+      } else {
+        showToast('Ondertekenen lukte niet. Probeer opnieuw of contacteer Gillian.', true);
+        btn.disabled = false;
+        btn.innerHTML = origInner;
+      }
+    }
+  }
+
+  // ─── PDF generation (jsPDF + html2canvas, lazy-load) ────────
+  async function ensureScript(src, globalCheckKey) {
+    if (window[globalCheckKey]) return;
+    await new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = src; s.onload = resolve;
+      s.onerror = function(){ reject(new Error('Script load failed: ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function buildPdfHtml() {
+    var d = state.appData || {};
+    var sigImg = state.signatureBase64 || '';
+    var datumStr = formatDate(state.signingTs || new Date());
+    var ipStr = state.ip || 'onbekend';
+    var ua = (navigator.userAgent || '').slice(0, 200);
+    var bodyHtml = document.getElementById('contract-body').innerHTML;
+    var prTbody = document.getElementById('pr-tbody').innerHTML;
+    var marge = typeof d.marge_pct === 'number' ? d.marge_pct : 0;
+
+    var html = '';
+    html += '<!doctype html><html><head><meta charset="utf-8"><style>';
+    html += 'body{font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#14141F;font-size:11.5pt;line-height:1.55;padding:0;margin:0;}';
+    html += '.h1{font-size:18pt;font-weight:700;margin:0 0 4pt;color:#1A1A2E;letter-spacing:-.01em;}';
+    html += '.eyebrow{font-size:9pt;letter-spacing:.18em;text-transform:uppercase;color:#E76F51;font-weight:700;margin-bottom:6pt;}';
+    html += '.muted{color:#6B7280;font-size:10pt;}';
+    html += '.section{margin-top:18pt;}';
+    html += '.section h2{font-size:11pt;letter-spacing:.1em;text-transform:uppercase;color:#1A1A2E;border-bottom:1px solid #E5E7EB;padding-bottom:4pt;margin:0 0 10pt;}';
+    html += 'table{width:100%;border-collapse:collapse;font-size:10.5pt;}';
+    html += 'th,td{padding:6pt 8pt;text-align:left;border-bottom:1px solid #E5E7EB;}';
+    html += 'th{background:#F1EFEC;font-size:8.5pt;letter-spacing:.08em;text-transform:uppercase;color:#6B7280;font-weight:600;}';
+    html += '.num{text-align:right;font-variant-numeric:tabular-nums;}';
+    html += 'h3{font-size:11pt;color:#1A1A2E;margin:14pt 0 5pt;font-weight:700;}';
+    html += '.contract p{margin:0 0 8pt;}';
+    html += '.sig-block{margin-top:24pt;padding-top:16pt;border-top:2px solid #1A1A2E;display:flex;gap:32pt;}';
+    html += '.sig-cell{flex:1;}';
+    html += '.sig-cell .label{font-size:9pt;letter-spacing:.1em;text-transform:uppercase;color:#6B7280;font-weight:600;margin-bottom:6pt;}';
+    html += '.sig-img{max-width:100%;height:60pt;object-fit:contain;}';
+    html += '.audit{margin-top:24pt;padding:10pt 12pt;background:#F1EFEC;border-radius:6pt;font-size:9pt;color:#6B7280;line-height:1.5;}';
+    html += '.audit strong{color:#1A1A2E;}';
+    html += '</style></head><body>';
+
+    html += '<div class="eyebrow">Flancco — Partner-overeenkomst</div>';
+    html += '<div class="h1">Getekende overeenkomst — ' + escapeHtml(d.bedrijfsnaam || 'Partner') + '</div>';
+    html += '<div class="muted">Datum ondertekening: <strong>' + escapeHtml(datumStr) + '</strong> &middot; Modus: remote signing</div>';
+
+    html += '<div class="section"><h2>Partner-gegevens</h2>';
+    html += '<table><tbody>';
+    html += '<tr><td><strong>Bedrijf</strong></td><td>' + escapeHtml(d.bedrijfsnaam || '—') + '</td></tr>';
+    html += '<tr><td><strong>Contactpersoon</strong></td><td>' + escapeHtml(fullName(d)) + '</td></tr>';
+    html += '<tr><td><strong>E-mail</strong></td><td>' + escapeHtml(d.contactpersoon_email || '—') + '</td></tr>';
+    html += '<tr><td><strong>Sectoren</strong></td><td>' + escapeHtml(sectorenLabel(d)) + '</td></tr>';
+    html += '<tr><td><strong>Marge</strong></td><td>' + marge + '%</td></tr>';
+    html += '</tbody></table></div>';
+
+    html += '<div class="section"><h2>Pricing — voorbeeldprojecten</h2>';
+    html += '<table><thead><tr><th>Project</th><th class="num">Forfait</th><th class="num">Marge</th><th class="num">Planning fee</th><th class="num">Eindklant incl. btw</th></tr></thead>';
+    html += '<tbody>' + prTbody + '</tbody></table></div>';
+
+    html += '<div class="section contract"><h2>Overeenkomst</h2>' + bodyHtml + '</div>';
+
+    html += '<div class="sig-block">';
+    html += '<div class="sig-cell"><div class="label">Voor Partner</div>';
+    if (sigImg) html += '<img class="sig-img" src="' + sigImg + '" alt="Handtekening">';
+    html += '<div style="font-size:10pt;margin-top:4pt"><strong>' + escapeHtml(fullName(d)) + '</strong><br>' + escapeHtml(d.bedrijfsnaam || '') + '</div></div>';
+    html += '<div class="sig-cell"><div class="label">Voor Flancco BV</div>';
+    html += '<div style="font-size:10pt;margin-top:50pt"><strong>Gillian Geernaert</strong><br>Business Development</div></div>';
+    html += '</div>';
+
+    html += '<div class="audit">';
+    html += '<strong>Audit-trail (signing)</strong><br>';
+    html += 'Tijdstip: ' + escapeHtml((state.signingTs || new Date()).toISOString()) + '<br>';
+    html += 'IP-adres: ' + escapeHtml(ipStr) + '<br>';
+    html += 'User agent: ' + escapeHtml(ua) + '<br>';
+    html += 'Modus: signing_mode=remote &middot; NDA-versie: ' + NDA_VERSION;
+    html += '</div>';
+
+    html += '</body></html>';
+    return html;
+  }
+
+  async function generateContractPDF(opts) {
+    opts = opts || {};
+    try {
+      await ensureScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js', 'jspdf');
+      await ensureScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js', 'html2canvas');
+    } catch (e) {
+      console.error('[pdf-deps]', e);
+      showToast('PDF-bibliotheek niet geladen. Probeer opnieuw.', true);
+      return;
+    }
+    if (!window.jspdf) { showToast('PDF-engine niet beschikbaar.', true); return; }
+
+    var html = buildPdfHtml();
+    var iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;height:100vh;border:0;visibility:hidden';
+    document.body.appendChild(iframe);
+
+    try {
+      var idoc = iframe.contentDocument || iframe.contentWindow.document;
+      idoc.open(); idoc.write(html); idoc.close();
+      await new Promise(function(resolve){
+        if (idoc.readyState === 'complete') return resolve();
+        iframe.addEventListener('load', resolve, { once: true });
+      });
+      var imgs = idoc.querySelectorAll('img');
+      await Promise.all(Array.prototype.map.call(imgs, function(img){
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise(function(res){
+          img.addEventListener('load', res, { once: true });
+          img.addEventListener('error', res, { once: true });
+        });
+      }));
+
+      var body = idoc.body;
+      body.style.width = '800px'; body.style.margin = '0'; body.style.padding = '0';
+
+      var canvas = await window.html2canvas(body, {
+        scale: 2, useCORS: true, allowTaint: false,
+        backgroundColor: '#ffffff', logging: false, windowWidth: 800
+      });
+
+      var jsPDF = window.jspdf.jsPDF;
+      var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      var pageW = pdf.internal.pageSize.getWidth();
+      var pageH = pdf.internal.pageSize.getHeight();
+      var marginXmm = 15, marginYmm = 18;
+      var contentWmm = pageW - 2 * marginXmm;
+      var contentHmm = pageH - 2 * marginYmm;
+      var pxPerMm = canvas.width / contentWmm;
+      var sliceHpxMax = Math.floor(contentHmm * pxPerMm);
+
+      var sliceY = 0; var pageNum = 0;
+      while (sliceY < canvas.height) {
+        var sliceHpx = Math.min(sliceHpxMax, canvas.height - sliceY);
+        var pc = document.createElement('canvas');
+        pc.width = canvas.width; pc.height = sliceHpx;
+        var ctx = pc.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pc.width, pc.height);
+        ctx.drawImage(canvas, 0, sliceY, canvas.width, sliceHpx, 0, 0, pc.width, sliceHpx);
+        var pageImgData = pc.toDataURL('image/png');
+        if (pageNum > 0) pdf.addPage();
+        var sliceHmm = sliceHpx / pxPerMm;
+        pdf.addImage(pageImgData, 'PNG', marginXmm, marginYmm, contentWmm, sliceHmm);
+        sliceY += sliceHpx; pageNum++;
+      }
+
+      var d = state.appData || {};
+      var bedrijfSlug = String(d.bedrijfsnaam || 'partner').replace(/[^a-zA-Z0-9]+/g, '_');
+      var datumSlug = (state.signingTs || new Date()).toISOString().slice(0, 10);
+      var filename = 'Partnerovereenkomst_' + bedrijfSlug + '_' + datumSlug + '.pdf';
+
+      if (opts.autoDownload !== false) pdf.save(filename);
+      return pdf;
+    } finally {
+      iframe.remove();
+    }
+  }
+
+  // ─── Redirect countdown ────────────────────────────────────
+  function startRedirectCountdown() {
+    var sec = REDIRECT_DELAY_SEC;
+    var el = document.getElementById('redirect-count');
+    el.textContent = sec;
+    var timer = setInterval(function(){
+      sec--;
+      if (el) el.textContent = Math.max(0, sec);
+      if (sec <= 0) {
+        clearInterval(timer);
+        window.location.href = REDIRECT_URL;
+      }
+    }, 1000);
+  }
+
+  // ─── Init ───────────────────────────────────────────────────
+  async function init() {
+    setupNdaFocusTrap();
+
+    // Wire UI events
+    document.getElementById('nda-check').addEventListener('change', function(e){
+      document.getElementById('btn-nda-accept').disabled = !e.target.checked;
+    });
+    document.getElementById('btn-nda-accept').addEventListener('click', onNdaAccept);
+    document.getElementById('sig-clear').addEventListener('click', clearSignature);
+    document.getElementById('btn-clear-2').addEventListener('click', clearSignature);
+    document.getElementById('btn-sign').addEventListener('click', onSign);
+    document.getElementById('btn-pdf-download').addEventListener('click', function(){
+      generateContractPDF({ autoDownload: true }).catch(function(e){
+        console.error('[pdf-manual]', e);
+        showToast('PDF-download mislukt. Probeer opnieuw.', true);
+      });
+    });
+
+    // Lucide icons activate (for any inline <i data-lucide>)
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try { window.lucide.createIcons(); } catch(_){}
+    }
+
+    // Read token
+    var params = new URLSearchParams(window.location.search);
+    var token = (params.get('token') || '').trim();
+    state.token = token;
+
+    flanccoTrack('Sign Page View', { token_short: tokenShort(token) });
+
+    if (!token || token.length < 16) {
+      showErrorPane('no_token');
+      return;
+    }
+
+    // Open token (consume action)
+    try {
+      var data = await rpc('public_consume_signing_token', {
+        p_token: token,
+        p_action: 'open'
+      });
+      if (!data || typeof data !== 'object') {
+        showErrorPane('invalid_token');
+        return;
+      }
+      state.appData = data;
+
+      // Pre-fetch IP non-blocking (we'll await at submit-time too)
+      fetchIp();
+
+      // Render content
+      renderNDA(data);
+      renderContractMeta(data);
+      renderPricing(data);
+      renderContractBody(data);
+      initSignaturePad();
+      updateSignBtn();
+
+      // If NDA already acked previously (e.g. user reopened link), skip modal
+      if (data.confidentiality_ack_ts) {
+        state.ndaAcked = true;
+        showPane('pane-contract');
+      } else {
+        // Show contract pane behind blur but keep modal on top
+        showPane('pane-contract');
+        openNDA();
+      }
+    } catch (err) {
+      console.error('[consume-token]', err);
+      var code = extractErrorCode(err);
+      showErrorPane(code, err && err.message);
+    }
+  }
+
+  // Kick off
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

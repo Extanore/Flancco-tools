@@ -1870,6 +1870,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
       <span>Partner-aanvragen</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('activate-partner')" data-page="activate-partner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+      <span>Activeer partner</span>
+    </a>
     <a class="nav-item admin-only perm-partners" onclick="showPage('partners')" data-page="partners">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Partners</span>
@@ -4484,6 +4488,306 @@
       </div>
     </div>
 
+    <!-- ===== Slot X.2 — Activeer partner (admin-driven 4-step wizard) ===== -->
+    <div class="page admin-only" id="page-activate-partner">
+      <style>
+        /* Scoped CSS voor activate-partner wizard (.ap-* prefix) */
+        .ap-shell { max-width: 880px; margin: 0 auto; }
+        .ap-progress { display:flex; align-items:center; justify-content:space-between; gap:8px; margin: 16px 0 28px; padding: 14px 18px; background:#fff; border:1px solid var(--rule); border-radius:10px; }
+        .ap-step-pill { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+        .ap-step-num { width:28px; height:28px; border-radius:50%; background:#E5E7EB; color:#6B7280; font-size:13px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .18s; }
+        .ap-step-label { font-size:12px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .ap-step-pill.active .ap-step-num { background: var(--navy); color:#fff; }
+        .ap-step-pill.active .ap-step-label { color: var(--navy); }
+        .ap-step-pill.done .ap-step-num { background:#10B981; color:#fff; }
+        .ap-step-pill.done .ap-step-label { color:#10B981; }
+        .ap-step-bar { flex:0 0 32px; height:2px; background:#E5E7EB; border-radius:1px; }
+        .ap-step-bar.done { background:#10B981; }
+        .ap-card { background:#fff; border:1px solid var(--rule); border-radius:12px; padding:24px; margin-bottom:18px; }
+        .ap-card-title { font-size:16px; font-weight:700; color:var(--navy); margin:0 0 4px; }
+        .ap-card-sub { font-size:13px; color:var(--grey); margin:0 0 18px; }
+        .ap-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        .ap-grid-2 > .full { grid-column: 1 / -1; }
+        @media (max-width: 640px) { .ap-grid-2 { grid-template-columns: 1fr; } }
+        .ap-field { display:flex; flex-direction:column; gap:6px; }
+        .ap-field label { font-size:11px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.4px; }
+        .ap-field label .req { color:#EF4444; margin-left:2px; }
+        .ap-field input, .ap-field textarea, .ap-field select { width:100%; padding:10px 12px; border:1.5px solid var(--rule); border-radius:8px; font-size:13px; font-family:inherit; box-sizing:border-box; outline:none; transition:border-color .15s; background:#fff; color:var(--navy); }
+        .ap-field input:focus, .ap-field textarea:focus, .ap-field select:focus { border-color:var(--navy); }
+        .ap-field input.ap-err, .ap-field textarea.ap-err, .ap-field select.ap-err { border-color:#EF4444; background:#FEF2F2; }
+        .ap-field .ap-err-msg { display:none; color:#B91C1C; font-size:11.5px; font-weight:500; margin-top:2px; }
+        .ap-field.has-err .ap-err-msg { display:block; }
+        .ap-pills { display:flex; flex-wrap:wrap; gap:8px; }
+        .ap-pill { padding:8px 14px; background:#fff; border:1.5px solid var(--rule); border-radius:20px; font-size:12.5px; font-weight:600; color:var(--navy); cursor:pointer; transition:all .15s; user-select:none; }
+        .ap-pill:hover { border-color:var(--navy); }
+        .ap-pill.selected { background:var(--navy); border-color:var(--navy); color:#fff; }
+        .ap-marge-row { display:flex; align-items:center; gap:14px; }
+        .ap-marge-row input[type=range] { flex:1; }
+        .ap-marge-val { font-size:18px; font-weight:700; color:var(--navy); min-width:54px; text-align:right; }
+        .ap-pricing-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .ap-pricing-table th, .ap-pricing-table td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--rule); }
+        .ap-pricing-table th { font-size:11px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.4px; background:#F9FAFB; }
+        .ap-pricing-table td.num { text-align:right; font-variant-numeric: tabular-nums; }
+        .ap-pricing-table td.num strong { color:var(--navy); }
+        .ap-mode-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        @media (max-width: 720px) { .ap-mode-grid { grid-template-columns:1fr; } }
+        .ap-mode-card { background:#fff; border:2px solid var(--rule); border-radius:12px; padding:24px; cursor:pointer; transition:all .18s; display:flex; flex-direction:column; gap:12px; }
+        .ap-mode-card:hover { border-color:var(--navy); transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.08); }
+        .ap-mode-icon { width:44px; height:44px; border-radius:10px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:var(--navy); }
+        .ap-mode-title { font-size:15px; font-weight:700; color:var(--navy); margin:0; }
+        .ap-mode-desc { font-size:13px; color:var(--grey); margin:0; line-height:1.5; }
+        .ap-disclaimer { font-size:12px; color:var(--grey); padding:12px 14px; background:#F9FAFB; border:1px solid var(--rule); border-radius:8px; line-height:1.5; }
+        .ap-contract-body { background:#FAFBFC; border:1px solid var(--rule); border-radius:10px; padding:18px 22px; max-height:340px; overflow-y:auto; font-size:13px; line-height:1.55; color:#1f2937; }
+        .ap-contract-body h3 { font-size:13px; color:var(--navy); margin:14px 0 6px; text-transform:uppercase; letter-spacing:0.4px; }
+        .ap-contract-body h3:first-child { margin-top:0; }
+        .ap-contract-body p { margin:0 0 8px; }
+        .ap-sig-wrap { border:1.5px dashed var(--rule); border-radius:10px; background:#fff; position:relative; }
+        .ap-sig-wrap.has-sig { border-color:#10B981; border-style:solid; }
+        .ap-sig-canvas { display:block; width:100%; height:200px; cursor:crosshair; touch-action:none; border-radius:9px; }
+        .ap-sig-clear { position:absolute; top:8px; right:8px; padding:6px 12px; background:#fff; border:1px solid var(--rule); border-radius:6px; font-size:11.5px; font-weight:600; color:var(--grey); cursor:pointer; }
+        .ap-sig-clear:hover { color:var(--navy); border-color:var(--navy); }
+        .ap-summary { display:grid; grid-template-columns:140px 1fr; gap:8px 18px; font-size:13px; padding:14px 16px; background:#F9FAFB; border:1px solid var(--rule); border-radius:8px; }
+        .ap-summary dt { font-size:11px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:0.4px; align-self:center; }
+        .ap-summary dd { color:var(--navy); font-weight:500; margin:0; align-self:center; }
+        .ap-success { padding:24px; text-align:center; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; }
+        .ap-success .ap-success-icon { width:54px; height:54px; border-radius:50%; background:#10B981; color:#fff; display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px; }
+        .ap-error-banner { padding:12px 14px; background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; color:#991B1B; font-size:13px; line-height:1.5; margin-bottom:16px; }
+        .ap-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:20px; padding-top:18px; border-top:1px solid var(--rule); flex-wrap:wrap; }
+        .ap-actions .ap-actions-right { display:flex; gap:10px; align-items:center; }
+        .ap-link-copy { display:flex; gap:8px; align-items:center; padding:10px 12px; background:#fff; border:1px solid var(--rule); border-radius:8px; }
+        .ap-link-copy input { flex:1; border:none; background:transparent; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:11.5px; color:var(--navy); padding:4px 0; outline:none; }
+      </style>
+
+      <div class="ap-shell">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Activeer partner</h2>
+            <p class="dv-subtitle">Stuur een nieuwe partner door de activatie-flow — direct ondertekenen op je laptop of versturen via mail-link.</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" onclick="showPage('partner-pipeline')" title="Terug naar pipeline">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Terug naar pipeline
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="ap-progress" id="ap-progress" aria-label="Voortgang activatie">
+          <div class="ap-step-pill" data-step="1"><div class="ap-step-num">1</div><div class="ap-step-label">Kwalificatie</div></div>
+          <div class="ap-step-bar" data-bar="1"></div>
+          <div class="ap-step-pill" data-step="2"><div class="ap-step-num">2</div><div class="ap-step-label">Pricing</div></div>
+          <div class="ap-step-bar" data-bar="2"></div>
+          <div class="ap-step-pill" data-step="3"><div class="ap-step-num">3</div><div class="ap-step-label">Modus</div></div>
+          <div class="ap-step-bar" data-bar="3"></div>
+          <div class="ap-step-pill" data-step="4"><div class="ap-step-num">4</div><div class="ap-step-label">Ondertekenen</div></div>
+        </div>
+
+        <!-- STEP 1 — Kwalificatie & bedrijfsgegevens -->
+        <div id="ap-step-1" class="ap-step-pane">
+          <div class="ap-card">
+            <h3 class="ap-card-title">Bedrijfsgegevens</h3>
+            <p class="ap-card-sub">Verplichte velden zijn aangeduid met een rode asterisk. Vul zoveel mogelijk aan voor een complete audit-trail.</p>
+            <div class="ap-grid-2">
+              <div class="ap-field full">
+                <label for="ap-bedrijfsnaam">Bedrijfsnaam <span class="req">*</span></label>
+                <input id="ap-bedrijfsnaam" type="text" autocomplete="organization" maxlength="200">
+                <span class="ap-err-msg">Minimaal 2 tekens vereist.</span>
+              </div>
+              <div class="ap-field">
+                <label for="ap-btw">BTW-nummer</label>
+                <div style="display:flex;gap:8px">
+                  <input id="ap-btw" type="text" placeholder="BE0123456789" maxlength="20" style="flex:1">
+                  <button type="button" class="btn btn-secondary btn-sm" id="ap-btw-validate" onclick="activateValidateBTW()">Valideer</button>
+                </div>
+                <span class="ap-err-msg" id="ap-btw-msg"></span>
+              </div>
+              <div class="ap-field">
+                <label for="ap-website">Website</label>
+                <input id="ap-website" type="url" placeholder="https://…" maxlength="200">
+              </div>
+              <div class="ap-field">
+                <label for="ap-voornaam">Voornaam contactpersoon <span class="req">*</span></label>
+                <input id="ap-voornaam" type="text" autocomplete="given-name" maxlength="100">
+                <span class="ap-err-msg">Verplicht veld.</span>
+              </div>
+              <div class="ap-field">
+                <label for="ap-naam">Familienaam contactpersoon <span class="req">*</span></label>
+                <input id="ap-naam" type="text" autocomplete="family-name" maxlength="100">
+                <span class="ap-err-msg">Verplicht veld.</span>
+              </div>
+              <div class="ap-field">
+                <label for="ap-email">E-mail <span class="req">*</span></label>
+                <input id="ap-email" type="email" autocomplete="email" maxlength="200">
+                <span class="ap-err-msg">Geldig e-mailadres vereist.</span>
+              </div>
+              <div class="ap-field">
+                <label for="ap-telefoon">Telefoon</label>
+                <input id="ap-telefoon" type="tel" autocomplete="tel" maxlength="40">
+              </div>
+              <div class="ap-field full">
+                <label for="ap-adres">Adres</label>
+                <input id="ap-adres" type="text" autocomplete="street-address" maxlength="200">
+              </div>
+              <div class="ap-field">
+                <label for="ap-postcode">Postcode</label>
+                <input id="ap-postcode" type="text" inputmode="numeric" maxlength="4" placeholder="0000">
+                <span class="ap-err-msg">4 cijfers vereist.</span>
+              </div>
+              <div class="ap-field">
+                <label for="ap-gemeente">Gemeente</label>
+                <input id="ap-gemeente" type="text" autocomplete="address-level2" maxlength="100">
+              </div>
+            </div>
+          </div>
+
+          <div class="ap-card">
+            <h3 class="ap-card-title">Sectoren <span class="req">*</span></h3>
+            <p class="ap-card-sub">Selecteer minstens één sector waarvoor de partner werken doorgeeft aan Flancco.</p>
+            <div class="ap-pills" id="ap-sectoren-pills" role="group" aria-label="Sectoren-keuze"></div>
+            <span class="ap-err-msg" id="ap-sectoren-err" style="display:none;color:#B91C1C;font-size:11.5px;font-weight:500;margin-top:8px">Selecteer minstens één sector.</span>
+          </div>
+
+          <div class="ap-card">
+            <h3 class="ap-card-title">Marge & notitie</h3>
+            <p class="ap-card-sub">De marge bepaalt het verschil tussen Flancco-forfait en eindklant-prijs (zie pricing-preview op stap 2).</p>
+            <div class="ap-field" style="margin-bottom:14px">
+              <label for="ap-marge">Marge <span class="req">*</span></label>
+              <div class="ap-marge-row">
+                <input id="ap-marge" type="range" min="10" max="20" step="1" value="15" oninput="document.getElementById('ap-marge-val').textContent=this.value+'%'">
+                <span class="ap-marge-val" id="ap-marge-val">15%</span>
+              </div>
+            </div>
+            <div class="ap-field">
+              <label for="ap-notitie">Notitie (intern)</label>
+              <textarea id="ap-notitie" rows="3" maxlength="2000" placeholder="Vrije context — binnenkomend kanaal, gespreksnotities, … (niet zichtbaar voor partner)"></textarea>
+            </div>
+          </div>
+
+          <div class="ap-actions">
+            <button type="button" class="btn btn-ghost" onclick="showPage('partner-pipeline')">Annuleer</button>
+            <div class="ap-actions-right">
+              <button type="button" class="btn btn-primary" id="ap-step1-next" onclick="activateSubmitStep1()">Volgende
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 — Pricing-preview -->
+        <div id="ap-step-2" class="ap-step-pane" style="display:none">
+          <div class="ap-card">
+            <h3 class="ap-card-title">Pricing-preview</h3>
+            <p class="ap-card-sub">Voorbeeldprijzen voor 3 projectgroottes met de gekozen marge. Formule: <code style="font-size:12px;color:var(--navy)">(forfait × (1 + marge%) + planning fee) × 1,21</code></p>
+            <div class="ap-summary" style="margin-bottom:16px">
+              <dt>Marge</dt><dd id="ap-pr-marge">15%</dd>
+              <dt>Planning fee</dt><dd>€ 25,00 per beurt</dd>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="ap-pricing-table">
+                <thead><tr><th>Project</th><th class="num">Klant excl. btw</th><th class="num">Klant incl. btw 21%</th><th class="num">Jouw marge</th></tr></thead>
+                <tbody id="ap-pr-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="ap-actions">
+            <button type="button" class="btn btn-ghost" onclick="activateGoToStep(1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="15 18 9 12 15 6"/></svg>
+              Terug
+            </button>
+            <div class="ap-actions-right">
+              <button type="button" class="btn btn-primary" onclick="activateGoToStep(3)">Volgende
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 — Signing-mode keuze -->
+        <div id="ap-step-3" class="ap-step-pane" style="display:none">
+          <div class="ap-card">
+            <h3 class="ap-card-title">Hoe wil de partner ondertekenen?</h3>
+            <p class="ap-card-sub">Kies de modus die past bij de situatie. De keuze wordt geregistreerd in de audit-trail.</p>
+            <div class="ap-mode-grid">
+              <div class="ap-mode-card" onclick="activateChooseMode('in_person')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();activateChooseMode('in_person');}">
+                <div class="ap-mode-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </div>
+                <h4 class="ap-mode-title">Direct tekenen op mijn laptop</h4>
+                <p class="ap-mode-desc">Voor wanneer de partner nu naast je zit. Hij tekent direct hier op je scherm. Jij wordt geregistreerd als getuige.</p>
+              </div>
+              <div class="ap-mode-card" onclick="activateChooseMode('remote')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();activateChooseMode('remote');}">
+                <div class="ap-mode-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </div>
+                <h4 class="ap-mode-title">Versturen via mail</h4>
+                <p class="ap-mode-desc">Voor wanneer de partner thuis wil tekenen. Hij ontvangt een unieke link met vertrouwelijkheidsverklaring vóór hij pricing kan zien.</p>
+              </div>
+            </div>
+            <p class="ap-disclaimer" style="margin-top:18px">Mode A registreert jou als getuige (audit-trail). Mode B vereist NDA-akkoord van de partner vóór hij pricing kan zien.</p>
+          </div>
+
+          <div class="ap-actions">
+            <button type="button" class="btn btn-ghost" onclick="activateGoToStep(2)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="15 18 9 12 15 6"/></svg>
+              Terug
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 4a — In-person signing -->
+        <div id="ap-step-4a" class="ap-step-pane" style="display:none">
+          <div class="ap-card">
+            <h3 class="ap-card-title">Contract — partner-overeenkomst</h3>
+            <p class="ap-card-sub">Lees de overeenkomst samen door en laat de partner tekenen op je scherm.</p>
+            <div class="ap-contract-body" id="ap-contract-body"></div>
+          </div>
+
+          <div class="ap-card">
+            <h3 class="ap-card-title">Handtekening partner</h3>
+            <p class="ap-card-sub">De partner ondertekent in het vak hieronder. Door te tekenen verklaart hij (a) gemachtigd te zijn namens het bedrijf, (b) deze overeenkomst gelezen en begrepen te hebben, en (c) gebonden te zijn aan de voorwaarden.</p>
+            <div class="ap-sig-wrap" id="ap-sig-wrap">
+              <canvas id="ap-sig-canvas" class="ap-sig-canvas" width="800" height="200" aria-label="Handtekening-vak"></canvas>
+              <button type="button" class="ap-sig-clear" id="ap-sig-clear" onclick="activateClearSignature()">Wissen</button>
+            </div>
+            <div id="ap-sig-error" class="ap-error-banner" style="display:none;margin-top:12px"></div>
+          </div>
+
+          <div class="ap-actions">
+            <button type="button" class="btn btn-ghost" onclick="activateGoToStep(3)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="15 18 9 12 15 6"/></svg>
+              Terug
+            </button>
+            <div class="ap-actions-right">
+              <button type="button" class="btn btn-primary" id="ap-sign-btn" onclick="activateSubmitInPersonSigning()" disabled>Bevestig handtekening</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4b — Remote: verstuur token-link -->
+        <div id="ap-step-4b" class="ap-step-pane" style="display:none">
+          <div class="ap-card">
+            <h3 class="ap-card-title">Verstuur signing-link via mail</h3>
+            <p class="ap-card-sub">De partner krijgt een unieke link die 7 dagen geldig is. Hij moet eerst de vertrouwelijkheidsverklaring (NDA) accepteren vóór hij pricing en contract kan zien.</p>
+            <dl class="ap-summary" id="ap-remote-summary"></dl>
+            <div id="ap-remote-error" class="ap-error-banner" style="display:none;margin-top:14px"></div>
+            <div id="ap-remote-success" style="display:none;margin-top:14px"></div>
+          </div>
+
+          <div class="ap-actions">
+            <button type="button" class="btn btn-ghost" id="ap-remote-back" onclick="activateGoToStep(3)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="15 18 9 12 15 6"/></svg>
+              Terug
+            </button>
+            <div class="ap-actions-right">
+              <button type="button" class="btn btn-primary" id="ap-remote-send" onclick="activateSendRemoteLink()">Verstuur signing-link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Partner Application Lost-modal -->
     <div class="modal-overlay" id="modal-pa-lost" style="z-index:9100">
       <div class="modal" style="max-width:480px">
@@ -7041,6 +7345,8 @@ function showPage(name) {
   if (name === 'flancco-werk' && typeof showFlanccoWerkPage === 'function') showFlanccoWerkPage();
   // Partner-pipeline (admin) — kanban van partner_applications
   if (name === 'partner-pipeline' && typeof showPartnerPipelinePage === 'function') showPartnerPipelinePage();
+  // Slot X.2 — Activeer partner (admin-driven contract-wizard, in-person of remote signing)
+  if (name === 'activate-partner' && typeof showActivatePartnerPage === 'function') showActivatePartnerPage();
   // Slot 0 — Partner Pipeline View: alleen wanneer een partner naar contracten navigeert.
   // Dit is hun primaire werkomgeving (lijst van eigen klanten + status).
   if (name === 'contracten' && userRole === 'partner') {
@@ -9235,6 +9541,10 @@ function viewPartnerApplication(id) {
   if (a.status === 'contract_signed' && !a.partner_id) {
     html += '<button type="button" class="btn btn-primary" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'retrigger_create\')">Maak partner-account</button>';
   }
+  // Slot X.2 — Activeer-knop voor leads/demo_bekeken zonder reeds getekend contract
+  if ((a.status === 'lead' || a.status === 'demo_bekeken') && !a.contract_signed_at) {
+    html += '<button type="button" class="btn btn-primary" onclick="event.stopPropagation();activatePrefillFromApplication(\'' + esc(a.id) + '\')">Activeer</button>';
+  }
   if (a.status !== 'lost') {
     html += '<button type="button" class="btn btn-ghost" style="color:#B91C1C;border-color:#FECACA" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'mark_lost\')">Markeer verloren</button>';
   }
@@ -9347,6 +9657,643 @@ async function confirmPartnerApplicationLost() {
   modal.classList.remove('open');
   renderPartnerPipeline();
 }
+
+// =============================================
+// SLOT X.2 — ACTIVEER PARTNER WIZARD (admin-driven)
+// =============================================
+window.activateState = { applicationId: null, mode: null, step: 1, formData: {} };
+
+var AP_SECTOREN = [
+  { key: 'warmtepomp',           label: 'Warmtepomp' },
+  { key: 'zonnepanelen',         label: 'Zonnepanelen' },
+  { key: 'ventilatie',           label: 'Ventilatie' },
+  { key: 'industriele_koeling',  label: 'Industriële koeling' }
+];
+
+var AP_PRICING_EXAMPLES = [
+  { key: 'klein',  label: 'Klein project',  desc: 'Bv. 10–20 panelen residentieel', forfait: 120, planning_fee: 25 },
+  { key: 'medium', label: 'Medium project', desc: 'Bv. 30–80 panelen KMO',          forfait: 380, planning_fee: 25 },
+  { key: 'groot',  label: 'Groot project',  desc: 'Bv. 100+ panelen industrieel',   forfait: 960, planning_fee: 25 }
+];
+
+var apSigCanvas = null;
+var apSigCtx = null;
+var apSigDrawing = false;
+var apSigHasSig = false;
+
+function showActivatePartnerPage() {
+  var s = window.activateState;
+  // Wanneer geen pre-fill (directe nav vanuit sidebar): reset state + render leeg formulier
+  if (!s.applicationId && !s._prefillingFromCard) {
+    window.activateState = { applicationId: null, mode: null, step: 1, formData: {} };
+  }
+  s = window.activateState;
+  if (s._prefillingFromCard) {
+    // Card-flow: stap 2 (pricing-preview) — formData werd al gevuld door activatePrefillFromApplication
+    s._prefillingFromCard = false;
+    apRenderSectorPills();
+    apFillStep1FromState();
+    activateGoToStep(2);
+  } else {
+    apRenderSectorPills();
+    apFillStep1FromState();
+    activateGoToStep(1);
+  }
+  if (window.flanccoTrack) {
+    try { window.flanccoTrack('Activate Partner Wizard View', { has_application: !!s.applicationId }); } catch (_) {}
+  }
+}
+
+function apRenderSectorPills() {
+  var container = document.getElementById('ap-sectoren-pills');
+  if (!container) return;
+  var selected = (window.activateState.formData && window.activateState.formData.sectoren) || [];
+  var html = AP_SECTOREN.map(function(s) {
+    var sel = selected.indexOf(s.key) >= 0;
+    return '<div class="ap-pill' + (sel ? ' selected' : '') + '" role="checkbox" tabindex="0" aria-checked="' + (sel ? 'true' : 'false') + '" data-sector="' + esc(s.key) + '" onclick="apToggleSector(\'' + esc(s.key) + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();apToggleSector(\'' + esc(s.key) + '\');}">' + esc(s.label) + '</div>';
+  }).join('');
+  container.innerHTML = html;
+}
+
+function apToggleSector(key) {
+  var fd = window.activateState.formData = window.activateState.formData || {};
+  fd.sectoren = Array.isArray(fd.sectoren) ? fd.sectoren.slice() : [];
+  var i = fd.sectoren.indexOf(key);
+  if (i >= 0) fd.sectoren.splice(i, 1); else fd.sectoren.push(key);
+  apRenderSectorPills();
+  var errEl = document.getElementById('ap-sectoren-err');
+  if (errEl && fd.sectoren.length > 0) errEl.style.display = 'none';
+}
+
+function apFillStep1FromState() {
+  var fd = window.activateState.formData || {};
+  var setVal = function(id, v) { var el = document.getElementById(id); if (el) el.value = v == null ? '' : v; };
+  setVal('ap-bedrijfsnaam', fd.bedrijfsnaam);
+  setVal('ap-btw', fd.btw_nummer);
+  setVal('ap-website', fd.website);
+  setVal('ap-voornaam', fd.contactpersoon_voornaam);
+  setVal('ap-naam', fd.contactpersoon_naam);
+  setVal('ap-email', fd.contactpersoon_email);
+  setVal('ap-telefoon', fd.contactpersoon_telefoon);
+  setVal('ap-adres', fd.adres);
+  setVal('ap-postcode', fd.postcode);
+  setVal('ap-gemeente', fd.gemeente);
+  setVal('ap-notitie', fd.notitie);
+  var marge = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 15;
+  if (marge < 10) marge = 10; else if (marge > 20) marge = 20;
+  var mEl = document.getElementById('ap-marge');
+  var mLab = document.getElementById('ap-marge-val');
+  if (mEl) mEl.value = marge;
+  if (mLab) mLab.textContent = marge + '%';
+}
+
+function activateGoToStep(n) {
+  var paneIds = ['ap-step-1', 'ap-step-2', 'ap-step-3', 'ap-step-4a', 'ap-step-4b'];
+  paneIds.forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  var s = window.activateState;
+  s.step = n;
+  if (n === 1) document.getElementById('ap-step-1').style.display = '';
+  else if (n === 2) {
+    document.getElementById('ap-step-2').style.display = '';
+    apRenderPricingPreview();
+  } else if (n === 3) document.getElementById('ap-step-3').style.display = '';
+  else if (n === 4) {
+    if (s.mode === 'in_person') {
+      document.getElementById('ap-step-4a').style.display = '';
+      apRenderContractBody();
+      // Init na DOM toonbaar wordt
+      setTimeout(apInitSignaturePad, 30);
+    } else if (s.mode === 'remote') {
+      document.getElementById('ap-step-4b').style.display = '';
+      apRenderRemoteSummary();
+    }
+  }
+  apUpdateProgressIndicator(n);
+  // Scroll naar boven van wizard-shell voor consistente UX
+  var shell = document.querySelector('#page-activate-partner .ap-shell');
+  if (shell) shell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function apUpdateProgressIndicator(n) {
+  var bar = document.getElementById('ap-progress');
+  if (!bar) return;
+  bar.querySelectorAll('.ap-step-pill').forEach(function(p) {
+    var step = parseInt(p.getAttribute('data-step'), 10);
+    p.classList.toggle('active', step === n);
+    p.classList.toggle('done', step < n);
+  });
+  bar.querySelectorAll('.ap-step-bar').forEach(function(b) {
+    var idx = parseInt(b.getAttribute('data-bar'), 10);
+    b.classList.toggle('done', idx < n);
+  });
+}
+
+function activateValidateStep1() {
+  var ok = true;
+  var setErr = function(id, has) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var field = el.closest('.ap-field');
+    if (has) { el.classList.add('ap-err'); if (field) field.classList.add('has-err'); }
+    else     { el.classList.remove('ap-err'); if (field) field.classList.remove('has-err'); }
+  };
+  var bedrijfsnaam = (document.getElementById('ap-bedrijfsnaam').value || '').trim();
+  setErr('ap-bedrijfsnaam', bedrijfsnaam.length < 2); if (bedrijfsnaam.length < 2) ok = false;
+  var voornaam = (document.getElementById('ap-voornaam').value || '').trim();
+  setErr('ap-voornaam', !voornaam); if (!voornaam) ok = false;
+  var naam = (document.getElementById('ap-naam').value || '').trim();
+  setErr('ap-naam', !naam); if (!naam) ok = false;
+  var email = (document.getElementById('ap-email').value || '').trim();
+  var emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  setErr('ap-email', !emailValid); if (!emailValid) ok = false;
+  var postcode = (document.getElementById('ap-postcode').value || '').trim();
+  if (postcode && !/^\d{4}$/.test(postcode)) { setErr('ap-postcode', true); ok = false; } else { setErr('ap-postcode', false); }
+  var sectoren = (window.activateState.formData && window.activateState.formData.sectoren) || [];
+  var sectErr = document.getElementById('ap-sectoren-err');
+  if (sectoren.length === 0) { if (sectErr) sectErr.style.display = 'block'; ok = false; } else { if (sectErr) sectErr.style.display = 'none'; }
+  return ok;
+}
+
+function apCollectStep1Data() {
+  var fd = window.activateState.formData = window.activateState.formData || {};
+  var get = function(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+  fd.bedrijfsnaam            = get('ap-bedrijfsnaam');
+  fd.btw_nummer              = get('ap-btw').replace(/[\s.\-]/g, '').toUpperCase();
+  fd.website                 = get('ap-website');
+  fd.contactpersoon_voornaam = get('ap-voornaam');
+  fd.contactpersoon_naam     = get('ap-naam');
+  fd.contactpersoon_email    = get('ap-email');
+  fd.contactpersoon_telefoon = get('ap-telefoon');
+  fd.adres                   = get('ap-adres');
+  fd.postcode                = get('ap-postcode');
+  fd.gemeente                = get('ap-gemeente');
+  fd.notitie                 = get('ap-notitie');
+  fd.marge_pct               = parseInt(document.getElementById('ap-marge').value, 10) || 15;
+  if (fd.marge_pct < 10) fd.marge_pct = 10;
+  if (fd.marge_pct > 20) fd.marge_pct = 20;
+  return fd;
+}
+
+async function activateValidateBTW() {
+  var btn = document.getElementById('ap-btw-validate');
+  var msg = document.getElementById('ap-btw-msg');
+  var inp = document.getElementById('ap-btw');
+  if (!btn || !inp) return;
+  var btw = (inp.value || '').replace(/[\s.\-]/g, '').toUpperCase();
+  if (!btw) { msg.textContent = 'Geen BTW-nummer ingevuld.'; msg.style.display = 'block'; msg.style.color = '#B91C1C'; return; }
+  inp.value = btw;
+  btn.disabled = true;
+  btn.textContent = 'Bezig…';
+  try {
+    var resp = await fetch(SUPA_URL + '/functions/v1/validate-vat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+      body: JSON.stringify({ btw_nummer: btw })
+    });
+    var data = await resp.json().catch(function() { return null; });
+    if (data && data.valid === true) {
+      window.activateState.formData = window.activateState.formData || {};
+      window.activateState.formData.btw_validated_payload = data;
+      msg.textContent = 'BTW-nummer geldig' + (data.bedrijfsnaam ? ' — ' + data.bedrijfsnaam : '');
+      msg.style.display = 'block';
+      msg.style.color = '#047857';
+      // Auto-fill van VIES indien velden leeg
+      var setIfEmpty = function(id, val) { var el = document.getElementById(id); if (el && !el.value && val) el.value = val; };
+      setIfEmpty('ap-bedrijfsnaam', data.bedrijfsnaam || data.name);
+      setIfEmpty('ap-adres',        data.adres || data.address);
+      setIfEmpty('ap-postcode',     data.postcode);
+      setIfEmpty('ap-gemeente',     data.gemeente || data.city);
+    } else if (data && data.valid === false) {
+      msg.textContent = 'BTW-nummer niet geldig in VIES.';
+      msg.style.display = 'block';
+      msg.style.color = '#B91C1C';
+    } else {
+      msg.textContent = 'Validatie kon niet worden uitgevoerd. Veld blijft optioneel.';
+      msg.style.display = 'block';
+      msg.style.color = '#92400E';
+    }
+  } catch (e) {
+    msg.textContent = 'Validatie-service niet bereikbaar — veld blijft optioneel.';
+    msg.style.display = 'block';
+    msg.style.color = '#92400E';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Valideer';
+  }
+}
+
+async function activateSubmitStep1() {
+  if (!activateValidateStep1()) {
+    showToast('Vul de verplichte velden correct in', 'error');
+    return;
+  }
+  var fd = apCollectStep1Data();
+  var btn = document.getElementById('ap-step1-next');
+  var s = window.activateState;
+  // Bestaande application: skip RPC-insert, ga direct naar pricing-preview
+  if (s.applicationId) {
+    activateGoToStep(2);
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Bezig…'; }
+  try {
+    var rpc = await sb.rpc('admin_create_partner_application', {
+      p_bedrijfsnaam: fd.bedrijfsnaam,
+      p_contactpersoon_voornaam: fd.contactpersoon_voornaam,
+      p_contactpersoon_naam: fd.contactpersoon_naam,
+      p_contactpersoon_email: fd.contactpersoon_email,
+      p_contactpersoon_telefoon: fd.contactpersoon_telefoon || null,
+      p_btw_nummer: fd.btw_nummer || null,
+      p_btw_validated_payload: fd.btw_validated_payload || null,
+      p_website: fd.website || null,
+      p_adres: fd.adres || null,
+      p_postcode: fd.postcode || null,
+      p_gemeente: fd.gemeente || null,
+      p_sectoren: fd.sectoren || [],
+      p_marge_pct: fd.marge_pct,
+      p_lang: 'nl',
+      p_notitie: fd.notitie || null
+    });
+    if (rpc.error) throw rpc.error;
+    var newId = rpc.data;
+    if (Array.isArray(newId)) newId = newId[0];
+    if (newId && typeof newId === 'object') newId = newId.application_id || newId.id || null;
+    if (!newId) throw new Error('Geen application-id terug van RPC');
+    s.applicationId = newId;
+    showToast('Aanvraag aangemaakt');
+    activateGoToStep(2);
+  } catch (e) {
+    console.error('admin_create_partner_application error:', e);
+    showToast('Aanmaken mislukt: ' + (e.message || 'onbekende fout'), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Volgende <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px"><polyline points="9 18 15 12 9 6"/></svg>'; }
+  }
+}
+
+function apFormatEUR(n) {
+  return new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
+}
+
+function apRenderPricingPreview() {
+  var fd = window.activateState.formData || {};
+  var marge = typeof fd.marge_pct === 'number' ? fd.marge_pct : 15;
+  var margeEl = document.getElementById('ap-pr-marge');
+  if (margeEl) margeEl.textContent = marge + '%';
+  var tbody = document.getElementById('ap-pr-tbody');
+  if (!tbody) return;
+  var rows = AP_PRICING_EXAMPLES.map(function(ex) {
+    var subtotal = ex.forfait * (1 + marge / 100) + ex.planning_fee;
+    var inclBtw  = subtotal * 1.21;
+    var margeAmt = ex.forfait * (marge / 100);
+    return '<tr>' +
+      '<td><strong>' + esc(ex.label) + '</strong><br><span style="font-size:11.5px;color:var(--grey)">' + esc(ex.desc) + '</span></td>' +
+      '<td class="num">' + apFormatEUR(subtotal) + '</td>' +
+      '<td class="num"><strong>' + apFormatEUR(inclBtw) + '</strong></td>' +
+      '<td class="num" style="color:#10B981">' + apFormatEUR(margeAmt) + '</td>' +
+    '</tr>';
+  }).join('');
+  tbody.innerHTML = rows;
+}
+
+function activateChooseMode(mode) {
+  if (mode !== 'in_person' && mode !== 'remote') return;
+  if (!window.activateState.applicationId) {
+    showToast('Application-id ontbreekt — keer terug naar stap 1', 'error');
+    activateGoToStep(1);
+    return;
+  }
+  window.activateState.mode = mode;
+  activateGoToStep(4);
+}
+
+function apRenderContractBody() {
+  var fd = window.activateState.formData || {};
+  var bedrijf  = esc(fd.bedrijfsnaam || '—');
+  var voornaam = esc(fd.contactpersoon_voornaam || '');
+  var naam     = esc(fd.contactpersoon_naam || '');
+  var btw      = esc(fd.btw_nummer || '—');
+  var adres    = esc([fd.adres, [fd.postcode, fd.gemeente].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—');
+  var sectoren = (Array.isArray(fd.sectoren) ? fd.sectoren : []).map(function(s) {
+    var v = String(s || '').replace(/_/g, ' ');
+    return v.charAt(0).toUpperCase() + v.slice(1);
+  }).join(', ') || '—';
+  var marge    = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 15;
+  var datum    = new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
+  var html = '';
+  html += '<h3>Tussen</h3>';
+  html += '<p><strong>Flancco BV</strong>, gevestigd te België, hierna <strong>"Flancco"</strong>.</p>';
+  html += '<h3>En</h3>';
+  html += '<p><strong>' + bedrijf + '</strong> (BTW ' + btw + ', gevestigd te ' + adres + '), vertegenwoordigd door <strong>' + voornaam + ' ' + naam + '</strong>, hierna <strong>"Partner"</strong>.</p>';
+  html += '<h3>Voorwerp</h3>';
+  html += '<p>Flancco voert in opdracht van Partner technische onderhouds- en reinigingsdiensten uit op installaties die Partner heeft geleverd of geïnstalleerd bij eindklanten, binnen de volgende sectoren: <strong>' + esc(sectoren) + '</strong>.</p>';
+  html += '<h3>Prijszetting</h3>';
+  html += '<p>Flancco hanteert een vaste forfaitstructuur per beurt op basis van projectomvang. Partner past op deze forfait een marge toe van <strong>' + marge + '%</strong>, vermeerderd met een planning fee. Het totaalbedrag wordt aan de eindklant gefactureerd door Partner.</p>';
+  html += '<h3>White-label uitvoering</h3>';
+  html += '<p>Flancco voert de werken uit onder het merk en in opdracht van Partner. Partner blijft de exclusieve commerciële relatie met de eindklant.</p>';
+  html += '<h3>Looptijd en opzeg</h3>';
+  html += '<p>Deze overeenkomst gaat in op de datum van ondertekening en geldt voor onbepaalde duur. Beide partijen kunnen opzeggen mits een schriftelijke opzegtermijn van één (1) maand.</p>';
+  html += '<h3>GDPR</h3>';
+  html += '<p>Beide partijen erkennen de bepalingen van de AVG (Verordening 2016/679). Persoonsgegevens van eindklanten worden uitsluitend verwerkt voor de uitvoering van deze overeenkomst.</p>';
+  html += '<h3>Toepasselijk recht</h3>';
+  html += '<p>Op deze overeenkomst is uitsluitend Belgisch recht van toepassing. Geschillen vallen onder de exclusieve bevoegdheid van de ondernemingsrechtbanken te Gent.</p>';
+  html += '<p style="margin-top:14px"><strong>Voor akkoord, ' + esc(datum) + '.</strong></p>';
+  var body = document.getElementById('ap-contract-body');
+  if (body) body.innerHTML = html;
+}
+
+function apInitSignaturePad() {
+  apSigCanvas = document.getElementById('ap-sig-canvas');
+  if (!apSigCanvas) return;
+  apSigCtx = apSigCanvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = apSigCanvas.getBoundingClientRect();
+  var targetW = Math.max(800, Math.round(rect.width * dpr));
+  var targetH = Math.round(200 * dpr);
+  apSigCanvas.width = targetW;
+  apSigCanvas.height = targetH;
+  apSigCtx.lineWidth = 2.4 * dpr;
+  apSigCtx.lineCap = 'round';
+  apSigCtx.lineJoin = 'round';
+  apSigCtx.strokeStyle = '#1A1A2E';
+  apSigHasSig = false;
+  var wrap = document.getElementById('ap-sig-wrap');
+  if (wrap) wrap.classList.remove('has-sig');
+  apUpdateSignBtn();
+
+  function getPos(e) {
+    var r = apSigCanvas.getBoundingClientRect();
+    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - r.left) * (apSigCanvas.width / r.width), y: (clientY - r.top) * (apSigCanvas.height / r.height) };
+  }
+  function start(e) { e.preventDefault(); apSigDrawing = true; var p = getPos(e); apSigCtx.beginPath(); apSigCtx.moveTo(p.x, p.y); }
+  function draw(e)  { if (!apSigDrawing) return; e.preventDefault(); var p = getPos(e); apSigCtx.lineTo(p.x, p.y); apSigCtx.stroke(); if (!apSigHasSig) { apSigHasSig = true; var w = document.getElementById('ap-sig-wrap'); if (w) w.classList.add('has-sig'); apUpdateSignBtn(); } }
+  function end()    { apSigDrawing = false; }
+
+  // Eerst oude listeners verwijderen door canvas te clonen — voorkomt dubbele binds bij her-init
+  var clone = apSigCanvas.cloneNode(true);
+  apSigCanvas.parentNode.replaceChild(clone, apSigCanvas);
+  apSigCanvas = clone;
+  apSigCtx = apSigCanvas.getContext('2d');
+  apSigCanvas.width = targetW;
+  apSigCanvas.height = targetH;
+  apSigCtx.lineWidth = 2.4 * dpr;
+  apSigCtx.lineCap = 'round';
+  apSigCtx.lineJoin = 'round';
+  apSigCtx.strokeStyle = '#1A1A2E';
+
+  apSigCanvas.addEventListener('mousedown', start);
+  apSigCanvas.addEventListener('mousemove', draw);
+  apSigCanvas.addEventListener('mouseup', end);
+  apSigCanvas.addEventListener('mouseleave', end);
+  apSigCanvas.addEventListener('touchstart', start, { passive: false });
+  apSigCanvas.addEventListener('touchmove', draw, { passive: false });
+  apSigCanvas.addEventListener('touchend', end);
+}
+
+function activateClearSignature() {
+  if (!apSigCtx || !apSigCanvas) return;
+  apSigCtx.clearRect(0, 0, apSigCanvas.width, apSigCanvas.height);
+  apSigHasSig = false;
+  var w = document.getElementById('ap-sig-wrap');
+  if (w) w.classList.remove('has-sig');
+  var err = document.getElementById('ap-sig-error');
+  if (err) err.style.display = 'none';
+  apUpdateSignBtn();
+}
+
+function apUpdateSignBtn() {
+  var btn = document.getElementById('ap-sign-btn');
+  if (btn) btn.disabled = !apSigHasSig;
+}
+
+function apGetSignatureBase64() {
+  if (!apSigHasSig || !apSigCanvas) return null;
+  var out = document.createElement('canvas');
+  out.width = apSigCanvas.width;
+  out.height = apSigCanvas.height;
+  var octx = out.getContext('2d');
+  octx.fillStyle = '#FFFFFF';
+  octx.fillRect(0, 0, out.width, out.height);
+  octx.drawImage(apSigCanvas, 0, 0);
+  return out.toDataURL('image/png');
+}
+
+async function apFetchClientIp() {
+  try {
+    var ctrl = new AbortController();
+    var t = setTimeout(function() { ctrl.abort(); }, 4000);
+    var resp = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal, cache: 'no-store' });
+    clearTimeout(t);
+    if (!resp.ok) return null;
+    var data = await resp.json().catch(function() { return null; });
+    return (data && data.ip) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function activateSubmitInPersonSigning() {
+  var btn = document.getElementById('ap-sign-btn');
+  var errEl = document.getElementById('ap-sig-error');
+  if (errEl) errEl.style.display = 'none';
+  if (!apSigHasSig) {
+    if (errEl) { errEl.textContent = 'Plaats eerst een handtekening.'; errEl.style.display = 'block'; }
+    return;
+  }
+  var s = window.activateState;
+  if (!s.applicationId) {
+    if (errEl) { errEl.textContent = 'Application-id ontbreekt. Keer terug naar stap 1.'; errEl.style.display = 'block'; }
+    return;
+  }
+  var base64 = apGetSignatureBase64();
+  if (!base64) {
+    if (errEl) { errEl.textContent = 'Handtekening kon niet worden geëxporteerd. Probeer opnieuw.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Bezig met registreren…'; }
+  try {
+    var ip = await apFetchClientIp();
+    var rpc = await sb.rpc('admin_record_in_person_signing', {
+      p_application_id: s.applicationId,
+      p_handtekening_base64: base64,
+      p_signing_ip: ip,
+      p_signing_user_agent: (navigator && navigator.userAgent) ? String(navigator.userAgent).slice(0, 500) : null
+    });
+    if (rpc.error) throw rpc.error;
+    showToast('Contract digitaal ondertekend');
+    if (window.flanccoTrack) {
+      try { window.flanccoTrack('Activate Partner Signed', { mode: 'in_person', application_id: s.applicationId }); } catch (_) {}
+    }
+    // Reset wizard-state + reload pipeline
+    window.activateState = { applicationId: null, mode: null, step: 1, formData: {} };
+    showPage('partner-pipeline');
+    if (typeof loadPartnerPipeline === 'function') loadPartnerPipeline();
+  } catch (e) {
+    console.error('admin_record_in_person_signing error:', e);
+    if (errEl) { errEl.textContent = 'Registratie mislukt: ' + (e.message || 'onbekende fout') + '. Probeer opnieuw of contacteer support.'; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = !apSigHasSig; btn.textContent = 'Bevestig handtekening'; }
+  }
+}
+
+function apRenderRemoteSummary() {
+  var fd = window.activateState.formData || {};
+  var dl = document.getElementById('ap-remote-summary');
+  if (!dl) return;
+  var sectoren = (Array.isArray(fd.sectoren) ? fd.sectoren : []).map(function(s) {
+    var v = String(s || '').replace(/_/g, ' ');
+    return v.charAt(0).toUpperCase() + v.slice(1);
+  }).join(', ') || '—';
+  dl.innerHTML =
+    '<dt>Bedrijf</dt><dd>' + esc(fd.bedrijfsnaam || '—') + '</dd>' +
+    '<dt>Contactpersoon</dt><dd>' + esc(((fd.contactpersoon_voornaam || '') + ' ' + (fd.contactpersoon_naam || '')).trim() || '—') + '</dd>' +
+    '<dt>E-mail</dt><dd>' + esc(fd.contactpersoon_email || '—') + '</dd>' +
+    '<dt>Sectoren</dt><dd>' + esc(sectoren) + '</dd>' +
+    '<dt>Marge</dt><dd>' + ((typeof fd.marge_pct === 'number') ? fd.marge_pct + '%' : '—') + '</dd>';
+  // Reset success/error states
+  var succ = document.getElementById('ap-remote-success');
+  var err  = document.getElementById('ap-remote-error');
+  if (succ) { succ.style.display = 'none'; succ.innerHTML = ''; }
+  if (err)  { err.style.display = 'none'; err.textContent = ''; }
+  var sendBtn = document.getElementById('ap-remote-send');
+  if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Verstuur signing-link'; }
+}
+
+async function activateSendRemoteLink() {
+  var s = window.activateState;
+  var sendBtn = document.getElementById('ap-remote-send');
+  var errEl  = document.getElementById('ap-remote-error');
+  var succEl = document.getElementById('ap-remote-success');
+  if (errEl)  { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (succEl) { succEl.style.display = 'none'; succEl.innerHTML = ''; }
+  if (!s.applicationId) {
+    if (errEl) { errEl.textContent = 'Application-id ontbreekt. Keer terug naar stap 1.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Bezig met versturen…'; }
+  try {
+    var session = await sb.auth.getSession();
+    var token = (session && session.data && session.data.session && session.data.session.access_token) || '';
+    if (!token) throw new Error('Geen actieve sessie — log opnieuw in');
+    var resp = await fetch(SUPA_URL + '/functions/v1/send-partner-contract-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY },
+      body: JSON.stringify({ application_id: s.applicationId, ttl_days: 7 })
+    });
+    var json = await resp.json().catch(function() { return null; });
+    if (!resp.ok || !json || json.ok !== true) {
+      var detail = (json && (json.error || json.detail || json.message)) || ('HTTP ' + resp.status);
+      throw new Error(detail);
+    }
+    var fd = window.activateState.formData || {};
+    var expDate = json.expires_at ? new Date(json.expires_at) : null;
+    var expStr = expDate ? expDate.toLocaleString('nl-BE', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+    var url = json.signing_url || '';
+    var html = '<div class="ap-success">';
+    html += '<div class="ap-success-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>';
+    html += '<h4 style="margin:0 0 8px;font-size:16px;color:var(--navy)">Link verstuurd naar ' + esc(fd.contactpersoon_email || '—') + '</h4>';
+    if (expStr) html += '<p style="margin:0 0 16px;font-size:13px;color:var(--grey)">De link verloopt op <strong>' + esc(expStr) + '</strong>.</p>';
+    if (url) {
+      html += '<div class="ap-link-copy" style="text-align:left">';
+      html += '<input type="text" id="ap-remote-url" value="' + esc(url) + '" readonly>';
+      html += '<button type="button" class="btn btn-secondary btn-sm" onclick="apCopyRemoteUrl()">Kopieer link</button>';
+      html += '</div>';
+      html += '<p style="margin:10px 0 0;font-size:11.5px;color:var(--grey)">Bewaar deze link als back-up — je kan ze ook handmatig versturen indien de partner de mail niet ontvangt.</p>';
+    }
+    html += '<div style="margin-top:18px"><button type="button" class="btn btn-primary" onclick="apFinishRemoteFlow()">Sluiten</button></div>';
+    html += '</div>';
+    if (succEl) { succEl.innerHTML = html; succEl.style.display = 'block'; }
+    if (sendBtn) sendBtn.style.display = 'none';
+    var backBtn = document.getElementById('ap-remote-back');
+    if (backBtn) backBtn.style.display = 'none';
+    if (window.flanccoTrack) {
+      try { window.flanccoTrack('Activate Partner Link Sent', { application_id: s.applicationId }); } catch (_) {}
+    }
+  } catch (e) {
+    console.error('send-partner-contract-link error:', e);
+    if (errEl) { errEl.textContent = 'Versturen mislukt: ' + (e.message || 'onbekende fout') + '. Probeer opnieuw.'; errEl.style.display = 'block'; }
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Opnieuw versturen'; }
+  }
+}
+
+function apCopyRemoteUrl() {
+  var inp = document.getElementById('ap-remote-url');
+  if (!inp) return;
+  inp.select();
+  inp.setSelectionRange(0, 99999);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(inp.value).then(function() { showToast('Link gekopieerd', 'info'); }, function() {
+        document.execCommand('copy'); showToast('Link gekopieerd', 'info');
+      });
+    } else {
+      document.execCommand('copy');
+      showToast('Link gekopieerd', 'info');
+    }
+  } catch (_) { showToast('Kopiëren mislukt — selecteer en kopieer manueel', 'error'); }
+}
+
+function apFinishRemoteFlow() {
+  window.activateState = { applicationId: null, mode: null, step: 1, formData: {} };
+  showPage('partner-pipeline');
+  if (typeof loadPartnerPipeline === 'function') loadPartnerPipeline();
+}
+
+async function activatePrefillFromApplication(applicationId) {
+  if (!applicationId) return;
+  try {
+    var res = await sb.from('partner_applications').select('*').eq('id', applicationId).maybeSingle();
+    if (res.error) throw res.error;
+    var a = res.data;
+    if (!a) { showToast('Aanvraag niet gevonden', 'error'); return; }
+    if (a.contract_signed_at) {
+      showToast('Deze aanvraag is reeds ondertekend', 'info');
+      return;
+    }
+    window.activateState = {
+      applicationId: a.id,
+      mode: null,
+      step: 2,
+      _prefillingFromCard: true,
+      formData: {
+        bedrijfsnaam:              a.bedrijfsnaam || '',
+        btw_nummer:                a.btw_nummer || '',
+        btw_validated_payload:     a.btw_validated_payload || null,
+        website:                   a.website || '',
+        contactpersoon_voornaam:   a.contactpersoon_voornaam || '',
+        contactpersoon_naam:       a.contactpersoon_naam || '',
+        contactpersoon_email:      a.contactpersoon_email || '',
+        contactpersoon_telefoon:   a.contactpersoon_telefoon || '',
+        adres:                     a.adres || '',
+        postcode:                  a.postcode || '',
+        gemeente:                  a.gemeente || '',
+        sectoren:                  Array.isArray(a.sectoren) ? a.sectoren.slice() : [],
+        marge_pct:                 (typeof a.marge_pct === 'number') ? a.marge_pct : 15,
+        notitie:                   a.notitie || ''
+      }
+    };
+    var modal = document.getElementById('modal-pa-detail');
+    if (modal) modal.classList.remove('open');
+    showPage('activate-partner');
+  } catch (e) {
+    console.error('activatePrefillFromApplication error:', e);
+    showToast('Pre-fill mislukt: ' + (e.message || 'onbekende fout'), 'error');
+  }
+}
+
+window.showActivatePartnerPage     = showActivatePartnerPage;
+window.activateGoToStep            = activateGoToStep;
+window.activateSubmitStep1         = activateSubmitStep1;
+window.activateChooseMode          = activateChooseMode;
+window.activateSubmitInPersonSigning = activateSubmitInPersonSigning;
+window.activateSendRemoteLink      = activateSendRemoteLink;
+window.activatePrefillFromApplication = activatePrefillFromApplication;
+window.activateClearSignature      = activateClearSignature;
+window.activateValidateBTW         = activateValidateBTW;
+window.apToggleSector              = apToggleSector;
+window.apCopyRemoteUrl             = apCopyRemoteUrl;
+window.apFinishRemoteFlow          = apFinishRemoteFlow;
 
 // =============================================
 // ONBOARDING WIZARD (partner first-login)

@@ -53,6 +53,8 @@ Flancco-tools/
 │   └── werklocatie-picker-demo.html — Standalone test 3 scenarios
 ├── novectra/index.html            — Calculator voor partner Novectra
 ├── cwsolar/index.html             — Calculator voor partner CW Solar
+├── onboard/v2/index.html          — Publieke partner-onboarding (5 stappen, callback-only flow)
+├── onboard/sign/index.html        — Slot X.2 Mode B remote signing-pagina (NDA-popup + canvas)
 ├── scripts/                       — CI-tooling (geen runtime-dep)
 │   ├── check-supabase-columns.mjs — Schema-drift detectie: vergelijkt geclaimde kolomnamen in HTML/JS-files met werkelijke DB-kolommen via Supabase MCP. Returns non-zero exit-code bij mismatch.
 │   └── README.md                  — Run-instructies + interpretatie van output
@@ -170,6 +172,24 @@ Slot V (Onderhoud) en Slot W (Flancco-werk) zijn twee nieuwe pipeline-pagina's i
 - `partners.sla_fase_{1,2,4,5}_uren INT NULL` (Toolkit-5) — per partner SLA per fase
 - `runbook_tooltips` (Toolkit-5) — admin-bewerkbare tooltips, UNIQUE (fase, action_key), 10 NL pre-seed defaults
 
+### Slot X.2 schema-additions (2026-05-01)
+Admin-driven partner-activation flow vervangt de eerder geplande publieke self-service Pad B (`/onboard/v2/` heeft nu enkel callback-flow). Gillian schermt elke prospect persoonlijk vooraf, opent dan de admin-wizard "Activeer partner" en kiest tussen Mode A (in-person canvas op admin laptop) of Mode B (token-link via mail met NDA-popup vóór pricing). Audit-trail kolommen op `partner_applications`:
+- `created_by_user_id UUID FK auth.users` — admin die de application heeft aangemaakt vanuit de wizard
+- `signing_mode TEXT CHECK (in_person|remote)` — audit welk pad gebruikt werd
+- `signing_token TEXT UNIQUE` + `signing_token_expires_at TIMESTAMPTZ` + `signing_token_used_count INT DEFAULT 0` + `signing_token_max_uses INT DEFAULT 3` — Mode B token-lifecycle (7d TTL, max 3 clicks)
+- `confidentiality_ack_ts/ip/user_agent/version` — NDA-acknowledgment audit (Mode B vereist `confidentiality_ack_ts IS NOT NULL` vóór signing)
+- `pricing_shown_at/ip` — registreert wanneer/waar de officiële pricing voor het eerst getoond werd aan de partner (audit voor pricing-disclosure)
+- `signed_with_witness_user_id UUID FK auth.users` — Mode A registreert de admin als getuige
+- Indexen: `idx_partner_applications_signing_token` (sparse) + `idx_partner_applications_created_by` (sparse)
+
+**6 nieuwe SECURITY DEFINER RPC's**:
+- `admin_create_partner_application(...)` — admin-only, maakt application aan met `status='demo_bekeken'`, marge_pct CHECK 10-20
+- `admin_record_in_person_signing(application_id, signature_base64, ip, ua)` — admin-only, Mode A, registreert signing met witness=caller
+- `admin_generate_signing_token(application_id, ttl_days)` — admin-only, returnt `(token, expires_at)`. 64-char hex via dubbele `gen_random_uuid()` (256 bits entropy, geen pgcrypto-extension nodig). Reset `used_count=0` bij re-genereren
+- `public_consume_signing_token(token, action='open'|'verify')` — anon, valideert + verhoogt `used_count` bij `open`. Returnt JSONB met partner-context + remaining_uses. Errors: `invalid_token`, `token_not_found`, `token_expired`, `token_max_uses_reached`, `already_signed`
+- `public_acknowledge_confidentiality(token, ip, ua, version)` — anon, registreert NDA-akkoord. Idempotent (COALESCE). Versie-string default `v1.0-nl`
+- `public_record_remote_signing(token, signature_base64, ip, ua)` — anon, Mode B finale signing. Vereist `confidentiality_ack_ts IS NOT NULL` (NDA gezet)
+
 ### Database Views
 - `v_winstgevendheid_per_partner` (Slot G, applied Wave 4a) — YTD-aggregatie per actieve partner: aantal afgewerkte beurten, omzet_excl_btw, planning_fee_kost, arbeids-/reis-/materiaalkost, brutomarge. `security_invoker=on`; admin ziet alle rijen, partner enkel eigen contracten via RLS.
 - `v_winstgevendheid_per_sector` (Slot G, applied Wave 4a) — Idem per genormaliseerde sector (`warmtepomp_*` → `warmtepomp`, whitelist of `overig`).
@@ -199,6 +219,7 @@ Bundel kleine maar kritieke fixes uit commits `5ecb2b0` → `ef5f02a`:
 - `send-klant-notification-sms` (Slot F) — Twilio Programmable SMS. E.164-normalisatie (BE shortform `04XX` → `+324XX`). Daily-cap via `TWILIO_DAILY_CAP` (default 100). Returns 503 `twilio_not_configured` zonder beurt-ts update bij ontbrekende secrets. `rapport_klaar` geweigerd via SMS. Consent vereist expliciete opt-in (kanaal=`sms`). (verify_jwt=false, custom auth)
 - `send-klant-notification-whatsapp` (Slot F) — Meta WhatsApp Cloud API. Template-first payload `klant_${event_type}_${lang}` met components (header/body/button). Freeform fallback enkel via admin-JWT in 24h-venster. Daily-cap via `WHATSAPP_DAILY_CAP`. (verify_jwt=false, custom auth)
 - `dispatch-klant-notifications` (Slot F) — pg_cron orchestrator (07:15 UTC dagelijks). Service-role bearer enforced (constant-time). Selecteert beurten met `plan_datum=tomorrow` (reminder_24h) en `plan_datum=today AND status='ingepland'` (reminder_day), vuurt parallel 3 kanalen via `Promise.allSettled`. `DISPATCH_MAX_BATCH=500`, channel-toggles via `DISPATCH_ENABLE_EMAIL/SMS/WHATSAPP`. (verify_jwt=false, service-role only)
+- `send-partner-contract-link` (Slot X.2, verify_jwt=true) — admin-only Mode B trigger. Genereert signing-token via `admin_generate_signing_token` RPC + verstuurt mail naar prospect-partner met unieke link `${APP_BASE_URL}/onboard/sign/?token=<token>`. NL-template, dd/mm/yyyy via Intl.DateTimeFormat Europe/Brussels. Token blijft geldig bij Resend-failure (admin kan handmatig URL ophalen). Logt enkel `application_id` + `email_domain` (geen tokens, geen volledige adressen).
 - `invite-partner`, `invite-partner-member`, `create-bediende` — gebruikers-invites (admin-only)
 
 ### Scheduled Jobs (pg_cron)
