@@ -60,12 +60,34 @@
   // zodat latere inline-scripts (na <html>-parse en bij #sidebar-logo) dezelfde data gebruiken.
   // Cache wordt door applyBranding() gevuld en door doLogout() gewist.
   // Inline <html>-style wint over :root-regels in <style>.
+  //
+  // user_id-gating (Bug B fix): Supabase bewaart het auth-token onder
+  // sb-<project>-auth-token in localStorage. Lezen we dat token uit, dan kunnen we
+  // de cache-user_id vergelijken met de huidige session-user en stale cache van
+  // een andere user (bv. partner-sessie blijft hangen, daarna admin-login op
+  // hetzelfde device) negeren in plaats van per ongeluk pre-paint toe te passen.
   (function(){
     try {
       var raw = localStorage.getItem('flancco_partner_branding');
       if (!raw) return;
       var b = JSON.parse(raw);
       if (!b || !b.kleur_donker) return;
+      // Stale-cache guard: als er een actieve session is en de user_id matcht niet
+      // met de cache-user_id, beschouw cache als verouderd en wis 'm.
+      // (Geen session in localStorage = geen vergelijking mogelijk = cache toepassen,
+      // want first-time load of hard-reload zonder tab-state.)
+      try {
+        var authRaw = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+        if (authRaw) {
+          var auth = JSON.parse(authRaw);
+          var sessionUserId = auth && auth.user && auth.user.id;
+          if (sessionUserId && b.user_id && b.user_id !== sessionUserId) {
+            // Cache is van een andere user — wissen + niet toepassen.
+            try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+            return;
+          }
+        }
+      } catch(_) { /* auth-token parse-fail: val terug op cache toepassen */ }
       window.__flanccoBoot = b;
       var root = document.documentElement;
       root.style.setProperty('--navy', b.kleur_donker);
@@ -96,12 +118,24 @@
   // Voorkomt de "admin-items-flash" FOUC die partners zagen terwijl Supabase auth session
   // resumet en user_roles ge-query'd wordt (~100-400ms na page-load).
   // Cache wordt gevuld nadat user_roles is opgehaald, gewist bij logout.
+  // Idem user_id-gating als bij branding-cache: stale role-cache van andere user negeren.
   (function(){
     try {
       var raw = localStorage.getItem('flancco_role_cache');
       if (!raw) return;
       var r = JSON.parse(raw);
       if (!r || !r.role) return;
+      try {
+        var authRaw = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+        if (authRaw) {
+          var auth = JSON.parse(authRaw);
+          var sessionUserId = auth && auth.user && auth.user.id;
+          if (sessionUserId && r.user_id && r.user_id !== sessionUserId) {
+            try { localStorage.removeItem('flancco_role_cache'); } catch(_) {}
+            return;
+          }
+        }
+      } catch(_) {}
       var root = document.documentElement;
       root.setAttribute('data-role', r.role);
       var perms = r.permissions || {};
@@ -5432,6 +5466,7 @@ async function initApp() {
   // waardoor admin-only / flancco-only / perm-scoped items niet flashen voor partners.
   try {
     localStorage.setItem('flancco_role_cache', JSON.stringify({
+      user_id: (currentUser && currentUser.id) || null,
       role: userRole,
       permissions: userPermissions
     }));
@@ -5505,10 +5540,13 @@ async function initApp() {
     }
     document.body.classList.add('branding-applied');
   } else {
-    // Admin/bediende/technieker: geen partner-branding → cache wissen zodat
-    // een vorige partner-login niet doorwerkt bij rol-switch op hetzelfde device.
+    // Admin/bediende/technieker: geen partner-branding → cache + DOM-side-effects
+    // wissen zodat een vorige partner-login niet doorwerkt bij rol-switch op hetzelfde
+    // device. localStorage.removeItem alléén is onvoldoende: early-boot heeft al
+    // CSS custom-properties op document.documentElement.style gezet en sidebar-logo
+    // herschreven naar partner-bedrijfsnaam vóór deze tak draait.
     try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
-    try { if (typeof resetFaviconToDefault === 'function') resetFaviconToDefault(); } catch(_) {}
+    try { resetBrandingToDefault(); } catch(_) {}
     document.body.classList.add('branding-applied');
   }
 
@@ -5623,9 +5661,13 @@ function applyBranding(p) {
   // Favicon: partner-logo in browser-tab (ook zichtbaar in bookmarks en tab-overzicht)
   setFaviconToPartnerLogo(p.logo_url);
 
-  // Cache voor early-boot op volgende refresh (voorkomt Flancco-flash)
+  // Cache voor early-boot op volgende refresh (voorkomt Flancco-flash).
+  // user_id wordt mee-bewaard zodat de cache enkel toegepast wordt als de pre-paint
+  // browser-state hoort bij dezelfde authenticated user — voorkomt stale CWS-branding
+  // bij admin-login op hetzelfde device.
   try {
     localStorage.setItem('flancco_partner_branding', JSON.stringify({
+      user_id: (currentUser && currentUser.id) || null,
       kleur_primair: primary,
       kleur_donker: dark,
       bedrijfsnaam: p.bedrijfsnaam || '',
@@ -5637,6 +5679,47 @@ function applyBranding(p) {
   // Flash-guard: markeer dat partner-branding is toegepast zodat de CSS-regel die sidebar
   // + header verbergt voor partners (zonder applied-class) nu deblokkeert.
   document.body.classList.add('branding-applied');
+}
+
+/**
+ * Reset alle branding-side-effects naar Flancco-defaults.
+ * Nodig voor admin/bediende/technieker-login op een device waar een vorige
+ * partner-sessie pre-paint mutaties heeft achtergelaten (CSS-vars op
+ * document.documentElement.style, sidebar-background inline, sidebar-logo
+ * herschreven naar partner-bedrijfsnaam, favicon).
+ *
+ * Idempotent — veilig om herhaaldelijk aan te roepen.
+ */
+function resetBrandingToDefault() {
+  // 1. Inline CSS custom-properties die early-boot op <html> zette.
+  try {
+    var rootStyle = document.documentElement.style;
+    ['--navy','--navy-light','--red-fouc-override'].forEach(function(prop) {
+      rootStyle.removeProperty(prop);
+    });
+  } catch(_) {}
+
+  // 2. Sidebar background — applyBranding() zet die inline; CSS-default
+  // (var(--navy)) komt anders niet meer terug.
+  try {
+    var sidebarEl = document.getElementById('sidebar');
+    if (sidebarEl) sidebarEl.style.removeProperty('background');
+  } catch(_) {}
+
+  // 3. Sidebar-logo terugzetten naar Flancco-default ("FLANCC[O]" rood-O + tagline).
+  try {
+    var logoEl = document.getElementById('sidebar-logo');
+    if (logoEl) {
+      logoEl.innerHTML = '<h2>FLANCC<span>O</span></h2><small>Partner Platform</small>';
+    }
+  } catch(_) {}
+
+  // 4. Favicon terug naar Flancco-default.
+  try { if (typeof resetFaviconToDefault === 'function') resetFaviconToDefault(); } catch(_) {}
+
+  // 5. In-memory boot-cache wissen zodat eventuele latere lookups (bv. herbruikt
+  // door inline pre-paint scripts elders) geen stale data terugzien.
+  try { if (window.__flanccoBoot) { delete window.__flanccoBoot; } } catch(_) {}
 }
 
 // Favicon helpers — vervangt de tab-icon door partner-logo, of reset naar Flancco-default.

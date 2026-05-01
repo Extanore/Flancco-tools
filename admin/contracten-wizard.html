@@ -40,6 +40,45 @@
 <!-- Slot O2 — gedeelde validators + postcode-lookup (zelfde modules als calculator) -->
 <script src="/calculator/shared/validators.js"></script>
 <script src="/calculator/shared/postcode-lookup.js"></script>
+<script>
+  // Early-boot partner-branding (mirror van admin/index.html). Voorkomt 1-sec
+  // Flancco-flash op deze pagina bij refresh als partner. Cache wordt gevuld door
+  // applyWizardBranding() en gewist door doLogout() / stale-cache-guard.
+  (function(){
+    try {
+      var raw = localStorage.getItem('flancco_partner_branding');
+      if (!raw) return;
+      var b = JSON.parse(raw);
+      if (!b || !b.kleur_donker) return;
+      // Stale-cache guard: cache van een andere user negeren.
+      try {
+        var authRaw = localStorage.getItem('sb-dhuqpxwwavqyxaelxuzl-auth-token');
+        if (authRaw) {
+          var auth = JSON.parse(authRaw);
+          var sessionUserId = auth && auth.user && auth.user.id;
+          if (sessionUserId && b.user_id && b.user_id !== sessionUserId) {
+            try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+            return;
+          }
+        }
+      } catch(_) {}
+      window.__flanccoBoot = b;
+      var root = document.documentElement;
+      root.style.setProperty('--navy', b.kleur_donker);
+      root.style.setProperty('--navy-light', b.kleur_primair || b.kleur_donker);
+      if (b.logo_url) {
+        var fav = document.getElementById('app-favicon');
+        if (fav) {
+          fav.setAttribute('href', b.logo_url);
+          fav.setAttribute('type', 'image/png');
+        }
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        if (document.body) document.body.classList.add('branding-applied');
+      });
+    } catch(_) { /* silent: cache-corruption valt terug op default branding */ }
+  })();
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -89,6 +128,9 @@
   .btn-logout { padding: 7px 14px; background: none; border: 1.5px solid var(--rule); border-radius: 6px; font-size: 12px; color: var(--grey); cursor: pointer; }
   .btn-logout:hover { border-color: var(--red); color: var(--red); }
   .role-hidden { display: none !important; }
+  /* Branding-flash guard: verberg sidebar tot partner-branding is toegepast.
+     Admin krijgt direct 'branding-applied' na rol-detectie in initApp. */
+  body.role-partner:not(.branding-applied) .sidebar { visibility: hidden; }
 
   /* WIZARD STEP BAR */
   .wizard-header { margin: 24px 0; }
@@ -427,6 +469,26 @@
       <h2>FLANCC<span>O</span></h2>
       <small>Partner Platform</small>
     </div>
+    <script>
+      // Synchronous pre-paint logo + sidebar-bg rewrite (mirror van admin/index.html).
+      // Voorkomt FOUC bij refresh op deze pagina als partner.
+      (function(){
+        var b = window.__flanccoBoot;
+        if (!b) return;
+        var el = document.getElementById('sidebar-logo');
+        if (el) {
+          var name = String(b.bedrijfsnaam || b.naam || '').replace(/[<>&"]/g, function(c){
+            return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];
+          });
+          if (name) {
+            el.innerHTML = '<h2 style="color:white;font-size:18px">' + name + '</h2>' +
+                           '<small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>';
+          }
+        }
+        var sb = document.getElementById('sidebar');
+        if (sb && b.kleur_donker) sb.style.background = b.kleur_donker;
+      })();
+    </script>
     <div class="nav-section">Menu</div>
     <a class="nav-item" href="index.html" data-page="dashboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -993,6 +1055,20 @@ function applyWizardBranding(p) {
     fav.setAttribute('href', '/favicon-flancco.svg');
     fav.setAttribute('type', 'image/svg+xml');
   }
+  // Cache voor early-boot op volgende refresh — user_id mee zodat stale-cache-guard
+  // van een andere user kan onderscheiden.
+  try {
+    localStorage.setItem('flancco_partner_branding', JSON.stringify({
+      user_id: (currentUser && currentUser.id) || null,
+      kleur_primair: primary,
+      kleur_donker: dark,
+      bedrijfsnaam: p.bedrijfsnaam || '',
+      naam: p.naam || '',
+      logo_url: p.logo_url || ''
+    }));
+  } catch(_) {}
+  // Flash-guard: deblokkeer sidebar-visibility nu branding is toegepast.
+  if (document.body) document.body.classList.add('branding-applied');
 }
 
 function resetWizardBranding() {
@@ -1368,6 +1444,12 @@ async function doLogin() {
 }
 
 async function doLogout() {
+  // Branding-cache + role-cache wissen zodat een volgende user op hetzelfde device
+  // niet de pre-paint partner-kleuren ziet (Bug B fix — consistent met admin/index.html).
+  try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+  try { localStorage.removeItem('flancco_role_cache'); } catch(_) {}
+  try { if (window.__flanccoBoot) { delete window.__flanccoBoot; } } catch(_) {}
+  try { resetWizardBranding(); } catch(_) {}
   await sb.auth.signOut();
   window.location.href = 'index.html';
 }
@@ -1383,6 +1465,19 @@ async function initApp() {
   userRole = roleData.role;
   const hideClass = userRole === 'admin' ? 'partner-only' : 'admin-only';
   document.querySelectorAll('.' + hideClass).forEach(el => el.classList.add('role-hidden'));
+
+  // Body role-class — voedt FOUC-guard (.role-partner:not(.branding-applied) .sidebar).
+  document.body.classList.remove('role-admin','role-partner','role-bediende','role-technieker');
+  document.body.classList.add('role-' + (userRole || 'admin'));
+
+  // Admin/bediende/technieker: stale partner-branding-cache wissen + DOM resetten,
+  // anders ziet een admin die na een partner-sessie inlogt nog CWS-kleuren in
+  // CSS-vars en sidebar-logo (gezet door early-boot pre-paint).
+  if (userRole !== 'partner') {
+    try { localStorage.removeItem('flancco_partner_branding'); } catch(_) {}
+    try { resetWizardBranding(); } catch(_) {}
+    document.body.classList.add('branding-applied');
+  }
 
   document.getElementById('login').classList.remove('visible');
   document.getElementById('login').style.display = 'none';
@@ -1433,14 +1528,20 @@ async function initApp() {
 // STEP NAVIGATION
 // =============================================
 function goStep(n) {
-  // Bij eindklant: auto-set Flancco Direct als partner en skip partner-selectie
-  if (n === 2 && wizState.klantType === 'eindklant') {
+  // Bij eindklant: auto-set Flancco Direct als partner en skip partner-selectie.
+  // BELANGRIJK: enkel voor admin/bediende. Partner-users moeten ALTIJD hun eigen
+  // partner_id behouden — anders mismatcht de RLS-policy `is_partner_of(partner_id)`
+  // bij de clients/contracten-INSERT en faalt opslaan met een 403.
+  if (n === 2 && wizState.klantType === 'eindklant' && userRole !== 'partner') {
     var flanccoPartner = partners.find(function(p) { return (p.naam || '').toLowerCase().indexOf('flancco') >= 0; });
     if (flanccoPartner) {
       wizState.partnerId = flanccoPartner.id;
       document.getElementById('wiz-partner').value = flanccoPartner.id;
       loadPartnerData(flanccoPartner.id);
     }
+    document.getElementById('partner-field').closest('.card').style.display = 'none';
+  } else if (n === 2 && userRole === 'partner') {
+    // Partner-users: partner-veld blijft verborgen want is gelocked op eigen partner_id.
     document.getElementById('partner-field').closest('.card').style.display = 'none';
   } else if (n === 2) {
     document.getElementById('partner-field').closest('.card').style.display = '';
@@ -2439,6 +2540,12 @@ async function saveContract() {
   btn.textContent = 'Opslaan...';
 
   try {
+    // Defense-in-depth: partner-users moeten altijd in eigen scope opslaan,
+    // anders blokkeert RLS de INSERT (is_partner_of(partner_id)).
+    if (userRole === 'partner' && userPartner && userPartner.id) {
+      wizState.partnerId = userPartner.id;
+    }
+
     var partner = partners.find(p => p.id === wizState.partnerId);
     if (!partner) throw new Error('Geen partner geselecteerd');
 
