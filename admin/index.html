@@ -24335,8 +24335,8 @@ var CC_FALLBACK_DEFAULTS = {
     frequentie: { available: [1], default: 1, options: { '1': { label_nl: 'Jaarlijks', label_fr: 'Annuel', sub_nl: '1 onderhoudsbeurt per jaar', sub_fr: '1 entretien par an' } } },
     contractduur: { available: [0, 3, 5], default: 3, korting_pct: { '0': 0, '3': 5, '5': 5 }, options: { '0': { label_nl: 'Eenmalige interventie', label_fr: 'Intervention unique' }, '3': { label_nl: '3 jaar', label_fr: '3 ans', sub_nl: '5% korting', sub_fr: '5% de remise' }, '5': { label_nl: '5 jaar', label_fr: '5 ans', sub_nl: '5% korting', sub_fr: '5% de remise' } } },
     klant_vragen: {
-      bereikbaarheid: { label_nl: 'Hoe goed is uw woning bereikbaar?', label_fr: 'Quelle est l’accessibilité de votre habitation?', helper_nl: 'Onze servicewagen heeft ±5m parkeerruimte nodig binnen 50m van uw woning.', helper_fr: 'Notre véhicule de service a besoin de ±5m d’espace de stationnement.', options: [{ value: 'Goed', label_nl: 'Goed bereikbaar', label_fr: 'Bien accessible' }, { value: 'Beperkt', label_nl: 'Beperkt bereikbaar', label_fr: 'Accès limité' }] },
-      buitenkraan: { label_nl: 'Is er een werkende buitenkraan beschikbaar?', label_fr: 'Disposez-vous d’un robinet extérieur fonctionnel?', helper_nl: 'Voor osmosewater-reiniging gebruiken we ±100l water per beurt.', helper_fr: 'Pour le nettoyage à l’eau osmosée, nous utilisons ±100l par entretien.', options: [{ value: 'Ja', label_nl: 'Ja, een werkende buitenkraan', label_fr: 'Oui, robinet extérieur fonctionnel' }, { value: 'Nee', label_nl: 'Nee, breng zelf water mee', label_fr: 'Non, apportez votre eau' }] }
+      bereikbaarheid: { label_nl: 'Hoe goed is uw woning bereikbaar?', label_fr: 'Quelle est l’accessibilité de votre habitation?', helper_nl: 'Onze bestelwagen heeft een korte parkeerplaats nodig in de buurt van uw woning om materiaal vlot te lossen.', helper_fr: 'Notre véhicule a besoin d’une courte place de stationnement à proximité pour décharger le matériel.', options: [{ value: 'Goed', label_nl: 'Goed bereikbaar', label_fr: 'Bien accessible' }, { value: 'Beperkt', label_nl: 'Beperkt bereikbaar', label_fr: 'Accès limité' }, { value: 'Parkeervergunning', label_nl: 'Parkeervergunning nodig', label_fr: 'Permis de stationnement requis' }] },
+      buitenkraan: { label_nl: 'Is er een werkende buitenkraan beschikbaar?', label_fr: 'Disposez-vous d’un robinet extérieur fonctionnel?', helper_nl: 'Met een buitenkraan werken we het vlotst; zonder geen probleem — we brengen onze eigen watertank mee.', helper_fr: 'Avec un robinet extérieur nous travaillons plus vite; sans, pas de souci — nous apportons notre propre réservoir.', options: [{ value: 'Ja', label_nl: 'Ja, een werkende buitenkraan', label_fr: 'Oui, robinet extérieur fonctionnel' }, { value: 'Nee', label_nl: 'Nee, breng zelf water mee', label_fr: 'Non, apportez votre eau' }] }
     }
   },
   warmtepomp: {
@@ -25238,8 +25238,9 @@ function _ccRenderKlantVraagEditor(target, bodyEl) {
   // Vaste opties per vraag-type (waarden zijn system-level enum, niet wijzigbaar)
   var fixedOptions = (key === 'bereikbaarheid')
     ? [
-        { value: 'Goed',    placeholderNl: 'Goed bereikbaar — bestelwagen kan vlot tot bij de woning', placeholderFr: 'Bien accessible' },
-        { value: 'Beperkt', placeholderNl: 'Beperkt bereikbaar — smalle straat, paaltjes of obstakels', placeholderFr: 'Accessibilité limitée' }
+        { value: 'Goed',                placeholderNl: 'Goed bereikbaar — bestelwagen kan vlot tot bij de woning', placeholderFr: 'Bien accessible — le véhicule peut s’approcher facilement' },
+        { value: 'Beperkt',             placeholderNl: 'Beperkt bereikbaar — smalle straat, paaltjes of obstakels', placeholderFr: 'Accessibilité limitée — rue étroite, bornes ou obstacles' },
+        { value: 'Parkeervergunning',   placeholderNl: 'Parkeervergunning nodig — woning in centrum of zone met betalend parkeren', placeholderFr: 'Permis de stationnement requis — habitation en centre-ville ou zone payante' }
       ]
     : [
         { value: 'Ja',  placeholderNl: 'Ja, er is een werkende buitenkraan beschikbaar', placeholderFr: 'Oui, robinet extérieur disponible' },
