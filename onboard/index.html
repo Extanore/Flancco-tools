@@ -541,20 +541,21 @@
     margin: 32px 0 0;
   }
 
-  /* ─── Stap 4 (Sectoren) — 4 sector-cards met icoon ─────────────── */
+  /* ─── Stap 4 (Sectoren) — 4 sector-cards, icoon naast tekst ──────── */
   .sector-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-    margin: 48px 0 0;
+    gap: 14px;
+    margin: 28px 0 0;
   }
   .sector-block {
-    padding: 22px 24px;
+    padding: 16px 18px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--bg);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-start;
     gap: 14px;
     transition: border-color 200ms, transform 200ms, box-shadow 200ms;
   }
@@ -564,26 +565,28 @@
     box-shadow: var(--shadow);
   }
   .sector-icon {
-    width: 48px; height: 48px;
-    border-radius: 10px;
+    width: 40px; height: 40px;
+    border-radius: 9px;
     background: var(--accent-tint);
     color: var(--navy);
     display: grid; place-items: center;
     flex: 0 0 auto;
+    margin-top: 2px;
   }
-  .sector-icon svg { width: 22px; height: 22px; stroke-width: 1.75; }
+  .sector-icon svg { width: 20px; height: 20px; stroke-width: 1.75; }
+  .sector-text { flex: 1 1 auto; min-width: 0; }
   .sector-block h3 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
-    margin: 0 0 4px;
+    margin: 0 0 3px;
     letter-spacing: -.005em;
     color: var(--ink);
   }
   .sector-block p {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   /* ─── Stap 4 (Team) — 4 quadrant blocks ────────────────────────── */
@@ -1040,29 +1043,37 @@
         <span class="sector-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
         </span>
-        <h3>Warmtepomp</h3>
-        <p>Jaarlijks onderhoud, filterservice en werkingscontrole — koeltechnische handelingen blijven bij jouw eigen technici.</p>
+        <div class="sector-text">
+          <h3>Warmtepomp</h3>
+          <p>Jaarlijks onderhoud, filterservice en werkingscontrole — koeltechnische handelingen blijven bij jouw eigen technici.</p>
+        </div>
       </article>
       <article class="sector-block">
         <span class="sector-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
         </span>
-        <h3>Zonnepanelen</h3>
-        <p>Periodieke reiniging en opbrengst-check, met digitaal rapport in jouw branding.</p>
+        <div class="sector-text">
+          <h3>Zonnepanelen</h3>
+          <p>Periodieke reiniging en opbrengst-check, met digitaal rapport in jouw branding.</p>
+        </div>
       </article>
       <article class="sector-block">
         <span class="sector-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
         </span>
-        <h3>Ventilatie</h3>
-        <p>Filterservice, kanaalcheck en debietmeting — gepland binnen je tijdsvenster.</p>
+        <div class="sector-text">
+          <h3>Ventilatie</h3>
+          <p>Filterservice, kanaalcheck en debietmeting — gepland binnen je tijdsvenster.</p>
+        </div>
       </article>
       <article class="sector-block">
         <span class="sector-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>
         </span>
-        <h3>Industriële koeling</h3>
-        <p>Dieptereiniging, ontsmetting van verdampers en visuele controle — koeltechnische handelingen blijven bij jouw eigen technici.</p>
+        <div class="sector-text">
+          <h3>Industriële koeling</h3>
+          <p>Dieptereiniging, ontsmetting van verdampers en visuele controle — koeltechnische handelingen blijven bij jouw eigen technici.</p>
+        </div>
       </article>
     </div>
 
