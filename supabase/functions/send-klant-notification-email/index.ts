@@ -37,7 +37,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const FROM_ADDRESS = Deno.env.get("EMAIL_FROM_ADDRESS")
   || "Flancco Platform <noreply@flancco-platform.be>";
 const REPLY_TO_DEFAULT = Deno.env.get("EMAIL_REPLY_TO")
-  || "gillian.geernaert@flancco.be";
+  || "service@flancco.be";
 
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
   || "https://app.flancco-platform.be,https://flancco-platform.be,https://www.flancco-platform.be"

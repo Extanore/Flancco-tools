@@ -47,7 +47,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const EMAIL_FROM_ADDRESS = Deno.env.get("EMAIL_FROM_ADDRESS")
   ?? "Flancco <partners@flancco.be>";
 const EMAIL_REPLY_TO = Deno.env.get("EMAIL_REPLY_TO")
-  ?? "gillian.geernaert@flancco.be";
+  ?? "service@flancco.be";
 const APP_BASE_URL = (Deno.env.get("APP_BASE_URL") ?? "https://app.flancco-platform.be")
   .replace(/\/$/, "");
 
