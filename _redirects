@@ -42,8 +42,9 @@
 # =============================================================
 # Slot X — Publieke partner-onboarding-wizard
 # =============================================================
-# Trailing-slash normalisatie zodat /onboard, /onboard/extra etc.
-# allemaal naar /onboard/ (waar Cloudflare Workers Assets de
-# index.html serveert) gaan.
+# Alleen exact-match-redirects (geen wildcards) — de eerdere `/onboard/*`-rule
+# matchte ook `/onboard/` zelf en veroorzaakte een 20-redirect-loop.
+# Sub-paths (/onboard/sign/?token=...) worden door Workers Assets als directe
+# bestanden geserveerd; onbestaande paden geven netjes 404.
 /onboard                                     /onboard/                            301
-/onboard/*                                   /onboard/                            301
+/onboard/sign                                /onboard/sign/                       301
