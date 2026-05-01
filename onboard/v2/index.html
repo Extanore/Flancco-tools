@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#1A1A2E">
+<title>Word Flancco-partner — Partnership platform</title>
+<meta name="description" content="Recurring omzet uit structureel onderhoud. Wij plannen, voeren uit en rapporteren — onder jouw merk.">
+<link rel="icon" type="image/svg+xml" href="../../favicon-flancco.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  /* ─────────────────────────────────────────────────────────────────
+     Flancco Partner Onboarding — Versie 2 (briefing-driven)
+     Tone: professioneel, warm, commercieel, direct.
+     Visual: navy + 1 warm accent (coral). Asymmetric grid, witruimte.
+     One sans (Inter) + mono accent (JetBrains Mono) voor cijfers/labels.
+     ───────────────────────────────────────────────────────────────── */
+
+  :root {
+    --navy: #1A1A2E;
+    --navy-soft: #2A2A40;
+    --ink: #14141F;
+    --muted: #6B7280;
+    --line: #E5E7EB;
+    --line-soft: #F3F4F6;
+    --bg: #FFFFFF;
+    --bg-soft: #FAFAFA;
+    --accent: #E76F51;          /* coral */
+    --accent-hover: #D85B3D;
+    --accent-tint: #FBE8E2;
+    --okergeel: #F4A261;        /* alternative accent (niet actief) */
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 18px;
+    --shadow: 0 1px 2px rgba(20,20,31,.04), 0 4px 16px rgba(20,20,31,.04);
+    --shadow-lg: 0 8px 32px rgba(20,20,31,.08);
+    --maxw: 1080px;
+    --pad-x: clamp(20px, 5vw, 56px);
+    --t-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --t-mono: "JetBrains Mono", "SFMono-Regular", "Menlo", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--t-sans);
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.55;
+    font-size: 16px;
+  }
+
+  ::selection { background: var(--accent); color: #fff; }
+
+  a { color: inherit; }
+
+  /* ─── Header + progress ────────────────────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: saturate(160%) blur(8px);
+    -webkit-backdrop-filter: saturate(160%) blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 14px var(--pad-x);
+    display: flex; align-items: center; gap: 24px;
+  }
+  .brand-logo {
+    display: inline-flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .brand-logo svg { width: 30px; height: 30px; display: block; }
+  .brand-mark {
+    font-family: var(--t-mono);
+    font-weight: 600;
+    font-size: 12.5px;
+    letter-spacing: .14em;
+    color: var(--navy);
+  }
+
+  .progress {
+    flex: 1 1 auto;
+    display: flex; align-items: center; gap: 8px;
+    max-width: 480px;
+  }
+  .progress-track {
+    flex: 1 1 auto;
+    height: 3px;
+    background: var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    position: absolute; inset: 0;
+    width: 20%;
+    background: var(--navy);
+    border-radius: 999px;
+    transition: width 240ms cubic-bezier(.6,.0,.2,1);
+  }
+  .progress-label {
+    font-family: var(--t-mono);
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: .08em;
+    white-space: nowrap;
+  }
+
+  .lang-switch {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 2px;
+    background: var(--line-soft);
+    padding: 3px;
+    border-radius: 999px;
+  }
+  .lang-switch button {
+    border: none; background: transparent;
+    font-family: var(--t-mono);
+    font-size: 11.5px;
+    letter-spacing: .06em;
+    padding: 5px 10px;
+    border-radius: 999px;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .lang-switch button.active {
+    background: var(--bg);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+
+  /* ─── Page-shell + transitions ─────────────────────────────────── */
+  .page-shell {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: clamp(48px, 9vw, 96px) var(--pad-x) 48px;
+  }
+  .page-shell.hero {
+    padding-top: clamp(72px, 12vw, 120px);
+    padding-bottom: clamp(72px, 10vw, 96px);
+  }
+  .step {
+    display: none;
+    animation: fadeUp 220ms ease-out;
+  }
+  .step.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Eyebrow + headline + sub ─────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--t-mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 22px;
+    display: inline-block;
+  }
+  .eyebrow-light { color: var(--accent); }
+  h1.page-title {
+    font-size: clamp(34px, 5.4vw, 60px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    font-weight: 700;
+    margin: 0 0 22px;
+    max-width: 18ch;
+  }
+  .page-title.lg { max-width: 22ch; font-weight: 800; }
+  .sub {
+    font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0 0 40px;
+    max-width: 60ch;
+  }
+  .sub strong { color: var(--ink); font-weight: 600; }
+
+  /* ─── Hero (page 1) — gradient + asymmetric grid ──────────────── */
+  .hero-bg {
+    position: relative;
+    background:
+      radial-gradient(ellipse 90% 60% at 100% 0%, rgba(231,111,81,.07), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 0% 100%, rgba(26,26,46,.04), transparent 60%),
+      var(--bg);
+  }
+  .hero-bg::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.02) 100%);
+    pointer-events: none;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: clamp(40px, 6vw, 72px);
+    align-items: end;
+  }
+
+  .hero-pains {
+    display: grid; gap: 14px;
+    align-self: end;
+  }
+  .pain-row {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 18px 20px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .pain-row .ic {
+    flex: 0 0 auto;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--line-soft);
+    display: grid; place-items: center;
+    color: var(--navy);
+  }
+  .pain-row .ic svg { width: 18px; height: 18px; }
+  .pain-row p {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  /* ─── USP-balk (footer-strip per stap) ─────────────────────────── */
+  .usp-bar {
+    margin-top: clamp(48px, 6vw, 72px);
+    padding: 22px 28px;
+    background: var(--navy);
+    color: #fff;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14.5px;
+    letter-spacing: .005em;
+  }
+  .usp-bar .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    flex: 0 0 auto;
+    box-shadow: 0 0 0 4px rgba(231,111,81,.2);
+  }
+  .usp-bar strong { color: #fff; font-weight: 600; }
+
+  /* ─── CTA-rij ──────────────────────────────────────────────────── */
+  .cta-row {
+    margin-top: 48px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    appearance: none;
+    border: none;
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--t-sans);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: .005em;
+    padding: 14px 24px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 10px;
+    transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  }
+  .btn-primary:hover { background: var(--ink); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary svg { width: 16px; height: 16px; transition: transform 200ms; }
+  .btn-primary:hover svg { transform: translateX(3px); }
+  .btn-primary[disabled] { opacity: .55; cursor: not-allowed; }
+  .btn-primary[disabled]:hover { transform: none; box-shadow: none; background: var(--navy); }
+  .btn-back {
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: none;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--t-sans);
+    padding: 8px 0;
+    letter-spacing: .005em;
+  }
+  .btn-back:hover { color: var(--ink); }
+
+  /* ─── Stap 2 (Werking) — 3 numbered blocks ─────────────────────── */
+  .steps-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin: 48px 0 0;
+  }
+  .step-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px 26px;
+    background: var(--bg);
+    position: relative;
+    transition: border-color 200ms;
+  }
+  .step-card:hover { border-color: var(--ink); }
+  .step-num {
+    font-family: var(--t-mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 18px;
+    display: block;
+  }
+  .step-card h3 {
+    font-size: 19px;
+    margin: 0 0 10px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -.005em;
+  }
+  .step-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+
+  /* ─── Stap 3 (Voorwaarden) — 3 mono-cijfers ────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin: 48px 0 32px;
+  }
+  .stat-card {
+    border-top: 2px solid var(--ink);
+    padding: 24px 4px 0;
+  }
+  .stat-num {
+    font-family: var(--t-mono);
+    font-size: clamp(40px, 5.5vw, 64px);
+    line-height: 1;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -.02em;
+    display: block;
+    margin-bottom: 14px;
+  }
+  .stat-num .accent { color: var(--accent); }
+  .stat-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .stats-note {
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.6;
+    max-width: 64ch;
+    border-left: 2px solid var(--accent);
+    padding: 4px 0 4px 18px;
+    margin: 32px 0 0;
+  }
+
+  /* ─── Stap 4 (Team) — 4 quadrant blocks ────────────────────────── */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin: 48px 0 0;
+  }
+  .team-block {
+    padding: 28px 26px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg);
+  }
+  .team-block.featured {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }
+  .team-block.featured h3 { color: #fff; }
+  .team-block.featured p { color: rgba(255,255,255,.74); }
+  .team-block h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -.005em;
+  }
+  .team-block p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .team-intro {
+    font-size: 17px;
+    color: var(--ink);
+    line-height: 1.55;
+    max-width: 56ch;
+    font-weight: 500;
+    margin: 0 0 4px;
+  }
+
+  /* ─── Stap 5 (Start) — Form ────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 20px;
+    margin: 40px 0 0;
+  }
+  .form-row { display: flex; flex-direction: column; gap: 6px; }
+  .form-row.full { grid-column: 1 / -1; }
+  .form-row label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: .005em;
+    font-family: var(--t-mono);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 11px;
+  }
+  .form-row input,
+  .form-row textarea,
+  .form-row select {
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    background: var(--bg);
+    font-family: var(--t-sans);
+    font-size: 15px;
+    color: var(--ink);
+    width: 100%;
+    transition: border-color 120ms, box-shadow 120ms;
+  }
+  .form-row input:focus,
+  .form-row textarea:focus,
+  .form-row select:focus {
+    outline: none;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(20,20,31,.08);
+  }
+  .form-row textarea { min-height: 96px; resize: vertical; }
+  .form-row .err {
+    font-size: 12.5px;
+    color: var(--accent-hover);
+    min-height: 16px;
+  }
+  .form-row.has-err input,
+  .form-row.has-err textarea,
+  .form-row.has-err select { border-color: var(--accent-hover); }
+
+  /* Pill multi-select sectoren */
+  .pill-group {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 4px;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 9px 14px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 120ms, background 120ms, color 120ms;
+  }
+  .pill:hover { border-color: var(--ink); }
+  .pill[aria-pressed="true"] {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: #fff;
+  }
+  .pill-check {
+    width: 14px; height: 14px;
+    border-radius: 999px;
+    border: 1.5px solid currentColor;
+    display: grid; place-items: center;
+    transition: background 120ms;
+  }
+  .pill[aria-pressed="true"] .pill-check { background: var(--accent); border-color: var(--accent); }
+  .pill[aria-pressed="true"] .pill-check svg { display: block; width: 8px; height: 8px; color: #fff; }
+  .pill-check svg { display: none; }
+
+  /* Range select (radio-style chips) */
+  .range-group {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 4px;
+  }
+  .range-chip {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 9px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    cursor: pointer;
+    user-select: none;
+    font-family: var(--t-mono);
+    font-weight: 500;
+    transition: all 120ms;
+  }
+  .range-chip:hover { border-color: var(--ink); }
+  .range-chip[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+    color: var(--ink);
+  }
+
+  .form-cta-row {
+    display: flex; align-items: center; gap: 24px;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .form-microcopy {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 14px 0 0;
+    max-width: 50ch;
+  }
+
+  /* ─── Footer ──────────────────────────────────────────────────── */
+  .site-footer {
+    border-top: 1px solid var(--line);
+    padding: 24px var(--pad-x);
+    margin-top: 64px;
+    color: var(--muted);
+    font-size: 13px;
+    display: flex; gap: 18px; justify-content: space-between; flex-wrap: wrap;
+    max-width: var(--maxw);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .site-footer a { color: var(--muted); text-decoration: none; }
+  .site-footer a:hover { color: var(--ink); }
+
+  /* ─── Toast (na submit) ──────────────────────────────────────── */
+  .toast-wrap {
+    position: fixed; left: 50%; bottom: 28px;
+    transform: translateX(-50%);
+    z-index: 100;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--ink);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 220ms, transform 220ms;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .toast.err { background: var(--accent-hover); }
+
+  /* ─── Success-state pagina 5 ─────────────────────────────────── */
+  .success-state {
+    text-align: center;
+    padding: 48px 0;
+  }
+  .success-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 28px;
+    border-radius: 50%;
+    background: var(--accent-tint);
+    color: var(--accent);
+    display: grid; place-items: center;
+  }
+  .success-icon svg { width: 28px; height: 28px; }
+  .success-state h2 {
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.1;
+    margin: 0 0 14px;
+    letter-spacing: -.02em;
+    font-weight: 700;
+  }
+  .success-state p {
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0 auto;
+    max-width: 50ch;
+  }
+
+  /* ─── Mobile (single column) ──────────────────────────────────── */
+  @media (max-width: 768px) {
+    .topbar-inner { gap: 12px; flex-wrap: wrap; }
+    .progress { width: 100%; order: 3; max-width: none; }
+    .lang-switch { margin-left: auto; }
+    .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+    .steps-3 { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; gap: 32px; }
+    .team-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .usp-bar { padding: 18px 22px; font-size: 13.5px; }
+    .cta-row, .form-cta-row { gap: 16px; }
+    .btn-primary { width: 100%; justify-content: center; }
+    .page-shell { padding-top: 40px; padding-bottom: 32px; }
+    .page-shell.hero { padding-top: 56px; }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0ms !important; transition-duration: 0ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─────────────────────────────────────────────────────────────
+     TOPBAR — sticky, brand + progress + lang
+     ───────────────────────────────────────────────────────────── -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a href="#" class="brand-logo" aria-label="Flancco">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="#1A1A2E"/>
+        <path d="M9 7h14v4.2h-9.6v4h7.2v4.2h-7.2V25H9z" fill="#FFFFFF"/>
+        <circle cx="23.5" cy="22.5" r="3.2" fill="#E74C3C"/>
+      </svg>
+      <span class="brand-mark">FLANCCO</span>
+    </a>
+    <div class="progress" role="presentation">
+      <div class="progress-track" aria-hidden="true">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <span class="progress-label" id="progress-label">01 / 05</span>
+    </div>
+    <div class="lang-switch" role="group" aria-label="Taal">
+      <button class="active" data-lang="nl" type="button">NL</button>
+      <button data-lang="fr" type="button">FR</button>
+    </div>
+  </div>
+</header>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 1 — WELKOM
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-1" class="step active hero-bg">
+  <section class="page-shell hero">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Partnership platform</span>
+        <h1 class="page-title lg">Geef je technici terug aan de installaties.</h1>
+        <p class="sub">Wij nemen het structureel onderhoud over voor je bestaande klanten — onder jouw merk, met onze planning, ons team en onze rapportage.</p>
+        <div class="cta-row">
+          <button class="btn-primary" type="button" data-go="2">
+            Ontdek hoe het werkt
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="hero-pains" role="list">
+        <div class="pain-row" role="listitem">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <p>Capaciteitsdruk op je technici.</p>
+        </div>
+        <div class="pain-row" role="listitem">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a9 9 0 0 1 9-9 9 9 0 0 1 9 9v6a3 3 0 0 1-3 3h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h4"/><path d="M3 15a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"/></svg>
+          </span>
+          <p>Slapend klantenbestand zonder onderhoudscontract.</p>
+        </div>
+        <div class="pain-row" role="listitem">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </span>
+          <p>Reactieve oproepen die installaties verstoren.</p>
+        </div>
+      </div>
+    </div>
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Recurring omzet</strong> bovenop je installatieverkoop — zonder extra technici of backoffice.</span>
+    </div>
+  </section>
+</main>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 2 — WERKING
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-2" class="step">
+  <section class="page-shell">
+    <span class="eyebrow">Werking</span>
+    <h1 class="page-title">Eén platform. Drie stappen.</h1>
+    <p class="sub">Van offerte tot factuur — zonder dat jij je dagelijkse operatie moet herorganiseren.</p>
+
+    <div class="steps-3">
+      <article class="step-card">
+        <span class="step-num">01 — Jij activeert</span>
+        <h3>Contracten en pricing</h3>
+        <p>Wij helpen met contracten en pricing. Jij stuurt ze digitaal uit naar je klanten via je eigen partner-portaal, in jouw branding.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">02 — Wij voeren uit</span>
+        <h3>Planning en uitvoering</h3>
+        <p>Onze planner contacteert je klanten. Onze technici komen langs in jouw uniform, met jouw merk op de werkbon.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">03 — Jij factureert</span>
+        <h3>Rapport en facturatie</h3>
+        <p>Het digitale rapport verschijnt in je dashboard. Jij factureert je eigen klant. De klantrelatie blijft volledig van jou.</p>
+      </article>
+    </div>
+
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Volledige white-label.</strong> Wij blijven onzichtbaar voor je eindklant.</span>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn-back" type="button" data-go="1">← Vorige</button>
+      <button class="btn-primary" type="button" data-go="3">
+        Bekijk de voorwaarden
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 3 — VOORWAARDEN
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-3" class="step">
+  <section class="page-shell">
+    <span class="eyebrow">Voorwaarden</span>
+    <h1 class="page-title">Helder. Geen kleine lettertjes.</h1>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-num"><span class="accent">10</span>%</span>
+        <p>Vaste marge per onderhoudscontract.</p>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num"><span class="accent">€0</span></span>
+        <p>Setup-fee of installatiekost.</p>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num"><span class="accent">1</span> maand</span>
+        <p>Opzegtermijn — geen langlopende verbintenis.</p>
+      </div>
+    </div>
+
+    <p class="stats-note">
+      Geen materiaal-, personeels- of logistieke kost aan jouw kant. Je betaalt enkel een planning-fee per uitgevoerde beurt — alle pricing en marges blijven real-time zichtbaar in je partner-dashboard.
+    </p>
+
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Schaalbaar</strong> van 10 tot 500 contracten op dezelfde infrastructuur.</span>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn-back" type="button" data-go="2">← Vorige</button>
+      <button class="btn-primary" type="button" data-go="4">
+        Maak kennis met het team
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 4 — TEAM
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-4" class="step">
+  <section class="page-shell">
+    <span class="eyebrow">Team</span>
+    <h1 class="page-title">Een platform is software. De belofte is het team.</h1>
+    <p class="team-intro">Wat partners houdt, is wat onder de software zit.</p>
+
+    <div class="team-grid">
+      <article class="team-block featured">
+        <h3>Vaste SPOC</h3>
+        <p>Eén aanspreekpunt dat je dossier volledig kent.</p>
+      </article>
+      <article class="team-block">
+        <h3>Toegewijde planner</h3>
+        <p>Bewaakt ritme, regio en klantenbasis.</p>
+      </article>
+      <article class="team-block">
+        <h3>Vast technisch team</h3>
+        <p>Geen uitzendkrachten. Mensen die jouw merk dragen.</p>
+      </article>
+      <article class="team-block">
+        <h3>Directe communicatie</h3>
+        <p>Bij goed nieuws bellen we. Bij minder goed nieuws bellen we eerder.</p>
+      </article>
+    </div>
+
+    <div class="usp-bar">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>Geen callcenter.</strong> Geen ticketsysteem. Geen wisselende gezichten.</span>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn-back" type="button" data-go="3">← Vorige</button>
+      <button class="btn-primary" type="button" data-go="5">
+        Word partner
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STAP 5 — START
+     ───────────────────────────────────────────────────────────── -->
+<main id="step-5" class="step">
+  <section class="page-shell" id="step-5-form">
+    <span class="eyebrow">Aanmelden</span>
+    <h1 class="page-title">Stap op een operatie die draait.</h1>
+    <p class="sub">Wij plannen vandaag onderhoudsbeurten voor installatiepartners in HVAC en zonnepanelen. Nieuwe partners stappen op een rijdende trein, niet in een testtraject.</p>
+
+    <form id="lead-form" novalidate>
+      <div class="form-grid">
+        <div class="form-row full">
+          <label for="f-bedrijf">Bedrijfsnaam</label>
+          <input id="f-bedrijf" name="bedrijfsnaam" type="text" autocomplete="organization" required>
+          <span class="err" data-err="bedrijfsnaam"></span>
+        </div>
+
+        <div class="form-row">
+          <label for="f-naam">Naam contactpersoon</label>
+          <input id="f-naam" name="contactpersoon_naam" type="text" autocomplete="name" required>
+          <span class="err" data-err="contactpersoon_naam"></span>
+        </div>
+        <div class="form-row">
+          <label for="f-tel">Telefoon</label>
+          <input id="f-tel" name="telefoon" type="tel" inputmode="tel" autocomplete="tel" required>
+          <span class="err" data-err="telefoon"></span>
+        </div>
+
+        <div class="form-row full">
+          <label for="f-email">E-mail</label>
+          <input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" required>
+          <span class="err" data-err="email"></span>
+        </div>
+
+        <div class="form-row full">
+          <label>Sectoren waarin je actief bent</label>
+          <div class="pill-group" id="pill-sectoren" role="group" aria-label="Sectoren">
+            <button type="button" class="pill" aria-pressed="false" data-value="hvac">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              HVAC
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="ventilatie">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Ventilatie
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="koeling">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Koeling
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="zonnepanelen">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Zonnepanelen
+            </button>
+            <button type="button" class="pill" aria-pressed="false" data-value="andere">
+              <span class="pill-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              Andere
+            </button>
+          </div>
+          <span class="err" data-err="sectoren"></span>
+        </div>
+
+        <div class="form-row full">
+          <label>Aantal actieve eindklanten in je portefeuille</label>
+          <div class="range-group" id="range-klanten" role="radiogroup" aria-label="Aantal eindklanten">
+            <button type="button" class="range-chip" aria-pressed="false" data-value="<50">&lt; 50</button>
+            <button type="button" class="range-chip" aria-pressed="false" data-value="50-200">50 – 200</button>
+            <button type="button" class="range-chip" aria-pressed="false" data-value="200-500">200 – 500</button>
+            <button type="button" class="range-chip" aria-pressed="false" data-value="500+">500 +</button>
+          </div>
+          <span class="err" data-err="aantal_klanten"></span>
+        </div>
+
+        <div class="form-row full">
+          <label for="f-notitie">Wat zou je graag bespreken in de kennismaking? <span style="text-transform:none;font-family:var(--t-sans);color:var(--muted);font-weight:400;letter-spacing:0;">(optioneel)</span></label>
+          <textarea id="f-notitie" name="notitie" rows="3"></textarea>
+        </div>
+      </div>
+
+      <p class="form-microcopy">We bellen binnen 1 werkdag voor een kennismaking van 30 minuten. Geen verkoopdruk, geen verplichting.</p>
+
+      <div class="form-cta-row">
+        <button class="btn-back" type="button" data-go="4">← Vorige</button>
+        <button class="btn-primary" type="submit" id="submit-btn">
+          Aanmelden
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+        <a href="tel:+32472808182" class="btn-back" style="margin-left:auto;">Liever eerst bellen? <strong style="color:var(--ink);font-weight:600;margin-left:6px;">+32 472 80 81 82</strong></a>
+      </div>
+    </form>
+  </section>
+
+  <!-- Success-state -->
+  <section class="page-shell" id="step-5-success" style="display:none;">
+    <div class="success-state">
+      <div class="success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2>Bedankt — we bellen binnen 1 werkdag.</h2>
+      <p>Je ontvangt zo meteen een bevestigingsmail. Geen mail in je inbox? Check spam-folder of bel ons gerust direct op <strong style="color:var(--ink);">+32 472 80 81 82</strong>.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <span>© 2026 Flancco BV — Brugge, België</span>
+  <span>
+    <a href="mailto:gillian.geernaert@flancco.be">gillian.geernaert@flancco.be</a>
+    &nbsp;·&nbsp;
+    <a href="https://flancco-platform.be" target="_blank" rel="noopener">flancco-platform.be</a>
+  </span>
+</footer>
+
+<div class="toast-wrap" aria-live="polite" aria-atomic="true">
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- Plausible analytics (no-op without DNS) -->
+<script defer data-domain="flancco-platform.be" src="https://plausible.io/js/script.js"></script>
+
+<script>
+(function(){
+  'use strict';
+
+  // Supabase config (anon-key publiek; alleen RPC-call op anon-allowed endpoint)
+  var SUPA_URL = 'https://dhuqpxwwavqyxaelxuzl.supabase.co';
+  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRodXFweHd3YXZxeXhhZWx4dXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MDMyMDAsImV4cCI6MjA2MDQ3OTIwMH0.7iRHwNFfdNAgPcFxBZ4VtHdNdFfHgaVRQ7fUxWAvjuI';
+
+  var TOTAL_STEPS = 5;
+  var currentStep = 1;
+
+  // ─── Step navigation ─────────────────────────────────────────
+  function goToStep(n) {
+    if (n < 1 || n > TOTAL_STEPS) return;
+    var current = document.getElementById('step-' + currentStep);
+    var next = document.getElementById('step-' + n);
+    if (!next) return;
+
+    if (current) current.classList.remove('active');
+    next.classList.add('active');
+    currentStep = n;
+
+    // Progress
+    document.getElementById('progress-fill').style.width = (n / TOTAL_STEPS * 100) + '%';
+    document.getElementById('progress-label').textContent = String(n).padStart(2,'0') + ' / 0' + TOTAL_STEPS;
+
+    // Scroll top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Plausible event
+    track('Onboard V2 Step View', { step: String(n) });
+  }
+
+  document.querySelectorAll('[data-go]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = parseInt(btn.getAttribute('data-go'), 10);
+      track('Onboard V2 Step Complete', { from: String(currentStep), to: String(target) });
+      goToStep(target);
+    });
+  });
+
+  // ─── Lang switch (placeholder — alleen actief-state) ────────
+  document.querySelectorAll('.lang-switch button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.lang-switch button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      track('Onboard V2 Lang Switch', { lang: b.getAttribute('data-lang') });
+      // FR-vertaling later (briefing vraagt MVP NL)
+    });
+  });
+
+  // ─── Sectoren-pills (multi) ──────────────────────────────────
+  document.querySelectorAll('#pill-sectoren .pill').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      var pressed = pill.getAttribute('aria-pressed') === 'true';
+      pill.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+      clearErr('sectoren');
+    });
+  });
+
+  // ─── Range-klanten (single) ──────────────────────────────────
+  document.querySelectorAll('#range-klanten .range-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      document.querySelectorAll('#range-klanten .range-chip').forEach(function(c){
+        c.setAttribute('aria-pressed', c === chip ? 'true' : 'false');
+      });
+      clearErr('aantal_klanten');
+    });
+  });
+
+  // ─── Form helpers ────────────────────────────────────────────
+  function getSectoren() {
+    return Array.from(document.querySelectorAll('#pill-sectoren .pill[aria-pressed="true"]'))
+      .map(function(p){return p.getAttribute('data-value');});
+  }
+  function getRangeKlanten() {
+    var active = document.querySelector('#range-klanten .range-chip[aria-pressed="true"]');
+    return active ? active.getAttribute('data-value') : null;
+  }
+  function setErr(field, msg) {
+    var node = document.querySelector('[data-err="'+field+'"]');
+    if (node) node.textContent = msg || '';
+    var row = node ? node.closest('.form-row') : null;
+    if (row) row.classList.toggle('has-err', !!msg);
+  }
+  function clearErr(field){ setErr(field, ''); }
+
+  function validateForm() {
+    var ok = true;
+    var f = document.getElementById('lead-form');
+    var bedrijf = f.bedrijfsnaam.value.trim();
+    var naam = f.contactpersoon_naam.value.trim();
+    var tel = f.telefoon.value.trim();
+    var email = f.email.value.trim();
+    var sect = getSectoren();
+    var range = getRangeKlanten();
+
+    if (bedrijf.length < 2) { setErr('bedrijfsnaam', 'Vul je bedrijfsnaam in.'); ok = false; } else clearErr('bedrijfsnaam');
+    if (naam.length < 2) { setErr('contactpersoon_naam', 'Vul je naam in.'); ok = false; } else clearErr('contactpersoon_naam');
+    if (tel.length < 6) { setErr('telefoon', 'Telefoon ontbreekt of is te kort.'); ok = false; } else clearErr('telefoon');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr('email', 'Ongeldig e-mailadres.'); ok = false; } else clearErr('email');
+    if (!sect.length) { setErr('sectoren', 'Selecteer minstens één sector.'); ok = false; } else clearErr('sectoren');
+    if (!range) { setErr('aantal_klanten', 'Selecteer een grootte.'); ok = false; } else clearErr('aantal_klanten');
+    return ok;
+  }
+
+  function showToast(msg, isErr){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.toggle('err', !!isErr);
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 4200);
+  }
+
+  function track(name, props){
+    try {
+      if (typeof window.plausible === 'function') {
+        window.plausible(name, { props: props || {} });
+      } else if (window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.')) {
+        console.log('[plausible-stub]', name, props);
+      }
+    } catch (_) {}
+  }
+
+  // ─── Form submit ─────────────────────────────────────────────
+  var form = document.getElementById('lead-form');
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    if (!validateForm()) { showToast('Even nakijken — sommige velden ontbreken.', true); return; }
+
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = 'Versturen…';
+
+    var sectoren = getSectoren();
+    var range = getRangeKlanten();
+    var notitie = (form.notitie.value || '').trim();
+    var ip = null;
+
+    // IP fetch (non-blocking)
+    try {
+      var ipResp = await Promise.race([
+        fetch('https://api.ipify.org?format=json').then(function(r){return r.json();}),
+        new Promise(function(_, rej){ setTimeout(function(){rej(new Error('timeout'));}, 2500); })
+      ]);
+      ip = ipResp && ipResp.ip;
+    } catch (_) { /* ignore */ }
+
+    var payload = {
+      status: 'lead',
+      bedrijfsnaam: form.bedrijfsnaam.value.trim(),
+      contactpersoon_naam: form.contactpersoon_naam.value.trim(),
+      contactpersoon_email: form.email.value.trim(),
+      contactpersoon_telefoon: form.telefoon.value.trim(),
+      sectoren: sectoren,
+      marge_pct: 10, // briefing-default; partner finaliseert in v1-wizard
+      lang: 'nl',
+      signing_ip: ip,
+      signing_user_agent: navigator.userAgent.slice(0, 250),
+      // Lead-specifieke metadata in notitie
+      notitie: [
+        'Range eindklanten: ' + (range || 'onbekend'),
+        notitie ? 'Bespreking: ' + notitie : null
+      ].filter(Boolean).join('\n'),
+      // Bron-tracking
+      lead_bron: 'onboard-v2-discovery'
+    };
+
+    try {
+      var resp = await fetch(SUPA_URL + '/rest/v1/rpc/anon_create_partner_application', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ payload: payload })
+      });
+
+      if (!resp.ok) {
+        var errBody = await resp.text();
+        console.error('[lead-submit]', resp.status, errBody);
+        throw new Error('HTTP ' + resp.status);
+      }
+
+      track('Onboard V2 Lead Submitted', {
+        sectors_count: String(sectoren.length),
+        range: range || 'unknown'
+      });
+
+      // Success-state
+      document.getElementById('step-5-form').style.display = 'none';
+      document.getElementById('step-5-success').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      console.error('[lead-submit]', err);
+      showToast('Verzenden lukte niet. Bel ons gerust direct op +32 472 80 81 82.', true);
+      btn.disabled = false;
+      btn.innerHTML = 'Aanmelden <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+    }
+  });
+
+  // ─── Init ────────────────────────────────────────────────────
+  goToStep(1);
+  track('Onboard V2 Loaded', {});
+
+})();
+</script>
+</body>
+</html>
