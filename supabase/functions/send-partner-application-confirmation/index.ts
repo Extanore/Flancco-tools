@@ -307,7 +307,7 @@ function buildNlProspectHtml(c: ProspectCtx): string {
 
     <h3 style="font-size:15px;margin:28px 0 12px;color:#1f2937">Wat gebeurt er nu?</h3>
     <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;color:#374151">
-      <li>Onze partnership-team neemt binnen <strong>1 à 2 werkdagen</strong> contact op</li>
+      <li>Onze partnership-team neemt binnen <strong>de 3 werkdagen</strong> contact op</li>
       <li>Na validatie ontvang je een aparte e-mail met magic-link om je account te activeren</li>
       <li>Via je account configureer je branding, calculator-instellingen en eerste team-leden</li>
       <li>Je ontvangt een marketing-kit met QR-code en share-templates voor je calculator</li>
@@ -364,7 +364,7 @@ function buildFrProspectHtml(c: ProspectCtx): string {
 
     <h3 style="font-size:15px;margin:28px 0 12px;color:#1f2937">Étapes suivantes</h3>
     <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;color:#374151">
-      <li>Notre équipe partenariats vous contactera dans <strong>1 à 2 jours ouvrables</strong></li>
+      <li>Notre équipe partenariats vous contactera dans <strong>les 3 jours ouvrables</strong></li>
       <li>Après validation, vous recevrez un e-mail séparé avec un lien magique pour activer votre compte</li>
       <li>Via votre compte, vous configurerez la marque, les paramètres du calculateur et les premiers membres d'équipe</li>
       <li>Vous recevrez un kit marketing avec QR-code et modèles de partage pour votre calculateur</li>
