@@ -221,7 +221,7 @@ const OPT_OUT_BASE_URL = Deno.env.get("OPT_OUT_BASE_URL") || "https://flancco-pl
 // Juridische Flancco-entiteit voor het herroepingsformulier — blijft Flancco-only.
 const FLANCCO_LEGAL_NAME = Deno.env.get("FLANCCO_LEGAL_NAME") ?? "Flancco BV";
 const FLANCCO_LEGAL_ADDRESS = Deno.env.get("FLANCCO_LEGAL_ADDRESS") ?? "Industrieweg 25, 9080 Lochristi, België";
-const FLANCCO_LEGAL_EMAIL = Deno.env.get("FLANCCO_LEGAL_EMAIL") ?? "gillian.geernaert@flancco.be";
+const FLANCCO_LEGAL_EMAIL = Deno.env.get("FLANCCO_LEGAL_EMAIL") ?? "info@flancco.be";
 const FLANCCO_LEGAL_VAT = Deno.env.get("FLANCCO_LEGAL_VAT") ?? "";
 
 // ─────────────────────────────────────────────────────────────────────────────

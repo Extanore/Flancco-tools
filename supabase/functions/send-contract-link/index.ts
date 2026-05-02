@@ -200,14 +200,14 @@ const corsHeaders = {
 
 // Sender + reply-to zijn env-var overridable zodat we zonder redeploy kunnen swappen
 // wanneer flancco.be DNS-toegang alsnog beschikbaar wordt.
-const FROM_ADDRESS = Deno.env.get("CONTRACT_FROM_ADDRESS") ?? "contracts@flancco-platform.be";
+const FROM_ADDRESS = Deno.env.get("CONTRACT_FROM_ADDRESS") ?? "noreply@flancco-platform.be";
 const REPLY_TO_DEFAULT = Deno.env.get("CONTRACT_REPLY_TO") ?? "service@flancco.be";
 
 // Vaste wettelijke verzend-adres van Flancco BV voor het herroepingsformulier.
 // Overridable via env voor staging/testomgevingen.
 const FLANCCO_LEGAL_NAME    = Deno.env.get("FLANCCO_LEGAL_NAME")    ?? "Flancco BV";
 const FLANCCO_LEGAL_ADDRESS = Deno.env.get("FLANCCO_LEGAL_ADDRESS") ?? "Industrieweg 25, 9080 Lochristi, België";
-const FLANCCO_LEGAL_EMAIL   = Deno.env.get("FLANCCO_LEGAL_EMAIL")   ?? "gillian.geernaert@flancco.be";
+const FLANCCO_LEGAL_EMAIL   = Deno.env.get("FLANCCO_LEGAL_EMAIL")   ?? "info@flancco.be";
 const FLANCCO_LEGAL_VAT     = Deno.env.get("FLANCCO_LEGAL_VAT")     ?? "";
 
 type Lang = "nl" | "fr";
