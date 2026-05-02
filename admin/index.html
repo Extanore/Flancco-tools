@@ -4691,15 +4691,15 @@
             <p class="ap-card-sub">Volledige Flancco-staffel met de gekozen marge toegepast. Formule: <code style="font-size:12px;color:var(--navy)">forfait × (1 + marge%) + planning fee</code> (excl. 21% btw).</p>
             <div class="ap-summary" style="margin-bottom:16px">
               <dt>Marge</dt><dd id="ap-pr-marge">15%</dd>
-              <dt>Planning fee</dt><dd>€ 25,00 per beurt</dd>
+              <dt>Planning fee</dt><dd>€ 5,00 per beurt</dd>
             </div>
             <div style="overflow-x:auto">
               <table class="ap-pricing-table">
-                <thead><tr><th>Aantal panelen</th><th class="num">Flancco prijs</th><th class="num">Klant excl. btw</th><th class="num">Jouw marge</th></tr></thead>
+                <thead><tr><th>Aantal panelen</th><th class="num">Flancco prijs</th><th class="num">Jouw marge</th><th class="num">Klant excl. btw</th></tr></thead>
                 <tbody id="ap-pr-tbody"></tbody>
               </table>
             </div>
-            <p style="font-size:11.5px;color:var(--grey);margin:12px 0 0;line-height:1.5">Klant excl. btw = Flancco-forfait × (1 + marge%) + €25 planning fee. Marge-bedrag wordt berekend op de forfait, niet op de planning fee.</p>
+            <p style="font-size:11.5px;color:var(--grey);margin:12px 0 0;line-height:1.5">Klant excl. btw = Flancco-forfait × (1 + marge%) + €5 planning fee. Marge-bedrag wordt berekend op de forfait, niet op de planning fee.</p>
           </div>
 
           <div class="ap-actions">
@@ -9681,12 +9681,6 @@ var AP_SECTOREN = [
   { key: 'industriele_koeling',  label: 'Industriële koeling' }
 ];
 
-var AP_PRICING_EXAMPLES = [
-  { key: 'klein',  label: 'Klein project',  desc: 'Bv. 10–20 panelen residentieel', forfait: 120, planning_fee: 25 },
-  { key: 'medium', label: 'Medium project', desc: 'Bv. 30–80 panelen KMO',          forfait: 380, planning_fee: 25 },
-  { key: 'groot',  label: 'Groot project',  desc: 'Bv. 100+ panelen industrieel',   forfait: 960, planning_fee: 25 }
-];
-
 var apSigCanvas = null;
 var apSigCtx = null;
 var apSigDrawing = false;
@@ -10087,7 +10081,7 @@ async function apRenderPricingPreview() {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#B91C1C;padding:20px">Pricing kon niet geladen worden — refresh de pagina.</td></tr>';
     return;
   }
-  var planningFee = 25; // Standaard voor nieuwe partners
+  var planningFee = 5; // Standaard voor nieuwe partners
   var rows = tiers.map(function(t) {
     var forfait = parseFloat(t.flancco_forfait) || 0;
     var klantExcl = forfait * (1 + marge / 100) + planningFee;
@@ -10095,8 +10089,8 @@ async function apRenderPricingPreview() {
     return '<tr>' +
       '<td><strong>' + esc(t.label || '') + '</strong></td>' +
       '<td class="num">' + apFormatEUR(forfait) + '</td>' +
-      '<td class="num"><strong>' + apFormatEUR(klantExcl) + '</strong></td>' +
       '<td class="num" style="color:#10B981">+ ' + apFormatEUR(margeAmt) + '</td>' +
+      '<td class="num"><strong>' + apFormatEUR(klantExcl) + '</strong></td>' +
     '</tr>';
   }).join('');
   tbody.innerHTML = rows;

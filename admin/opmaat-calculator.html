@@ -1634,7 +1634,7 @@ function renderPartnerForm() {
     var selectedPartner = document.getElementById('proj-partner').value;
     var partner = partners.find(function(pp) { return pp.id === selectedPartner; });
     var partnerMarge = partnerInternal ? (partnerInternal.partner_margin_pct || 15) : 15;
-    var partnerFee = partnerInternal ? (partnerInternal.planning_fee || 25) : 25;
+    var partnerFee = partnerInternal ? (partnerInternal.planning_fee || 5) : 5;
 
     html += '<div class="grid-3" style="margin-bottom:16px">';
     html += '<div><label>Partner marge (%)</label><input type="number" value="' + partnerMarge + '" min="0" max="50" step="1" onchange="updatePartnerInternal(\'partner_margin_pct\', this.value)"></div>';
@@ -1690,7 +1690,7 @@ function setPartnerScenario(scenario) {
 
 function updatePartnerInternal(field, value) {
   if (!partnerInternal) {
-    partnerInternal = { project_id: projectId, partner_margin_pct: 15, planning_fee: 25 };
+    partnerInternal = { project_id: projectId, partner_margin_pct: 15, planning_fee: 5 };
   }
   partnerInternal[field] = parseFloat(value) || 0;
   isDirty = true;
@@ -2177,7 +2177,7 @@ function exportPDF(type) {
   // ---- PARTNER PDF ----
   else if (type === 'partner') {
     var partnerMarge = partnerInternal ? (partnerInternal.partner_margin_pct || 15) : 15;
-    var partnerFee = partnerInternal ? (partnerInternal.planning_fee || 25) : 25;
+    var partnerFee = partnerInternal ? (partnerInternal.planning_fee || 5) : 5;
     var selectedPartner = document.getElementById('proj-partner').value;
     var partner = partners.find(function(pp) { return pp.id === selectedPartner; });
     var partnerName = partner ? (partner.bedrijfsnaam || partner.naam) : 'Partner';
