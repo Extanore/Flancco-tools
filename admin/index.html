@@ -4660,15 +4660,22 @@
 
           <div class="ap-card">
             <h3 class="ap-card-title">Marge & notitie</h3>
-            <p class="ap-card-sub">De marge bepaalt het verschil tussen Flancco-forfait en eindklant-prijs (zie pricing-preview op stap 2).</p>
-            <div class="ap-field" style="margin-bottom:14px">
+            <p class="ap-card-sub">De marge bepaalt het verschil tussen Flancco-forfait en eindklant-prijs (zie pricing-preview op stap 2). Bereik 10–15% — bewust binnen marktconforme zonnepaneel-tarieven.</p>
+            <div class="ap-field" style="margin-bottom:8px">
               <label for="ap-marge">Marge <span class="req">*</span></label>
               <div class="ap-marge-row">
-                <input id="ap-marge" type="range" min="10" max="20" step="1" value="15" oninput="document.getElementById('ap-marge-val').textContent=this.value+'%'">
-                <span class="ap-marge-val" id="ap-marge-val">15%</span>
+                <input id="ap-marge" type="range" min="10" max="15" step="1" value="12" oninput="apOnMargeChange(this.value)">
+                <span class="ap-marge-val" id="ap-marge-val">12%</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--grey);margin-top:6px;font-variant-numeric:tabular-nums">
+                <span>10% &mdash; <strong style="color:var(--ink);font-weight:600">Marktconform</strong></span>
+                <span><strong style="color:var(--ink);font-weight:600">Hoge grens</strong> &mdash; 15%</span>
+              </div>
+              <div id="ap-marge-context" style="margin-top:14px;padding:11px 14px;border-radius:8px;border-left:3px solid #1A1A2E;background:#F8FAFC;font-size:13px;line-height:1.5;color:#1A1A2E">
+                <!-- Dynamisch gevuld door apOnMargeChange() -->
               </div>
             </div>
-            <div class="ap-field">
+            <div class="ap-field" style="margin-top:18px">
               <label for="ap-notitie">Notitie (intern)</label>
               <textarea id="ap-notitie" rows="3" maxlength="2000" placeholder="Vrije context — binnenkomend kanaal, gespreksnotities, … (niet zichtbaar voor partner)"></textarea>
             </div>
@@ -9736,6 +9743,36 @@ var apSigCtx = null;
 var apSigDrawing = false;
 var apSigHasSig = false;
 
+/**
+ * Slider-handler voor de marge-keuze (10-15%). Update de huidige waarde-label
+ * én de dynamische context-card eronder. Drie zones met eigen border-kleur:
+ *   10-11% → groen (marktconforme prijzen)
+ *   12-13% → navy (marktgemiddelde)
+ *   14-15% → oranje (hoge grens, vergelijk concurrentie)
+ */
+function apOnMargeChange(rawValue) {
+  var v = parseInt(rawValue, 10);
+  if (isNaN(v) || v < 10) v = 10;
+  if (v > 15) v = 15;
+  var lbl = document.getElementById('ap-marge-val');
+  if (lbl) lbl.textContent = v + '%';
+  var box = document.getElementById('ap-marge-context');
+  if (!box) return;
+  var color, msg;
+  if (v <= 11) {
+    color = '#10B981';
+    msg = '<strong>Binnen de marktconforme prijzen.</strong> Maximale commerciële slagkracht voor jouw eindklanten — sterk argument tegenover concurrenten.';
+  } else if (v <= 13) {
+    color = '#1A1A2E';
+    msg = '<strong>Comfortabele marge binnen het marktgemiddelde.</strong> Gezonde balans tussen winst en prijspositionering — geen prijs-risico tegenover concurrenten.';
+  } else {
+    color = '#F59E0B';
+    msg = '<strong>Aan de hoge grens van marktconforme prijzen.</strong> Vergelijk eerst met concurrentie vóór je hier vast op kiest — risico op prijs-bezwaar bij eindklant.';
+  }
+  box.style.borderLeftColor = color;
+  box.innerHTML = msg;
+}
+
 function showActivatePartnerPage() {
   var s = window.activateState;
   // Wanneer geen pre-fill (directe nav vanuit sidebar): reset state + render leeg formulier
@@ -9806,11 +9843,13 @@ function apFillStep1FromState() {
   setVal('ap-gemeente', fd.gemeente);
   setVal('ap-notitie', fd.notitie);
   var marge = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 15;
-  if (marge < 10) marge = 10; else if (marge > 20) marge = 20;
+  if (marge < 10) marge = 10; else if (marge > 15) marge = 15;
   var mEl = document.getElementById('ap-marge');
   var mLab = document.getElementById('ap-marge-val');
   if (mEl) mEl.value = marge;
   if (mLab) mLab.textContent = marge + '%';
+  // Trigger context-card render zodat zowel bij prefill als bij eerste paint de juiste tekst staat
+  if (typeof apOnMargeChange === 'function') apOnMargeChange(marge);
 }
 
 function activateGoToStep(n) {
@@ -9912,7 +9951,7 @@ function apCollectStep1Data() {
   fd.notitie                 = get('ap-notitie');
   fd.marge_pct               = parseInt(document.getElementById('ap-marge').value, 10) || 15;
   if (fd.marge_pct < 10) fd.marge_pct = 10;
-  if (fd.marge_pct > 20) fd.marge_pct = 20;
+  if (fd.marge_pct > 15) fd.marge_pct = 15;
   return fd;
 }
 
