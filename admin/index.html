@@ -402,7 +402,10 @@
 
   /* PAGE SECTIONS */
   .page { display: none !important; }
-  .page.active { display: block !important; }
+  /* contain: layout style → isoleert reflow/style-recalculation bij keystrokes
+     in formulieren, voorkomt dat het ~1.2MB DOM bij elke input opnieuw
+     wordt doorgerekend. Geen visuele impact, alleen performance. */
+  .page.active { display: block !important; contain: layout style; }
 
   /* =========================================================================
      SLOT G — Winstgevendheid (vervangt voormalig .forecast-* CSS)
