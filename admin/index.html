@@ -9872,6 +9872,21 @@ function apCollectStep1Data() {
 }
 
 /**
+ * Verplaatst een Belgische vennootschapsvorm van het begin naar het einde van
+ * de bedrijfsnaam. VIES retourneert "CommV EXTANORE" — conventie in BE is
+ * "EXTANORE CommV". Bewaart oorspronkelijke casing van de vorm.
+ */
+function apReorderCompanySuffix(name) {
+  if (!name) return name;
+  var s = String(name).trim();
+  // Belangrijkste BE/FR vennootschapsvormen, langste eerst (anders eet 'CV' het 'CVBA')
+  var formsRegex = /^(BVBA|EBVBA|CVBA|CommVA|Comm\.?V\.?|SCRL|SPRL|SCS|ASBL|VZW|VOF|SNC|ESV|BV|NV|CV|CVA|SA)\s+(.+)$/i;
+  var m = s.match(formsRegex);
+  if (!m) return s;
+  return m[2].trim() + ' ' + m[1].trim();
+}
+
+/**
  * Parseert een Belgisch adres-blob (zoals VIES teruggeeft) naar gestructureerde
  * velden. VIES levert ofwel "Straat 25 9080 Gemeente" als één string, of geeft
  * postcode/gemeente apart terug — beide patterns worden ondersteund.
@@ -9947,7 +9962,9 @@ async function activateValidateBTW() {
         }
       };
       // Edge function `validate-vat` returnt veld `naam` (NL); fallback voor andere providers.
-      setIfEmpty('ap-bedrijfsnaam', data.naam || data.bedrijfsnaam || data.name);
+      // VIES levert vennootschapsvorm vooraan ("CommV EXTANORE") — wij draaien om naar BE-conventie.
+      var rawNaam = data.naam || data.bedrijfsnaam || data.name;
+      setIfEmpty('ap-bedrijfsnaam', apReorderCompanySuffix(rawNaam));
       var split = apSplitBeAdres(
         data.adres || data.address || '',
         data.postcode,
