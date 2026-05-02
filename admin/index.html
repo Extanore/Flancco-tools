@@ -4687,18 +4687,19 @@
         <!-- STEP 2 — Pricing-preview -->
         <div id="ap-step-2" class="ap-step-pane" style="display:none">
           <div class="ap-card">
-            <h3 class="ap-card-title">Pricing-preview</h3>
-            <p class="ap-card-sub">Voorbeeldprijzen voor 3 projectgroottes met de gekozen marge. Formule: <code style="font-size:12px;color:var(--navy)">(forfait × (1 + marge%) + planning fee) × 1,21</code></p>
+            <h3 class="ap-card-title">Pricing-preview — zonnepanelen reiniging</h3>
+            <p class="ap-card-sub">Volledige Flancco-staffel met de gekozen marge toegepast. Formule: <code style="font-size:12px;color:var(--navy)">forfait × (1 + marge%) + planning fee</code> (excl. 21% btw).</p>
             <div class="ap-summary" style="margin-bottom:16px">
               <dt>Marge</dt><dd id="ap-pr-marge">15%</dd>
               <dt>Planning fee</dt><dd>€ 25,00 per beurt</dd>
             </div>
             <div style="overflow-x:auto">
               <table class="ap-pricing-table">
-                <thead><tr><th>Project</th><th class="num">Klant excl. btw</th><th class="num">Klant incl. btw 21%</th><th class="num">Jouw marge</th></tr></thead>
+                <thead><tr><th>Aantal panelen</th><th class="num">Flancco prijs</th><th class="num">Klant excl. btw</th><th class="num">Jouw marge</th></tr></thead>
                 <tbody id="ap-pr-tbody"></tbody>
               </table>
             </div>
+            <p style="font-size:11.5px;color:var(--grey);margin:12px 0 0;line-height:1.5">Klant excl. btw = Flancco-forfait × (1 + marge%) + €25 planning fee. Marge-bedrag wordt berekend op de forfait, niet op de planning fee.</p>
           </div>
 
           <div class="ap-actions">
@@ -10045,22 +10046,57 @@ function apFormatEUR(n) {
   return new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
 }
 
-function apRenderPricingPreview() {
+// Module-level cache: laad Flancco-staffels 1× per sessie en hergebruik.
+window._apFlanccoPricingTiers = null;
+
+async function apLoadFlanccoPricingTiers() {
+  if (window._apFlanccoPricingTiers) return window._apFlanccoPricingTiers;
+  try {
+    var url = SUPA_URL + '/rest/v1/pricing'
+      + '?partner_id=eq.93679849-afb0-4a69-8bd5-b74afdf22cad'
+      + '&select=staffel_min,staffel_max,label,flancco_forfait'
+      + '&staffel_min=gte.1'
+      + '&order=staffel_min.asc';
+    var resp = await fetch(url, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+    });
+    if (!resp.ok) return [];
+    var data = await resp.json();
+    // Alleen zonnepanelen-staffels — andere staffels (HVAC items) gebruiken staffel_min=0.
+    var tiers = (data || []).filter(function(p) {
+      return /panelen/i.test(p.label || '');
+    });
+    window._apFlanccoPricingTiers = tiers;
+    return tiers;
+  } catch (e) {
+    console.warn('[apLoadFlanccoPricingTiers] failed:', e);
+    return [];
+  }
+}
+
+async function apRenderPricingPreview() {
   var fd = window.activateState.formData || {};
   var marge = typeof fd.marge_pct === 'number' ? fd.marge_pct : 15;
   var margeEl = document.getElementById('ap-pr-marge');
   if (margeEl) margeEl.textContent = marge + '%';
   var tbody = document.getElementById('ap-pr-tbody');
   if (!tbody) return;
-  var rows = AP_PRICING_EXAMPLES.map(function(ex) {
-    var subtotal = ex.forfait * (1 + marge / 100) + ex.planning_fee;
-    var inclBtw  = subtotal * 1.21;
-    var margeAmt = ex.forfait * (marge / 100);
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--grey);padding:20px">Bezig met laden…</td></tr>';
+  var tiers = await apLoadFlanccoPricingTiers();
+  if (!tiers || !tiers.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#B91C1C;padding:20px">Pricing kon niet geladen worden — refresh de pagina.</td></tr>';
+    return;
+  }
+  var planningFee = 25; // Standaard voor nieuwe partners
+  var rows = tiers.map(function(t) {
+    var forfait = parseFloat(t.flancco_forfait) || 0;
+    var klantExcl = forfait * (1 + marge / 100) + planningFee;
+    var margeAmt = forfait * (marge / 100);
     return '<tr>' +
-      '<td><strong>' + esc(ex.label) + '</strong><br><span style="font-size:11.5px;color:var(--grey)">' + esc(ex.desc) + '</span></td>' +
-      '<td class="num">' + apFormatEUR(subtotal) + '</td>' +
-      '<td class="num"><strong>' + apFormatEUR(inclBtw) + '</strong></td>' +
-      '<td class="num" style="color:#10B981">' + apFormatEUR(margeAmt) + '</td>' +
+      '<td><strong>' + esc(t.label || '') + '</strong></td>' +
+      '<td class="num">' + apFormatEUR(forfait) + '</td>' +
+      '<td class="num"><strong>' + apFormatEUR(klantExcl) + '</strong></td>' +
+      '<td class="num" style="color:#10B981">+ ' + apFormatEUR(margeAmt) + '</td>' +
     '</tr>';
   }).join('');
   tbody.innerHTML = rows;
