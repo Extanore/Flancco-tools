@@ -9695,7 +9695,12 @@ async function partnerApplicationAction(id, action) {
       var resp = await fetch(SUPA_URL + '/functions/v1/register-partner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY },
-        body: JSON.stringify({ application_id: id })
+        // Email + lang meesturen — edge function vereist deze voor invite-flow + email_mismatch defense-in-depth
+        body: JSON.stringify({
+          application_id: id,
+          email: (a.contactpersoon_email || '').trim().toLowerCase(),
+          lang: a.lang || 'nl'
+        })
       });
       var json = await resp.json().catch(function() { return null; });
       if (!resp.ok) throw new Error((json && (json.error || json.message)) || ('HTTP ' + resp.status));
