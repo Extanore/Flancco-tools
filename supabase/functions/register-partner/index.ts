@@ -8,7 +8,7 @@
 //   B. Genereer unieke slug uit bedrijfsnaam
 //   C. INSERT partners-rij (branding-defaults; partner kan later self-tunen)
 //   D. INSERT sector_config-rijen (1 per gekozen sector, gewhitelist)
-//   E. Maak/zoek auth-user; stuur magic-link invite (geen wachtwoord-set)
+//   E. Maak/zoek auth-user; verstuur Flancco-branded magic-link mail via Resend
 //   F. INSERT user_roles met partner-permissies (manage_users=true voor eerste seat)
 //   G. Update partner_applications.status → 'account_created' + partner_id
 //
@@ -28,10 +28,13 @@
 //   - Partner-INSERT mislukt → 500, geen verdere stappen
 //   - sector_config-INSERT mislukt → log warning, partner-rij blijft (admin-fix-pad)
 //   - user_roles-INSERT mislukt → log warning, magic-link is al verstuurd
+//   - Resend-mail mislukt → niet-fataal, partner blijft live, admin kan handmatig retry
 //   - application-status-update mislukt → log warning (niet-fataal — partner is live)
 //
 // Magic-link i.p.v. password-set: gebruiker kiest zelf wachtwoord op eerste login,
-// betere UX en geen plain-text password in mail.
+// betere UX en geen plain-text password in mail. Mail is volledig Flancco-branded
+// (geen Supabase-default mail) — sender, copy en visuele stijl matchen
+// `send-partner-application-confirmation`.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
@@ -41,6 +44,12 @@ import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const APP_BASE_URL = (Deno.env.get("APP_BASE_URL") ?? "https://app.flancco-platform.be").replace(/\/+$/, "");
+
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const PARTNER_INVITE_FROM = Deno.env.get("PARTNER_INVITE_FROM_ADDRESS")
+  ?? "Flancco Partners <noreply@flancco-platform.be>";
+const PARTNER_INVITE_REPLY_TO = Deno.env.get("PARTNER_INVITE_REPLY_TO")
+  ?? "gillian.geernaert@flancco.be";
 
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
   ?? "https://flancco-platform.be,https://app.flancco-platform.be,https://calculator.flancco-platform.be,https://www.flancco-platform.be"
@@ -64,6 +73,7 @@ interface PartnerApplication {
   status: string;
   partner_id: string | null;
   bedrijfsnaam: string;
+  contactpersoon_voornaam?: string | null;
   contactpersoon_email: string;
   contactpersoon_telefoon?: string | null;
   website?: string | null;
@@ -175,6 +185,10 @@ Deno.serve(async (req: Request) => {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[register-partner] missing SUPABASE_URL or SERVICE_ROLE_KEY");
     return jsonError(500, "server_misconfigured", corsHeaders);
+  }
+  if (!RESEND_API_KEY) {
+    console.error("[register-partner] missing RESEND_API_KEY");
+    return jsonError(500, "server_misconfigured", corsHeaders, { detail: "missing_resend_api_key" });
   }
 
   // Body parsing.
@@ -298,18 +312,20 @@ Deno.serve(async (req: Request) => {
       console.error("[register-partner] sector_config insert failed (non-fatal)", scErr.message);
     }
 
-    // === STAP E: Magic-link invite (of bestaande user koppelen) ===
+    // === STAP E: Magic-link genereren + Flancco-branded mail versturen ===
+    //
+    // We gebruiken auth.admin.generateLink (NIET inviteUserByEmail) zodat
+    // Supabase géén default mail verstuurt. We ontvangen de action_link in
+    // de response en versturen zelf een Flancco-branded mail via Resend.
     let userId: string | null = null;
     let inviteSent = false;
     let inviteError: string | null = null;
+    let magicLink: string | null = null;
 
     try {
       const existing = await findUserByEmail(admin, email);
       if (existing) {
         userId = existing.id;
-        // Bestaande user → genereer magic-link expliciet via inviteUserByEmail
-        // gebruiken werkt niet voor reeds bestaande users. We sturen een
-        // standaard recovery-link via generateLink.
         const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
           type: "magiclink",
           email,
@@ -317,21 +333,52 @@ Deno.serve(async (req: Request) => {
         });
         if (linkErr) {
           inviteError = `magiclink_generate_failed: ${linkErr.message}`;
-        } else if (linkData) {
-          // Supabase verstuurt automatisch via SMTP wanneer geconfigureerd.
-          // De email bevat de magic-link. Geen aparte mail-call nodig.
-          inviteSent = true;
+        } else {
+          magicLink = linkData?.properties?.action_link ?? null;
+          if (!magicLink) {
+            inviteError = "magiclink_missing_action_link";
+          }
         }
       } else {
-        const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${APP_BASE_URL}/?welcome=1`,
-          data: { partner_id: partnerId, lang, invited_via: "onboarding_wizard" },
+        // Nieuwe user: type=invite creëert de user + genereert link in één call,
+        // zonder Supabase-default mail.
+        const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: {
+            redirectTo: `${APP_BASE_URL}/?welcome=1`,
+            data: { partner_id: partnerId, lang, invited_via: "onboarding_wizard" },
+          },
         });
-        if (inviteErr || !invited?.user) {
-          inviteError = `invite_failed: ${inviteErr?.message || "unknown"}`;
+        if (linkErr) {
+          inviteError = `invite_generate_failed: ${linkErr.message}`;
         } else {
-          userId = invited.user.id;
+          userId = linkData?.user?.id ?? null;
+          magicLink = linkData?.properties?.action_link ?? null;
+          if (!userId) {
+            inviteError = "invite_missing_user_id";
+          } else if (!magicLink) {
+            inviteError = "invite_missing_action_link";
+          }
+        }
+      }
+
+      // Verstuur Flancco-branded mail (alleen als link beschikbaar is)
+      if (magicLink && !inviteError) {
+        const voornaam = (app.contactpersoon_voornaam ?? "").trim();
+        const mailResult = await sendPartnerInviteMail({
+          to: email,
+          voornaam,
+          bedrijfsnaam: app.bedrijfsnaam,
+          magicLink,
+          lang,
+        });
+        if (mailResult.ok) {
           inviteSent = true;
+        } else {
+          // Niet-fataal: link is gegenereerd maar mail-delivery faalde.
+          // Admin kan handmatig retry doen. Partner-rij blijft bestaan.
+          inviteError = mailResult.error ?? "invite_mail_failed";
         }
       }
     } catch (e) {
@@ -410,3 +457,181 @@ Deno.serve(async (req: Request) => {
     return jsonError(500, "internal_error", corsHeaders, { detail: (err as Error).message });
   }
 });
+
+// ─── Resend mail wrapper + templates ────────────────────────────────────────
+
+interface InviteMailParams {
+  to: string;
+  voornaam: string;
+  bedrijfsnaam: string;
+  magicLink: string;
+  lang: "nl" | "fr";
+}
+
+async function sendPartnerInviteMail(
+  params: InviteMailParams,
+): Promise<{ ok: boolean; error?: string }> {
+  const subject = params.lang === "fr"
+    ? "Bienvenue chez Flancco — activez votre compte partenaire"
+    : "Welkom bij Flancco — activeer je partner-account";
+
+  const html = params.lang === "fr"
+    ? buildFrInviteHtml(params)
+    : buildNlInviteHtml(params);
+
+  try {
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: PARTNER_INVITE_FROM,
+        to: params.to,
+        subject,
+        html,
+        reply_to: PARTNER_INVITE_REPLY_TO,
+      }),
+    });
+    if (!resp.ok) {
+      // Lees response-body niet om PII (recipient-email in Resend-error) te vermijden.
+      return { ok: false, error: `invite_mail_failed_status_${resp.status}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error("[sendPartnerInviteMail] fetch failed:", (e as Error).message);
+    return { ok: false, error: "invite_mail_failed_network" };
+  }
+}
+
+interface InviteCtx {
+  voornaam: string;
+  bedrijfsnaam: string;
+  magicLink: string;
+}
+
+function buildNlInviteHtml(c: InviteCtx): string {
+  const aanhef = c.voornaam ? `Beste ${escHtml(c.voornaam)}` : "Beste partner";
+  const bedrijfBlok = c.bedrijfsnaam
+    ? ` voor <strong>${escHtml(c.bedrijfsnaam)}</strong>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="nl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Activeer je Flancco partner-account</title></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#F3F4F6;color:#1A1A2E">
+<div style="max-width:600px;margin:0 auto;padding:20px">
+  <div style="background:#1A1A2E;color:#FFF;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center;border-bottom:3px solid #E74C3C">
+    <h1 style="margin:0;font-size:22px;letter-spacing:1.5px">FLANCCO</h1>
+    <p style="margin:6px 0 0;opacity:0.9;font-size:14px">Partner-platform voor onderhoud en service</p>
+  </div>
+  <div style="background:#FFF;padding:32px;border-radius:0 0 12px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+    <h2 style="color:#E74C3C;font-size:20px;margin:0 0 20px">Welkom als Flancco-partner</h2>
+    <p style="font-size:15px;line-height:1.7;margin:0 0 16px">${aanhef},</p>
+    <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Het partnercontract is succesvol getekend en je partner-account${bedrijfBlok} is klaar om geactiveerd te worden.</p>
+
+    <p style="margin:28px 0;text-align:center">
+      <a href="${escUrl(c.magicLink)}" style="display:inline-block;background:#E74C3C;color:#FFF;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:15px">Activeer mijn account</a>
+    </p>
+
+    <p style="font-size:13px;line-height:1.7;margin:0 0 24px;color:#6b7280">Werkt de knop niet? Kopieer dan deze link in je browser:<br><a href="${escUrl(c.magicLink)}" style="color:#1A1A2E;word-break:break-all">${escHtml(c.magicLink)}</a></p>
+
+    <div style="background:#F8F9FA;border-left:3px solid #E74C3C;border-radius:8px;padding:20px;margin:24px 0">
+      <h3 style="margin:0 0 12px;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">Wat vind je in je dashboard?</h3>
+      <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;color:#374151">
+        <li>Beheer van klanten en contracten onder jouw merk</li>
+        <li>Live planning van onderhoudsbeurten door Flancco</li>
+        <li>Branded rapporten met jouw logo en kleuren</li>
+        <li>Marketing-kit met QR-code voor je calculator</li>
+        <li>Facturatie-overzicht met je marge per beurt</li>
+      </ul>
+    </div>
+
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb">
+      <p style="font-size:14px;color:#6b7280;margin:0 0 8px">Vragen?</p>
+      <p style="font-size:14px;margin:0;line-height:1.7">
+        Antwoord op deze mail of bel rechtstreeks <strong style="color:#1f2937">0484 59 47 62</strong>.
+      </p>
+    </div>
+
+    <p style="margin-top:24px;font-size:14px;line-height:1.7">Met vriendelijke groet,<br><strong>Het Flancco team</strong></p>
+  </div>
+  <p style="text-align:center;margin:16px 0 0;color:#999;font-size:11px">Flancco BV &mdash; Partner-platform voor onderhoud en service</p>
+</div>
+</body>
+</html>`;
+}
+
+function buildFrInviteHtml(c: InviteCtx): string {
+  const aanhef = c.voornaam ? `Bonjour ${escHtml(c.voornaam)}` : "Bonjour cher partenaire";
+  const bedrijfBlok = c.bedrijfsnaam
+    ? ` pour <strong>${escHtml(c.bedrijfsnaam)}</strong>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Activez votre compte partenaire Flancco</title></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#F3F4F6;color:#1A1A2E">
+<div style="max-width:600px;margin:0 auto;padding:20px">
+  <div style="background:#1A1A2E;color:#FFF;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center;border-bottom:3px solid #E74C3C">
+    <h1 style="margin:0;font-size:22px;letter-spacing:1.5px">FLANCCO</h1>
+    <p style="margin:6px 0 0;opacity:0.9;font-size:14px">Plateforme partenaire pour entretien et service</p>
+  </div>
+  <div style="background:#FFF;padding:32px;border-radius:0 0 12px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+    <h2 style="color:#E74C3C;font-size:20px;margin:0 0 20px">Bienvenue en tant que partenaire Flancco</h2>
+    <p style="font-size:15px;line-height:1.7;margin:0 0 16px">${aanhef},</p>
+    <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Le contrat de partenariat a été signé avec succès et votre compte partenaire${bedrijfBlok} est prêt à être activé.</p>
+
+    <p style="margin:28px 0;text-align:center">
+      <a href="${escUrl(c.magicLink)}" style="display:inline-block;background:#E74C3C;color:#FFF;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:15px">Activer mon compte</a>
+    </p>
+
+    <p style="font-size:13px;line-height:1.7;margin:0 0 24px;color:#6b7280">Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :<br><a href="${escUrl(c.magicLink)}" style="color:#1A1A2E;word-break:break-all">${escHtml(c.magicLink)}</a></p>
+
+    <div style="background:#F8F9FA;border-left:3px solid #E74C3C;border-radius:8px;padding:20px;margin:24px 0">
+      <h3 style="margin:0 0 12px;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">Que trouverez-vous dans votre tableau de bord ?</h3>
+      <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;color:#374151">
+        <li>Gestion des clients et contrats sous votre marque</li>
+        <li>Planification en direct des entretiens par Flancco</li>
+        <li>Rapports brandés avec votre logo et vos couleurs</li>
+        <li>Kit marketing avec QR-code pour votre calculateur</li>
+        <li>Aperçu de facturation avec votre marge par intervention</li>
+      </ul>
+    </div>
+
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb">
+      <p style="font-size:14px;color:#6b7280;margin:0 0 8px">Une question ?</p>
+      <p style="font-size:14px;margin:0;line-height:1.7">
+        Répondez à cet e-mail ou appelez directement <strong style="color:#1f2937">0484 59 47 62</strong>.
+      </p>
+    </div>
+
+    <p style="margin-top:24px;font-size:14px;line-height:1.7">Cordialement,<br><strong>L'équipe Flancco</strong></p>
+  </div>
+  <p style="text-align:center;margin:16px 0 0;color:#999;font-size:11px">Flancco BV &mdash; Plateforme partenaire pour entretien et service</p>
+</div>
+</body>
+</html>`;
+}
+
+// ─── HTML escape helpers ────────────────────────────────────────────────────
+
+function escHtml(s: string | null | undefined): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Veilige URL-escape: laat enkel http(s) door — voorkomt javascript: injectie. */
+function escUrl(s: string | null | undefined): string {
+  const v = String(s ?? "").trim();
+  if (!v) return "";
+  if (/^https?:/i.test(v)) {
+    return v.replace(/"/g, "%22").replace(/</g, "%3C").replace(/>/g, "%3E");
+  }
+  return "";
+}
