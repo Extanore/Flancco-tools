@@ -1623,7 +1623,7 @@ var SECTORS = {
 
     renderForm: function(pricing, supplements) {
       var vervBedrag = getSectorSupplement('zonnepanelen', 'vervuiling');
-      var vervLabel = vervBedrag > 0 ? '+ ' + fmt(vervBedrag) + ' per paneel' : '';
+      var vervBedragStr = vervBedrag > 0 ? fmt(vervBedrag) : '€ 2,00';
       return '<div class="card">' +
         '<div class="card-title">Uw installatie</div>' +
         '<div class="field"><label>Aantal zonnepanelen</label>' +
@@ -1633,7 +1633,20 @@ var SECTORS = {
         '<div class="field"><label>Dakrandhoogte <small>(ca.)</small></label><select id="solar-dakhoogte" onchange="calculateAll()"><option value="laag">Lager dan 7,5 m</option><option value="hoog">7,5 – 17 m (hoogtewerker)</option></select><small style="display:block;margin-top:4px;color:#6B6B7E;font-size:11px;line-height:1.4">Boven 17 m: niet bereikbaar met onze standaard-hoogtewerker — offerte op maat.</small></div>' +
         '</div></div>' +
         '<div class="card"><div class="card-title">Bijzonderheden</div>' +
-        '<label class="toggle-group" for="solar-vervuiling"><div class="toggle-label">Hevige vervuiling of mosvorming<small id="solar-verv-label">' + vervLabel + '</small></div>' +
+        // Info-card vervangt de vroegere checkbox-only — geeft klant criteria + transparant tarief.
+        '<div style="background:#FCE4DA;border-left:3px solid #E76F51;border-radius:6px;padding:14px 18px;margin-bottom:14px;font-size:13px;line-height:1.55;color:#1A1A2E">' +
+          '<p style="margin:0 0 8px;font-weight:600">Onze prijs is gebaseerd op normaal vervuilde panelen.</p>' +
+          '<p style="margin:0 0 10px">Bij hevige vervuiling rekenen we een toeslag van <strong>+ ' + vervBedragStr + ' excl. btw per paneel</strong>. Onze technieker beoordeelt dit ter plaatse en bevestigt het bedrag vóór de start van de werken &mdash; geen verrassingen op uw factuur.</p>' +
+          '<p style="margin:0 0 6px;font-weight:600">Hevige vervuiling herkent u aan:</p>' +
+          '<ul style="margin:0;padding-left:20px;color:#3D3D55">' +
+            '<li>Mos- of korstmosgroei op of tussen de panelen</li>' +
+            '<li>Vogelpoep-aankoeken die niet wegspoelen</li>' +
+            '<li>Roet of stoflagen (industriële omgeving)</li>' +
+            '<li>Boomzappen of plakkerige aanslag</li>' +
+            '<li>Panelen niet gereinigd in de laatste 3 jaar</li>' +
+          '</ul>' +
+        '</div>' +
+        '<label class="toggle-group" for="solar-vervuiling"><div class="toggle-label">Mijn panelen zijn hevig vervuild<small>Optioneel &mdash; geeft de technieker vooraf een seintje, factuur klopt direct</small></div>' +
         '<div class="switch"><input type="checkbox" id="solar-vervuiling" onchange="calculateAll()"><span class="slider"></span></div></label>' +
         // Verplaatst van stap 2 naar stap 1 — eindklant beslist over deze
         // installatie-praktische zaken vóór de prijs (bereikbaarheid + water
