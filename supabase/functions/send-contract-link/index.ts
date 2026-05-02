@@ -201,7 +201,7 @@ const corsHeaders = {
 // Sender + reply-to zijn env-var overridable zodat we zonder redeploy kunnen swappen
 // wanneer flancco.be DNS-toegang alsnog beschikbaar wordt.
 const FROM_ADDRESS = Deno.env.get("CONTRACT_FROM_ADDRESS") ?? "noreply@flancco-platform.be";
-const REPLY_TO_DEFAULT = Deno.env.get("CONTRACT_REPLY_TO") ?? "service@flancco.be";
+const REPLY_TO_DEFAULT = Deno.env.get("CONTRACT_REPLY_TO") ?? "gillian.geernaert@flancco.be";
 
 // Vaste wettelijke verzend-adres van Flancco BV voor het herroepingsformulier.
 // Overridable via env voor staging/testomgevingen.

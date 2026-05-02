@@ -30,7 +30,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const EMAIL_FROM_ADDRESS = Deno.env.get("EMAIL_FROM_ADDRESS")
   ?? "Flancco <noreply@flancco-platform.be>";
 const EMAIL_REPLY_TO = Deno.env.get("EMAIL_REPLY_TO")
-  ?? "service@flancco.be";
+  ?? "gillian.geernaert@flancco.be";
 // ADMIN_NOTIFICATION_EMAIL blijft Gillian — interne notificatie van nieuwe aanvraag.
 const ADMIN_NOTIFICATION_EMAIL = Deno.env.get("ADMIN_NOTIFICATION_EMAIL")
   ?? "gillian.geernaert@flancco.be";
@@ -318,7 +318,7 @@ function buildNlProspectHtml(c: ProspectCtx): string {
       <p style="font-size:14px;color:#6b7280;margin:0 0 8px">Vragen?</p>
       <p style="font-size:14px;margin:0;line-height:1.7">
         <strong style="color:#1f2937">Flancco BV</strong><br>
-        <a href="mailto:service@flancco.be" style="color:#1A1A2E;text-decoration:none">service@flancco.be</a>
+        <a href="mailto:gillian.geernaert@flancco.be" style="color:#1A1A2E;text-decoration:none">gillian.geernaert@flancco.be</a>
       </p>
     </div>
 
@@ -375,7 +375,7 @@ function buildFrProspectHtml(c: ProspectCtx): string {
       <p style="font-size:14px;color:#6b7280;margin:0 0 8px">Une question ?</p>
       <p style="font-size:14px;margin:0;line-height:1.7">
         <strong style="color:#1f2937">Flancco BV</strong><br>
-        <a href="mailto:service@flancco.be" style="color:#1A1A2E;text-decoration:none">service@flancco.be</a>
+        <a href="mailto:gillian.geernaert@flancco.be" style="color:#1A1A2E;text-decoration:none">gillian.geernaert@flancco.be</a>
       </p>
     </div>
 

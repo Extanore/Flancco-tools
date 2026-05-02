@@ -43,7 +43,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM_DEFAULT = Deno.env.get("EMAIL_FROM_ADDRESS") ?? "Flancco Platform <noreply@flancco-platform.be>";
-const REPLY_TO_DEFAULT = Deno.env.get("EMAIL_REPLY_TO") ?? "service@flancco.be";
+const REPLY_TO_DEFAULT = Deno.env.get("EMAIL_REPLY_TO") ?? "gillian.geernaert@flancco.be";
 const APP_BASE_URL = (Deno.env.get("APP_BASE_URL") ?? "https://app.flancco-platform.be/").replace(/\/?$/, "/");
 
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")

@@ -208,7 +208,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // v4: sender gemigreerd naar @flancco-platform.be. Reply-to behoudt actief Flancco-postvak,
 // tenzij de partner een eigen contact_email/email heeft (zie buildReplyTo()).
 const FROM_ADDRESS = Deno.env.get("CONFIRM_FROM_ADDRESS") || "noreply@flancco-platform.be";
-const REPLY_TO_DEFAULT = Deno.env.get("CONFIRM_REPLY_TO") || "service@flancco.be";
+const REPLY_TO_DEFAULT = Deno.env.get("CONFIRM_REPLY_TO") || "gillian.geernaert@flancco.be";
 
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
   || "https://app.flancco-platform.be,https://calculator.flancco-platform.be,https://flancco-platform.be,https://www.flancco-platform.be,https://extanore.github.io"
