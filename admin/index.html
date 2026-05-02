@@ -9871,6 +9871,48 @@ function apCollectStep1Data() {
   return fd;
 }
 
+/**
+ * Parseert een Belgisch adres-blob (zoals VIES teruggeeft) naar gestructureerde
+ * velden. VIES levert ofwel "Straat 25 9080 Gemeente" als één string, of geeft
+ * postcode/gemeente apart terug — beide patterns worden ondersteund.
+ *
+ * Werkwijze:
+ *   1. Normaliseer (komma's/newlines → spaties)
+ *   2. Detecteer "<rest> <4-cijfer-postcode> <gemeente>" als die nog niet ingevuld
+ *   3. Splits resterende string op laatste cijfer-segment = huisnummer
+ *
+ * Dekt ±80% van BE-adressen. Faalt bij straten beginnend met cijfer
+ * ("25 Mei Laan") — daar is handmatige correctie nodig.
+ */
+function apSplitBeAdres(rawAdres, rawPostcode, rawGemeente) {
+  var result = {
+    straat: '',
+    huisnummer: '',
+    postcode: (rawPostcode || '').trim(),
+    gemeente: (rawGemeente || '').trim()
+  };
+  if (!rawAdres) return result;
+  var s = String(rawAdres).replace(/[\n,]/g, ' ').replace(/\s+/g, ' ').trim();
+  // Probeer postcode + gemeente uit het einde te halen indien nog niet uit aparte velden
+  if (!result.postcode || !result.gemeente) {
+    var pcm = s.match(/^(.+?)\s+(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-']+)$/);
+    if (pcm) {
+      s = pcm[1].trim();
+      if (!result.postcode) result.postcode = pcm[2];
+      if (!result.gemeente) result.gemeente = pcm[3].trim();
+    }
+  }
+  // Split resterend = straat + huisnummer (laatste segment dat met cijfer begint)
+  var hnm = s.match(/^(.+?)\s+(\d[\w\s\-/]*)$/);
+  if (hnm) {
+    result.straat = hnm[1].trim();
+    result.huisnummer = hnm[2].trim();
+  } else {
+    result.straat = s;
+  }
+  return result;
+}
+
 async function activateValidateBTW() {
   var btn = document.getElementById('ap-btw-validate');
   var msg = document.getElementById('ap-btw-msg');
@@ -9894,12 +9936,26 @@ async function activateValidateBTW() {
       msg.textContent = 'BTW-nummer geldig' + (data.bedrijfsnaam ? ' — ' + data.bedrijfsnaam : '');
       msg.style.display = 'block';
       msg.style.color = '#047857';
-      // Auto-fill van VIES indien velden leeg
-      var setIfEmpty = function(id, val) { var el = document.getElementById(id); if (el && !el.value && val) el.value = val; };
+      // Auto-fill VIES-data — splitst adres-blob in straat/huisnr/postcode/gemeente.
+      // Werkt op ~80% van BE-adressen; user kan altijd handmatig overschrijven.
+      var setIfEmpty = function(id, val) {
+        var el = document.getElementById(id);
+        if (el && !el.value && val) {
+          el.value = val;
+          el.classList.remove('ap-err');
+          var f = el.closest('.ap-field'); if (f) f.classList.remove('has-err');
+        }
+      };
       setIfEmpty('ap-bedrijfsnaam', data.bedrijfsnaam || data.name);
-      setIfEmpty('ap-adres',        data.adres || data.address);
-      setIfEmpty('ap-postcode',     data.postcode);
-      setIfEmpty('ap-gemeente',     data.gemeente || data.city);
+      var split = apSplitBeAdres(
+        data.adres || data.address || '',
+        data.postcode,
+        data.gemeente || data.city
+      );
+      setIfEmpty('ap-straat',   split.straat);
+      setIfEmpty('ap-huisnr',   split.huisnummer);
+      setIfEmpty('ap-postcode', split.postcode);
+      setIfEmpty('ap-gemeente', split.gemeente);
     } else if (data && data.valid === false) {
       msg.textContent = 'BTW-nummer niet geldig in VIES.';
       msg.style.display = 'block';
