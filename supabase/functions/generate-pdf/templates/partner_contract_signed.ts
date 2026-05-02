@@ -52,7 +52,7 @@ export interface PartnerContractSignedData {
   // Contract-voorwaarden
   /** Lijst van slugs: 'warmtepomp' | 'zonnepanelen' | 'ventilatie'. */
   sectoren: string[];
-  /** Globale marge in % (10-20). */
+  /** Globale marge in % (10-15) — bewust binnen marktconforme zonnepaneel-tarieven. */
   marge_pct: number;
 
   // Signing
