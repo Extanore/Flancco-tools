@@ -1630,7 +1630,7 @@ var SECTORS = {
         '<input type="number" id="solar-panelen" min="1" max="200" value="12" oninput="calculateAll()"></div>' +
         '<div class="field-row">' +
         '<div class="field"><label>Type dak</label><select id="solar-daktype" onchange="calculateAll()"><option value="hellend">Hellend dak</option><option value="plat">Plat dak</option><option value="grond">Grondopstelling</option></select></div>' +
-        '<div class="field"><label>Dakrandhoogte <small>(ca.)</small></label><select id="solar-dakhoogte" onchange="calculateAll()"><option value="laag">Lager dan 7,5 m</option><option value="hoog">Hoger dan 7,5 m</option></select></div>' +
+        '<div class="field"><label>Dakrandhoogte <small>(ca.)</small></label><select id="solar-dakhoogte" onchange="calculateAll()"><option value="laag">Lager dan 7,5 m</option><option value="hoog">7,5 – 17 m (hoogtewerker)</option></select><small style="display:block;margin-top:4px;color:#6B6B7E;font-size:11px;line-height:1.4">Boven 17 m: niet bereikbaar met onze standaard-hoogtewerker — offerte op maat.</small></div>' +
         '</div></div>' +
         '<div class="card"><div class="card-title">Bijzonderheden</div>' +
         '<label class="toggle-group" for="solar-vervuiling"><div class="toggle-label">Hevige vervuiling of mosvorming<small id="solar-verv-label">' + vervLabel + '</small></div>' +
@@ -1678,16 +1678,18 @@ var SECTORS = {
     //   1\u201314 panelen   \u2192 4 installaties/dag \u2192 \u20AC97,50  per installatie
     //   15\u201325 panelen  \u2192 3 installaties/dag \u2192 \u20AC130,00 per installatie
     //   26\u201340 panelen  \u2192 2 installaties/dag \u2192 \u20AC195,00 per installatie
-    //   41\u201375 panelen  \u2192 1 installatie/dag  \u2192 \u20AC390,00 per installatie
+    //   41\u201375 panelen  \u2192 1 installatie/dag  \u2192 \u20AC375,00 per installatie
     //   > 75 panelen      \u2192 op aanvraag        \u2192 0 (geen prijsweergave)
+    // Hoogtewerker reikt tot max 17 m dakrand. Boven 17 m: niet bereikbaar
+    // met onze standaard-hoogtewerker \u2192 offerte op maat.
     getHoogtewerkerKostPerInstallatie: function(pan) {
-      var HOOGTEWERKER_DAGHUUR = 390;
+      var HOOGTEWERKER_DAGHUUR = 375;
       var n = parseInt(pan, 10) || 0;
       if (n <= 0)  return 0;
-      if (n <= 14) return HOOGTEWERKER_DAGHUUR / 4; // \u20AC97,50
-      if (n <= 25) return HOOGTEWERKER_DAGHUUR / 3; // \u20AC130
-      if (n <= 40) return HOOGTEWERKER_DAGHUUR / 2; // \u20AC195
-      if (n <= 75) return HOOGTEWERKER_DAGHUUR / 1; // \u20AC390
+      if (n <= 14) return HOOGTEWERKER_DAGHUUR / 4; // \u20AC93,75
+      if (n <= 25) return HOOGTEWERKER_DAGHUUR / 3; // \u20AC125
+      if (n <= 40) return HOOGTEWERKER_DAGHUUR / 2; // \u20AC187,50
+      if (n <= 75) return HOOGTEWERKER_DAGHUUR / 1; // \u20AC375
       return 0; // > 75 \u2192 op aanvraag, geen prijs
     },
 
@@ -1752,7 +1754,7 @@ var SECTORS = {
 
       var lines = [{ label: 'Reiniging ' + inputs.pan + ' panelen (' + f.lbl + ')', amount: f.amt }];
       if (vervC > 0) lines.push({ label: 'Vervuiling (' + inputs.pan + ' pan. \u00D7 ' + fmt(vervPP) + ')', amount: vervC });
-      if (hoogC > 0) lines.push({ label: 'Hoogtewerker (dakrand > 7,5 m)', amount: hoogC });
+      if (hoogC > 0) lines.push({ label: 'Hoogtewerker (dakrand 7,5–17 m)', amount: hoogC });
       if (parkeerC > 0) lines.push({ label: 'Parkeervergunning (administratiekost)', amount: parkeerC });
 
       return { lines: lines, subtotalExcl: subtotalExcl, forfaitLabel: f.lbl, forfaitExcl: f.amt, vervC: vervC, hoogC: hoogC, hoogBedrag: hoogBedrag, vervPP: vervPP, parkeerC: parkeerC, parkeerFee: parkeerFeeBase, opAanvraag: false };
