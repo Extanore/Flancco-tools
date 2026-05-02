@@ -4598,12 +4598,12 @@
                 <span class="ap-err-msg">Minimaal 2 tekens vereist.</span>
               </div>
               <div class="ap-field">
-                <label for="ap-btw">BTW-nummer</label>
+                <label for="ap-btw">BTW-nummer <span class="req">*</span></label>
                 <div style="display:flex;gap:8px">
                   <input id="ap-btw" type="text" placeholder="BE0123456789" maxlength="20" style="flex:1">
                   <button type="button" class="btn btn-secondary btn-sm" id="ap-btw-validate" onclick="activateValidateBTW()">Valideer</button>
                 </div>
-                <span class="ap-err-msg" id="ap-btw-msg"></span>
+                <span class="ap-err-msg" id="ap-btw-msg">Geldig BTW-nummer vereist (formaat: 2 letters + cijfers, bv. BE0123456789).</span>
               </div>
               <div class="ap-field">
                 <label for="ap-website">Website</label>
@@ -4629,17 +4629,24 @@
                 <input id="ap-telefoon" type="tel" autocomplete="tel" maxlength="40">
               </div>
               <div class="ap-field full">
-                <label for="ap-adres">Adres</label>
-                <input id="ap-adres" type="text" autocomplete="street-address" maxlength="200">
+                <label for="ap-straat">Straat <span class="req">*</span></label>
+                <input id="ap-straat" type="text" autocomplete="address-line1" maxlength="200">
+                <span class="ap-err-msg">Verplicht veld.</span>
               </div>
               <div class="ap-field">
-                <label for="ap-postcode">Postcode</label>
+                <label for="ap-huisnr">Huisnummer <span class="req">*</span></label>
+                <input id="ap-huisnr" type="text" autocomplete="address-line2" maxlength="20" placeholder="bv. 25 of 25A bus 3">
+                <span class="ap-err-msg">Verplicht veld.</span>
+              </div>
+              <div class="ap-field">
+                <label for="ap-postcode">Postcode <span class="req">*</span></label>
                 <input id="ap-postcode" type="text" inputmode="numeric" maxlength="4" placeholder="0000">
                 <span class="ap-err-msg">4 cijfers vereist.</span>
               </div>
-              <div class="ap-field">
-                <label for="ap-gemeente">Gemeente</label>
+              <div class="ap-field full">
+                <label for="ap-gemeente">Gemeente <span class="req">*</span></label>
                 <input id="ap-gemeente" type="text" autocomplete="address-level2" maxlength="100">
+                <span class="ap-err-msg">Verplicht veld.</span>
               </div>
             </div>
           </div>
@@ -9738,7 +9745,18 @@ function apFillStep1FromState() {
   setVal('ap-naam', fd.contactpersoon_naam);
   setVal('ap-email', fd.contactpersoon_email);
   setVal('ap-telefoon', fd.contactpersoon_telefoon);
-  setVal('ap-adres', fd.adres);
+  // Adres-prefill: prefereer expliciete straat+huisnummer als die bestaat,
+  // anders heuristiek op `adres`-string (laatste segment dat begint met cijfer = huisnummer).
+  if (fd.straat || fd.huisnummer) {
+    setVal('ap-straat', fd.straat);
+    setVal('ap-huisnr', fd.huisnummer);
+  } else if (fd.adres) {
+    var m = fd.adres.match(/^(.+?)\s+(\d[\w\s\-/]*)$/);
+    if (m) { setVal('ap-straat', m[1].trim()); setVal('ap-huisnr', m[2].trim()); }
+    else   { setVal('ap-straat', fd.adres);    setVal('ap-huisnr', ''); }
+  } else {
+    setVal('ap-straat', ''); setVal('ap-huisnr', '');
+  }
   setVal('ap-postcode', fd.postcode);
   setVal('ap-gemeente', fd.gemeente);
   setVal('ap-notitie', fd.notitie);
@@ -9802,6 +9820,10 @@ function activateValidateStep1() {
   };
   var bedrijfsnaam = (document.getElementById('ap-bedrijfsnaam').value || '').trim();
   setErr('ap-bedrijfsnaam', bedrijfsnaam.length < 2); if (bedrijfsnaam.length < 2) ok = false;
+  // BTW-nummer verplicht: 2 letters (landcode) + 8-12 cijfers, geen spaties of streepjes
+  var btw = (document.getElementById('ap-btw').value || '').replace(/[\s.\-]/g, '').toUpperCase();
+  var btwValid = /^[A-Z]{2}[0-9]{8,12}$/.test(btw);
+  setErr('ap-btw', !btwValid); if (!btwValid) ok = false;
   var voornaam = (document.getElementById('ap-voornaam').value || '').trim();
   setErr('ap-voornaam', !voornaam); if (!voornaam) ok = false;
   var naam = (document.getElementById('ap-naam').value || '').trim();
@@ -9809,8 +9831,16 @@ function activateValidateStep1() {
   var email = (document.getElementById('ap-email').value || '').trim();
   var emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   setErr('ap-email', !emailValid); if (!emailValid) ok = false;
+  // Adres-velden allemaal verplicht (audit-trail compliance)
+  var straat = (document.getElementById('ap-straat').value || '').trim();
+  setErr('ap-straat', !straat); if (!straat) ok = false;
+  var huisnr = (document.getElementById('ap-huisnr').value || '').trim();
+  setErr('ap-huisnr', !huisnr); if (!huisnr) ok = false;
   var postcode = (document.getElementById('ap-postcode').value || '').trim();
-  if (postcode && !/^\d{4}$/.test(postcode)) { setErr('ap-postcode', true); ok = false; } else { setErr('ap-postcode', false); }
+  var postcodeValid = /^\d{4}$/.test(postcode);
+  setErr('ap-postcode', !postcodeValid); if (!postcodeValid) ok = false;
+  var gemeente = (document.getElementById('ap-gemeente').value || '').trim();
+  setErr('ap-gemeente', !gemeente); if (!gemeente) ok = false;
   var sectoren = (window.activateState.formData && window.activateState.formData.sectoren) || [];
   var sectErr = document.getElementById('ap-sectoren-err');
   if (sectoren.length === 0) { if (sectErr) sectErr.style.display = 'block'; ok = false; } else { if (sectErr) sectErr.style.display = 'none'; }
@@ -9827,7 +9857,11 @@ function apCollectStep1Data() {
   fd.contactpersoon_naam     = get('ap-naam');
   fd.contactpersoon_email    = get('ap-email');
   fd.contactpersoon_telefoon = get('ap-telefoon');
-  fd.adres                   = get('ap-adres');
+  // Adres samenvoegen uit straat + huisnummer (DB heeft één 'adres'-kolom).
+  // Behoud aparte fd.straat + fd.huisnummer voor herstel bij prefill.
+  fd.straat                  = get('ap-straat');
+  fd.huisnummer              = get('ap-huisnr');
+  fd.adres                   = (fd.straat + ' ' + fd.huisnummer).trim();
   fd.postcode                = get('ap-postcode');
   fd.gemeente                = get('ap-gemeente');
   fd.notitie                 = get('ap-notitie');
