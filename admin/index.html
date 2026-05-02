@@ -9946,7 +9946,8 @@ async function activateValidateBTW() {
           var f = el.closest('.ap-field'); if (f) f.classList.remove('has-err');
         }
       };
-      setIfEmpty('ap-bedrijfsnaam', data.bedrijfsnaam || data.name);
+      // Edge function `validate-vat` returnt veld `naam` (NL); fallback voor andere providers.
+      setIfEmpty('ap-bedrijfsnaam', data.naam || data.bedrijfsnaam || data.name);
       var split = apSplitBeAdres(
         data.adres || data.address || '',
         data.postcode,
