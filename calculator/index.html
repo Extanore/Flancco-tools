@@ -204,6 +204,23 @@
   .result-total-amount { font-size: 36px; font-weight: 700; letter-spacing: -1px; transition: all 0.3s; }
   .result-note { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: right; }
 
+  /* OP AANVRAAG — banner voor projecten > 75 panelen (geen auto-prijs).
+     Warm-amber kleur op witte card binnen de groene result-card zodat het
+     contrast direct aandacht trekt zonder het partner-thema te breken.
+     Mail-link gebruikt service@flancco.be (centrale partner-onafhankelijke
+     mailbox; valt onder algemene Flancco-policy "groot project = offerte"). */
+  .result-card.is-op-aanvraag { background: var(--primary); }
+  .result-card .op-aanvraag-banner { background: #FFF8E6; border: 1px solid #F0C24B; border-left: 4px solid #D89200; border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; color: #4A3A0A; }
+  .result-card .op-aanvraag-banner .op-aanvraag-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: #4A3A0A; margin-bottom: 6px; letter-spacing: 0.2px; }
+  .result-card .op-aanvraag-banner .op-aanvraag-title svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: #B07000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .result-card .op-aanvraag-banner .op-aanvraag-body { font-size: 13px; line-height: 1.55; color: #4A3A0A; }
+  .result-card .op-aanvraag-banner .op-aanvraag-body a { color: #8A5C00; font-weight: 600; text-decoration: underline; }
+  .result-card .op-aanvraag-banner .op-aanvraag-body a:hover { color: #D89200; }
+  .result-card.is-op-aanvraag .result-total-amount,
+  .result-card.is-op-aanvraag .result-total-label,
+  .result-card.is-op-aanvraag .result-divider,
+  .result-card.is-op-aanvraag #line-jaar { display: none; }
+
   /* STAFFEL TABLE */
   .staffel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .staffel-table th { text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--grey); padding: 8px 12px; border-bottom: 2px solid var(--primary-bg); }
@@ -709,6 +726,20 @@
     <!-- RESULT CARD -->
     <div class="result-card" id="result-card">
       <div class="result-title" id="result-title" data-i18n="step1.result.title">Uw prijsindicatie per beurt</div>
+      <!--
+        Banner verschijnt enkel bij zonnepanelen-projecten > 75 panelen
+        (Flancco pricing-policy: groot project = offerte op maat).
+        Wordt getoond/verborgen via .is-op-aanvraag class op #result-card.
+      -->
+      <div class="op-aanvraag-banner" id="op-aanvraag-banner" style="display:none">
+        <div class="op-aanvraag-title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Project op maat — geen automatische prijs</span>
+        </div>
+        <div class="op-aanvraag-body">
+          Het aantal panelen overschrijdt onze standaardstaffel (max 75). Voor projecten boven 75 panelen maken we graag een offerte op maat &mdash; neem contact op met je Flancco-partner of via <a href="mailto:service@flancco.be?subject=Offerte%20op%20maat%20%E2%80%94%20zonnepanelen%20%3E%2075">service@flancco.be</a>.
+        </div>
+      </div>
       <div class="result-lines" id="result-lines"></div>
       <hr class="result-divider">
       <div class="result-total">
@@ -725,8 +756,8 @@
     <div id="staffel-container" style="margin-top:24px"></div>
 
     <div class="cta-section">
-      <button class="btn btn-block" onclick="goToStep(2)" data-i18n="step1.ctaNext">Ga verder naar overeenkomst &rarr;</button>
-      <div class="cta-sub" data-i18n="step1.ctaHint">Vul uw gegevens in en bekijk direct uw persoonlijke overeenkomst</div>
+      <button class="btn btn-block" id="btn-step1-next" onclick="goToStep(2)" data-i18n="step1.ctaNext">Ga verder naar overeenkomst &rarr;</button>
+      <div class="cta-sub" id="step1-cta-sub" data-i18n="step1.ctaHint">Vul uw gegevens in en bekijk direct uw persoonlijke overeenkomst</div>
     </div>
   </div>
 
@@ -1636,9 +1667,51 @@ var SECTORS = {
       };
     },
 
+    // Hoogtewerker-kost per installatie op basis van het aantal installaties
+    // dat we per dag halen voor de gegeven project-grootte. De daghuur van een
+    // hoogtewerker is een doorlopende kost (geen marge): we delen ze over het
+    // verwachte aantal installaties van die dag. Voor projecten > 75 panelen
+    // werken we niet meer met staffel-prijzen ("op aanvraag"), dus geven we 0
+    // terug; de UI verbergt dan de prijs en blokkeert ondertekening.
+    //
+    // Tier-mapping (operationele praktijk):
+    //   1\u201314 panelen   \u2192 4 installaties/dag \u2192 \u20AC97,50  per installatie
+    //   15\u201325 panelen  \u2192 3 installaties/dag \u2192 \u20AC130,00 per installatie
+    //   26\u201340 panelen  \u2192 2 installaties/dag \u2192 \u20AC195,00 per installatie
+    //   41\u201375 panelen  \u2192 1 installatie/dag  \u2192 \u20AC390,00 per installatie
+    //   > 75 panelen      \u2192 op aanvraag        \u2192 0 (geen prijsweergave)
+    getHoogtewerkerKostPerInstallatie: function(pan) {
+      var HOOGTEWERKER_DAGHUUR = 390;
+      var n = parseInt(pan, 10) || 0;
+      if (n <= 0)  return 0;
+      if (n <= 14) return HOOGTEWERKER_DAGHUUR / 4; // \u20AC97,50
+      if (n <= 25) return HOOGTEWERKER_DAGHUUR / 3; // \u20AC130
+      if (n <= 40) return HOOGTEWERKER_DAGHUUR / 2; // \u20AC195
+      if (n <= 75) return HOOGTEWERKER_DAGHUUR / 1; // \u20AC390
+      return 0; // > 75 \u2192 op aanvraag, geen prijs
+    },
+
     calculate: function(inputs, pricing, supplements, partner) {
       var marge = parseFloat(partner.marge_pct) / 100;
       var planFee = parseFloat(partner.planning_fee);
+
+      // Slot pricing-policy 2026-05-01 \u2014 projecten boven de standaardstaffel
+      // (max 75 panelen) krijgen GEEN automatische prijs. We geven een "op
+      // aanvraag"-flag mee zodat de UI een warning toont en de submit-knop
+      // disabled blijft. Belangrijk: we returnen vroeg zodat downstream
+      // (renderResult, summary, contract-PDF) geen verwarrende cijfers krijgt.
+      if (inputs.pan > 75) {
+        return {
+          lines: [],
+          subtotalExcl: 0,
+          forfaitLabel: 'Op aanvraag',
+          forfaitExcl: 0,
+          vervC: 0, hoogC: 0,
+          hoogBedrag: 0, vervPP: 0,
+          parkeerC: 0, parkeerFee: 0,
+          opAanvraag: true
+        };
+      }
 
       // Find tier
       var f = { amt: 0, lbl: 'Geen tarief' };
@@ -1650,7 +1723,10 @@ var SECTORS = {
           break;
         }
       }
-      // Fallback: last tier + extra per panel
+      // Fallback: last tier + extra per panel \u2014 alleen als geen tier matchte
+      // \u00E9n pan \u2264 75. Met de huidige staffel (laatste tier=41\u201375) wordt deze
+      // tak praktisch niet meer geraakt; ze blijft staan als safety-net voor
+      // edge-cases (lege/incomplete pricing-rijen).
       if (f.amt === 0 && pricing.length > 0) {
         var last = pricing[pricing.length - 1];
         var lastMax = last.staffel_max || 40;
@@ -1660,7 +1736,10 @@ var SECTORS = {
       }
 
       var vervPP = getSectorSupplement('zonnepanelen', 'vervuiling') * (1 + marge);
-      var hoogBedrag = getSectorSupplement('zonnepanelen', 'hoogtewerker') * (1 + marge);
+      // Hoogtewerker: tier-based daghuur-doorrekening, GEEN marge (doorlopende
+      // kost, identiek aan parkeervergunning). Vervangt de vroegere DB-supplement
+      // \u00D7 (1 + marge) lookup. Tier-mapping zit in getHoogtewerkerKostPerInstallatie.
+      var hoogBedrag = SECTORS.zonnepanelen.getHoogtewerkerKostPerInstallatie(inputs.pan);
       // Parkeervergunning-administratiekost (\u20AC25 vast) \u2014 doorberekend zonder
       // partner-marge: het is een doorlopende kost (vergunning bij gemeente)
       // i.p.v. winst-genererende dienst. Transparant zichtbaar in de result-
@@ -1676,7 +1755,7 @@ var SECTORS = {
       if (hoogC > 0) lines.push({ label: 'Hoogtewerker (dakrand > 7,5 m)', amount: hoogC });
       if (parkeerC > 0) lines.push({ label: 'Parkeervergunning (administratiekost)', amount: parkeerC });
 
-      return { lines: lines, subtotalExcl: subtotalExcl, forfaitLabel: f.lbl, forfaitExcl: f.amt, vervC: vervC, hoogC: hoogC, hoogBedrag: hoogBedrag, vervPP: vervPP, parkeerC: parkeerC, parkeerFee: parkeerFeeBase };
+      return { lines: lines, subtotalExcl: subtotalExcl, forfaitLabel: f.lbl, forfaitExcl: f.amt, vervC: vervC, hoogC: hoogC, hoogBedrag: hoogBedrag, vervPP: vervPP, parkeerC: parkeerC, parkeerFee: parkeerFeeBase, opAanvraag: false };
     },
 
     renderStaffelTable: function(pricing, partner, btwPct) {
@@ -4493,7 +4572,47 @@ function updateResultCard() {
   var btwMult = 1 + s.btwPct / 100;
   var linesHtml = '';
 
-  // Per-sector lines
+  // Detecteer "op aanvraag"-staat: minstens één geselecteerde sector heeft
+  // een result.opAanvraag=true (zonnepanelen > 75). Wanneer actief: verberg
+  // prijs + per-beurt-totaal, toon warning-banner, disable CTA naar stap 2.
+  var anyOpAanvraag = false;
+  selectedSectors.forEach(function(sec) {
+    var r = sectorResults[sec];
+    if (r && r.opAanvraag) anyOpAanvraag = true;
+  });
+
+  var resultCard = document.getElementById('result-card');
+  var banner = document.getElementById('op-aanvraag-banner');
+  var step1Btn = document.getElementById('btn-step1-next');
+  var step1Hint = document.getElementById('step1-cta-sub');
+
+  if (anyOpAanvraag) {
+    if (resultCard) resultCard.classList.add('is-op-aanvraag');
+    if (banner) banner.style.display = '';
+    if (step1Btn) {
+      step1Btn.disabled = true;
+      step1Btn.setAttribute('aria-disabled', 'true');
+    }
+    if (step1Hint) {
+      step1Hint.textContent = 'Voor projecten boven 75 panelen verloopt de aanvraag via uw Flancco-partner of service@flancco.be.';
+    }
+  } else {
+    if (resultCard) resultCard.classList.remove('is-op-aanvraag');
+    if (banner) banner.style.display = 'none';
+    if (step1Btn) {
+      step1Btn.disabled = false;
+      step1Btn.removeAttribute('aria-disabled');
+    }
+    if (step1Hint) {
+      // Restore i18n-default zodat taalwissel-pad blijft werken.
+      var defaultHint = (window.t ? window.t('step1.ctaHint') : '') ||
+        'Vul uw gegevens in en bekijk direct uw persoonlijke overeenkomst';
+      step1Hint.textContent = defaultHint;
+    }
+  }
+
+  // Per-sector lines (alleen renderen als sector geen op-aanvraag-flag heeft;
+  // result.lines is leeg bij op-aanvraag dus dit is defensief consistent).
   selectedSectors.forEach(function(sec) {
     var result = sectorResults[sec];
     if (!result) return;
@@ -4503,23 +4622,27 @@ function updateResultCard() {
   });
 
   // Transport
-  if (s.transportExcl > 0) {
+  if (!anyOpAanvraag && s.transportExcl > 0) {
     linesHtml += '<div class="result-line"><span>Verplaatsing (' + s.extraKm + ' km boven ' + s.freeKm + ' km)</span><span>' + fmt(s.transportExcl * btwMult) + '</span></div>';
   }
 
   // Discount
-  if (s.discountAmount > 0) {
+  if (!anyOpAanvraag && s.discountAmount > 0) {
     var _kPct = Math.round((s.korting || 0) * 100);
     linesHtml += '<div class="result-line"><span>Contractkorting (' + s.duur + ' jaar, -' + _kPct + '%)</span><span>- ' + fmt(s.discountAmount * btwMult) + '</span></div>';
   }
 
   document.getElementById('result-lines').innerHTML = linesHtml;
-  document.getElementById('total').textContent = fmtTotal(s.total);
+  document.getElementById('total').textContent = anyOpAanvraag ? '' : fmtTotal(s.total);
 
-  // Yearly total
+  // Yearly total — verbergen bij op-aanvraag.
   var lj = document.getElementById('line-jaar');
-  if (s.freq === 2) { lj.classList.remove('hidden'); document.getElementById('val-jaar').textContent = fmtTotal(s.total * 2); }
-  else { lj.classList.add('hidden'); }
+  if (!anyOpAanvraag && s.freq === 2) {
+    lj.classList.remove('hidden');
+    document.getElementById('val-jaar').textContent = fmtTotal(s.total * 2);
+  } else {
+    lj.classList.add('hidden');
+  }
 }
 
 // ═══════════════════════════════════════════
