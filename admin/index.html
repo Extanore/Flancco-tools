@@ -10120,7 +10120,41 @@ async function activateSubmitStep1() {
     activateGoToStep(2);
   } catch (e) {
     console.error('admin_create_partner_application error:', e);
-    showToast('Aanmaken mislukt: ' + (e.message || 'onbekende fout'), 'error');
+    var msg = String(e.message || '');
+    // Detecteer duplicate-BTW conflict en bied directe Hervat-actie aan
+    if (/partner_apps_btw_uq/i.test(msg) || /duplicate key/i.test(msg)) {
+      try {
+        var existing = await sb.from('partner_applications')
+          .select('id, bedrijfsnaam, status, contract_signed_at, created_at')
+          .eq('btw_nummer', fd.btw_nummer)
+          .neq('status', 'lost')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing && existing.data) {
+          var row = existing.data;
+          var label = row.bedrijfsnaam || 'onbekend bedrijf';
+          var statusLabel = row.contract_signed_at ? 'reeds getekend' : ('status: ' + row.status);
+          var go = confirm('Voor BTW ' + fd.btw_nummer + ' bestaat al een aanvraag van "' + label + '" (' + statusLabel + ').\n\nKlik OK om die bestaande aanvraag te hervatten, of Annuleer om een ander BTW-nummer in te geven.');
+          if (go) {
+            if (typeof activatePrefillFromApplication === 'function') {
+              await activatePrefillFromApplication(row.id);
+            } else {
+              showToast('Open de bestaande aanvraag via Partner-aanvragen → Activeer', 'info');
+            }
+            return;
+          } else {
+            showToast('Pas het BTW-nummer aan en probeer opnieuw', 'info');
+            return;
+          }
+        }
+      } catch (lookupErr) {
+        console.warn('duplicate-lookup failed:', lookupErr);
+      }
+      showToast('Voor dit BTW-nummer bestaat al een lopende aanvraag. Open via Partner-aanvragen → Activeer.', 'error');
+      return;
+    }
+    showToast('Aanmaken mislukt: ' + (msg || 'onbekende fout'), 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = 'Volgende <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px"><polyline points="9 18 15 12 9 6"/></svg>'; }
   }
