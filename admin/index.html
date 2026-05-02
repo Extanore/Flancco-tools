@@ -9843,7 +9843,7 @@ function apFillStep1FromState() {
   setVal('ap-postcode', fd.postcode);
   setVal('ap-gemeente', fd.gemeente);
   setVal('ap-notitie', fd.notitie);
-  var marge = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 15;
+  var marge = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 10;
   if (marge < 10) marge = 10; else if (marge > 15) marge = 15;
   var mEl = document.getElementById('ap-marge');
   var mLab = document.getElementById('ap-marge-val');
@@ -9950,7 +9950,7 @@ function apCollectStep1Data() {
   fd.postcode                = get('ap-postcode');
   fd.gemeente                = get('ap-gemeente');
   fd.notitie                 = get('ap-notitie');
-  fd.marge_pct               = parseInt(document.getElementById('ap-marge').value, 10) || 15;
+  fd.marge_pct               = parseInt(document.getElementById('ap-marge').value, 10) || 10;
   if (fd.marge_pct < 10) fd.marge_pct = 10;
   if (fd.marge_pct > 15) fd.marge_pct = 15;
   return fd;
@@ -10160,7 +10160,7 @@ async function apLoadFlanccoPricingTiers() {
 
 async function apRenderPricingPreview() {
   var fd = window.activateState.formData || {};
-  var marge = typeof fd.marge_pct === 'number' ? fd.marge_pct : 15;
+  var marge = typeof fd.marge_pct === 'number' ? fd.marge_pct : 10;
   var margeEl = document.getElementById('ap-pr-marge');
   if (margeEl) margeEl.textContent = marge + '%';
   var tbody = document.getElementById('ap-pr-tbody');
@@ -10296,7 +10296,7 @@ function apRenderContractBody() {
     var v = String(s || '').replace(/_/g, ' ');
     return v.charAt(0).toUpperCase() + v.slice(1);
   }).join(', ') || '—';
-  var marge    = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 15;
+  var marge    = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 10;
   var datum    = new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
   var html = '';
   html += '<h3>Tussen</h3>';
@@ -10590,7 +10590,7 @@ async function activatePrefillFromApplication(applicationId) {
         postcode:                  a.postcode || '',
         gemeente:                  a.gemeente || '',
         sectoren:                  Array.isArray(a.sectoren) ? a.sectoren.slice() : [],
-        marge_pct:                 (typeof a.marge_pct === 'number') ? a.marge_pct : 15,
+        marge_pct:                 (typeof a.marge_pct === 'number') ? a.marge_pct : 10,
         notitie:                   a.notitie || ''
       }
     };
