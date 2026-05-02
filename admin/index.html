@@ -4715,15 +4715,21 @@
           <div class="ap-card" style="background:#FFF7ED;border:1px solid #FED7AA">
             <h3 class="ap-card-title" style="color:#C2410C">Doorlopende kosten <span style="font-weight:500;color:#C2410C;font-size:13px">— zonder marge</span></h3>
             <p class="ap-card-sub">Vaste kosten die je 1-op-1 doorrekent aan de eindklant. Geen marge — transparant zichtbaar op factuur.</p>
+
+            <h4 style="font-size:13px;font-weight:600;margin:8px 0 8px;color:var(--ink)">Hoogtewerker — varieert per project-grootte</h4>
+            <p style="font-size:11.5px;color:var(--grey);margin:0 0 10px;line-height:1.5">Daghuur hoogtewerker bedraagt € 390. Hoeveel installaties je die dag haalt hangt af van project-grootte — daarom verschilt de doorgerekende kost per installatie.</p>
+            <div style="overflow-x:auto;margin-bottom:18px">
+              <table class="ap-pricing-table">
+                <thead><tr><th>Project-grootte</th><th class="num">Realistisch / dag</th><th class="num">Hoogtewerker / installatie</th></tr></thead>
+                <tbody id="ap-pr-tbody-hoog"></tbody>
+              </table>
+            </div>
+
+            <h4 style="font-size:13px;font-weight:600;margin:0 0 8px;color:var(--ink)">Andere doorlopende kosten</h4>
             <div style="overflow-x:auto">
               <table class="ap-pricing-table">
                 <thead><tr><th>Kost</th><th class="num">Bedrag</th><th>Wanneer</th></tr></thead>
                 <tbody>
-                  <tr>
-                    <td><strong>Hoogtewerker</strong></td>
-                    <td class="num">€ 65,00 per installatie</td>
-                    <td>Bij dakrand &gt; 7,5 m of onveilige toegang. Min. 6 installaties/dag.</td>
-                  </tr>
                   <tr>
                     <td><strong>Parkeervergunning</strong></td>
                     <td class="num">€ 25,00 vast</td>
@@ -10128,13 +10134,25 @@ async function apRenderPricingPreview() {
   var planningFee = 5; // Standaard voor nieuwe partners
   var EXTRA_PER_PANEL_BOVEN_40 = 5.64; // Vaste Flancco-tarief
   var VERVUILING_PER_PANEEL = 2.00;     // Met marge — toeslag op werk
+  var HOOGTEWERKER_DAGHUUR = 390;       // Vaste daghuur hoogtewerker
+
+  // Hoogtewerker-kost per installatie afhankelijk van hoeveel installaties
+  // je realistisch haalt op één daghuur. Mapping uit Flancco operationele praktijk.
+  var HOOGTEWERKER_TIERS = [
+    { label: '1–14 panelen',  perDag: 4 },
+    { label: '15–25 panelen', perDag: 3 },
+    { label: '26–30 panelen', perDag: 2 },
+    { label: '31–35 panelen', perDag: 2 },
+    { label: '36–40 panelen', perDag: 2 },
+    { label: '41–75 panelen', perDag: 1 }
+  ];
 
   // ─── Hoofdstaffel ─────────────────────────────────────────────────
   var rows = tiers.map(function(t) {
     var forfait = parseFloat(t.flancco_forfait) || 0;
     var klantExcl = forfait * (1 + marge / 100) + planningFee;
     var margeAmt = forfait * (marge / 100);
-    // Voor 41+ tier: voeg formule-suffix toe in label-kolom
+    // Voor 41+ tier (nu gelimiteerd tot 75): toon formule-suffix in label-kolom
     var labelHtml = '<strong>' + esc(t.label || '') + '</strong>';
     var prijsHtml = apFormatEUR(forfait);
     if (t.staffel_min === 41 || /41/.test(t.label || '')) {
@@ -10147,7 +10165,25 @@ async function apRenderPricingPreview() {
       '<td class="num"><strong>' + apFormatEUR(klantExcl) + '</strong></td>' +
     '</tr>';
   }).join('');
+  // Extra rij onderaan: boven 75 panelen = op aanvraag (geen vaste prijs)
+  rows += '<tr style="background:#FAFBFC">' +
+    '<td><strong>Boven 75 panelen</strong></td>' +
+    '<td colspan="3" style="color:var(--grey);font-style:italic">Op aanvraag — neem contact op voor een offerte op maat</td>' +
+  '</tr>';
   tbody.innerHTML = rows;
+
+  // ─── Hoogtewerker per tier (zonder marge) ─────────────────────────
+  var tbodyHoog = document.getElementById('ap-pr-tbody-hoog');
+  if (tbodyHoog) {
+    tbodyHoog.innerHTML = HOOGTEWERKER_TIERS.map(function(h) {
+      var perInst = HOOGTEWERKER_DAGHUUR / h.perDag;
+      return '<tr>' +
+        '<td><strong>' + esc(h.label) + '</strong></td>' +
+        '<td class="num">' + h.perDag + ' / dag</td>' +
+        '<td class="num"><strong>' + apFormatEUR(perInst) + '</strong></td>' +
+      '</tr>';
+    }).join('');
+  }
 
   // ─── Toeslagen MET marge ─────────────────────────────────────────
   var tbodyMarge = document.getElementById('ap-pr-tbody-marge');
