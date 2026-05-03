@@ -1294,7 +1294,14 @@ function buildContractHTMLShared(c, p, opts) {
   html += '@media print{body{padding:20px}@page{margin:15mm 10mm}}';
   html += '</style></head><body>';
 
-  html += '<div class="contract-header"><h1>' + esc(pName) + '</h1>';
+  // Partner-logo linksboven in brand-kleur via mask-image (originele logo wordt
+  // mask, brand-color = fill). Werkt voor PNG/SVG. Mooi gespaced van linkerrand.
+  // Als geen logo geupload → enkel de bedrijfsnaam in h1 (huidige fallback).
+  html += '<div class="contract-header" style="position:relative">';
+  if (p && p.logo_url) {
+    html += '<div aria-hidden="true" style="display:block;width:180px;height:48px;margin:0 0 16px 0;background-color:' + esc(primary) + ';-webkit-mask-image:url(\'' + esc(p.logo_url) + '\');mask-image:url(\'' + esc(p.logo_url) + '\');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center"></div>';
+  }
+  html += '<h1>' + esc(pName) + '</h1>';
   html += '<p style="font-size:14px;color:#374151;margin:8px 0 4px">' + esc(tt('contract.header.dienstverlening')) + '</p>';
   var dienstTxt = [];
   sectoren.forEach(function(s) {
@@ -1552,10 +1559,44 @@ async function generateContractPDFShared(c, p, opts) {
     var pxPerMm = canvas.width / contentWmm;
     var sliceHpxMax = Math.floor(contentHmm * pxPerMm);
 
+    // Smart-slice: zoek vanaf de default slice-grens naar boven naar een rij
+    // pixels die quasi volledig wit is. Dat voorkomt dat tekst horizontaal
+    // doormidden wordt geknipt op de pagina-grens (wat html2canvas standaard
+    // doet — er is geen DOM-bewustzijn meer na canvas-rasterisatie).
+    // Threshold 245/255 op RGB en max 1.5% non-white pixels = "veilige witruimte".
+    // Zoekrange beperkt tot 25% van de pagina-hoogte zodat we niet vastlopen op
+    // een uitzonderlijk dichte pagina (volledige tabel etc.) — dan accepteren we
+    // de default slice met mogelijk minimale tekst-cut.
+    var ctxFull = canvas.getContext('2d');
+    function findSafeSliceY(fromY, minY) {
+      var WHITE_THR = 245;
+      var MAX_NONWHITE_RATIO = 0.015;
+      for (var y = fromY; y > minY; y--) {
+        var imgData;
+        try { imgData = ctxFull.getImageData(0, y, canvas.width, 1); } catch (_) { return fromY; }
+        var data = imgData.data;
+        var nonWhite = 0;
+        for (var i = 0; i < data.length; i += 4) {
+          if (data[i] < WHITE_THR || data[i+1] < WHITE_THR || data[i+2] < WHITE_THR) nonWhite++;
+        }
+        if ((nonWhite / canvas.width) <= MAX_NONWHITE_RATIO) return y;
+      }
+      return fromY;
+    }
+
     var sliceY = 0;
     var pageNum = 0;
     while (sliceY < canvas.height) {
-      var sliceHpx = Math.min(sliceHpxMax, canvas.height - sliceY);
+      var defaultEnd = sliceY + sliceHpxMax;
+      var sliceHpx;
+      if (defaultEnd >= canvas.height) {
+        // Laatste pagina: rest tonen, geen smart-slice nodig
+        sliceHpx = canvas.height - sliceY;
+      } else {
+        var minSearchY = sliceY + Math.floor(sliceHpxMax * 0.75);
+        var safeEnd = findSafeSliceY(defaultEnd, minSearchY);
+        sliceHpx = safeEnd - sliceY;
+      }
       var pc = document.createElement('canvas');
       pc.width = canvas.width;
       pc.height = sliceHpx;
@@ -3607,13 +3648,22 @@ function renderSigningUI() {
   // Diensten
   html += '<div class="card">';
   html += '<div class="card-title">Geselecteerde diensten</div>';
+  // Lucide-style line icons (SVG inline) i.p.v. emoji's \u2014 premium B2B-uitstraling
+  // en consistent over alle browsers (emoji-rendering verschilt per OS/browser).
+  var iconSun = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+  var iconFlame = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+  var iconWind = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>';
   var sectorIcons = {
-    zonnepanelen: '\u2600\uFE0F',
-    warmtepomp: '\uD83D\uDD25',
-    ventilatie: '\uD83D\uDCA8',
-    verwarming: '\uD83D\uDD25'
+    zonnepanelen: iconSun,
+    warmtepomp:   iconFlame,
+    ventilatie:   iconWind,
+    verwarming:   iconFlame
   };
   var sectorLabels = { zonnepanelen: 'Zonnepanelen', warmtepomp: 'Warmtepomp', ventilatie: 'Ventilatie', verwarming: 'Verwarming' };
+  // Inline-flex wrapper zodat icoon vertikaal centreert met label, brand-color via var(--primary).
+  function _renderSectorTitle(iconHtml, labelTxt) {
+    return '<strong style="display:inline-flex;align-items:center;gap:8px;color:var(--primary)">' + iconHtml + '<span style="color:var(--dark)">' + esc(labelTxt) + '</span></strong>';
+  }
 
   if (sectoren.length > 0) {
     sectoren.forEach(function(s) {
@@ -3621,7 +3671,7 @@ function renderSigningUI() {
       var icon = sectorIcons[sec] || '';
       var label = sectorLabels[sec] || sec;
       html += '<div style="margin-bottom:12px;padding:12px;background:var(--light);border-radius:8px">';
-      html += '<strong>' + icon + ' ' + label + '</strong>';
+      html += _renderSectorTitle(icon, label);
       // Show config details
       if (s.configs && s.configs.length > 0) {
         s.configs.forEach(function(cfg, idx) {
@@ -3657,7 +3707,7 @@ function renderSigningUI() {
   } else if (c.sector) {
     // Fallback: single sector from legacy data
     html += '<div style="padding:12px;background:var(--light);border-radius:8px">';
-    html += '<strong>' + (sectorIcons[c.sector] || '') + ' ' + (sectorLabels[c.sector] || c.sector) + '</strong>';
+    html += _renderSectorTitle(sectorIcons[c.sector] || '', sectorLabels[c.sector] || c.sector);
     if (c.aantal_panelen) html += '<div style="font-size:13px;color:var(--grey);margin-top:4px">' + c.aantal_panelen + ' panelen</div>';
     html += '</div>';
   }
@@ -3684,7 +3734,14 @@ function renderSigningUI() {
     html += '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--primary);padding:8px 0"><span>Totaal incl. BTW</span><span>' + fmt(parseFloat(c.totaal_incl_btw)) + '</span></div>';
   }
   var freqTxt = c.frequentie === 'halfjaarlijks' ? 'Halfjaarlijks (2x/jaar)' : c.frequentie === 'eenmalig' ? 'Eenmalig' : 'Jaarlijks (1x/jaar)';
-  html += '<div style="text-align:center;font-size:12px;color:var(--grey);margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)">' + freqTxt + ' | Looptijd: ' + (c.contractduur || 'n.v.t.') + '</div>';
+  // Frequentie + looptijd: prominente badge-row i.p.v. kleine grijze regel.
+  // Brand-tinted achtergrond voor visuele samenhang met de rest van het overzicht.
+  var iconRepeat = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
+  var iconCal = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+  html += '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:14px;padding:14px 16px;background:var(--primary-bg);border-radius:10px;border:1px solid rgba(0,0,0,0.04)">';
+  html +=   '<div style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--dark)"><span style="color:var(--primary);display:inline-flex">' + iconRepeat + '</span><span style="color:var(--grey);font-weight:500">Frequentie:</span> <strong style="font-weight:700">' + esc(freqTxt) + '</strong></div>';
+  html +=   '<div style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--dark)"><span style="color:var(--primary);display:inline-flex">' + iconCal + '</span><span style="color:var(--grey);font-weight:500">Looptijd:</span> <strong style="font-weight:700">' + esc(String(c.contractduur || 'n.v.t.')) + '</strong></div>';
+  html += '</div>';
   html += '</div>';
 
   // Wat wij voor u doen — benefits per sector (zelfde als calculator)
