@@ -92,9 +92,13 @@
   .header { background: var(--primary); padding: 28px 0 24px; text-align: center; position: relative; overflow: hidden; }
   .header::after { content:''; position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 120%; height: 60px; background: var(--light); border-radius: 50% 50% 0 0; }
   .header-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
-  .header-logo img { height: 36px; }
   .header-logo span { font-size: 26px; font-weight: 700; color: var(--white); letter-spacing: 2px; text-transform: uppercase; }
   .header-subtitle { color: rgba(255,255,255,0.85); font-size: 14px; }
+  /* Brand-mark: partner-logo absoluut linksboven in header.
+     filter: brightness(0) invert(1) zet elke gekleurde PNG/SVG om naar wit zodat
+     het logo altijd contrasteert met de brand-achtergrond, ongeacht originele kleuren. */
+  .header-brand-mark { position: absolute; left: 24px; top: 24px; max-height: 48px; max-width: 160px; object-fit: contain; filter: brightness(0) invert(1); z-index: 2; pointer-events: none; }
+  @media (max-width: 480px) { .header-brand-mark { left: 12px; top: 18px; max-height: 36px; max-width: 100px; } }
 
   /* LAYOUT */
   .container { max-width: 640px; margin: 0 auto; padding: 40px 20px 60px; }
@@ -505,8 +509,8 @@
 <!-- SIGNING MODE -->
 <div id="signing-app" style="display:none">
   <div class="header" id="signing-header">
+    <img id="signing-logo-img" class="header-brand-mark" src="" alt="" style="display:none">
     <div class="header-logo">
-      <img id="signing-logo-img" src="" alt="" style="display:none">
       <span id="signing-header-name"></span>
     </div>
     <div class="header-subtitle">Uw onderhoudscontract</div>
@@ -552,8 +556,8 @@
 
 <!-- HEADER -->
 <div class="header" id="header">
+  <img id="header-logo-img" class="header-brand-mark" src="" alt="" style="display:none">
   <div class="header-logo">
-    <img id="header-logo-img" src="" alt="" style="display:none">
     <span id="header-name"></span>
   </div>
   <div class="header-subtitle" id="header-subtitle">Onderhoudscalculator</div>
