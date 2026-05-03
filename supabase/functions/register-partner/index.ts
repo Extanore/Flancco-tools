@@ -312,6 +312,67 @@ Deno.serve(async (req: Request) => {
       console.error("[register-partner] sector_config insert failed (non-fatal)", scErr.message);
     }
 
+    // === STAP D.2: INSERT partner_sectors-rijen (calculator-zichtbaarheid) ===
+    // De /calculator/-pagina queriet partner_sectors WHERE actief=true om de keuze-tabs
+    // te bouwen. Zonder rijen toont hij "Geen actieve diensten beschikbaar voor deze partner".
+    const partnerSectorRows = validSectors.map((sector) => ({
+      partner_id: partnerId,
+      sector,
+      actief: true,
+    }));
+    const { error: psErr } = await admin.from("partner_sectors").insert(partnerSectorRows);
+    if (psErr) {
+      console.error("[register-partner] partner_sectors insert failed (non-fatal)", psErr.message);
+    }
+
+    // === STAP D.3: Clone Flancco-pricing als template voor elke gekozen sector ===
+    // De calculator vereist `pricing`-rijen per (partner_id, sector). We kopiëren de
+    // Flancco-templates 1-op-1 — de partner-marge wordt apart toegepast in de calculator
+    // op basis van partners.marge_pct. Partner kan later in Instellingen → Calculator
+    // de pricing-rijen toggelen of customizen.
+    let pricingSeeded = 0;
+    try {
+      const { data: flanccoPartner } = await admin
+        .from("partners")
+        .select("id")
+        .eq("slug", "flancco")
+        .maybeSingle();
+      if (flanccoPartner?.id) {
+        const { data: flanccoPricing } = await admin
+          .from("pricing")
+          .select("sector, staffel_min, staffel_max, label, flancco_forfait, actief, subtype, parameter_key, formule_scope, sort_order")
+          .eq("partner_id", flanccoPartner.id)
+          .in("sector", validSectors as unknown as string[]);
+        if (flanccoPricing && flanccoPricing.length > 0) {
+          const clonedPricing = flanccoPricing.map((row) => ({
+            ...row,
+            partner_id: partnerId,
+          }));
+          const { error: prErr } = await admin.from("pricing").insert(clonedPricing);
+          if (prErr) {
+            console.error("[register-partner] pricing clone failed (non-fatal)", prErr.message);
+          } else {
+            pricingSeeded = clonedPricing.length;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[register-partner] pricing clone exception (non-fatal)", (e as Error).message);
+    }
+
+    // === STAP D.4: Warmtepomp-types config (3 default types: lucht_lucht/lucht_water/geothermie) ===
+    if (validSectors.includes("warmtepomp" as AllowedSector)) {
+      const wpTypes = [
+        { partner_id: partnerId, type: "lucht_lucht", actief: true, formule: "basic", allin_multiplier: 1.65 },
+        { partner_id: partnerId, type: "lucht_water", actief: true, formule: "basic", allin_multiplier: 1.0 },
+        { partner_id: partnerId, type: "geothermie", actief: true, formule: "basic", allin_multiplier: 1.0 },
+      ];
+      const { error: wpErr } = await admin.from("partner_warmtepomp_config").insert(wpTypes);
+      if (wpErr) {
+        console.error("[register-partner] partner_warmtepomp_config insert failed (non-fatal)", wpErr.message);
+      }
+    }
+
     // === STAP E: Magic-link genereren + Flancco-branded mail versturen ===
     //
     // We gebruiken auth.admin.generateLink (NIET inviteUserByEmail) zodat

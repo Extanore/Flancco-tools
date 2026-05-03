@@ -10796,8 +10796,8 @@ function renderOnbStep() {
     html += '<div style="flex:1;min-width:220px">';
     html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Primaire kleur</label>';
     html += '<div style="display:flex;gap:8px;align-items:center">';
-    html += '<input type="color" id="onb-kleur" value="' + esc(onbDraft.kleur_primair) + '" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
-    html += '<input type="text" id="onb-kleur-hex" value="' + esc(onbDraft.kleur_primair) + '" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
+    html += '<input type="color" id="onb-kleur" value="' + esc(onbDraft.kleur_primair) + '" oninput="syncColorPickerToHex(this,\'onb-kleur-hex\'); onbDraft.kleur_primair = this.value.toLowerCase();" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
+    html += '<input type="text" id="onb-kleur-hex" value="' + esc(onbDraft.kleur_primair) + '" oninput="syncHexToColorPicker(this,\'onb-kleur\'); if(/^#[0-9a-fA-F]{6}$/.test(this.value)) onbDraft.kleur_primair = this.value.toLowerCase();" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
     html += '</div>';
     html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Wordt gebruikt in sidebar, buttons en accenten.</p>';
     html += '</div>';
@@ -10861,7 +10861,7 @@ function renderOnbStep() {
     var partnerSlug = (userPartner && userPartner.slug) || '';
     var calcUrl = 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug);
     html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Marketing-kit klaar voor gebruik</h3>';
-    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Deel je calculator-link met klanten. Onderstaande berichten gebruiken een neutrale ankertekst zodat de URL minder opvalt op platforms die links renderen (LinkedIn, e-mail).</p>';
+    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px;line-height:1.55">Deel je calculator-link met klanten. Tip: in je e-mailprogramma kan je de URL selecteren en via <em>Invoegen → Hyperlink</em> verbergen achter een tekst zoals "klik hier".</p>';
     html += '<div style="display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:start;margin-bottom:16px">';
     html += '<div><div id="onb-qr-canvas" style="width:160px;height:160px;background:#fff;border:1px solid var(--rule);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box"></div>';
     html += '<button type="button" onclick="onbDownloadQR()" style="margin-top:8px;padding:8px;border:1.5px solid var(--rule);background:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);width:100%">Download QR (PNG)</button></div>';
@@ -10869,14 +10869,14 @@ function renderOnbStep() {
     html += '<div style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Jouw calculator-URL</div>';
     html += '<div style="padding:9px 11px;background:#F9FAFB;border:1px solid var(--rule);border-radius:7px;font-size:12px;font-family:ui-monospace,monospace;word-break:break-all;margin-bottom:12px">' + esc(calcUrl) + '</div>';
     var bedrijf = onbDraft.bedrijfsnaam || (userPartner && userPartner.naam) || 'ons bedrijf';
-    var anker = 'jouw onderhoudsplan online';
-    // Optie A — markdown ankertekst voor LinkedIn (rendert), HTML <a> voor e-mail (rendert in HTML-mail).
-    // WhatsApp/SMS rendert geen ankertekst, dus daar gebruiken we een korte intro + de naakte URL als laatste regel.
+    // Snippets in plain-text formaat — werken overal (Outlook, Gmail, WhatsApp, SMS, LinkedIn).
+    // Geen markdown of HTML-tags meer: die renderen niet betrouwbaar bij plain-text plakken.
+    // Voor echte white-label op URL-niveau: zie roadmap (neutraal merk-domein).
     var snippets = [
       { titel:'LinkedIn-post',
-        text:'Goed nieuws voor onze klanten — bij ' + bedrijf + ' bieden we nu jaarlijks onderhoud aan via een transparante, professionele calculator. Bereken meteen je prijs en teken digitaal: [' + anker + '](' + calcUrl + ')' },
-      { titel:'E-mail aan klant (HTML)',
-        text:'Beste,\n\nVoor jaarlijks onderhoud bij ' + bedrijf + ' kan je nu in 2 minuten zelf je prijs berekenen en het contract digitaal ondertekenen via deze link: <a href="' + calcUrl + '">' + anker + '</a>\n\nMet vriendelijke groeten' },
+        text:'Goed nieuws voor onze klanten — bij ' + bedrijf + ' bieden we nu jaarlijks onderhoud aan via een transparante, professionele calculator. Bereken meteen je prijs en teken digitaal:\n\n' + calcUrl },
+      { titel:'E-mail aan klant',
+        text:'Beste,\n\nVoor jaarlijks onderhoud bij ' + bedrijf + ' kan je nu in 2 minuten zelf je prijs berekenen en het contract digitaal ondertekenen.\n\nKlik op onderstaande link of plak hem in je browser:\n' + calcUrl + '\n\nMet vriendelijke groeten' },
       { titel:'WhatsApp / SMS',
         text:'Hi! Bekijk onze nieuwe online calculator — krijg meteen een prijs op maat en teken digitaal in een paar klikken.\n\n' + calcUrl }
     ];
@@ -11448,7 +11448,7 @@ var tourSteps = [
     target: '#help-btn',
     page: null,
     title: 'Hulp altijd bij de hand',
-    body: 'Vragen of vastgelopen? Mail <a href="mailto:support@flancco.be">support@flancco.be</a>. Deze rondleiding kan je altijd opnieuw starten via het vraagteken-icoon rechtsboven.'
+    body: 'Vragen of vastgelopen? Mail <a href="mailto:gillian.geernaert@flancco.be">gillian.geernaert@flancco.be</a>. Deze rondleiding kan je altijd opnieuw starten via het vraagteken-icoon rechtsboven.'
   }
 ];
 var tourCurrent = 0;
