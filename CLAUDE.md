@@ -242,6 +242,13 @@ Voorkomt dat een partner-admin zichzelf of collega's binnen eigen partner kan up
   - `user_role_has_manage_users(user_id UUID)` — gegeven user_role-rij heeft manage_users=true
 - Deze helpers zijn herbruikbaar voor andere partner-tenant policies die "alleen partner-admin van eigen scope mag dit"-semantiek nodig hebben
 
+### Slot Z anti-partner-overreach (column-lock op partners)
+BEFORE UPDATE trigger `partners_commercial_lock` op `partners` (functie `protect_partner_commercial_fields`) blokkeert partner-rol wijziging van operationele/commerciele kolommen. Admin + service-role (auth.uid() NULL) blijven full edit. Backend-verdedigingslinie naast frontend disabled inputs — voorkomt curl-bypass van de RLS row-level policy `partners_update` (die `is_admin() OR is_partner_of(id)` check op rij-niveau doet, geen kolom-niveau).
+- Beschermde kolommen: `slug, marge_pct, planning_fee, transport_gratis_km, akkoord_flancco_inzage, akkoord_datum, contract_getekend, contract_datum, actief, sla_fase_1_uren, sla_fase_2_uren, sla_fase_4_uren, sla_fase_5_uren`
+- Multi-col errors aggregeerd: bij combo-update krijg je één error met alle locked velden i.p.v. eerste-fout
+- Frontend (admin/index.html partner-only `#page-instellingen`): inputs voor deze velden zijn `disabled` met grijs background. Transport-km verplaatst van Calculator-link card naar "Commerciele voorwaarden" card voor visuele consistentie
+- Admin behoudt edit-rechten via Partners-edit page (`adm-marge-`, `adm-planfee-`, `adm-km-`, `adm-sla-fase-X-` inputs blijven enabled)
+
 ### Edge Function Secrets vereist (Slot F)
 - `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_REPLY_TO` — voor `send-klant-notification-email`
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, optioneel `TWILIO_DAILY_CAP` — voor `send-klant-notification-sms`
