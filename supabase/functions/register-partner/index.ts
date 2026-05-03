@@ -323,13 +323,20 @@ Deno.serve(async (req: Request) => {
     let magicLink: string | null = null;
 
     try {
+      // Redirect naar /admin/ ipv /. Reden: app.flancco-platform.be/ wordt door
+      // _worker.js 302'd naar /onboard/ (publieke wizard) — daar zit géén
+      // Supabase auth-handler, dus de access_token in de URL-hash blijft onverwerkt.
+      // /admin/ is een directe asset-fetch (geen worker-redirect) waar admin/index.html
+      // de session via sb.auth.getSession() automatisch uit de hash leest.
+      const partnerRedirect = `${APP_BASE_URL}/admin/?welcome=1`;
+
       const existing = await findUserByEmail(admin, email);
       if (existing) {
         userId = existing.id;
         const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
           type: "magiclink",
           email,
-          options: { redirectTo: `${APP_BASE_URL}/?welcome=1` },
+          options: { redirectTo: partnerRedirect },
         });
         if (linkErr) {
           inviteError = `magiclink_generate_failed: ${linkErr.message}`;
@@ -346,7 +353,7 @@ Deno.serve(async (req: Request) => {
           type: "invite",
           email,
           options: {
-            redirectTo: `${APP_BASE_URL}/?welcome=1`,
+            redirectTo: partnerRedirect,
             data: { partner_id: partnerId, lang, invited_via: "onboarding_wizard" },
           },
         });
@@ -450,7 +457,7 @@ Deno.serve(async (req: Request) => {
       invite_sent: inviteSent,
       invite_error: inviteError,
       sectoren: validSectors,
-      redirect_url: `${APP_BASE_URL}/?welcome=1`,
+      redirect_url: `${APP_BASE_URL}/admin/?welcome=1`,
     }, corsHeaders);
   } catch (err) {
     console.error("[register-partner] unhandled exception", err);

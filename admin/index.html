@@ -2779,7 +2779,6 @@
               <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;opacity:0.7;font-weight:600">Welkom op het Flancco partner platform</div>
               <div id="onb-title" style="font-size:17px;font-weight:700;margin-top:2px">Even je account afwerken</div>
             </div>
-            <button type="button" onclick="skipOnboarding()" aria-label="Wizard overslaan" style="background:transparent;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:12px;padding:6px 10px;border-radius:6px" title="Later afwerken">Later</button>
           </div>
           <!-- Progress bar -->
           <div style="display:flex;gap:6px;margin-top:14px">
@@ -2789,7 +2788,6 @@
             <div class="onb-step-dot" data-step="4" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
             <div class="onb-step-dot" data-step="5" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
             <div class="onb-step-dot" data-step="6" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
-            <div class="onb-step-dot" data-step="7" style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);transition:background .3s"></div>
           </div>
         </div>
 
@@ -10659,20 +10657,27 @@ window.apFinishRemoteFlow          = apFinishRemoteFlow;
 // ONBOARDING WIZARD (partner first-login)
 // =============================================
 var onbCurrentStep = 1;
-var ONB_TOTAL_STEPS = 7;
-// Step-map: 1=intro/bedrijfsgegevens, 2=calculator-config, 3=team-invite, 4=marketing-kit, 5=branding, 6=wachtwoord/auth, 7=demo-test
+var ONB_TOTAL_STEPS = 6;
+// Step-map (na herwerking 2026-05-03):
+//   1 = welkom + verificatie (read-only bedrijfsgegevens uit partner_applications)
+//   2 = branding (kleur + logo)
+//   3 = calculator-config (frequentie + contractduur) + live preview met partner-branding
+//   4 = marketing-kit (QR + snippets met markdown-ankertekst — Optie A white-label)
+//   5 = login-bevestiging (magic-link OK, of wachtwoord-set bij password-flow)
+//   6 = demo-test
+// USPs zijn weggehaald uit de wizard — partner stelt ze later in via Instellingen → Calculator.
+// Team-uitnodiging is uit de wizard verwijderd — hoort thuis in Instellingen → Team.
 var onbDraft = {
-  bedrijfsnaam:'', contactpersoon:'', telefoon:'', btw_nummer:'', adres:'', postcode:'', gemeente:'',
+  bedrijfsnaam:'', contactpersoon:'', contactpersoon_voornaam:'',
+  telefoon:'', btw_nummer:'', adres:'', postcode:'', gemeente:'',
   kleur_primair:'', logo_url:'',
   newPass:'', newPassConfirm:'',
-  // A2 — calculator-config per sector
+  // calculator-config per sector
   sectorConfigs: {},          // { '<sector>': { usps: [str,...], frequenties: [str,...], contractduren: [int,...] } }
   selectedSector: null,
-  // A3 — team invite
-  teamInvite: { skip:false, email:'', voornaam:'', naam:'', role:'medewerker_basis' },
-  // A6 — auth-detect
+  // auth-detect
   authViaMagicLink: false,
-  // A4/A7 telemetrie
+  // telemetrie
   marketingKitOpened: false,
   demoOpened: false
 };
@@ -10683,14 +10688,9 @@ var ONB_FREQ_OPTIONS = [
   { key:'kwartaal',      label:'Per kwartaal' },
   { key:'maandelijks',   label:'Maandelijks' }
 ];
-var ONB_DUUR_OPTIONS = [1, 2, 3, 5, 7];
+var ONB_DUUR_OPTIONS = [1, 3, 5];
 var ONB_FREQ_DEFAULTS = ['jaarlijks', 'halfjaarlijks', 'kwartaal'];
-var ONB_DUUR_DEFAULTS = [1, 2, 3, 5];
-var ONB_ROLE_PRESETS = [
-  { key:'medewerker_basis',     label:'Medewerker (basis)',  hint:'Eigen klanten + interventies' },
-  { key:'medewerker_uitgebreid',label:'Medewerker (volledig)', hint:'Alle partner-data + facturatie' },
-  { key:'co_owner',             label:'Co-owner',             hint:'Volledige toegang inclusief gebruikersbeheer' }
-];
+var ONB_DUUR_DEFAULTS = [1, 3, 5];
 
 async function openOnboardingWizard() {
   if (!userPartner) return;
@@ -10699,6 +10699,7 @@ async function openOnboardingWizard() {
   onbDraft = {
     bedrijfsnaam: userPartner.bedrijfsnaam || userPartner.naam || '',
     contactpersoon: userPartner.contactpersoon || '',
+    contactpersoon_voornaam: '',
     telefoon: userPartner.telefoon || '',
     btw_nummer: userPartner.btw_nummer || '',
     adres: userPartner.adres || '',
@@ -10710,19 +10711,20 @@ async function openOnboardingWizard() {
     newPassConfirm: '',
     sectorConfigs: {},
     selectedSector: null,
-    teamInvite: { skip:false, email:'', voornaam:'', naam:'', role:'medewerker_basis' },
     authViaMagicLink: false,
     marketingKitOpened: false,
     demoOpened: false
   };
 
   // Prefill via partner_applications indien gelinkt aan deze partner (Wave 1+2 flow)
+  // Belangrijk: contactpersoon_voornaam apart bewaren — voor "Welkom <Voornaam>" begroeting in stap 1.
   try {
     var appRes = await sb.from('partner_applications').select('*').eq('partner_id', userPartner.id).maybeSingle();
     if (appRes && appRes.data) {
       var app = appRes.data;
       if (!onbDraft.bedrijfsnaam) onbDraft.bedrijfsnaam = app.bedrijfsnaam || '';
       if (!onbDraft.btw_nummer) onbDraft.btw_nummer = app.btw_nummer || '';
+      onbDraft.contactpersoon_voornaam = (app.contactpersoon_voornaam || '').trim();
       if (!onbDraft.contactpersoon) onbDraft.contactpersoon = ((app.contactpersoon_voornaam || '') + ' ' + (app.contactpersoon_naam || '')).trim();
       if (!onbDraft.telefoon) onbDraft.telefoon = app.contactpersoon_telefoon || '';
       if (!onbDraft.adres) onbDraft.adres = app.adres || '';
@@ -10731,7 +10733,8 @@ async function openOnboardingWizard() {
       var sectorenList = Array.isArray(app.sectoren) ? app.sectoren : [];
       sectorenList.forEach(function(s) {
         if (!onbDraft.sectorConfigs[s]) {
-          onbDraft.sectorConfigs[s] = { usps: ['', '', ''], frequenties: ONB_FREQ_DEFAULTS.slice(), contractduren: ONB_DUUR_DEFAULTS.slice() };
+          // USPs blijven leeg array — partner vult later in via Instellingen → Calculator.
+          onbDraft.sectorConfigs[s] = { usps: [], frequenties: ONB_FREQ_DEFAULTS.slice(), contractduren: ONB_DUUR_DEFAULTS.slice() };
         }
       });
       if (sectorenList.length && !onbDraft.selectedSector) onbDraft.selectedSector = sectorenList[0];
@@ -10778,22 +10781,40 @@ function renderOnbStep() {
   var body = document.getElementById('onb-body');
   var html = '';
   if (onbCurrentStep === 1) {
-    // A1 — bedrijfsgegevens met intro-blok
-    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Welkom bij Flancco</h3>';
-    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px;line-height:1.55">In zeven stappen werken we je profiel volledig af: gegevens, calculator-instellingen, eerste teamlid, marketing-kit, branding, login en een test-flow.</p>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
-    html += onbField('Bedrijfsnaam *', 'onb-bedrijfsnaam', onbDraft.bedrijfsnaam, 'text', 'span 2');
-    html += onbField('Contactpersoon', 'onb-contactpersoon', onbDraft.contactpersoon);
-    html += onbField('Telefoon', 'onb-telefoon', onbDraft.telefoon, 'tel');
-    html += onbField('BTW-nummer', 'onb-btw', onbDraft.btw_nummer, 'text', 'span 2');
-    html += onbField('Adres', 'onb-adres', onbDraft.adres, 'text', 'span 2');
-    html += onbField('Postcode', 'onb-postcode', onbDraft.postcode);
-    html += onbField('Gemeente', 'onb-gemeente', onbDraft.gemeente);
-    html += '</div>';
+    // Stap 1 — Welkom + read-only verificatie van bedrijfsgegevens uit partner_applications
+    var voornaam = (onbDraft.contactpersoon_voornaam || '').trim();
+    var begroeting = voornaam ? ('Welkom, ' + esc(voornaam) + '!') : 'Welkom op het Flancco partner-platform';
+    html += '<h3 style="margin:0 0 6px;font-size:20px;font-weight:700;color:var(--navy)">' + begroeting + '</h3>';
+    html += '<p style="margin:0 0 18px;color:var(--grey);font-size:13px;line-height:1.55">Goed dat je er bent. Hieronder de gegevens die we van je hebben — neem even een moment om te verifiëren. In de volgende stappen werken we je profiel verder af: branding, calculator, marketing-kit, login en een test-flow.</p>';
+    html += onbBuildVerifyCard();
+    html += '<p style="margin-top:14px;font-size:12px;color:var(--grey);line-height:1.55">Klopt iets niet? Pas het later aan via <strong>Instellingen → Mijn bedrijf</strong>.</p>';
   } else if (onbCurrentStep === 2) {
-    // A2 — calculator-config per sector
+    // Stap 2 — Branding (kleur + logo)
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Branding & huisstijl</h3>';
+    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Zorg dat jouw klanten jouw look herkennen op de calculator en rapportages.</p>';
+    html += '<div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">';
+    html += '<div style="flex:1;min-width:220px">';
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Primaire kleur</label>';
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<input type="color" id="onb-kleur" value="' + esc(onbDraft.kleur_primair) + '" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
+    html += '<input type="text" id="onb-kleur-hex" value="' + esc(onbDraft.kleur_primair) + '" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
+    html += '</div>';
+    html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Wordt gebruikt in sidebar, buttons en accenten.</p>';
+    html += '</div>';
+    html += '<div style="flex:1;min-width:220px">';
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Logo</label>';
+    html += '<div id="onb-logo-preview" style="border:1.5px dashed var(--rule);border-radius:8px;padding:14px;background:#fafafa;text-align:center;min-height:76px;display:flex;align-items:center;justify-content:center">';
+    if (onbDraft.logo_url) html += '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="max-height:60px;max-width:100%;object-fit:contain">';
+    else html += '<span style="font-size:12px;color:var(--grey)">Nog geen logo</span>';
+    html += '</div>';
+    html += '<input type="file" id="onb-logo-file" accept="image/*" style="display:none" onchange="onbHandleLogoUpload(event)">';
+    html += '<button type="button" onclick="document.getElementById(\'onb-logo-file\').click()" style="margin-top:8px;padding:8px 12px;border:1.5px solid var(--rule);background:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);width:100%">' + (onbDraft.logo_url ? 'Logo vervangen' : 'Logo uploaden') + '</button>';
+    html += '</div>';
+    html += '</div>';
+  } else if (onbCurrentStep === 3) {
+    // Stap 3 — Calculator-config (frequentie + contractduur) + live preview met partner-branding
     html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Calculator instellen</h3>';
-    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Wat wil je dat klanten zien op jouw calculator? Stel per sector USP\'s en aanbod-opties in.</p>';
+    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Welke frequentie- en contractduur-opties wil je aan klanten aanbieden? USP\'s en specifieke teksten kan je later fijntunen via <strong>Instellingen → Calculator</strong>.</p>';
     var sectorKeys = Object.keys(onbDraft.sectorConfigs);
     if (sectorKeys.length === 0) {
       html += '<div style="padding:18px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:13px;color:#78350F;line-height:1.55">';
@@ -10801,22 +10822,16 @@ function renderOnbStep() {
       html += '</div>';
     } else {
       var activeSector = onbDraft.selectedSector || sectorKeys[0];
-      // Sector-tabs
-      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">';
-      sectorKeys.forEach(function(s) {
-        var active = s === activeSector;
-        html += '<button type="button" onclick="onbSelectSector(\'' + esc(s) + '\')" style="padding:6px 12px;border:1.5px solid ' + (active ? 'var(--navy)' : 'var(--rule)') + ';background:' + (active ? 'var(--navy)' : '#fff') + ';color:' + (active ? '#fff' : 'var(--navy)') + ';border-radius:18px;font-size:12px;font-weight:600;cursor:pointer">' + esc(s) + '</button>';
-      });
-      html += '</div>';
+      // Sector-tabs (alleen tonen bij 2+ sectoren — single-sector partners zien geen overbodige UI)
+      if (sectorKeys.length > 1) {
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">';
+        sectorKeys.forEach(function(s) {
+          var active = s === activeSector;
+          html += '<button type="button" onclick="onbSelectSector(\'' + esc(s) + '\')" style="padding:6px 12px;border:1.5px solid ' + (active ? 'var(--navy)' : 'var(--rule)') + ';background:' + (active ? 'var(--navy)' : '#fff') + ';color:' + (active ? '#fff' : 'var(--navy)') + ';border-radius:18px;font-size:12px;font-weight:600;cursor:pointer;text-transform:capitalize">' + esc(s) + '</button>';
+        });
+        html += '</div>';
+      }
       var cfg = onbDraft.sectorConfigs[activeSector];
-      // USPs (5 slots, eerste 3 verplicht)
-      html += '<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">USP\'s — wat overtuigt klanten? (min. 3)</label>';
-      var uspsArr = (cfg.usps && cfg.usps.length) ? cfg.usps.slice(0,5) : ['','',''];
-      while (uspsArr.length < 5) uspsArr.push('');
-      uspsArr.forEach(function(u, i) {
-        html += '<input type="text" data-onb-usp="' + i + '" value="' + esc(u || '') + '" placeholder="USP ' + (i+1) + (i < 3 ? ' *' : ' (optioneel)') + '" style="width:100%;margin-bottom:6px;padding:9px 11px;border:1.5px solid var(--rule);border-radius:7px;font-size:13px;box-sizing:border-box">';
-      });
-      html += '</div>';
       // Frequentie-opties
       html += '<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Frequentie-opties</label>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
@@ -10826,8 +10841,8 @@ function renderOnbStep() {
         html += '<button type="button" data-onb-freq="' + esc(f.key) + '" onclick="onbToggleFreq(\'' + esc(f.key) + '\')" style="padding:6px 12px;border:1.5px solid ' + (on ? 'var(--navy)' : 'var(--rule)') + ';background:' + (on ? 'var(--navy)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--navy)') + ';border-radius:18px;font-size:12px;font-weight:600;cursor:pointer">' + esc(f.label) + '</button>';
       });
       html += '</div></div>';
-      // Contractduur-opties
-      html += '<div style="margin-bottom:6px"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Contractduur (jaren)</label>';
+      // Contractduur-opties — alleen 1 / 3 / 5 jaar
+      html += '<div style="margin-bottom:18px"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Contractduur</label>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
       var selDuur = (cfg.contractduren && cfg.contractduren.length) ? cfg.contractduren : ONB_DUUR_DEFAULTS.slice();
       ONB_DUUR_OPTIONS.forEach(function(d) {
@@ -10835,32 +10850,18 @@ function renderOnbStep() {
         html += '<button type="button" onclick="onbToggleDuur(' + d + ')" style="padding:6px 14px;border:1.5px solid ' + (on ? 'var(--navy)' : 'var(--rule)') + ';background:' + (on ? 'var(--navy)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--navy)') + ';border-radius:18px;font-size:12px;font-weight:600;cursor:pointer">' + d + ' jaar</button>';
       });
       html += '</div></div>';
+      // Live preview met partner-branding
+      html += '<div style="margin-top:6px;padding:14px 16px;background:linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);border:1px solid var(--rule);border-radius:10px">';
+      html += '<div style="font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px">Zo zien jouw klanten de calculator</div>';
+      html += onbBuildCalcPreview(activeSector, cfg);
+      html += '</div>';
     }
-  } else if (onbCurrentStep === 3) {
-    // A3 — eerste team-lid (optioneel)
-    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Nodig je eerste teamlid uit</h3>';
-    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Optioneel — voeg meteen een collega toe zodat zij ook toegang krijgen. Je kan dit later altijd doen via <strong>Instellingen → Team</strong>.</p>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
-    html += onbField('Voornaam', 'onb-team-voornaam', onbDraft.teamInvite.voornaam);
-    html += onbField('Naam', 'onb-team-naam', onbDraft.teamInvite.naam);
-    html += onbField('E-mail', 'onb-team-email', onbDraft.teamInvite.email, 'email', 'span 2');
-    html += '<div style="grid-column:span 2"><label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Rol</label>';
-    html += '<select id="onb-team-role" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;background:white;box-sizing:border-box">';
-    ONB_ROLE_PRESETS.forEach(function(r) {
-      var sel = r.key === onbDraft.teamInvite.role ? ' selected' : '';
-      html += '<option value="' + esc(r.key) + '"' + sel + '>' + esc(r.label) + ' — ' + esc(r.hint) + '</option>';
-    });
-    html += '</select></div>';
-    html += '</div>';
-    html += '<p style="margin-top:14px;font-size:12px;color:var(--grey);font-style:italic">Laat alle velden leeg om over te slaan. Het teamlid krijgt een uitnodigingsmail met inlog-link.</p>';
   } else if (onbCurrentStep === 4) {
-    // A4 — marketing-kit preview
+    // Stap 4 — Marketing-kit
     var partnerSlug = (userPartner && userPartner.slug) || '';
-    var calcUrl = (window.location.origin.indexOf('flancco-platform.be') >= 0)
-      ? 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug)
-      : 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug);
+    var calcUrl = 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug);
     html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Marketing-kit klaar voor gebruik</h3>';
-    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Deel je calculator-link met klanten. Hieronder vind je je QR-code en kant-en-klare berichten.</p>';
+    html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px">Deel je calculator-link met klanten. Onderstaande berichten gebruiken een neutrale ankertekst zodat de URL minder opvalt op platforms die links renderen (LinkedIn, e-mail).</p>';
     html += '<div style="display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:start;margin-bottom:16px">';
     html += '<div><div id="onb-qr-canvas" style="width:160px;height:160px;background:#fff;border:1px solid var(--rule);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box"></div>';
     html += '<button type="button" onclick="onbDownloadQR()" style="margin-top:8px;padding:8px;border:1.5px solid var(--rule);background:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);width:100%">Download QR (PNG)</button></div>';
@@ -10868,10 +10869,16 @@ function renderOnbStep() {
     html += '<div style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Jouw calculator-URL</div>';
     html += '<div style="padding:9px 11px;background:#F9FAFB;border:1px solid var(--rule);border-radius:7px;font-size:12px;font-family:ui-monospace,monospace;word-break:break-all;margin-bottom:12px">' + esc(calcUrl) + '</div>';
     var bedrijf = onbDraft.bedrijfsnaam || (userPartner && userPartner.naam) || 'ons bedrijf';
+    var anker = 'jouw onderhoudsplan online';
+    // Optie A — markdown ankertekst voor LinkedIn (rendert), HTML <a> voor e-mail (rendert in HTML-mail).
+    // WhatsApp/SMS rendert geen ankertekst, dus daar gebruiken we een korte intro + de naakte URL als laatste regel.
     var snippets = [
-      { titel:'LinkedIn-post', text:'Goed nieuws voor onze klanten — bij ' + bedrijf + ' bieden we nu jaarlijks onderhoud aan via een transparante, professionele calculator. Bereken meteen je prijs en teken digitaal: ' + calcUrl },
-      { titel:'E-mail aan klant', text:'Beste,\n\nVoor jaarlijks onderhoud bij ' + bedrijf + ' kan je nu in 2 minuten zelf je prijs berekenen en het contract digitaal ondertekenen via deze link: ' + calcUrl + '\n\nMet vriendelijke groeten' },
-      { titel:'WhatsApp-bericht', text:'Hi! Bekijk onze nieuwe online calculator — krijg meteen een prijs op maat en teken digitaal in een paar klikken: ' + calcUrl }
+      { titel:'LinkedIn-post',
+        text:'Goed nieuws voor onze klanten — bij ' + bedrijf + ' bieden we nu jaarlijks onderhoud aan via een transparante, professionele calculator. Bereken meteen je prijs en teken digitaal: [' + anker + '](' + calcUrl + ')' },
+      { titel:'E-mail aan klant (HTML)',
+        text:'Beste,\n\nVoor jaarlijks onderhoud bij ' + bedrijf + ' kan je nu in 2 minuten zelf je prijs berekenen en het contract digitaal ondertekenen via deze link: <a href="' + calcUrl + '">' + anker + '</a>\n\nMet vriendelijke groeten' },
+      { titel:'WhatsApp / SMS',
+        text:'Hi! Bekijk onze nieuwe online calculator — krijg meteen een prijs op maat en teken digitaal in een paar klikken.\n\n' + calcUrl }
     ];
     snippets.forEach(function(sn, i) {
       html += '<div style="margin-bottom:8px;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:#fff">';
@@ -10887,49 +10894,31 @@ function renderOnbStep() {
     setTimeout(function() { onbRenderQR(calcUrl); }, 30);
     onbDraft.marketingKitOpened = true;
   } else if (onbCurrentStep === 5) {
-    // A5 — branding (was Stap 2)
-    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Branding & huisstijl</h3>';
-    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Zorg dat jouw klanten jouw look herkennen op de calculator en rapportages.</p>';
-    html += '<div style="display:flex;gap:20px;align-items:flex-start">';
-    html += '<div style="flex:1">';
-    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Primaire kleur</label>';
-    html += '<div style="display:flex;gap:8px;align-items:center">';
-    html += '<input type="color" id="onb-kleur" value="' + esc(onbDraft.kleur_primair) + '" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
-    html += '<input type="text" id="onb-kleur-hex" value="' + esc(onbDraft.kleur_primair) + '" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
+    // Stap 5 — Wachtwoord verplicht instellen (vervangt magic-link voor reguliere logins)
+    // De huidige sessie is gestart via een eenmalige invite-link; vanaf hier moet de partner
+    // een eigen wachtwoord kiezen waarmee hij voortaan via /admin/ inlogt. Na "Afronden"
+    // wordt de sessie geïnvalideerd zodat de partner forced re-login doet — dit bewijst
+    // dat het gekozen wachtwoord werkt en correct is opgeslagen door de partner.
+    html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Wachtwoord instellen</h3>';
+    html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px;line-height:1.55">Kies een wachtwoord waarmee je voortaan inlogt. Minimaal 12 tekens — gebruik bij voorkeur een password manager. Na deze stap word je uitgelogd en log je opnieuw in met je e-mail en wachtwoord.</p>';
+    html += '<div style="display:grid;gap:12px;max-width:460px">';
+    html += '<div>';
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Nieuw wachtwoord *</label>';
+    html += '<input type="password" id="onb-newpass" value="' + esc(onbDraft.newPass) + '" autocomplete="new-password" oninput="onbUpdatePasswordStrength()" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;box-sizing:border-box">';
+    html += '<div id="onb-pass-strength" style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;min-height:18px"></div>';
     html += '</div>';
-    html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Wordt gebruikt in sidebar, buttons en accenten.</p>';
-    html += '</div>';
-    html += '<div style="flex:1">';
-    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Logo</label>';
-    html += '<div id="onb-logo-preview" style="border:1.5px dashed var(--rule);border-radius:8px;padding:14px;background:#fafafa;text-align:center;min-height:76px;display:flex;align-items:center;justify-content:center">';
-    if (onbDraft.logo_url) html += '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="max-height:60px;max-width:100%;object-fit:contain">';
-    else html += '<span style="font-size:12px;color:var(--grey)">Nog geen logo</span>';
-    html += '</div>';
-    html += '<input type="file" id="onb-logo-file" accept="image/*" style="display:none" onchange="onbHandleLogoUpload(event)">';
-    html += '<button type="button" onclick="document.getElementById(\'onb-logo-file\').click()" style="margin-top:8px;padding:8px 12px;border:1.5px solid var(--rule);background:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);width:100%">' + (onbDraft.logo_url ? 'Logo vervangen' : 'Logo uploaden') + '</button>';
+    html += '<div>';
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Bevestig wachtwoord *</label>';
+    html += '<input type="password" id="onb-newpass2" value="' + esc(onbDraft.newPassConfirm) + '" autocomplete="new-password" oninput="onbUpdatePasswordStrength()" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;box-sizing:border-box">';
+    html += '<div id="onb-pass-match" style="margin-top:6px;font-size:11.5px;font-weight:600;min-height:18px"></div>';
     html += '</div>';
     html += '</div>';
+    html += '<div style="margin-top:18px;padding:12px 14px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#78350F;line-height:1.55">' +
+      '<strong>Tip:</strong> bewaar je wachtwoord in een password manager (1Password, Bitwarden, Apple Keychain, …). Wachtwoord vergeten? Op de login-pagina kan je een herstel-link laten sturen naar je e-mail.' +
+      '</div>';
+    setTimeout(function() { onbUpdatePasswordStrength(); }, 30);
   } else if (onbCurrentStep === 6) {
-    // A6 — wachtwoord OF magic-link bevestiging
-    if (onbDraft.authViaMagicLink) {
-      html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Inlog bevestigd via e-mail</h3>';
-      html += '<p style="margin:0 0 14px;color:var(--grey);font-size:13px;line-height:1.55">Je bent ingelogd via een magic-link uit je e-mail. Geen wachtwoord nodig — je kan voortaan altijd zo inloggen door een nieuwe link aan te vragen op de inlogpagina.</p>';
-      html += '<div style="padding:14px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;font-size:13px;color:#065F46;line-height:1.55">';
-      html += '<strong>Tip:</strong> wil je toch een wachtwoord? Stel het later in via <strong>Instellingen → Account</strong>. Magic-links zijn even veilig en je hoeft niets te onthouden.';
-      html += '</div>';
-    } else {
-      html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Nieuw wachtwoord instellen</h3>';
-      html += '<p style="margin:0 0 16px;color:var(--grey);font-size:13px">Vervang het tijdelijk wachtwoord door een eigen keuze (min. 10 tekens, sterk advies: mix van letters, cijfers en symbolen).</p>';
-      html += '<div style="display:grid;gap:12px;max-width:420px">';
-      html += onbField('Nieuw wachtwoord *', 'onb-newpass', onbDraft.newPass, 'password');
-      html += onbField('Bevestig wachtwoord *', 'onb-newpass2', onbDraft.newPassConfirm, 'password');
-      html += '</div>';
-      html += '<p style="margin-top:16px;padding:10px 12px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#78350F;line-height:1.5">' +
-        '<strong>Veiligheid:</strong> bewaar je wachtwoord in een password manager. Flancco kan een vergeten wachtwoord resetten via de login-pagina.' +
-        '</p>';
-    }
-  } else if (onbCurrentStep === 7) {
-    // A7 — demo-modus test
+    // Stap 6 — Demo-test
     var partnerSlug2 = (userPartner && userPartner.slug) || '';
     var demoUrl = 'https://calculator.flancco-platform.be/?partner=' + encodeURIComponent(partnerSlug2) + '&demo=1';
     html += '<h3 style="margin:0 0 6px;font-size:18px;font-weight:700;color:var(--navy)">Test je calculator (demo-modus)</h3>';
@@ -10941,6 +10930,181 @@ function renderOnbStep() {
     html += '<p style="margin-top:16px;font-size:12px;color:var(--grey);line-height:1.55">Klaar met testen? Klik op <strong>Afronden</strong> om naar je dashboard te gaan. Je kan deze test elk moment overdoen via de calculator-URL met <code style="font-size:11px">&amp;demo=1</code>.</p>';
   }
   body.innerHTML = html;
+}
+
+// ─── Stap 1 — Verificatie-kaart met read-only bedrijfsgegevens uit prefill ───
+function onbBuildVerifyCard() {
+  var rows = [];
+  if (onbDraft.bedrijfsnaam)  rows.push({ label:'Bedrijfsnaam',  value: onbDraft.bedrijfsnaam });
+  if (onbDraft.btw_nummer)    rows.push({ label:'BTW-nummer',    value: onbDraft.btw_nummer });
+  var adresFull = [onbDraft.adres, [onbDraft.postcode, onbDraft.gemeente].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  if (adresFull)              rows.push({ label:'Adres',         value: adresFull });
+  if (onbDraft.contactpersoon)rows.push({ label:'Contactpersoon',value: onbDraft.contactpersoon });
+  if (onbDraft.telefoon)      rows.push({ label:'Telefoon',      value: onbDraft.telefoon });
+  var sectoren = Object.keys(onbDraft.sectorConfigs || {});
+
+  var h = '<div style="background:#fff;border:1px solid var(--rule);border-radius:10px;overflow:hidden">';
+  if (rows.length === 0 && sectoren.length === 0) {
+    h += '<div style="padding:18px;text-align:center;color:var(--grey);font-size:13px;font-style:italic">Geen gegevens gevonden — vul ze straks aan via Instellingen → Mijn bedrijf.</div>';
+  } else {
+    rows.forEach(function(r, i) {
+      var border = i < rows.length - 1 || sectoren.length ? 'border-bottom:1px solid var(--rule);' : '';
+      h += '<div style="display:flex;padding:11px 16px;' + border + '">' +
+             '<div style="flex:0 0 130px;font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;align-self:center">' + esc(r.label) + '</div>' +
+             '<div style="flex:1;font-size:13.5px;color:var(--navy);font-weight:500">' + esc(r.value) + '</div>' +
+           '</div>';
+    });
+    if (sectoren.length) {
+      h += '<div style="display:flex;padding:11px 16px;align-items:center">' +
+             '<div style="flex:0 0 130px;font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px">Sector' + (sectoren.length > 1 ? 'en' : '') + '</div>' +
+             '<div style="flex:1;display:flex;flex-wrap:wrap;gap:6px">';
+      sectoren.forEach(function(s) {
+        h += '<span style="display:inline-flex;align-items:center;padding:4px 10px;background:#EEF2FF;border:1px solid #C7D2FE;color:#3730A3;border-radius:14px;font-size:12px;font-weight:600;text-transform:capitalize">' + esc(s) + '</span>';
+      });
+      h += '</div></div>';
+    }
+  }
+  h += '</div>';
+  return h;
+}
+
+// ─── Stap 5 — Wachtwoord-helpers (sterkte + HIBP breach-check) ───
+//
+// Strategie volgt NIST SP 800-63B (2017+):
+//   - Minimum length 12 (geen complexity rules opleggen — die verlagen entropie in praktijk)
+//   - Check tegen breached-password-database via HIBP k-anonymity API
+//     (alleen eerste 5 chars van SHA-1 prefix gaat over de lijn)
+//   - Visuele feedback (zwak/goed/uitstekend) als advies, niet als block
+//
+// HIBP-check is best-effort: faalt netwerk → toon waarschuwing maar block niet,
+// anders kan onboarding-flow stranden door externe-API-uitval.
+
+function onbPasswordStrength(p) {
+  var len = (p || '').length;
+  if (len === 0) return { level: 'empty', label: '', color: '#9CA3AF', barPct: 0 };
+  if (len < 8)   return { level: 'weak',   label: 'Te kort (min. 12 tekens)',           color: '#DC2626', barPct: 20 };
+  if (len < 12)  return { level: 'short',  label: 'Bijna lang genoeg — voeg meer toe',  color: '#F59E0B', barPct: 50 };
+  var hasLower   = /[a-z]/.test(p);
+  var hasUpper   = /[A-Z]/.test(p);
+  var hasDigit   = /\d/.test(p);
+  var hasSpecial = /[^a-zA-Z0-9]/.test(p);
+  var variety    = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+  if (len >= 16 && variety >= 3) return { level: 'excellent', label: 'Uitstekend',          color: '#059669', barPct: 100 };
+  if (len >= 14 && variety >= 2) return { level: 'strong',    label: 'Sterk',               color: '#10B981', barPct: 85 };
+  if (len >= 12 && variety >= 2) return { level: 'good',      label: 'Goed',                color: '#10B981', barPct: 70 };
+  return { level: 'medium', label: 'Voeg variatie toe (cijfers, hoofdletters, symbolen)', color: '#F59E0B', barPct: 60 };
+}
+
+function onbUpdatePasswordStrength() {
+  var p1 = document.getElementById('onb-newpass');
+  var p2 = document.getElementById('onb-newpass2');
+  if (!p1) return;
+  var v1 = p1.value || '';
+  var v2 = p2 ? (p2.value || '') : '';
+  var s = onbPasswordStrength(v1);
+  var box = document.getElementById('onb-pass-strength');
+  if (box) {
+    if (!v1) {
+      box.innerHTML = '<span style="color:var(--grey);font-weight:500">Minimaal 12 tekens</span>';
+    } else {
+      box.innerHTML =
+        '<div style="flex:1;height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden">' +
+          '<div style="width:' + s.barPct + '%;height:100%;background:' + esc(s.color) + ';transition:width .2s"></div>' +
+        '</div>' +
+        '<span style="color:' + esc(s.color) + '">' + esc(s.label) + '</span>';
+    }
+  }
+  var mbox = document.getElementById('onb-pass-match');
+  if (mbox) {
+    if (!v2) { mbox.innerHTML = ''; }
+    else if (v2 === v1) { mbox.innerHTML = '<span style="color:#059669">✓ Wachtwoorden komen overeen</span>'; }
+    else { mbox.innerHTML = '<span style="color:#DC2626">Wachtwoorden komen niet overeen</span>'; }
+  }
+}
+
+async function onbSha1Hex(s) {
+  var bytes = new TextEncoder().encode(s);
+  var hash = await crypto.subtle.digest('SHA-1', bytes);
+  var arr = Array.from(new Uint8Array(hash));
+  return arr.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('').toUpperCase();
+}
+
+// HIBP k-anonymity check: stuurt alleen eerste 5 chars van SHA-1 prefix.
+// Returnt { compromised: bool, count: int, error?: string }.
+async function onbCheckHibp(password) {
+  try {
+    var hash = await onbSha1Hex(password);
+    var prefix = hash.slice(0, 5);
+    var suffix = hash.slice(5);
+    var resp = await fetch('https://api.pwnedpasswords.com/range/' + prefix, {
+      headers: { 'Add-Padding': 'true' }
+    });
+    if (!resp.ok) return { compromised: false, count: 0, error: 'unreachable' };
+    var text = await resp.text();
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      var parts = lines[i].trim().split(':');
+      if (parts.length === 2 && parts[0].toUpperCase() === suffix) {
+        return { compromised: true, count: parseInt(parts[1], 10) || 1 };
+      }
+    }
+    return { compromised: false, count: 0 };
+  } catch (e) {
+    return { compromised: false, count: 0, error: (e && e.message) || 'exception' };
+  }
+}
+
+// ─── Stap 3 — Live calculator-preview met partner-branding ───
+// Mock-card die toont wat de eindklant ziet: header met logo + bedrijfsnaam,
+// frequentie/duur-opties als badges, voorbeeld-prijs en CTA in primary color.
+function onbBuildCalcPreview(sector, cfg) {
+  var primary = onbDraft.kleur_primair || '#098979';
+  var bedrijf = onbDraft.bedrijfsnaam || (userPartner && userPartner.naam) || 'Jouw bedrijf';
+  var initiaal = (bedrijf || '?').charAt(0).toUpperCase();
+  var freqLabels = (cfg.frequenties && cfg.frequenties.length ? cfg.frequenties : ONB_FREQ_DEFAULTS).map(function(k) {
+    var f = ONB_FREQ_OPTIONS.find(function(o) { return o.key === k; });
+    return f ? f.label : k;
+  });
+  var duurArr = (cfg.contractduren && cfg.contractduren.length ? cfg.contractduren : ONB_DUUR_DEFAULTS);
+
+  var h = '<div style="background:#fff;border:1px solid var(--rule);border-radius:10px;overflow:hidden;max-width:520px;margin:0 auto;box-shadow:0 4px 14px rgba(15,23,42,0.06)">';
+  // Header met partner-branding
+  h += '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:' + esc(primary) + ';color:#fff">';
+  if (onbDraft.logo_url) {
+    h += '<div style="width:30px;height:30px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;padding:3px;box-sizing:border-box">' +
+         '<img src="' + esc(onbDraft.logo_url) + '" alt="" style="max-width:100%;max-height:100%;object-fit:contain"></div>';
+  } else {
+    h += '<div style="width:30px;height:30px;background:rgba(255,255,255,0.18);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">' + esc(initiaal) + '</div>';
+  }
+  h += '<div style="flex:1;font-weight:700;font-size:14px">' + esc(bedrijf) + '</div>';
+  h += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;text-transform:capitalize">' + esc(sector) + '</div>';
+  h += '</div>';
+  // Body
+  h += '<div style="padding:16px">';
+  h += '<div style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Hoe vaak?</div>';
+  h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">';
+  freqLabels.forEach(function(l, i) {
+    var active = i === 0;
+    h += '<span style="padding:5px 10px;border:1px solid ' + (active ? esc(primary) : 'var(--rule)') + ';background:' + (active ? esc(primary) : '#fff') + ';color:' + (active ? '#fff' : 'var(--navy)') + ';border-radius:14px;font-size:11.5px;font-weight:600">' + esc(l) + '</span>';
+  });
+  h += '</div>';
+  h += '<div style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Voor hoeveel jaar?</div>';
+  h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:18px">';
+  duurArr.forEach(function(d, i) {
+    var active = i === 0;
+    h += '<span style="padding:5px 12px;border:1px solid ' + (active ? esc(primary) : 'var(--rule)') + ';background:' + (active ? esc(primary) : '#fff') + ';color:' + (active ? '#fff' : 'var(--navy)') + ';border-radius:14px;font-size:11.5px;font-weight:600">' + d + ' jaar</span>';
+  });
+  h += '</div>';
+  // Voorbeeld-prijsblok
+  h += '<div style="text-align:center;padding:14px;background:#F8FAFC;border-radius:8px">';
+  h += '<div style="font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Voorbeeldprijs per beurt</div>';
+  h += '<div style="font-size:32px;font-weight:800;color:' + esc(primary) + ';margin-top:4px;letter-spacing:-0.5px">€ 89</div>';
+  h += '<div style="font-size:11px;color:var(--grey);margin-top:2px">excl. btw — definitieve prijs op basis van klantgegevens</div>';
+  h += '</div>';
+  // CTA
+  h += '<button type="button" disabled style="margin-top:14px;width:100%;padding:11px;background:' + esc(primary) + ';color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:default;opacity:0.95">Boek onderhoud</button>';
+  h += '</div></div>';
+  return h;
 }
 
 // A2 helpers — sector-config interactie
@@ -11066,39 +11230,14 @@ function onbField(label, id, value, type, gridColumn) {
 }
 
 function onbCollectStep() {
-  if (onbCurrentStep === 1) {
-    onbDraft.bedrijfsnaam = (document.getElementById('onb-bedrijfsnaam').value || '').trim();
-    onbDraft.contactpersoon = (document.getElementById('onb-contactpersoon').value || '').trim();
-    onbDraft.telefoon = (document.getElementById('onb-telefoon').value || '').trim();
-    onbDraft.btw_nummer = (document.getElementById('onb-btw').value || '').trim();
-    onbDraft.adres = (document.getElementById('onb-adres').value || '').trim();
-    onbDraft.postcode = (document.getElementById('onb-postcode').value || '').trim();
-    onbDraft.gemeente = (document.getElementById('onb-gemeente').value || '').trim();
-    if (!onbDraft.bedrijfsnaam) { showToast('Bedrijfsnaam is verplicht', 'error'); return false; }
-  } else if (onbCurrentStep === 2) {
-    // Capture USPs voor active sector
-    var sector = onbDraft.selectedSector;
-    if (sector && onbDraft.sectorConfigs[sector]) {
-      var uspInputs = document.querySelectorAll('[data-onb-usp]');
-      var usps = [];
-      uspInputs.forEach(function(el) {
-        var v = (el.value || '').trim();
-        if (v) usps.push(v);
-      });
-      onbDraft.sectorConfigs[sector].usps = usps;
-    }
-    // Validate (alleen indien sectoren geconfigureerd; allemaal optioneel via skip-pad in finish)
-  } else if (onbCurrentStep === 3) {
-    onbDraft.teamInvite.voornaam = (document.getElementById('onb-team-voornaam').value || '').trim();
-    onbDraft.teamInvite.naam = (document.getElementById('onb-team-naam').value || '').trim();
-    onbDraft.teamInvite.email = (document.getElementById('onb-team-email').value || '').trim();
-    var roleSel = document.getElementById('onb-team-role');
-    onbDraft.teamInvite.role = (roleSel && roleSel.value) || 'medewerker_basis';
-    // Email-validatie alleen als ingevuld
-    if (onbDraft.teamInvite.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(onbDraft.teamInvite.email)) {
-      showToast('Ongeldig e-mailadres', 'error'); return false;
-    }
-  } else if (onbCurrentStep === 5) {
+  // Stap-mapping (na 2026-05-03 herwerking):
+  //   1 = welkom + verificatie (read-only, geen capture)
+  //   2 = branding (kleur + logo) — kleur valideren als hex
+  //   3 = calculator-config (frequentie + contractduur) — onbToggleFreq/onbToggleDuur muteren state al direct
+  //   4 = marketing-kit (geen capture)
+  //   5 = login (wachtwoord-set indien geen magic-link)
+  //   6 = demo-test (geen capture)
+  if (onbCurrentStep === 2) {
     var hexEl = document.getElementById('onb-kleur-hex');
     var kleurEl = document.getElementById('onb-kleur');
     if (hexEl && kleurEl) {
@@ -11106,13 +11245,21 @@ function onbCollectStep() {
       if (!/^#[0-9a-fA-F]{6}$/.test(val)) { showToast('Ongeldige hex-kleur', 'error'); return false; }
       onbDraft.kleur_primair = val;
     }
-  } else if (onbCurrentStep === 6) {
-    if (!onbDraft.authViaMagicLink) {
-      onbDraft.newPass = document.getElementById('onb-newpass').value || '';
-      onbDraft.newPassConfirm = document.getElementById('onb-newpass2').value || '';
-      if (onbDraft.newPass.length < 10) { showToast('Wachtwoord moet minstens 10 tekens zijn', 'error'); return false; }
-      if (onbDraft.newPass !== onbDraft.newPassConfirm) { showToast('Wachtwoorden komen niet overeen', 'error'); return false; }
+  } else if (onbCurrentStep === 3) {
+    // Validatie: minstens één frequentie + één contractduur per sector — anders kan klant niets kiezen.
+    var sector = onbDraft.selectedSector;
+    if (sector && onbDraft.sectorConfigs[sector]) {
+      var c = onbDraft.sectorConfigs[sector];
+      if (!c.frequenties || c.frequenties.length === 0) { showToast('Kies minstens één frequentie', 'error'); return false; }
+      if (!c.contractduren || c.contractduren.length === 0) { showToast('Kies minstens één contractduur', 'error'); return false; }
     }
+  } else if (onbCurrentStep === 5) {
+    // Wachtwoord verplicht — geen magic-link skip-pad meer (B2B-conventie).
+    // HIBP breach-check gebeurt async in onbNext (kan onbCollectStep niet awaiten zonder grote refactor).
+    onbDraft.newPass = document.getElementById('onb-newpass').value || '';
+    onbDraft.newPassConfirm = document.getElementById('onb-newpass2').value || '';
+    if (onbDraft.newPass.length < 12) { showToast('Wachtwoord moet minstens 12 tekens zijn', 'error'); return false; }
+    if (onbDraft.newPass !== onbDraft.newPassConfirm) { showToast('Wachtwoorden komen niet overeen', 'error'); return false; }
   }
   return true;
 }
@@ -11144,6 +11291,30 @@ async function onbPrev() {
 
 async function onbNext() {
   if (!onbCollectStep()) return;
+  // Stap 5 — HIBP breach-check uitvoeren vóór doorgaan naar stap 6.
+  // Best-effort: bij netwerkfout doorlaten met waarschuwing (anders kan externe-API-uitval
+  // partner-onboarding blokkeren). Bij echte breach: blokkeren en partner laten kiezen ander wachtwoord.
+  if (onbCurrentStep === 5 && onbDraft.newPass) {
+    var nextBtn = document.getElementById('onb-next-btn');
+    var origLbl = nextBtn ? nextBtn.textContent : '';
+    if (nextBtn) { nextBtn.disabled = true; nextBtn.textContent = 'Controleren…'; }
+    try {
+      var hibp = await onbCheckHibp(onbDraft.newPass);
+      if (hibp.compromised) {
+        showToast('Dit wachtwoord komt voor in ' + hibp.count.toLocaleString('nl-BE') + ' bekende datalekken — kies een ander.', 'error');
+        if (nextBtn) { nextBtn.disabled = false; nextBtn.textContent = origLbl; }
+        return;
+      }
+      if (hibp.error) {
+        // Netwerkfout — niet blokkerend, alleen log
+        console.warn('[onb] HIBP-check unavailable:', hibp.error);
+      }
+    } catch (e) {
+      console.warn('[onb] HIBP-check threw:', e);
+    } finally {
+      if (nextBtn) { nextBtn.disabled = false; nextBtn.textContent = origLbl; }
+    }
+  }
   if (onbCurrentStep < ONB_TOTAL_STEPS) {
     onbCurrentStep++;
     renderOnbStep();
@@ -11202,56 +11373,34 @@ async function onbFinish() {
       } catch (e) { console.warn('sector_config upsert exception for', sk, e); }
     }
 
-    // 3) Team-invite (A3) — alleen als email ingevuld
-    if (onbDraft.teamInvite && onbDraft.teamInvite.email) {
-      try {
-        var session = await sb.auth.getSession();
-        var token = (session && session.data && session.data.session && session.data.session.access_token) || '';
-        var inviteResp = await fetch(SUPA_URL + '/functions/v1/invite-partner-member', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY },
-          body: JSON.stringify({
-            email: onbDraft.teamInvite.email,
-            voornaam: onbDraft.teamInvite.voornaam || null,
-            naam: onbDraft.teamInvite.naam || null,
-            role_preset: onbDraft.teamInvite.role,
-            partner_id: userPartner.id
-          })
-        });
-        if (!inviteResp.ok) {
-          var inviteJson = await inviteResp.json().catch(function() { return null; });
-          console.warn('invite-partner-member failed', inviteJson);
-          showToast('Teamlid uitnodigen lukte niet — kan later via Instellingen', 'warning');
-        } else {
-          if (window.flanccoTrack) { try { window.flanccoTrack('Onboarding Team Invite Sent', { role: onbDraft.teamInvite.role }); } catch (_) {} }
-        }
-      } catch (e) { console.warn('invite-partner-member exception', e); }
-    }
+    // 3) Wachtwoord verplicht ingesteld — vervangt het magic-link-pad voor reguliere logins.
+    //    auth.updateUser muteert het wachtwoord op de huidige sessie; sessie blijft tot we
+    //    expliciet signOut roepen in stap 4.
+    if (!onbDraft.newPass) throw new Error('wachtwoord_vereist');
+    var pass = await sb.auth.updateUser({ password: onbDraft.newPass });
+    if (pass.error) throw pass.error;
+    auditLog('auth_users', userPartner.user_id || currentUser.id, 'wachtwoord_ingesteld', null,
+      JSON.stringify({ bron: 'onboarding_wizard' }));
 
-    // 4) Wachtwoord updaten (A6) — overslaan bij magic-link auth
-    if (!onbDraft.authViaMagicLink && onbDraft.newPass) {
-      var pass = await sb.auth.updateUser({ password: onbDraft.newPass });
-      if (pass.error) throw pass.error;
-      auditLog('auth_users', userPartner.user_id || currentUser.id, 'wachtwoord_gewijzigd', null,
-        JSON.stringify({ bron: 'onboarding_wizard' }));
-    }
-
-    // 5) Lokale state verversen
-    Object.assign(userPartner, patch);
-    applyBranding(userPartner);
-    closeOnboardingWizard();
-    showToast('Welkom op het platform — je account is klaar voor gebruik.');
+    // 4) Telemetrie. Tour-trigger gebeurt automatisch na re-login via de bestaande check op
+    //    onboarding_completed_at + ontbrekende onboarding_tour_completed_at (zie post-login init).
     if (window.flanccoTrack) {
       try { window.flanccoTrack('Onboarding Completed', {
         sectors_configured: sectorEntries.length,
-        team_invited: !!(onbDraft.teamInvite && onbDraft.teamInvite.email),
-        auth_method: onbDraft.authViaMagicLink ? 'magic_link' : 'password',
+        auth_method: 'password',
         marketing_kit_opened: !!onbDraft.marketingKitOpened,
         demo_opened: !!onbDraft.demoOpened
       }); } catch (_) {}
     }
-    if (typeof renderDashboard === 'function') renderDashboard();
-    setTimeout(function() { startOnboardingTour(); }, 500);
+
+    // 5) Forced re-auth: sessie invalideren + redirect naar login.
+    //    Bewijst dat partner het wachtwoord effectief kan gebruiken.
+    closeOnboardingWizard();
+    showToast('Wachtwoord ingesteld — je wordt nu uitgelogd. Log opnieuw in met je e-mail en nieuw wachtwoord.', 'success');
+    setTimeout(async function() {
+      try { await sb.auth.signOut(); } catch (_) {}
+      window.location.href = '/admin/';
+    }, 1800);
   } catch (e) {
     showToast('Fout bij opslaan: ' + (e.message || 'onbekend'), 'error');
     btn.disabled = false;
