@@ -10706,7 +10706,10 @@ async function openOnboardingWizard() {
     postcode: userPartner.postcode || '',
     gemeente: userPartner.gemeente || '',
     kleur_primair: userPartner.kleur_primair || '#098979',
-    kleur_donker: userPartner.kleur_donker || '',
+    // Donker: gebruik DB-waarde indien aanwezig, anders auto-derive uit primair zodat
+    // de picker bij eerste render niet leeg / NaN-rendert. Partner kan altijd op ↺ klikken
+    // om opnieuw te derive'en wanneer hij later primair wijzigt.
+    kleur_donker: userPartner.kleur_donker || _onbDeriveDark(userPartner.kleur_primair || '#098979'),
     logo_url: userPartner.logo_url || '',
     newPass: '',
     newPassConfirm: '',
@@ -10827,7 +10830,11 @@ function _onbApplyWizardBranding() {
   var primary = (onbDraft.kleur_primair && /^#[0-9a-fA-F]{6}$/.test(onbDraft.kleur_primair))
     ? onbDraft.kleur_primair
     : ((userPartner && userPartner.kleur_primair) || '#1A1A2E');
-  var dark = _onbDeriveDark(primary);
+  // Donker: respect partner-keuze (manueel of vorige onboarding) indien valide,
+  // anders fallback naar HSL-derive zodat header-gradient consistent blijft.
+  var dark = (onbDraft.kleur_donker && /^#[0-9a-fA-F]{6}$/.test(onbDraft.kleur_donker))
+    ? onbDraft.kleur_donker
+    : _onbDeriveDark(primary);
   onbDraft.kleur_donker = dark;
   card.style.setProperty('--navy', primary);
   card.style.setProperty('--navy-dark', dark);
@@ -10848,7 +10855,9 @@ function _onbDebouncedPersistBranding() {
   _onbPersistTimer = setTimeout(async function() {
     var primary = onbDraft.kleur_primair;
     if (!primary || !/^#[0-9a-fA-F]{6}$/.test(primary)) return;
-    var dark = _onbDeriveDark(primary);
+    var dark = (onbDraft.kleur_donker && /^#[0-9a-fA-F]{6}$/.test(onbDraft.kleur_donker))
+      ? onbDraft.kleur_donker
+      : _onbDeriveDark(primary);
     try {
       var upd = await sb.from('partners').update({ kleur_primair: primary, kleur_donker: dark }).eq('id', userPartner.id);
       if (upd.error) { console.warn('[onb] live brand-save failed:', upd.error); return; }
@@ -10868,6 +10877,33 @@ function onbOnColorChange(value, fromPicker) {
   }
   if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
   onbDraft.kleur_primair = v;
+  _onbApplyWizardBranding();
+  _onbDebouncedPersistBranding();
+}
+function onbOnDarkColorChange(value, fromPicker) {
+  var v = (value || '').toLowerCase();
+  if (fromPicker) {
+    var hexEl = document.getElementById('onb-kleur-donker-hex');
+    if (hexEl) hexEl.value = v;
+  } else if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+    var pickerEl = document.getElementById('onb-kleur-donker');
+    if (pickerEl) pickerEl.value = v;
+  }
+  if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+  onbDraft.kleur_donker = v;
+  _onbApplyWizardBranding();
+  _onbDebouncedPersistBranding();
+}
+function onbAutoDeriveDark() {
+  var primary = onbDraft.kleur_primair;
+  if (!primary || !/^#[0-9a-fA-F]{6}$/.test(primary)) return;
+  var derived = _onbDeriveDark(primary);
+  onbDraft.kleur_donker = derived;
+  // Sync DOM zodat picker + hex de nieuwe waarde tonen zonder full re-render
+  var pickerEl = document.getElementById('onb-kleur-donker');
+  var hexEl = document.getElementById('onb-kleur-donker-hex');
+  if (pickerEl) pickerEl.value = derived;
+  if (hexEl) hexEl.value = derived;
   _onbApplyWizardBranding();
   _onbDebouncedPersistBranding();
 }
@@ -10904,7 +10940,16 @@ function renderOnbStep() {
     html += '<input type="color" id="onb-kleur" value="' + esc(onbDraft.kleur_primair) + '" oninput="onbOnColorChange(this.value, true)" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
     html += '<input type="text" id="onb-kleur-hex" value="' + esc(onbDraft.kleur_primair) + '" oninput="onbOnColorChange(this.value, false)" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
     html += '</div>';
-    html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Wordt gebruikt in sidebar, buttons en accenten.</p>';
+    html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Sidebar, buttons en accenten.</p>';
+    // Donkere kleur — voor headers / hover-states. Default = auto-afgeleid uit primair (HSL darken 18%).
+    // Knop ↺ herberekent uit huidige primair zodat partner snel terug kan naar auto-default.
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin:14px 0 6px">Donkere kleur</label>';
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<input type="color" id="onb-kleur-donker" value="' + esc(onbDraft.kleur_donker) + '" oninput="onbOnDarkColorChange(this.value, true)" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
+    html += '<input type="text" id="onb-kleur-donker-hex" value="' + esc(onbDraft.kleur_donker) + '" oninput="onbOnDarkColorChange(this.value, false)" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
+    html += '<button type="button" onclick="onbAutoDeriveDark()" title="Bereken automatisch uit primaire kleur" aria-label="Bereken automatisch uit primaire kleur" style="width:40px;height:40px;border:1.5px solid var(--rule);background:#fff;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--navy);font-size:16px;line-height:1">↺</button>';
+    html += '</div>';
+    html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Voor headers en hover-states. Standaard ~18% donkerder dan primair — klik <strong>↺</strong> om opnieuw automatisch te berekenen.</p>';
     html += '</div>';
     html += '<div style="flex:1;min-width:220px">';
     html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Logo</label>';
@@ -11348,8 +11393,15 @@ function onbCollectStep() {
     var kleurEl = document.getElementById('onb-kleur');
     if (hexEl && kleurEl) {
       var val = (hexEl.value || kleurEl.value || '').trim();
-      if (!/^#[0-9a-fA-F]{6}$/.test(val)) { showToast('Ongeldige hex-kleur', 'error'); return false; }
+      if (!/^#[0-9a-fA-F]{6}$/.test(val)) { showToast('Ongeldige primaire kleur', 'error'); return false; }
       onbDraft.kleur_primair = val;
+    }
+    var darkHexEl = document.getElementById('onb-kleur-donker-hex');
+    var darkPickEl = document.getElementById('onb-kleur-donker');
+    if (darkHexEl && darkPickEl) {
+      var darkVal = (darkHexEl.value || darkPickEl.value || '').trim();
+      if (!/^#[0-9a-fA-F]{6}$/.test(darkVal)) { showToast('Ongeldige donkere kleur', 'error'); return false; }
+      onbDraft.kleur_donker = darkVal;
     }
   } else if (onbCurrentStep === 3) {
     // Validatie: minstens één frequentie + één contractduur per sector — anders kan klant niets kiezen.
