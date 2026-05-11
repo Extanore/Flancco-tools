@@ -1755,14 +1755,34 @@
   }
   window.validateStep1 = validateStep1;
 
+  // ─── Naam-split heuristiek voor legacy leads ────────────────
+  // Vóór 2026-05-11 had het onboard-formulier 1 'Naam'-veld dat in
+  // contactpersoon_naam terecht kwam. Nieuwe leads zijn al opgesplitst
+  // (Voornaam + Familienaam apart). Voor legacy data splitsen we hier
+  // bij de eerste spatie: eerste woord = voornaam, rest = familienaam.
+  // Partner kan altijd corrigeren in de inputs voor doorgaan.
+  function splitLegacyNaam(d) {
+    var voornaam = (d && d.contactpersoon_voornaam || '').trim();
+    var naam     = (d && d.contactpersoon_naam     || '').trim();
+    if (voornaam || !naam || naam.indexOf(' ') === -1) {
+      return { voornaam: voornaam, naam: naam };
+    }
+    var firstSpace = naam.indexOf(' ');
+    return {
+      voornaam: naam.slice(0, firstSpace).trim(),
+      naam:     naam.slice(firstSpace + 1).trim()
+    };
+  }
+
   // ─── Step 2 prefill ─────────────────────────────────────────
   function prefillStep2(d) {
     // appData kan reeds bedrijfsnaam/contact-info hebben (admin pre-filled stap 1 in admin-wizard)
     setVal('ap-bedrijfsnaam', d.bedrijfsnaam || state.formData.bedrijfsnaam || '');
     setVal('ap-btw',          d.btw_nummer  || state.formData.btw_nummer  || '');
     setVal('ap-website',      d.website     || state.formData.website     || '');
-    setVal('ap-voornaam',     d.contactpersoon_voornaam || '');
-    setVal('ap-naam',         d.contactpersoon_naam || '');
+    var nameParts = splitLegacyNaam(d);
+    setVal('ap-voornaam',     nameParts.voornaam || '');
+    setVal('ap-naam',         nameParts.naam     || '');
     setVal('ap-telefoon',     d.contactpersoon_telefoon || state.formData.contactpersoon_telefoon || '');
 
     // Adres: ofwel apart straat/huisnummer/postcode/gemeente in DB, ofwel één 'adres'-string
