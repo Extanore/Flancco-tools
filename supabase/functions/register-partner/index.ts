@@ -87,6 +87,11 @@ interface PartnerApplication {
   adres?: string | null;
   postcode?: string | null;
   gemeente?: string | null;
+  // Klant-communicatie contactgegevens (optioneel, ingesteld in onboarding-wizard
+  // stap 2). Worden gekopieerd naar partners.communicatie_email/telefoon zodat
+  // alle customer-facing display-points er direct gebruik van maken.
+  communicatie_email?: string | null;
+  communicatie_telefoon?: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────────────
@@ -284,6 +289,11 @@ Deno.serve(async (req: Request) => {
       kleur_donker: "#0F0F1E",
       email: app.contactpersoon_email,
       telefoon: (app.contactpersoon_telefoon ?? "").trim() || null,
+      // Klant-communicatie: separaat contact als partner dat tijdens onboarding instelde.
+      // Fallback gebeurt later op display-time via COALESCE(communicatie_*, email/telefoon),
+      // dus hier NULL als partner het veld leeg liet.
+      communicatie_email: (app.communicatie_email ?? "").trim() || null,
+      communicatie_telefoon: (app.communicatie_telefoon ?? "").trim() || null,
       website: (app.website ?? "").trim() || "",
       contactpersoon: contactpersoonFull,
       btw_nummer: (app.btw_nummer ?? "").trim() || null,
