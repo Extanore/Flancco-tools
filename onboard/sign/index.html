@@ -1071,6 +1071,22 @@
           </div>
         </div>
 
+        <div class="ap-card">
+          <h3 class="ap-card-title">Communicatie met je klanten <span class="opt" style="font-weight:400;color:var(--muted)">(optioneel)</span></h3>
+          <p class="ap-card-sub">Wil je een aparte e-mail of telefoon voor je klanten zien op contracten, calculator-bevestiging en transactionele mails? Stel hier een dedicated contactlijn in. Laat leeg om je contactpersoon-gegevens hierboven te gebruiken.</p>
+
+          <div class="ap-grid-2">
+            <div class="ap-field">
+              <label for="ap-comm-email">E-mail voor klant-communicatie</label>
+              <input id="ap-comm-email" type="email" autocomplete="email" maxlength="120" placeholder="bv. support@jouwbedrijf.be">
+            </div>
+            <div class="ap-field">
+              <label for="ap-comm-telefoon">Telefoon voor klant-communicatie</label>
+              <input id="ap-comm-telefoon" type="tel" autocomplete="tel" maxlength="40" placeholder="bv. 09 123 45 67">
+            </div>
+          </div>
+        </div>
+
         <div class="ap-actions">
           <button type="button" class="btn ghost" onclick="wizGoToStep(1)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
@@ -1784,6 +1800,9 @@
     setVal('ap-voornaam',     nameParts.voornaam || '');
     setVal('ap-naam',         nameParts.naam     || '');
     setVal('ap-telefoon',     d.contactpersoon_telefoon || state.formData.contactpersoon_telefoon || '');
+    // Klant-communicatie prefill (bij back-navigation of admin-prefilled appData)
+    setVal('ap-comm-email',    d.communicatie_email    || state.formData.communicatie_email    || '');
+    setVal('ap-comm-telefoon', d.communicatie_telefoon || state.formData.communicatie_telefoon || '');
 
     // Adres: ofwel apart straat/huisnummer/postcode/gemeente in DB, ofwel één 'adres'-string
     if (d.straat || d.huisnummer) {
@@ -1853,6 +1872,10 @@
     fd.contactpersoon_voornaam = getVal('ap-voornaam') || (state.appData && state.appData.contactpersoon_voornaam) || '';
     fd.contactpersoon_naam     = getVal('ap-naam')     || (state.appData && state.appData.contactpersoon_naam)     || '';
     fd.contactpersoon_telefoon = getVal('ap-telefoon');
+    // Klant-communicatie velden — optioneel. Lege string blijft leeg zodat RPC
+    // de bestaande waarde behoudt (COALESCE-pattern).
+    fd.communicatie_email      = getVal('ap-comm-email');
+    fd.communicatie_telefoon   = getVal('ap-comm-telefoon');
     fd.straat                  = getVal('ap-straat');
     fd.huisnummer              = getVal('ap-huisnr');
     fd.adres                   = (fd.straat + ' ' + fd.huisnummer).trim();
@@ -2380,7 +2403,9 @@
         p_marge_pct: fd.marge_pct,
         p_sectoren: fd.sectoren,
         p_ip: state.ip,
-        p_user_agent: (navigator.userAgent || '').slice(0, 500)
+        p_user_agent: (navigator.userAgent || '').slice(0, 500),
+        p_communicatie_email: fd.communicatie_email || null,
+        p_communicatie_telefoon: fd.communicatie_telefoon || null
       });
 
       state.signed = true;
