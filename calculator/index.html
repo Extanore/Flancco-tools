@@ -3389,6 +3389,222 @@ function onWpGlycolToggle() {
 }
 
 // ═══════════════════════════════════════════
+// PRE-FILL — laad client + installation uit URL-params zodat een nieuw
+// contract automatisch gevuld wordt met data uit een bestaande klant-
+// installatie. Aangeroepen vanuit klant-detail-page ("Maak contract").
+//
+// Contract:
+//   ?client_id=<uuid>              → klant pre-fillen (naam, email, adres)
+//   ?installation_id=<uuid>        → sector-config pre-fillen
+//   ?installation_sector=<sector>  → tabel te queryen (zonnepanelen/warmtepomp/ventilatie/verwarming)
+//
+// Non-blocking: errors loggen warning + ga door zonder pre-fill.
+// ═══════════════════════════════════════════
+// Module-state voor de prefill — bewust niet op `window` om collisions te
+// vermijden; calculator schrijft hier in tijdens init en leest er in stap-3
+// (klant) en bij contract-INSERT (installation-FK passthrough).
+var _calcPrefill = null;
+
+async function detectPrefillFromUrl() {
+  var params = new URLSearchParams(window.location.search);
+  var clientId = params.get('client_id');
+  var installationId = params.get('installation_id');
+  var installationSector = params.get('installation_sector');
+  if (!clientId && !installationId) return null;
+
+  var prefill = { client: null, installation: null, sector: null };
+
+  // 1. Load client
+  if (clientId) {
+    try {
+      var cRes = await sb.from('clients').select('*').eq('id', clientId).maybeSingle();
+      if (cRes && cRes.data) {
+        prefill.client = cRes.data;
+      } else if (cRes && cRes.error) {
+        console.warn('[prefill] clients.select error:', cRes.error);
+      }
+    } catch (e) {
+      console.warn('[prefill] clients.select exception:', e);
+    }
+  }
+
+  // 2. Load installation
+  if (installationId && installationSector) {
+    var validSectors = ['zonnepanelen', 'warmtepomp', 'ventilatie', 'verwarming'];
+    if (validSectors.indexOf(installationSector) === -1) {
+      console.warn('[prefill] Onbekende sector:', installationSector);
+    } else {
+      try {
+        var tableName = 'installations_' + installationSector;
+        var iRes = await sb.from(tableName).select('*').eq('id', installationId).maybeSingle();
+        if (iRes && iRes.data) {
+          prefill.installation = iRes.data;
+          prefill.sector = installationSector;
+        } else if (iRes && iRes.error) {
+          console.warn('[prefill] ' + tableName + '.select error:', iRes.error);
+        }
+      } catch (e) {
+        console.warn('[prefill] installations.select exception:', e);
+      }
+    }
+  } else if (installationId && !installationSector) {
+    console.warn('[prefill] installation_id zonder installation_sector — sector-tabel onbekend, skip installation-prefill.');
+  }
+  return prefill;
+}
+
+function applyPrefillSectorSelection(prefill) {
+  if (!prefill || !prefill.sector) return;
+  // Force-set selectedSectors zodat we onafhankelijk van stap-0 starten met de
+  // juiste sector geselecteerd. Werkt zowel voor partners met 1 sector (stap 0
+  // overgeslagen) als multi-sector (gebruiker kan nog aanvullen).
+  if (selectedSectors.indexOf(prefill.sector) === -1) {
+    selectedSectors = [prefill.sector];
+  }
+  if (typeof activeSectorTab !== 'undefined') activeSectorTab = prefill.sector;
+}
+
+function applyPrefillSectorInputs(prefill) {
+  if (!prefill || !prefill.installation || !prefill.sector) return;
+  var data = prefill.installation;
+  try {
+    if (prefill.sector === 'zonnepanelen') {
+      // dakvlakken is JSONB array {aantal, daktype, ...}
+      var dakvlakken = Array.isArray(data.dakvlakken) ? data.dakvlakken : [];
+      var totaalPanelen = dakvlakken.reduce(function(sum, d) {
+        return sum + (parseInt(d && d.aantal, 10) || 0);
+      }, 0);
+      // Fallback op totaal_panelen-kolom als dakvlakken leeg is
+      if (totaalPanelen <= 0 && data.totaal_panelen) {
+        totaalPanelen = parseInt(data.totaal_panelen, 10) || 0;
+      }
+      if (totaalPanelen > 0) {
+        var panInput = document.getElementById('solar-panelen');
+        if (panInput) {
+          panInput.value = totaalPanelen;
+          panInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+      // Daktype: van eerste dakvlak met daktype-veld
+      var firstDakvlak = dakvlakken.find(function(d) { return d && d.daktype; });
+      if (firstDakvlak && firstDakvlak.daktype) {
+        var daktypeSelect = document.getElementById('solar-daktype');
+        if (daktypeSelect) {
+          // Map mogelijke waardes; calculator kent: hellend|plat|grond
+          var dt = String(firstDakvlak.daktype).toLowerCase();
+          var validDakTypes = ['hellend', 'plat', 'grond'];
+          if (validDakTypes.indexOf(dt) !== -1) {
+            daktypeSelect.value = dt;
+            daktypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      }
+      // Hoogte > 7,5m → dakhoogte=hoog
+      if (data.hoogte_dakrand_m != null && parseFloat(data.hoogte_dakrand_m) > 7.5) {
+        var hoogSelect = document.getElementById('solar-dakhoogte');
+        if (hoogSelect) {
+          hoogSelect.value = 'hoog';
+          hoogSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    } else if (prefill.sector === 'warmtepomp') {
+      // Calculator-UI heeft per type prefixed id's (wp-ll-binnenunits, etc.).
+      // Bij prefill weten we (nog) niet welk subtype actief is — we vullen alle
+      // varianten in zodat ongeacht keuze de juiste waarde staat.
+      var binnen = parseInt(data.aantal_binnen_units, 10);
+      var buiten = parseInt(data.aantal_buiten_units, 10);
+      if (binnen > 0) {
+        var llBin = document.getElementById('wp-ll-binnenunits');
+        if (llBin) { llBin.value = binnen; llBin.dispatchEvent(new Event('input', { bubbles: true })); }
+      }
+      if (buiten > 0) {
+        ['wp-ll-buitenunits', 'wp-lw-buitenunits', 'wp-geo-buitenunits'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) { el.value = buiten; el.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+      }
+    } else if (prefill.sector === 'ventilatie') {
+      // installations_ventilatie.systeem_type → 'C' of 'D' (calculator-vent-type matcht)
+      var systeemSelect = document.getElementById('vent-type');
+      if (systeemSelect && data.systeem_type) {
+        var st = String(data.systeem_type).toUpperCase();
+        if (st === 'C' || st === 'D') {
+          systeemSelect.value = st;
+          systeemSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    } else if (prefill.sector === 'verwarming') {
+      // installations_verwarming.keteltype → calculator verw-type: gas|mazout|condensatie
+      var keteltypeSelect = document.getElementById('verw-type');
+      if (keteltypeSelect && data.keteltype) {
+        var kt = String(data.keteltype).toLowerCase();
+        var validKetels = ['gas', 'mazout', 'condensatie'];
+        if (validKetels.indexOf(kt) !== -1) {
+          keteltypeSelect.value = kt;
+          keteltypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    }
+    if (typeof calculateAll === 'function') {
+      try { calculateAll(); } catch (_) {}
+    }
+  } catch (e) {
+    console.warn('[prefill] applyPrefillSectorInputs error:', e);
+  }
+}
+
+// Wordt aangeroepen wanneer stap-2 (klantgegevens) zichtbaar wordt. Vult
+// alleen lege velden in zodat de eindklant manuele edits niet kwijtraakt
+// als hij toevallig stap-2 al eerder bezocht en aanpaste.
+function applyClientPrefillOnStep2() {
+  if (!_calcPrefill || !_calcPrefill.client) return;
+  var c = _calcPrefill.client;
+  try {
+    // Bedrijf-toggle: als client_type='bedrijf', schakel naar bedrijf-radio.
+    if (c.client_type === 'bedrijf') {
+      var bedrijfRadio = document.querySelector('input[name="klant-subtype"][value="bedrijf"]');
+      if (bedrijfRadio && !bedrijfRadio.checked) {
+        bedrijfRadio.checked = true;
+        bedrijfRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      var bedrijfsnaamEl = document.getElementById('klant-bedrijfsnaam');
+      if (bedrijfsnaamEl && !bedrijfsnaamEl.value && c.company_name) {
+        bedrijfsnaamEl.value = c.company_name;
+        bedrijfsnaamEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      var btwValidEl = document.getElementById('klant-btw-validated');
+      if (btwValidEl && !btwValidEl.value && c.vat_number) {
+        btwValidEl.value = c.vat_number;
+        btwValidEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    var mapping = {
+      'klant-naam':     c.contact_person || c.company_name || '',
+      'klant-contact':  c.contact_person || '',
+      'klant-email':    c.email || '',
+      'klant-tel':      c.phone || '',
+      'klant-straat':   c.street || '',
+      'klant-huisnr':   c.house_number || '',
+      'klant-postcode': c.postal_code || '',
+      'klant-gemeente': c.city || ''
+    };
+    Object.keys(mapping).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && mapping[id] && !el.value) {
+        el.value = mapping[id];
+        // Trigger handlers (validation, postcode-lookup, BTW-detectie)
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        if (el.tagName === 'INPUT' || el.tagName === 'SELECT') {
+          el.dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+      }
+    });
+  } catch (e) {
+    console.warn('[prefill] applyClientPrefillOnStep2 error:', e);
+  }
+}
+
+// ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
 async function init() {
@@ -3495,8 +3711,24 @@ async function init() {
     // render. Mislukken is non-fatal: helpers vallen terug op code-defaults.
     await loadCalcConfig();
 
+    // Pre-fill: bestaande klant/installatie laden uit URL-params (?client_id=
+    // / ?installation_id= / ?installation_sector=). Non-blocking — errors
+    // worden gelogd, calculator gaat door zonder pre-fill.
+    try {
+      _calcPrefill = await detectPrefillFromUrl();
+    } catch (prefillErr) {
+      console.warn('[prefill] detectPrefillFromUrl exception:', prefillErr);
+      _calcPrefill = null;
+    }
+
     // Determine if we need step 0
-    if (sectorParam && partnerSectors.indexOf(sectorParam) !== -1) {
+    // Pre-fill sector heeft voorrang op URL ?sector= legacy-param zodat de
+    // calculator direct naar de juiste sector-config springt.
+    var prefillSector = _calcPrefill && _calcPrefill.sector;
+    if (prefillSector && partnerSectors.indexOf(prefillSector) !== -1) {
+      selectedSectors = [prefillSector];
+      showStep0 = false;
+    } else if (sectorParam && partnerSectors.indexOf(sectorParam) !== -1) {
       // URL specifies a sector — skip step 0, select only that sector
       selectedSectors = [sectorParam];
       showStep0 = false;
@@ -3529,6 +3761,14 @@ async function init() {
     // Show app
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
+
+    // Pre-fill: sector-specifieke inputs invullen ná renderStep1 (DOM moet
+    // bestaan). Werkt enkel als we niet op stap-0 staan; bij stap-0 valt de
+    // gebruiker eerst zelf sector(en) kiezen — een prefill-sector hebben we
+    // hierboven al hard geforceerd, dus stap-0 zou normaal niet getoond zijn.
+    if (_calcPrefill && !showStep0) {
+      applyPrefillSectorInputs(_calcPrefill);
+    }
 
     // Initial calculation
     calculateAll();
@@ -5935,6 +6175,11 @@ function goToStep(n) {
       try { window.flanccoPostcodes.warmup(); } catch (_) {}
     }
     if (typeof refreshCtaProgress === 'function') refreshCtaProgress();
+    // Pre-fill klantgegevens uit URL-param-client. Wordt op stap-2 entry
+    // toegepast zodat de DOM-velden bestaan; vult enkel lege velden in.
+    if (_calcPrefill && _calcPrefill.client) {
+      applyClientPrefillOnStep2();
+    }
   }
 
   // Slot O2 — bij intrede stap 1: warmup postcode-data zodat eerste lookup snel is
@@ -6582,6 +6827,15 @@ async function submitContract() {
       payload.supplement_transport = s.transportExcl;
       payload.supplement_hoogte = sectorResults.zonnepanelen.hoogC;
       payload.korting_bedrag = s.discountAmount;
+    }
+
+    // Pre-fill: link het contract aan de bron-installatie zodat het
+    // dossier-zicht ("welke contracten lopen er op deze installatie?")
+    // klopt vanaf dag 1. Agent A levert deze FK-kolommen op contracten.
+    // Defensief: alleen wanneer prefill.installation én sector gezet zijn.
+    if (_calcPrefill && _calcPrefill.installation && _calcPrefill.sector) {
+      var _fkName = 'installation_' + _calcPrefill.sector + '_id';
+      payload[_fkName] = _calcPrefill.installation.id;
     }
 
     var insertRes = await sb.from('contracten').insert([payload]);

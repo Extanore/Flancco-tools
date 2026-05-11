@@ -1110,15 +1110,22 @@ function resetWizardBranding() {
 // =============================================
 // CLIENT DEEP-LINK — ?client=<id> uit URL honoreren (J.3)
 // Aangeroepen na initApp (partner-rol) én na onPartnerChange (admin-flow).
+//
+// Sinds pre-fill-uitbreiding: ondersteunt ook ?client_id=<id> (uniforme
+// URL-API met calculator) — bestaande ?client= blijft werken voor backward-
+// compatibiliteit. Bij conflict heeft ?client_id voorrang.
 // =============================================
 function applyClientFromUrl() {
   var params = new URLSearchParams(window.location.search);
-  var clientId = params.get('client');
+  var clientId = params.get('client_id') || params.get('client');
   if (!clientId) return;
   var sel = document.getElementById('wiz-client');
   if (!sel) return;
   var exists = (clients || []).some(function(c) { return c.id === clientId; });
-  if (!exists) return;
+  if (!exists) {
+    // Klant niet in scope (RLS / andere partner). Stille fail volgens spec.
+    return;
+  }
   // Slot T: nieuw prefixed-mode honoreert deep-link via 'bedrijf:<UUID>' (selecteert
   // het bedrijfs-header-item, geen specifieke contactpersoon).
   var prefixedVal = 'bedrijf:' + clientId;
@@ -1126,6 +1133,129 @@ function applyClientFromUrl() {
   var cbWrap = document.getElementById('wiz-client-cb');
   if (cbWrap && cbWrap.__fcb) cbWrap.__fcb.setValue(prefixedVal);
   if (typeof onClientSelect === 'function') onClientSelect();
+}
+
+// =============================================
+// INSTALLATION PRE-FILL — laad een bestaande installatie uit URL-params
+// (?installation_id=<id>&installation_sector=<sector>) zodat het nieuwe
+// contract sector-config + FK-link kan overnemen. Non-blocking: bij errors
+// loggen we een warning en gaat de wizard door zonder pre-fill.
+// =============================================
+async function detectWizardInstallationPrefill() {
+  var params = new URLSearchParams(window.location.search);
+  var installationId = params.get('installation_id');
+  var installationSector = params.get('installation_sector');
+  if (!installationId) return;
+  if (!installationSector) {
+    console.warn('[wizard prefill] installation_id zonder installation_sector — skip.');
+    return;
+  }
+  var validSectors = ['zonnepanelen', 'warmtepomp', 'ventilatie', 'verwarming'];
+  if (validSectors.indexOf(installationSector) === -1) {
+    console.warn('[wizard prefill] Onbekende sector:', installationSector);
+    return;
+  }
+  try {
+    var tableName = 'installations_' + installationSector;
+    var iRes = await sb.from(tableName).select('*').eq('id', installationId).maybeSingle();
+    if (iRes && iRes.data) {
+      window._wizPrefillInstallation = { sector: installationSector, data: iRes.data };
+    } else if (iRes && iRes.error) {
+      console.warn('[wizard prefill] ' + tableName + '.select error:', iRes.error);
+    }
+  } catch (e) {
+    console.warn('[wizard prefill] installations.select exception:', e);
+  }
+}
+
+// Wordt aangeroepen in mountWizCalc-callback wanneer WizCalc gemount is in
+// stap 2. Selecteert de juiste sector-card en vult sector-specifieke inputs
+// in (zelfde mapping als de calculator).
+function applyWizPrefillToCalc() {
+  var pre = window._wizPrefillInstallation;
+  if (!pre || !pre.sector || !pre.data) return;
+  if (!window.WizCalc || typeof window.toggleSectorCard !== 'function') return;
+  // Sector-card moet bestaan; defensief retry-tje met setTimeout zodat
+  // WizCalc.mount() de DOM heeft gerendered voor we ernaar zoeken.
+  setTimeout(function() {
+    var host = document.getElementById('wiz-calc-host');
+    if (!host) return;
+    var sectorCard = host.querySelector('.sector-card[data-sector="' + pre.sector + '"]');
+    if (sectorCard && !sectorCard.classList.contains('selected')) {
+      // WizCalc heeft toggleSectorCard als global geëxposed — direct
+      // aanroepen is robuuster dan een synthetische click die in legacy
+      // event-handlers kan vastlopen.
+      try { window.toggleSectorCard(pre.sector); } catch (e) { console.warn('[wizard prefill] toggleSectorCard error:', e); }
+    }
+    // Per-sector inputs invullen (dezelfde mapping als calculator).
+    setTimeout(function() {
+      try {
+        if (pre.sector === 'zonnepanelen') {
+          var dakvlakken = Array.isArray(pre.data.dakvlakken) ? pre.data.dakvlakken : [];
+          var totaal = dakvlakken.reduce(function(s, d) { return s + (parseInt(d && d.aantal, 10) || 0); }, 0);
+          if (totaal <= 0 && pre.data.totaal_panelen) totaal = parseInt(pre.data.totaal_panelen, 10) || 0;
+          if (totaal > 0) {
+            var panInput = host.querySelector('#solar-panelen');
+            if (panInput) {
+              panInput.value = totaal;
+              panInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+          var firstDakvlak = dakvlakken.find(function(d) { return d && d.daktype; });
+          if (firstDakvlak) {
+            var dt = String(firstDakvlak.daktype).toLowerCase();
+            if (['hellend','plat','grond'].indexOf(dt) !== -1) {
+              var daktypeSel = host.querySelector('#solar-daktype');
+              if (daktypeSel) {
+                daktypeSel.value = dt;
+                daktypeSel.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }
+          }
+          if (pre.data.hoogte_dakrand_m != null && parseFloat(pre.data.hoogte_dakrand_m) > 7.5) {
+            var hoogSel = host.querySelector('#solar-dakhoogte');
+            if (hoogSel) {
+              hoogSel.value = 'hoog';
+              hoogSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        } else if (pre.sector === 'warmtepomp') {
+          var binnen = parseInt(pre.data.aantal_binnen_units, 10);
+          var buiten = parseInt(pre.data.aantal_buiten_units, 10);
+          if (binnen > 0) {
+            var llBin = host.querySelector('#wp-ll-binnenunits');
+            if (llBin) { llBin.value = binnen; llBin.dispatchEvent(new Event('input', { bubbles: true })); }
+          }
+          if (buiten > 0) {
+            ['wp-ll-buitenunits','wp-lw-buitenunits','wp-geo-buitenunits'].forEach(function(id) {
+              var el = host.querySelector('#' + id);
+              if (el) { el.value = buiten; el.dispatchEvent(new Event('input', { bubbles: true })); }
+            });
+          }
+        } else if (pre.sector === 'ventilatie') {
+          var systeemSel = host.querySelector('#vent-type');
+          if (systeemSel && pre.data.systeem_type) {
+            var st = String(pre.data.systeem_type).toUpperCase();
+            if (st === 'C' || st === 'D') {
+              systeemSel.value = st;
+              systeemSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        } else if (pre.sector === 'verwarming') {
+          var keteltypeSel = host.querySelector('#verw-type');
+          if (keteltypeSel && pre.data.keteltype) {
+            var kt = String(pre.data.keteltype).toLowerCase();
+            if (['gas','mazout','condensatie'].indexOf(kt) !== -1) {
+              keteltypeSel.value = kt;
+              keteltypeSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[wizard prefill] sector-input fill error:', e);
+      }
+    }, 250);
+  }, 150);
 }
 
 // =============================================
@@ -1259,14 +1389,43 @@ async function initApp() {
   var today = new Date().toISOString().split('T')[0];
   wizState.startDatum = today;
 
-  // Honor ?client=<id> deep-link (vanuit admin klant-dossier) (J.3)
+  // Honor ?client_id=<id> / ?client=<id> deep-link (vanuit admin klant-dossier of
+  // klant-detail "Maak contract"-knop). applyClientFromUrl is idempotent en
+  // valt stil terug bij onbestaande klant.
   applyClientFromUrl();
+
+  // Pre-fill: installatie-data laden (sector + inputs) zodat een nieuw contract
+  // direct met de installatie-config vertrekt. Mount via window-state zodat
+  // mountWizCalc's onChange-callback de prefill kan toepassen.
+  try {
+    await detectWizardInstallationPrefill();
+  } catch (prefillErr) {
+    console.warn('[wizard prefill] detectWizardInstallationPrefill exception:', prefillErr);
+  }
 
   // Wizard initialiseert direct op stap 1 (Klant). Roep goStep(1) aan zodat
   // de partner-veld zichtbaarheid en eindklant-Flancco-default-partner correct
   // gezet worden — voorheen gebeurde dat pas wanneer de gebruiker doorklikte
   // vanaf de geschrapte "Type"-stap.
   goStep(1);
+
+  // Pre-fill auto-advance: als klant gezet is via URL én er is een installation
+  // pre-fill, springen we naar stap 2 (Diensten & tarieven) zodat de gebruiker
+  // direct de gepre-fillde calculator-UI ziet. Defensief: alleen bij geldige
+  // clientId (anders blokkeert goStep(2) op de partner-check) + na een korte
+  // delay zodat onClientSelect zijn werk gedaan heeft (partner-load).
+  var _urlParams = new URLSearchParams(window.location.search);
+  var _hasClientUrl = !!(_urlParams.get('client_id') || _urlParams.get('client'));
+  var _hasInstallationUrl = !!_urlParams.get('installation_id');
+  if (_hasClientUrl && _hasInstallationUrl && wizState.clientId) {
+    setTimeout(function() {
+      // Re-check: clientId kan tijdens debounce ongewijzigd zijn maar partner
+      // moet ondertussen geladen zijn voor goStep(2) anders toast-fail.
+      if (wizState.clientId && wizState.partnerId) {
+        try { goStep(2); } catch (_) {}
+      }
+    }, 600);
+  }
 }
 
 // =============================================
@@ -1969,6 +2128,13 @@ function mountWizCalc() {
     },
     onChange: onWizCalcChange
   });
+
+  // Pre-fill: na mount sector-selectie + sector-inputs invullen uit een
+  // bestaande installatie. Defensief: applyWizPrefillToCalc bewaakt zelf
+  // dat _wizPrefillInstallation gezet is, anders no-op.
+  if (window._wizPrefillInstallation) {
+    try { applyWizPrefillToCalc(); } catch (e) { console.warn('[wizard prefill] applyWizPrefillToCalc:', e); }
+  }
 }
 
 // Wordt door WizCalc aangeroepen bij elke (re)calc. Synct selected sectors,
@@ -2364,6 +2530,15 @@ async function saveContract() {
       payload.aantal_panelen = sc.pan;
       payload.daktype = sc.daktype;
       payload.dakhoogte = sc.hoog ? '> 7,5 m' : '< 7,5 m';
+    }
+
+    // Pre-fill: koppel het contract aan de bron-installatie zodat het
+    // klant-dossier ("welke contracten op deze installatie?") direct
+    // klopt. Agent A levert de installation_<sector>_id FK-kolommen op
+    // contracten. Defensief: alleen bij geldige prefill-state.
+    var _wizPre = window._wizPrefillInstallation;
+    if (_wizPre && _wizPre.sector && _wizPre.data && _wizPre.data.id) {
+      payload['installation_' + _wizPre.sector + '_id'] = _wizPre.data.id;
     }
 
     var { data: inserted, error: insertErr } = await sb.from('contracten').insert([payload]).select();
