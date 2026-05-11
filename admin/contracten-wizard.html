@@ -66,17 +66,17 @@
       } catch(_) {}
       window.__flanccoBoot = b;
       var root = document.documentElement;
-      // Brand-color resolutie: kleur_donker valt terug op kleur_primair (niet
-      // hardcoded groen) zodat partners zonder expliciete donker-variant ook
-      // consistent gerenderd worden.
-      var bootDark = b.kleur_donker || b.kleur_primair;
+      // Brand-color mapping (PR #36 pattern, mirror van admin/index.html):
+      // --navy = primaire brand-kleur (navbar + main accents)
+      // --navy-light = donkere accent-kleur (hover, secondary surfaces)
       var bootPrimary = b.kleur_primair || b.kleur_donker;
-      root.style.setProperty('--navy', bootDark);
-      root.style.setProperty('--navy-light', bootPrimary);
-      // --brand-primary scheidt brand-color van semantic --navy zodat CTA-knoppen
-      // ook partner-color volgen wanneer --navy door iets anders gereset wordt.
-      root.style.setProperty('--brand-primary', bootDark);
-      root.style.setProperty('--brand-primary-hover', bootPrimary);
+      var bootDark    = b.kleur_donker  || b.kleur_primair;
+      root.style.setProperty('--navy', bootPrimary);
+      root.style.setProperty('--navy-light', bootDark);
+      // --brand-primary blijft synchroon met --navy zodat CTA-knoppen ook partner-color
+      // volgen wanneer --navy door iets anders gereset wordt.
+      root.style.setProperty('--brand-primary', bootPrimary);
+      root.style.setProperty('--brand-primary-hover', bootDark);
       if (b.logo_url) {
         var fav = document.getElementById('app-favicon');
         if (fav) {
@@ -1063,17 +1063,19 @@ function applyWizardBranding(p) {
   if (!p) { resetWizardBranding(); return; }
   var primary = p.kleur_primair || DEFAULT_NAVY;
   // Fallback naar primary i.p.v. hardcoded groen-donker zodat partners zonder
-  // expliciete kleur_donker waarde toch consistent worden gerenderd (CTA-knop +
-  // sidebar trekken samen op met de primary brand-color).
+  // expliciete kleur_donker waarde toch consistent worden gerenderd.
   var dark    = p.kleur_donker  || primary;
-  document.documentElement.style.setProperty('--navy', dark);
-  document.documentElement.style.setProperty('--navy-light', primary);
+  // Brand-color mapping (PR #36 pattern, mirror van admin/index.html):
+  // --navy = primaire brand-kleur (navbar + main accents)
+  // --navy-light = donkere accent-kleur (hover, secondary surfaces)
+  document.documentElement.style.setProperty('--navy', primary);
+  document.documentElement.style.setProperty('--navy-light', dark);
   // Brand-specific vars (gescheiden van semantic --navy) — borgen dat CTA-knoppen
   // ALTIJD partner-color volgen ook al wordt --navy ergens anders gereset.
-  document.documentElement.style.setProperty('--brand-primary', dark);
-  document.documentElement.style.setProperty('--brand-primary-hover', primary);
+  document.documentElement.style.setProperty('--brand-primary', primary);
+  document.documentElement.style.setProperty('--brand-primary-hover', dark);
   var sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.style.background = dark;
+  if (sidebar) sidebar.style.background = primary;
   var logo = document.getElementById('sidebar-logo');
   if (logo) {
     if (p.logo_url) {
