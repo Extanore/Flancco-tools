@@ -211,65 +211,174 @@
   .klant-preview h4 { font-size: 14px; color: var(--navy); margin-bottom: 4px; }
   .klant-preview p { font-size: 13px; color: var(--grey); margin: 0; }
 
-  /* SECTOR CARDS (stap 3 — calculator stijl) */
-  .sector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .sector-card { position: relative; border: 2px solid var(--rule); border-radius: var(--radius); padding: 20px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--white); }
-  .sector-card:hover { border-color: var(--navy); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-  .sector-card.selected { border-color: var(--navy); background: #f0f0ff; box-shadow: 0 0 0 3px rgba(26,26,46,0.1); }
-  .sector-card-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--light); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
-  .sector-card-icon svg { width: 22px; height: 22px; stroke: var(--navy); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .sector-card h3 { font-size: 13px; color: var(--navy); margin-bottom: 2px; }
-  .sector-card p { font-size: 11px; color: var(--grey); }
-  .sector-check { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--rule); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-  .sector-card.selected .sector-check { background: var(--navy); }
-  .sector-check svg { width: 12px; height: 12px; stroke: white; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  /* =============================================
+     WIZ-CALC: 1-op-1 kopie van calculator stap-1+2 styling.
+     Alle selectors zijn gescoped onder #wiz-calc-host om CSS-leakage naar
+     andere wizard-stappen te voorkomen. Bron: calculator/index.html lines
+     60-489 (alleen de regels die step-1+step-2 UI raken).
+     ============================================= */
+  #wiz-calc-host {
+    /* Override CSS-vars binnen calculator-scope. Wizard's --primary blijft
+       Flancco-teal voor kaarten/CTAs in andere wizard-stappen. */
+    --primary: #098979;
+    --primary-light: #6bb8af;
+    --primary-bg: #e6f5f3;
+    --primary-dark: #066b5e;
+    --black: #1A1A1A;
+    --dark: #2D2D2D;
+  }
 
-  /* USP BAR */
-  .usp-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 16px; background: var(--light); border-radius: 8px; }
-  .usp-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--navy); font-weight: 500; }
-  .usp-item svg { width: 16px; height: 16px; stroke: var(--green); fill: none; stroke-width: 2; }
+  /* CARDS — calculator versie binnen scope (overschrijft wizard's compactere card-stijl) */
+  #wiz-calc-host .card { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); padding: 32px; margin-bottom: 24px; }
+  #wiz-calc-host .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--primary); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-bg); }
 
-  /* TOGGLE SWITCH (calculator stijl) */
-  .toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; cursor: pointer; }
-  .toggle-label { font-size: 13px; color: var(--navy); }
-  .toggle-label small { display: block; font-size: 11px; color: var(--grey); font-weight: 400; margin-top: 2px; }
-  .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--rule); border-radius: 24px; transition: 0.3s; }
-  .slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
-  .switch input:checked + .slider { background: var(--navy); }
-  .switch input:checked + .slider:before { transform: translateX(20px); }
+  /* INTRO */
+  #wiz-calc-host .intro { text-align: center; margin-bottom: 32px; }
+  #wiz-calc-host .intro h1 { font-size: 22px; font-weight: 700; color: var(--black); margin-bottom: 8px; }
+  #wiz-calc-host .intro p { font-size: 14px; color: var(--grey); max-width: 480px; margin: 0 auto; }
+
+  /* FORM FIELDS (calculator) */
+  #wiz-calc-host .field { margin-bottom: 20px; position: relative; }
+  #wiz-calc-host .field:last-child { margin-bottom: 0; }
+  #wiz-calc-host .field label { display: block; font-size: 14px; font-weight: 500; color: var(--dark); margin-bottom: 6px; }
+  #wiz-calc-host .field label small { font-weight: 400; color: var(--grey); }
+  #wiz-calc-host .field input[type="number"], #wiz-calc-host .field input[type="text"], #wiz-calc-host .field input[type="email"], #wiz-calc-host .field input[type="tel"], #wiz-calc-host .field input[type="date"], #wiz-calc-host .field select, #wiz-calc-host .field textarea {
+    width: 100%; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 8px; font-size: 15px; font-family: inherit; color: var(--dark); background: var(--white); transition: border-color 0.2s, box-shadow 0.2s; }
+  #wiz-calc-host .field input:focus, #wiz-calc-host .field select:focus, #wiz-calc-host .field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(9,137,121,0.12); }
+  #wiz-calc-host .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* RADIO */
+  #wiz-calc-host .radio-group { display: flex; flex-direction: column; gap: 8px; }
+  #wiz-calc-host .radio-option { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--light); border-radius: 8px; cursor: pointer; border: 1.5px solid transparent; transition: 0.2s; }
+  #wiz-calc-host .radio-option:hover { background: var(--primary-bg); }
+  #wiz-calc-host .radio-option input { accent-color: var(--primary); width: 18px; height: 18px; cursor: pointer; }
+  #wiz-calc-host .radio-option .radio-text { font-size: 14px; font-weight: 500; }
+  #wiz-calc-host .radio-option .radio-text small { font-weight: 400; color: var(--grey); display: block; font-size: 12px; margin-top: 2px; }
+  #wiz-calc-host .radio-option:has(input:checked) { border-color: var(--primary); background: var(--primary-bg); }
+
+  /* TOGGLES (calculator versie) — overschrijft wizard's mini-versie */
+  #wiz-calc-host .toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--light); border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: background 0.2s; }
+  #wiz-calc-host .toggle-group:hover { background: var(--primary-bg); }
+  #wiz-calc-host .toggle-label { font-size: 14px; font-weight: 500; color: var(--dark); }
+  #wiz-calc-host .toggle-label small { display: block; font-weight: 400; color: var(--grey); font-size: 12px; margin-top: 2px; }
+  #wiz-calc-host .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  #wiz-calc-host .switch input { opacity: 0; width: 0; height: 0; }
+  #wiz-calc-host .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--rule); border-radius: 24px; transition: 0.3s; }
+  #wiz-calc-host .slider::before { content:''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  #wiz-calc-host .switch input:checked + .slider { background: var(--primary); }
+  #wiz-calc-host .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  /* RESULT CARD */
+  #wiz-calc-host .result-card { background: var(--primary); border-radius: var(--radius); padding: 28px 32px; color: var(--white); box-shadow: 0 4px 20px rgba(9,137,121,0.25); position: relative; overflow: hidden; }
+  #wiz-calc-host .result-card::before { content:''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: rgba(255,255,255,0.06); border-radius: 50%; }
+  #wiz-calc-host .result-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.7); margin-bottom: 16px; }
+  #wiz-calc-host .result-lines { margin-bottom: 20px; }
+  #wiz-calc-host .result-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: rgba(255,255,255,0.85); }
+  #wiz-calc-host .result-line.hidden { display: none; }
+  #wiz-calc-host .result-line span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+  #wiz-calc-host .result-divider { border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 12px 0; }
+  #wiz-calc-host .result-total { display: flex; justify-content: space-between; align-items: baseline; }
+  #wiz-calc-host .result-total-label { font-size: 16px; font-weight: 500; }
+  #wiz-calc-host .result-total-amount { font-size: 36px; font-weight: 700; letter-spacing: -1px; transition: all 0.3s; }
+  #wiz-calc-host .result-note { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: right; }
+
+  /* OP AANVRAAG BANNER */
+  #wiz-calc-host .result-card.is-op-aanvraag { background: var(--primary); }
+  #wiz-calc-host .result-card .op-aanvraag-banner { background: #FFF8E6; border: 1px solid #F0C24B; border-left: 4px solid #D89200; border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; color: #4A3A0A; }
+  #wiz-calc-host .result-card .op-aanvraag-banner .op-aanvraag-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: #4A3A0A; margin-bottom: 6px; letter-spacing: 0.2px; }
+  #wiz-calc-host .result-card .op-aanvraag-banner .op-aanvraag-title svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: #B07000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #wiz-calc-host .result-card .op-aanvraag-banner .op-aanvraag-body { font-size: 13px; line-height: 1.55; color: #4A3A0A; }
+  #wiz-calc-host .result-card .op-aanvraag-banner .op-aanvraag-body a { color: #8A5C00; font-weight: 600; text-decoration: underline; }
+  #wiz-calc-host .result-card .op-aanvraag-banner .op-aanvraag-body a:hover { color: #D89200; }
+  #wiz-calc-host .result-card.is-op-aanvraag .result-total-amount,
+  #wiz-calc-host .result-card.is-op-aanvraag .result-total-label,
+  #wiz-calc-host .result-card.is-op-aanvraag .result-divider,
+  #wiz-calc-host .result-card.is-op-aanvraag #wiz-calc-host-line-jaar { display: none; }
+
+  /* STAFFEL TABLE */
+  #wiz-calc-host .staffel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #wiz-calc-host .staffel-table th { text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--grey); padding: 8px 12px; border-bottom: 2px solid var(--primary-bg); }
+  #wiz-calc-host .staffel-table td { padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+  #wiz-calc-host .staffel-table tr:last-child td { border-bottom: none; }
+  #wiz-calc-host .staffel-table tr.active { background: var(--primary-bg); outline: 2px solid var(--primary); outline-offset: -2px; border-radius: 6px; }
+  #wiz-calc-host .staffel-table tr.active td { font-weight: 600; color: var(--primary-dark); }
+  #wiz-calc-host .staffel-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+
+  /* USP BAR (calculator versie — grid + tegels) */
+  #wiz-calc-host .usp-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; padding: 0; background: transparent; }
+  #wiz-calc-host .usp-item { text-align: center; padding: 16px 8px; background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: block; color: var(--dark); font-weight: 500; font-size: 12px; }
+  #wiz-calc-host .usp-icon { width: 36px; height: 36px; margin: 0 auto 8px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  #wiz-calc-host .usp-icon svg { width: 18px; height: 18px; fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #wiz-calc-host .usp-text { font-size: 11px; font-weight: 600; color: var(--dark); line-height: 1.3; }
+
+  /* INFO COLLAPSIBLES */
+  #wiz-calc-host .info-block { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); margin-bottom: 16px; overflow: hidden; }
+  #wiz-calc-host .info-toggle { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; cursor: pointer; user-select: none; transition: background 0.2s; }
+  #wiz-calc-host .info-toggle:hover { background: var(--primary-bg); }
+  #wiz-calc-host .info-toggle-left { display: flex; align-items: center; gap: 12px; }
+  #wiz-calc-host .info-toggle-icon { width: 36px; height: 36px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #wiz-calc-host .info-toggle-icon svg { width: 18px; height: 18px; fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #wiz-calc-host .info-toggle h3 { font-size: 15px; font-weight: 600; color: var(--black); margin: 0; }
+  #wiz-calc-host .info-toggle .info-teaser { font-size: 12px; color: var(--grey); margin-top: 2px; }
+  #wiz-calc-host .info-chevron { width: 20px; height: 20px; transition: transform 0.3s; flex-shrink: 0; }
+  #wiz-calc-host .info-chevron svg { width: 20px; height: 20px; fill: none; stroke: var(--grey); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #wiz-calc-host .info-block.open .info-chevron { transform: rotate(180deg); }
+  #wiz-calc-host .info-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  #wiz-calc-host .info-block.open .info-content { max-height: 800px; }
+  #wiz-calc-host .info-body { padding: 0 24px 24px; }
+  #wiz-calc-host .info-body p { font-size: 14px; color: var(--dark); line-height: 1.7; margin-bottom: 12px; }
+  #wiz-calc-host .info-body p:last-child { margin-bottom: 0; }
+  #wiz-calc-host .info-body strong { color: var(--black); }
+  #wiz-calc-host .info-body ul { margin: 8px 0 12px 20px; }
+  #wiz-calc-host .info-body li { font-size: 14px; color: var(--dark); margin-bottom: 4px; line-height: 1.6; }
+  #wiz-calc-host .info-highlight { background: var(--primary-bg); border-left: 4px solid var(--primary); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+  #wiz-calc-host .info-highlight p { margin: 0; font-size: 14px; font-weight: 600; color: var(--primary-dark); }
+
+  /* SECTOR SELECTOR (calculator step 0) */
+  #wiz-calc-host .sector-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  #wiz-calc-host .sector-card { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); padding: 28px 24px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; position: relative; text-align: left; }
+  #wiz-calc-host .sector-card:hover { border-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  #wiz-calc-host .sector-card.selected { border-color: var(--primary); background: var(--primary-bg); }
+  #wiz-calc-host .sector-card-icon { width: 48px; height: 48px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 0 16px; }
+  #wiz-calc-host .sector-card.selected .sector-card-icon { background: var(--primary); }
+  #wiz-calc-host .sector-card-icon svg { width: 24px; height: 24px; fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #wiz-calc-host .sector-card.selected .sector-card-icon svg { stroke: var(--white); }
+  #wiz-calc-host .sector-card h3 { font-size: 16px; font-weight: 700; color: var(--black); margin-bottom: 6px; }
+  #wiz-calc-host .sector-card p { font-size: 13px; color: var(--grey); line-height: 1.5; margin-bottom: 0; }
+  #wiz-calc-host .sector-card .sector-check { position: absolute; top: 16px; right: 16px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rule); background: transparent; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  #wiz-calc-host .sector-card.selected .sector-check { background: var(--primary); border-color: var(--primary); }
+  #wiz-calc-host .sector-card .sector-check svg { width: 14px; height: 14px; stroke: white; stroke-width: 2.5; fill: none; opacity: 0; transition: opacity 0.2s; }
+  #wiz-calc-host .sector-card.selected .sector-check svg { opacity: 1; }
 
   /* SECTOR TABS (multi-sector) */
-  .sector-tabs { display: none; gap: 0; background: var(--white); border-radius: 8px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-  .sector-tab-btn { flex: 1; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--grey); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
-  .sector-tab-btn:hover { color: var(--navy); }
-  .sector-tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); background: #f9fafb; }
-  .sector-tab-btn svg { width: 16px; height: 16px; }
+  #wiz-calc-host .sector-tabs { display: flex; gap: 8px; margin-bottom: 24px; background: transparent; border-radius: 0; overflow: visible; box-shadow: none; }
+  #wiz-calc-host .sector-tab-btn { flex: 1; padding: 12px 16px; background: var(--white); border: 2px solid var(--rule); border-radius: var(--radius); font-size: 14px; font-weight: 600; color: var(--grey); cursor: pointer; text-align: center; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #wiz-calc-host .sector-tab-btn:hover { border-color: var(--primary-light); color: var(--dark); }
+  #wiz-calc-host .sector-tab-btn.active { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+  #wiz-calc-host .sector-tab-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  .sector-color-zon { --sec-color: #F59E0B; }
-  .sector-color-wp { --sec-color: #3B82F6; }
-  .sector-color-vent { --sec-color: #8B5CF6; }
-  .sector-color-verw { --sec-color: #EF4444; }
+  /* CTA SECTION (sector-pick advance hint) */
+  #wiz-calc-host .cta-section { text-align: center; margin-top: 0; }
+  #wiz-calc-host .cta-sub { font-size: 12px; color: var(--grey); margin-top: 10px; }
+  #wiz-calc-host .hidden { display: none !important; }
 
-  /* 2-KOLOM LAYOUT (stap 3) */
-  .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
-  .two-col-left { min-width: 0; }
-  .two-col-right { position: sticky; top: 24px; }
+  /* FIELD HELPER */
+  #wiz-calc-host .field-helper { font-size: 12px; color: var(--grey); margin-top: 6px; line-height: 1.4; display: flex; align-items: center; gap: 6px; }
+  #wiz-calc-host .field-helper.is-computed { color: var(--primary); }
+  #wiz-calc-host .field-helper.is-fallback { color: #B45309; }
 
-  /* CONFIG CARD */
-  .config-card { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 20px; margin-bottom: 16px; border-left: 4px solid var(--rule); }
-  .config-card.sector-zon { border-left-color: #F59E0B; }
-  .config-card.sector-wp { border-left-color: #3B82F6; }
-  .config-card.sector-vent { border-left-color: #8B5CF6; }
-  .config-card.sector-verw { border-left-color: #EF4444; }
-  .config-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .config-card-title { font-size: 14px; font-weight: 600; color: var(--navy); display: flex; align-items: center; gap: 8px; }
-  .config-card-title svg { width: 20px; height: 20px; }
-  .btn-add-install { padding: 6px 12px; background: none; border: 1.5px dashed var(--rule); border-radius: 6px; font-size: 12px; color: var(--grey); cursor: pointer; display: flex; align-items: center; gap: 4px; }
-  .btn-add-install:hover { border-color: var(--navy); color: var(--navy); }
-  .btn-remove-install { padding: 4px 8px; background: none; border: none; color: var(--grey); cursor: pointer; font-size: 18px; }
-  .btn-remove-install:hover { color: var(--red); }
+  /* RESPONSIVE */
+  @media (max-width: 520px) {
+    #wiz-calc-host .card { padding: 24px 20px; }
+    #wiz-calc-host .result-card { padding: 24px 20px; }
+    #wiz-calc-host .field-row { grid-template-columns: 1fr; }
+    #wiz-calc-host .usp-bar { grid-template-columns: 1fr; gap: 8px; }
+    #wiz-calc-host .usp-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 16px; }
+    #wiz-calc-host .usp-icon { margin: 0; flex-shrink: 0; }
+    #wiz-calc-host .result-total-amount { font-size: 28px; }
+    #wiz-calc-host .sector-grid { grid-template-columns: 1fr; }
+    #wiz-calc-host .sector-tabs { flex-direction: column; }
+  }
 
   /* CHECKBOX/TOGGLE */
   .check-group { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
@@ -686,25 +795,14 @@
       </div>
     </div>
 
-    <!-- STAP 3: DIENSTEN & TARIEVEN -->
+    <!-- STAP 3: DIENSTEN & TARIEVEN
+         Wordt volledig gerenderd door window.WizCalc — een 1-op-1 kopie van
+         de calculator stap-1+2 UI (sector-pick + USP + info-blocks + sector-tabs +
+         sector-form-container + BTW/freq/duur/afstand cards + result-card +
+         staffel-table + op-aanvraag-banner). Mount-call gebeurt in mountWizCalc()
+         bij elke entry van stap 3. -->
     <div class="wiz-step" id="wiz-step-3">
-      <div class="card">
-        <div class="card-title">Selecteer uw diensten</div>
-        <div class="sector-grid" id="sector-grid"></div>
-      </div>
-      <div class="sector-tabs" id="sector-tabs"></div>
-      <div class="usp-bar" id="usp-bar" style="display:none"></div>
-      <div class="two-col">
-        <div class="two-col-left" id="sector-configs"></div>
-        <div class="two-col-right">
-          <div class="pricing-card" id="pricing-sidebar">
-            <h3>Prijsoverzicht</h3>
-            <div id="pricing-lines">
-              <div class="pricing-empty">Selecteer een sector om te beginnen</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div id="wiz-calc-host"></div>
       <div class="wizard-footer">
         <button class="btn btn-ghost" onclick="goStep(2)">&larr; Vorige</button>
         <button class="btn btn-primary" id="btn-step3-next" onclick="goStep(4)" disabled>Volgende &rarr;</button>
@@ -792,7 +890,7 @@
         </div>
         <div class="field">
           <label>Afstand partner → klant (km)</label>
-          <input type="number" id="wiz-afstand" min="0" max="200" value="0" oninput="recalcPricing()">
+          <input type="number" id="wiz-afstand" min="0" max="200" value="0" oninput="onWizAfstandInput()">
         </div>
       </div>
       <div class="wizard-footer">
@@ -1109,316 +1207,39 @@ function applyClientFromUrl() {
 }
 
 // =============================================
-// SECTOR CONFIG (pricing logic from calculator)
+// SECTOR-METADATA SHIM (alleen voor renderSummary in stap 5).
+// De volledige SECTORS-blob (pricing-logic, render-functies, calculate)
+// woont in window.WizCalc — gemount in stap 3 als 1-op-1 kopie van de
+// calculator. Deze shim levert enkel `label` + `badgeClass` voor de
+// summary-card. summaryDescription gaat via WizCalc als die gemount is.
 // =============================================
-var SECTORS = {
-  zonnepanelen: {
-    key: 'zonnepanelen',
-    label: 'Zonnepanelen',
-    subtitle: 'Professionele reiniging met osmosewater',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
-    colorClass: 'sector-zon',
-    badgeClass: 'badge-zon',
-    seizoenMaanden: [3,4,5,6,7,8,9,10],
-    usps: [
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Osmosewater zonder chemie' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Tot 20% meer opbrengst' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Technische controle inbegrepen' }
-    ],
-
-    defaultConfig: function() {
-      return { pan: 12, daktype: 'hellend', hoog: false, verv: false };
-    },
-
-    renderConfig: function(cfg, idx) {
-      return '<div class="card"><div class="card-title">Uw installatie</div>' +
-        '<div class="field"><label>Aantal panelen</label>' +
-        '<input type="number" min="1" max="200" value="' + cfg.pan + '" onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'pan\',parseInt(this.value)||1)"></div>' +
-        '<div class="field-row">' +
-        '<div class="field"><label>Type dak</label><select onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'daktype\',this.value)">' +
-        '<option value="hellend"' + (cfg.daktype === 'hellend' ? ' selected' : '') + '>Hellend dak</option>' +
-        '<option value="plat"' + (cfg.daktype === 'plat' ? ' selected' : '') + '>Plat dak</option>' +
-        '<option value="grond"' + (cfg.daktype === 'grond' ? ' selected' : '') + '>Grondopstelling</option>' +
-        '</select></div>' +
-        '<div class="field"><label>Dakhoogte</label><select onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'hoog\',this.value===\'hoog\')">' +
-        '<option value="laag"' + (!cfg.hoog ? ' selected' : '') + '>Lager dan 7,5 m</option>' +
-        '<option value="hoog"' + (cfg.hoog ? ' selected' : '') + '>Hoger dan 7,5 m</option>' +
-        '</select></div></div></div>' +
-        '<div class="card"><div class="card-title">Bijzonderheden</div>' +
-        '<label class="toggle-group" for="zon-verv-' + idx + '">' +
-        '<div class="toggle-label">Hevige vervuiling of mosvorming<small>Toeslag per paneel</small></div>' +
-        '<div class="switch"><input type="checkbox" id="zon-verv-' + idx + '"' + (cfg.verv ? ' checked' : '') + ' onchange="updateSectorConfig(\'zonnepanelen\',' + idx + ',\'verv\',this.checked)"><span class="slider"></span></div>' +
-        '</label></div>';
-    },
-
-    calculate: function(configs, pricing, supplements, partner) {
-      var marge = parseFloat(partner.marge_pct) / 100;
-      var planFee = parseFloat(partner.planning_fee);
-      var lines = [];
-      var subtotal = 0;
-
-      configs.forEach(function(inputs, idx) {
-        var pan = Math.max(1, inputs.pan || 1);
-        // Find tier
-        var f = { amt: 0, lbl: 'Geen tarief' };
-        for (var i = 0; i < pricing.length; i++) {
-          var pr = pricing[i];
-          var max = pr.staffel_max || 999999;
-          if (pan >= pr.staffel_min && pan <= max) {
-            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
-            break;
-          }
-        }
-        if (f.amt === 0 && pricing.length > 0) {
-          var last = pricing[pricing.length - 1];
-          var lastMax = last.staffel_max || 40;
-          var basePrice = parseFloat(last.flancco_forfait) * (1 + marge) + planFee;
-          var extraPP = 5.64 * (1 + marge);
-          f = { amt: basePrice + (pan - lastMax) * extraPP, lbl: (lastMax + 1) + '+ panelen' };
-        }
-
-        var vervPP = getSectorSupplement('zonnepanelen', 'vervuiling') * (1 + marge);
-        var hoogBedrag = getSectorSupplement('zonnepanelen', 'hoogtewerker') * (1 + marge);
-        var vervC = inputs.verv ? pan * vervPP : 0;
-        var hoogC = inputs.hoog ? hoogBedrag : 0;
-        var sub = f.amt + vervC + hoogC;
-        subtotal += sub;
-
-        var prefix = configs.length > 1 ? 'Dak ' + (idx + 1) + ': ' : '';
-        lines.push({ label: prefix + 'Reiniging ' + pan + ' pan. (' + f.lbl + ')', amount: f.amt });
-        if (vervC > 0) lines.push({ label: prefix + 'Vervuiling (' + pan + ' pan.)', amount: vervC });
-        if (hoogC > 0) lines.push({ label: prefix + 'Hoogtewerker', amount: hoogC });
-      });
-
-      return { lines: lines, subtotalExcl: subtotal };
-    },
-
-    summaryDescription: function(configs) {
-      return configs.map(function(c, i) {
-        var prefix = configs.length > 1 ? 'Dak ' + (i + 1) + ': ' : '';
-        var dakTxt = c.daktype === 'hellend' ? 'hellend dak' : c.daktype === 'plat' ? 'plat dak' : 'grondopstelling';
-        return prefix + c.pan + ' panelen, ' + dakTxt;
-      }).join(' | ');
-    }
-  },
-
-  warmtepomp: {
-    key: 'warmtepomp',
-    label: 'Warmtepomp',
-    subtitle: 'Periodiek onderhoud van uw warmtepompsysteem',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 8 4 12.5 4 15.5a8 8 0 0 0 16 0C20 12.5 17.5 8 12 2Z"/></svg>',
-    colorClass: 'sector-wp',
-    badgeClass: 'badge-wp',
-    seizoenMaanden: [9,10,11,3,4,5],
-    usps: [
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Gecertificeerd onderhoud' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Optimale efficiëntie' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Verlengde levensduur' }
-    ],
-
-    defaultConfig: function() {
-      return { formule: 'basic', binnenunits: 1, buitenunits: 1, moeilijk: false };
-    },
-
-    renderConfig: function(cfg, idx) {
-      return '<div class="card"><div class="card-title">Uw warmtepompsysteem</div>' +
-        '<div class="field"><label>Formule</label><select onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'formule\',this.value)">' +
-        '<option value="basic"' + (cfg.formule === 'basic' ? ' selected' : '') + '>Basic</option>' +
-        '<option value="allin"' + (cfg.formule === 'allin' ? ' selected' : '') + '>All-in</option>' +
-        '</select></div>' +
-        '<div class="field-row">' +
-        '<div class="field"><label>Binnenunits</label><input type="number" min="1" max="20" value="' + cfg.binnenunits + '" onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'binnenunits\',parseInt(this.value)||1)"></div>' +
-        '<div class="field"><label>Buitenunits</label><input type="number" min="1" max="10" value="' + cfg.buitenunits + '" onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'buitenunits\',parseInt(this.value)||1)"></div>' +
-        '</div></div>' +
-        '<div class="card"><div class="card-title">Bijzonderheden</div>' +
-        '<label class="toggle-group" for="wp-moeilijk-' + idx + '">' +
-        '<div class="toggle-label">Moeilijk bereikbare units<small>Toeslag per interventie</small></div>' +
-        '<div class="switch"><input type="checkbox" id="wp-moeilijk-' + idx + '"' + (cfg.moeilijk ? ' checked' : '') + ' onchange="updateSectorConfig(\'warmtepomp\',' + idx + ',\'moeilijk\',this.checked)"><span class="slider"></span></div>' +
-        '</label></div>';
-    },
-
-    calculate: function(configs, pricing, supplements, partner) {
-      var marge = parseFloat(partner.marge_pct) / 100;
-      var planFee = parseFloat(partner.planning_fee);
-      var lines = [];
-      var subtotal = 0;
-
-      configs.forEach(function(inputs, idx) {
-        var f = { amt: 0, lbl: 'Geen tarief' };
-        for (var i = 0; i < pricing.length; i++) {
-          var pr = pricing[i];
-          var max = pr.staffel_max || 999999;
-          if (inputs.binnenunits >= pr.staffel_min && inputs.binnenunits <= max) {
-            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
-            break;
-          }
-        }
-        var basePrice = inputs.formule === 'allin' ? f.amt * 1.65 : f.amt;
-        var extraBuiten = Math.max(0, inputs.buitenunits - 1);
-        var buitenSup = getSectorSupplement('warmtepomp', 'extra_buitenunit') * (1 + marge);
-        var buitenCost = extraBuiten * buitenSup;
-        var moeilijkSup = getSectorSupplement('warmtepomp', 'moeilijk_bereikbaar') * (1 + marge);
-        var moeilijkCost = inputs.moeilijk ? moeilijkSup : 0;
-        var sub = basePrice + buitenCost + moeilijkCost;
-        subtotal += sub;
-
-        var formuleTxt = inputs.formule === 'basic' ? 'basic' : 'all-in';
-        var prefix = configs.length > 1 ? 'Unit ' + (idx + 1) + ': ' : '';
-        lines.push({ label: prefix + 'Onderhoud ' + inputs.binnenunits + ' binnenunit(s) (' + formuleTxt + ')', amount: basePrice });
-        if (buitenCost > 0) lines.push({ label: prefix + 'Extra buitenunit(s) (' + extraBuiten + 'x)', amount: buitenCost });
-        if (moeilijkCost > 0) lines.push({ label: prefix + 'Moeilijk bereikbaar', amount: moeilijkCost });
-      });
-
-      return { lines: lines, subtotalExcl: subtotal };
-    },
-
-    summaryDescription: function(configs) {
-      return configs.map(function(c, i) {
-        var prefix = configs.length > 1 ? 'Unit ' + (i + 1) + ': ' : '';
-        return prefix + c.binnenunits + ' binnenunit(s), ' + (c.formule === 'basic' ? 'basic' : 'all-in');
-      }).join(' | ');
-    }
-  },
-
-  ventilatie: {
-    key: 'ventilatie',
-    label: 'Ventilatie',
-    subtitle: 'Onderhoud van uw ventilatiesysteem (C of D)',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>',
-    colorClass: 'sector-vent',
-    badgeClass: 'badge-vent',
-    seizoenMaanden: [1,2,3,4,5,6,7,8,9,10,11,12],
-    usps: [
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Gezonde binnenlucht' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Lager energieverbruik' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Conform EPB-regelgeving' }
-    ],
-
-    defaultConfig: function() {
-      return { systeem: 'D', ventielen: 10, kanaalreiniging: false, lm: 0 };
-    },
-
-    renderConfig: function(cfg, idx) {
-      return '<div class="card"><div class="card-title">Uw ventilatiesysteem</div>' +
-        '<div class="field"><label>Systeem type</label><select onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'systeem\',this.value)">' +
-        '<option value="C"' + (cfg.systeem === 'C' ? ' selected' : '') + '>Systeem C</option>' +
-        '<option value="D"' + (cfg.systeem === 'D' ? ' selected' : '') + '>Systeem D</option>' +
-        '</select></div>' +
-        '<div class="field"><label>Aantal ventielen</label><input type="number" min="1" max="50" value="' + cfg.ventielen + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'ventielen\',parseInt(this.value)||1)"></div></div>' +
-        '<div class="card"><div class="card-title">Extra opties</div>' +
-        '<label class="toggle-group" for="vent-kanaal-' + idx + '">' +
-        '<div class="toggle-label">Kanaalreiniging<small>Toeslag per lopende meter</small></div>' +
-        '<div class="switch"><input type="checkbox" id="vent-kanaal-' + idx + '"' + (cfg.kanaalreiniging ? ' checked' : '') + ' onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'kanaalreiniging\',this.checked)"><span class="slider"></span></div>' +
-        '</label>' +
-        (cfg.kanaalreiniging ? '<div class="field" style="margin-top:8px"><label>Kanaallengte (lm)</label><input type="number" min="0" max="500" value="' + cfg.lm + '" onchange="updateSectorConfig(\'ventilatie\',' + idx + ',\'lm\',parseInt(this.value)||0)"></div>' : '') +
-        '</div>';
-    },
-
-    calculate: function(configs, pricing, supplements, partner) {
-      var marge = parseFloat(partner.marge_pct) / 100;
-      var planFee = parseFloat(partner.planning_fee);
-      var lines = [];
-      var subtotal = 0;
-
-      configs.forEach(function(inputs, idx) {
-        var typeCode = inputs.systeem === 'C' ? 1 : 2;
-        var f = { amt: 0, lbl: 'Geen tarief' };
-        for (var i = 0; i < pricing.length; i++) {
-          var pr = pricing[i];
-          if (pr.staffel_min === typeCode) {
-            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
-            break;
-          }
-        }
-        var extraVent = Math.max(0, inputs.ventielen - 10);
-        var ventSup = getSectorSupplement('ventilatie', 'extra_ventiel') * (1 + marge);
-        var ventCost = extraVent * ventSup;
-        var kanaalSup = getSectorSupplement('ventilatie', 'kanaalreiniging') * (1 + marge);
-        var kanaalCost = inputs.kanaalreiniging ? inputs.lm * kanaalSup : 0;
-        var sub = f.amt + ventCost + kanaalCost;
-        subtotal += sub;
-
-        var prefix = configs.length > 1 ? 'Systeem ' + (idx + 1) + ': ' : '';
-        lines.push({ label: prefix + 'Ventilatie Systeem ' + inputs.systeem, amount: f.amt });
-        if (ventCost > 0) lines.push({ label: prefix + 'Extra ventielen (' + extraVent + 'x)', amount: ventCost });
-        if (kanaalCost > 0) lines.push({ label: prefix + 'Kanaalreiniging (' + inputs.lm + ' lm)', amount: kanaalCost });
-      });
-
-      return { lines: lines, subtotalExcl: subtotal };
-    },
-
-    summaryDescription: function(configs) {
-      return configs.map(function(c) {
-        return 'Systeem ' + c.systeem + ', ' + c.ventielen + ' ventielen';
-      }).join(' | ');
-    }
-  },
-
-  verwarming: {
-    key: 'verwarming',
-    label: 'Verwarming',
-    subtitle: 'Ketelonderhoud inclusief rookgasanalyse',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
-    colorClass: 'sector-verw',
-    badgeClass: 'badge-verw',
-    seizoenMaanden: [6,7,8,9],
-    usps: [
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Wettelijk verplicht' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Lager verbruik' },
-      { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', text: 'Veilige verbranding' }
-    ],
-
-    defaultConfig: function() {
-      return { keteltype: 'gas', rookgas: false };
-    },
-
-    renderConfig: function(cfg, idx) {
-      return '<div class="card"><div class="card-title">Uw verwarmingsinstallatie</div>' +
-        '<div class="field"><label>Type ketel</label><select onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'keteltype\',this.value)">' +
-        '<option value="gas"' + (cfg.keteltype === 'gas' ? ' selected' : '') + '>Gasketel</option>' +
-        '<option value="mazout"' + (cfg.keteltype === 'mazout' ? ' selected' : '') + '>Mazoutketel</option>' +
-        '<option value="pellet"' + (cfg.keteltype === 'pellet' ? ' selected' : '') + '>Pelletketel</option>' +
-        '</select></div></div>' +
-        '<div class="card"><div class="card-title">Bijzonderheden</div>' +
-        '<label class="toggle-group" for="verw-rookgas-' + idx + '">' +
-        '<div class="toggle-label">Rookgasanalyse<small>Wettelijk verplichte controle</small></div>' +
-        '<div class="switch"><input type="checkbox" id="verw-rookgas-' + idx + '"' + (cfg.rookgas ? ' checked' : '') + ' onchange="updateSectorConfig(\'verwarming\',' + idx + ',\'rookgas\',this.checked)"><span class="slider"></span></div>' +
-        '</label></div>';
-    },
-
-    calculate: function(configs, pricing, supplements, partner) {
-      var marge = parseFloat(partner.marge_pct) / 100;
-      var planFee = parseFloat(partner.planning_fee);
-      var lines = [];
-      var subtotal = 0;
-
-      configs.forEach(function(inputs, idx) {
-        var f = { amt: 0, lbl: 'Geen tarief' };
-        for (var i = 0; i < pricing.length; i++) {
-          var pr = pricing[i];
-          f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
-          break;
-        }
-        var rookgasSup = getSectorSupplement('verwarming', 'rookgasanalyse') * (1 + marge);
-        var rookgasCost = inputs.rookgas ? rookgasSup : 0;
-        var sub = f.amt + rookgasCost;
-        subtotal += sub;
-
-        var prefix = configs.length > 1 ? 'Ketel ' + (idx + 1) + ': ' : '';
-        lines.push({ label: prefix + 'Onderhoud ' + inputs.keteltype + 'ketel', amount: f.amt });
-        if (rookgasCost > 0) lines.push({ label: prefix + 'Rookgasanalyse', amount: rookgasCost });
-      });
-
-      return { lines: lines, subtotalExcl: subtotal };
-    },
-
-    summaryDescription: function(configs) {
-      return configs.map(function(c) {
-        return c.keteltype + 'ketel' + (c.rookgas ? ' + rookgasanalyse' : '');
-      }).join(' | ');
-    }
-  }
+var SECTORS_META = {
+  zonnepanelen: { label: 'Zonnepanelen', badgeClass: 'badge-zon' },
+  warmtepomp:   { label: 'Warmtepomp',   badgeClass: 'badge-wp' },
+  ventilatie:   { label: 'Ventilatie',   badgeClass: 'badge-vent' },
+  verwarming:   { label: 'Verwarming',   badgeClass: 'badge-verw' }
 };
+// Backwards-compat alias zodat saveContract / renderSummary die nog naar
+// SECTORS[sec] verwijzen niet breken op een undefined lookup.
+var SECTORS = SECTORS_META;
+
+// Backwards-compat globals: een paar plekken in de oude codepad lezen nog
+// `availableSectors` en `activeSectorTab`. WizCalc beheert deze nu intern,
+// maar we houden hier no-op aliases zodat geen ReferenceError optreedt als
+// een nog-niet-gemigreerde callsite ze aanraakt.
+var availableSectors = [];
+var activeSectorTab = null;
+
+/* === ORIGINELE WIZARD-SPECIFIEKE SECTORS-BLOB VERWIJDERD (2026-05-03) ===
+   De oude wizard SECTORS-blob (zonnepanelen/warmtepomp/ventilatie/
+   verwarming met defaultConfig + renderConfig + calculate +
+   summaryDescription) is volledig vervangen door een 1-op-1 kopie van
+   calculator/index.html's SECTORS in window.WizCalc (zie onderaan dit
+   bestand). Pixel-perfecte UI-overeenkomst tussen calculator stap-1+2
+   en wizard stap-3, plus één bron van pricing-logic. Originele blob
+   bewaard in git-history.
+   ==================================================================== */
+var _LEGACY_SECTORS_REMOVED_2026_05_03 = (function() { return null; })();
 
 // =============================================
 // AUTH
@@ -1620,8 +1441,23 @@ function goStep(n) {
   if (n === 2 && window.flanccoPostcodes && typeof window.flanccoPostcodes.warmup === 'function') {
     try { window.flanccoPostcodes.warmup(); } catch (_) {}
   }
+  // Stap 3: mount WizCalc (1-op-1 calculator-UI). Wordt elke keer opnieuw
+  // gerenderd bij re-entry zodat partner-switches direct de juiste sectoren
+  // tonen. WizCalc.destroy() in mountWizCalc() ruimt vorige instance op.
+  if (n === 3) {
+    mountWizCalc();
+  }
 
   window.scrollTo(0, 0);
+}
+
+// Stap 3 → afstand-input synct naar WizCalc-instance.
+function onWizAfstandInput() {
+  var v = parseInt(document.getElementById('wiz-afstand').value) || 0;
+  wizState.afstandKm = v;
+  if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
+    wizCalcInstance.setSharedState({ afstandKm: v });
+  }
 }
 
 // =============================================
@@ -1701,10 +1537,49 @@ async function loadPartnerData(partnerId) {
     allSupplements[s.sector].push(s);
   });
 
-  // Load partner sectors
-  const { data: secData } = await sb.from('partner_sectors').select('sector').eq('partner_id', partnerId).eq('actief', true);
-  var partnerSectors = (secData || []).map(s => s.sector);
-  renderSectorToggles(partnerSectors);
+  // Load partner sectors + per-sector formule (basic/allin etc — nodig voor warmtepomp).
+  const { data: secData } = await sb.from('partner_sectors').select('sector, formule').eq('partner_id', partnerId).eq('actief', true);
+  partnerSectorsList = (secData || []).map(function(s) { return s.sector; });
+  // partnerSectorConfig ondersteunt warmtepomp-subtype-config (lucht_lucht/
+  // lucht_water/geothermie + formule). Mirror van calculator's init-pad.
+  partnerSectorConfig = {};
+  (secData || []).forEach(function(s) {
+    partnerSectorConfig[s.sector] = { formule: s.formule || null };
+  });
+  if (partnerSectorsList.indexOf('warmtepomp') !== -1) {
+    try {
+      var pwc = await sb.from('partner_warmtepomp_config').select('*').eq('partner_id', partnerId).eq('actief', true);
+      partnerSectorConfig.warmtepomp = partnerSectorConfig.warmtepomp || {};
+      partnerSectorConfig.warmtepomp.types = {};
+      (pwc.data || []).forEach(function(c) {
+        partnerSectorConfig.warmtepomp.types[c.type] = {
+          actief: c.actief,
+          formule: c.formule || 'basic'
+        };
+      });
+      // Sync met calculator-pad: als geen enkel WP-type actief is, sector volledig droppen.
+      if (Object.keys(partnerSectorConfig.warmtepomp.types).length === 0) {
+        partnerSectorsList = partnerSectorsList.filter(function(s) { return s !== 'warmtepomp'; });
+        delete partnerSectorConfig.warmtepomp;
+      }
+    } catch (e) {
+      console.warn('partner_warmtepomp_config lookup faalde:', e);
+    }
+  }
+  // Defensieve filter: sector zonder pricing-rijen verbergen (mirror calculator).
+  var sectorsMissingPricing = partnerSectorsList.filter(function(s) {
+    return !allPricing[s] || allPricing[s].length === 0;
+  });
+  if (sectorsMissingPricing.length > 0) {
+    console.warn('[wizard] Sectoren actief zonder pricing-staffels — verborgen:', sectorsMissingPricing);
+    partnerSectorsList = partnerSectorsList.filter(function(s) { return sectorsMissingPricing.indexOf(s) === -1; });
+    sectorsMissingPricing.forEach(function(s) { delete partnerSectorConfig[s]; });
+  }
+  // Wis vorige selectie zodat re-render bij stap 3 kan beslissen op basis van
+  // de nieuwe partner-sectoren. Mount gebeurt pas in goStep(3).
+  wizState.selectedSectors = [];
+  wizState.sectorConfigs = {};
+  wizState.sectorResults = {};
 }
 
 function renderClientDropdown() {
@@ -2146,7 +2021,10 @@ function onWizBtwSelect(pct, silent) {
     wizState.verklaring6BtwOuderdan10jAangevinkt = false;
     wizState.verklaring6BtwDatum = null;
   }
-  recalcPricing();
+  // Sync naar WizCalc-instance (stap 3 result-card recalculeert direct).
+  if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
+    wizCalcInstance.setSharedState({ btwPct: pct });
+  }
 }
 
 function onWizBtw6CheckChange() {
@@ -2166,267 +2044,147 @@ function onWizBtw6CheckChange() {
 }
 
 // =============================================
-// STAP 3: SECTOR TOGGLES & CONFIG
+// STAP 3: WIZ-CALC BRIDGE
+// ─────────────────────────────────────────────
+// Stap 3 wordt volledig gerenderd door window.WizCalc — een 1-op-1 kopie
+// van de calculator stap-1+2 UI. De render-functies + SECTORS-blob staan
+// onderaan dit bestand (IIFE namespace). Bridge-points:
+//
+//   • mountWizCalc()      — wordt gecalled bij entry van stap 3 (in goStep)
+//                           én bij re-mount na partner-switch.
+//   • partnerSectorsList  — lijst van actieve sectoren voor de gekozen
+//                           partner; gevuld in loadPartnerData (zie hierboven).
+//   • partnerSectorConfig — per-type warmtepomp-config (lucht_lucht/lucht_water/
+//                           geothermie + gekozen formule); idem.
+//   • onChange-callback   — synct WizCalc → wizState (sectorConfigs, results,
+//                           totals) zodat saveContract en renderSummary werken.
+//   • setSharedState      — stap-4 controls (freq/duur/BTW/afstand) pushen
+//                           wijzigingen door naar de gemounted WizCalc-instance.
 // =============================================
-var availableSectors = [];
 
-function renderSectorToggles(partnerSectors) {
-  availableSectors = partnerSectors;
-  var container = document.getElementById('sector-grid');
-  container.innerHTML = partnerSectors.map(function(sec) {
-    var cfg = SECTORS[sec];
-    if (!cfg) return '';
-    return '<div class="sector-card" data-sector="' + sec + '" onclick="toggleSector(\'' + sec + '\')">' +
-      '<div class="sector-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
-      '<div class="sector-card-icon">' + cfg.icon + '</div>' +
-      '<h3>' + cfg.label + '</h3>' +
-      '<p>' + (cfg.subtitle || '') + '</p></div>';
-  }).join('');
-}
+// Lokale state die de bridge nodig heeft. partnerSectorsList wordt door
+// loadPartnerData gevuld; de oude `availableSectors`-naam blijft als alias
+// voor backwards-compat met externe code (er staat niets meer op aan).
+var partnerSectorsList = [];
+var partnerSectorConfig = {};
+var wizCalcInstance = null;
 
-var activeSectorTab = null;
-
-function toggleSector(sector) {
-  var idx = wizState.selectedSectors.indexOf(sector);
-  if (idx === -1) {
-    wizState.selectedSectors.push(sector);
-    if (!wizState.sectorConfigs[sector]) {
-      wizState.sectorConfigs[sector] = [SECTORS[sector].defaultConfig()];
-    }
-  } else {
-    wizState.selectedSectors.splice(idx, 1);
+function mountWizCalc() {
+  // Destroy bestaande instance bij re-mount (partner-switch / step-revisit).
+  if (wizCalcInstance && typeof wizCalcInstance.destroy === 'function') {
+    try { wizCalcInstance.destroy(); } catch (_) {}
+    wizCalcInstance = null;
   }
-
-  // Update card visuals
-  document.querySelectorAll('.sector-card').forEach(function(el) {
-    el.classList.toggle('selected', wizState.selectedSectors.indexOf(el.dataset.sector) !== -1);
-  });
-
-  // Set active tab
-  if (wizState.selectedSectors.length > 0) {
-    if (!activeSectorTab || wizState.selectedSectors.indexOf(activeSectorTab) === -1) {
-      activeSectorTab = wizState.selectedSectors[0];
-    }
-  } else {
-    activeSectorTab = null;
-  }
-
-  document.getElementById('btn-step3-next').disabled = wizState.selectedSectors.length === 0;
-  renderSectorTabs();
-  renderSectorUSPs();
-  renderSectorConfigs();
-  recalcPricing();
-}
-
-function switchSectorTab(sec) {
-  activeSectorTab = sec;
-  renderSectorTabs();
-  renderSectorUSPs();
-  renderSectorConfigs();
-}
-
-function renderSectorTabs() {
-  var tabBar = document.getElementById('sector-tabs');
-  if (wizState.selectedSectors.length <= 1) {
-    tabBar.style.display = 'none';
+  var host = document.getElementById('wiz-calc-host');
+  if (!host) return;
+  if (!window.WizCalc || typeof window.WizCalc.mount !== 'function') {
+    console.warn('[wizard] WizCalc niet beschikbaar — stap 3 kan niet renderen.');
     return;
   }
-  tabBar.style.display = 'flex';
-  tabBar.innerHTML = wizState.selectedSectors.map(function(sec) {
-    var cfg = SECTORS[sec];
-    var cls = sec === activeSectorTab ? ' active' : '';
-    return '<button class="sector-tab-btn' + cls + '" data-sector="' + sec + '" onclick="switchSectorTab(\'' + sec + '\')">' +
-      cfg.icon + ' ' + cfg.label + '</button>';
-  }).join('');
-}
-
-function renderSectorUSPs() {
-  var bar = document.getElementById('usp-bar');
-  if (!activeSectorTab || wizState.selectedSectors.length === 0) {
-    bar.style.display = 'none';
-    return;
-  }
-  var cfg = SECTORS[activeSectorTab];
-  if (!cfg || !cfg.usps || cfg.usps.length === 0) {
-    bar.style.display = 'none';
-    return;
-  }
-  bar.style.display = 'flex';
-  bar.innerHTML = cfg.usps.map(function(u) {
-    return '<div class="usp-item">' + u.icon + ' ' + u.text + '</div>';
-  }).join('');
-}
-
-function renderSectorConfigs() {
-  var container = document.getElementById('sector-configs');
-  var html = '';
-
-  // When tabs are used, only show the active sector
-  var sectorsToShow = wizState.selectedSectors.length > 1 && activeSectorTab
-    ? [activeSectorTab] : wizState.selectedSectors;
-
-  sectorsToShow.forEach(function(sec) {
-    var cfg = SECTORS[sec];
-    var configs = wizState.sectorConfigs[sec] || [cfg.defaultConfig()];
-
-    configs.forEach(function(c, idx) {
-      html += '<div class="config-card ' + cfg.colorClass + '">' +
-        '<div class="config-card-header">' +
-        '<div class="config-card-title">' + cfg.icon + ' ' + cfg.label + (configs.length > 1 ? ' #' + (idx + 1) : '') + '</div>' +
-        '<div>';
-      if (configs.length > 1) {
-        html += '<button class="btn-remove-install" onclick="removeInstallation(\'' + sec + '\',' + idx + ')" title="Verwijderen">&times;</button>';
-      }
-      html += '</div></div>';
-      html += cfg.renderConfig(c, idx);
-      html += '</div>';
-    });
-
-    html += '<button class="btn-add-install" onclick="addInstallation(\'' + sec + '\')" style="margin-bottom:20px">' +
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' +
-      'Extra ' + cfg.label.toLowerCase() + ' toevoegen</button>';
-  });
-
-  container.innerHTML = html;
-}
-
-function addInstallation(sector) {
-  var cfg = SECTORS[sector];
-  if (!wizState.sectorConfigs[sector]) wizState.sectorConfigs[sector] = [];
-  wizState.sectorConfigs[sector].push(cfg.defaultConfig());
-  renderSectorConfigs();
-  recalcPricing();
-}
-
-function removeInstallation(sector, idx) {
-  wizState.sectorConfigs[sector].splice(idx, 1);
-  if (wizState.sectorConfigs[sector].length === 0) {
-    wizState.sectorConfigs[sector] = [SECTORS[sector].defaultConfig()];
-  }
-  renderSectorConfigs();
-  recalcPricing();
-}
-
-function updateSectorConfig(sector, idx, field, value) {
-  if (!wizState.sectorConfigs[sector]) return;
-  wizState.sectorConfigs[sector][idx][field] = value;
-
-  // Re-render if kanaalreiniging toggle changed (shows/hides lm field)
-  if (field === 'kanaalreiniging') {
-    renderSectorConfigs();
-  }
-
-  recalcPricing();
-}
-
-// =============================================
-// PRICING CALCULATION
-// =============================================
-function recalcPricing() {
-  var partner = partners.find(p => p.id === wizState.partnerId);
+  var partner = (partners || []).find(function(p) { return p.id === wizState.partnerId; });
   if (!partner) {
-    document.getElementById('pricing-lines').innerHTML = '<div class="pricing-empty">Selecteer een partner</div>';
+    host.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--grey)">Selecteer eerst een partner.</div>';
     return;
   }
-  if (wizState.selectedSectors.length === 0) {
-    document.getElementById('pricing-lines').innerHTML = '<div class="pricing-empty">Selecteer een sector om te beginnen</div>';
-    return;
-  }
+  wizCalcInstance = window.WizCalc.mount(host, {
+    partner: partner,
+    partnerSectors: partnerSectorsList,
+    partnerSectorConfig: partnerSectorConfig,
+    allPricing: allPricing,
+    allSupplements: allSupplements,
+    initialState: {
+      selectedSectors: wizState.selectedSectors || [],
+      btwPct: wizState.btwPct || 21,
+      freq: (typeof wizState.freq === 'number') ? wizState.freq : 1,
+      duur: (typeof wizState.duur === 'number') ? wizState.duur : 0,
+      afstandKm: wizState.afstandKm || 0
+    },
+    onChange: onWizCalcChange
+  });
+}
 
+// Wordt door WizCalc aangeroepen bij elke (re)calc. Synct selected sectors,
+// per-sector-inputs en totals naar wizState zodat saveContract/renderSummary
+// blijven werken zonder duplicate accounting-logica.
+function onWizCalcChange(state, result) {
+  wizState.selectedSectors = (state && state.selectedSectors) || [];
+  // Calculator slaat één-inputs-per-sector op (geen array-of-installations).
+  // Voor backwards-compat met saveContract/renderSummary wikkelen we het in
+  // een 1-element array zodat sectorConfigs[sec][0] dezelfde shape behoudt.
+  var sectorConfigs = {};
+  var sectorResults = (result && result.sectorResults) || {};
+  Object.keys(sectorResults).forEach(function(sec) {
+    var inputs = sectorResults[sec] && sectorResults[sec].inputs;
+    if (inputs) sectorConfigs[sec] = [inputs];
+  });
+  wizState.sectorConfigs = sectorConfigs;
+  wizState.sectorResults = sectorResults;
+  // Totals (Slot 5 leest deze rechtstreeks uit wizState).
+  wizState._subtotalExcl = (result && result.totalExcl) || 0;
+  wizState._btwPct = (result && result.btwPct) || 21;
+  wizState._btwBedrag = ((result && result.total) || 0) - ((result && result.totalExcl) || 0);
+  wizState._totaalIncl = (result && typeof result.total === 'number') ? Math.round(result.total * 2) / 2 : 0;
+  wizState._transportCost = (result && result.transportExcl) || 0;
+  wizState._korting = (result && result.discountAmount) || 0;
+  wizState._opAanvraag = !!(result && result.opAanvraag);
+  // Lines voor renderSummary (per-sector header + lines + transport + korting).
+  var btwMult = 1 + (wizState._btwPct / 100);
   var allLines = [];
-  var grandSubtotal = 0;
-  wizState.sectorResults = {};
-
-  wizState.selectedSectors.forEach(function(sec) {
-    var cfg = SECTORS[sec];
-    var configs = wizState.sectorConfigs[sec] || [cfg.defaultConfig()];
-    var sectorPricing = allPricing[sec] || [];
-    var sectorSupp = allSupplements[sec] || [];
-
-    var result = cfg.calculate(configs, sectorPricing, sectorSupp, partner);
-    wizState.sectorResults[sec] = result;
-    grandSubtotal += result.subtotalExcl;
-
-    allLines.push({ type: 'header', label: cfg.label });
-    result.lines.forEach(function(l) {
-      allLines.push({ type: 'line', label: l.label, amount: l.amount });
+  (wizState.selectedSectors || []).forEach(function(sec) {
+    var sr = sectorResults[sec];
+    if (!sr) return;
+    var meta = SECTORS_META[sec] || { label: sec };
+    allLines.push({ type: 'header', label: meta.label });
+    (sr.lines || []).forEach(function(l) {
+      allLines.push({ type: 'line', label: l.label, amount: l.amount * btwMult });
     });
   });
-
-  // Transport
-  var afstand = parseInt(document.getElementById('wiz-afstand') ? document.getElementById('wiz-afstand').value : 0) || 0;
-  wizState.afstandKm = afstand;
-  var transportSup = getSectorSupplement(wizState.selectedSectors[0], 'transport') || 0;
-  var marge = parseFloat(partner.marge_pct) / 100;
-  var freeKm = 20;
-  var extraKm = Math.max(0, afstand - freeKm);
-  var transportCost = extraKm * transportSup * (1 + marge);
-  if (transportCost > 0) {
-    allLines.push({ type: 'line', label: 'Verplaatsing (' + extraKm + ' km)', amount: transportCost });
-    grandSubtotal += transportCost;
+  if (result && result.transportExcl > 0) {
+    allLines.push({ type: 'line', label: 'Verplaatsing (' + (result.extraKm || 0) + ' km boven ' + (result.freeKm || 0) + ' km)', amount: result.transportExcl * btwMult });
   }
-
-  // Korting (5% bij 3+ jaar)
-  var korting = 0;
-  if (wizState.duur >= 3) {
-    korting = grandSubtotal * 0.05;
-    allLines.push({ type: 'line', label: 'Contractkorting (-5%)', amount: -korting });
-    grandSubtotal -= korting;
+  if (result && result.discountAmount > 0) {
+    var kPct = Math.round((result.korting || 0) * 100);
+    allLines.push({ type: 'line', label: 'Contractkorting (' + (result.duur || 0) + ' jaar, -' + kPct + '%)', amount: -(result.discountAmount * btwMult) });
   }
-
-  // BTW (Slot O2 — gestuurd door wizState.btwPct, default 21%)
-  var btwPct = (wizState.btwPct === 6) ? 6 : 21;
-  var btwBedrag = grandSubtotal * (btwPct / 100);
-  var totaalIncl = grandSubtotal + btwBedrag;
-
-  // Render pricing sidebar
-  var html = '';
-  allLines.forEach(function(l) {
-    if (l.type === 'header') {
-      html += '<div class="pricing-line sector-header"><span>' + l.label + '</span><span></span></div>';
-    } else {
-      var amtStr = l.amount < 0 ? '- ' + fmt(Math.abs(l.amount)) : fmt(l.amount);
-      html += '<div class="pricing-line"><span>' + l.label + '</span><span>' + amtStr + '</span></div>';
-    }
-  });
-  html += '<div class="pricing-divider"></div>';
-  html += '<div class="pricing-total"><span>Subtotaal excl. BTW</span><span>' + fmt(grandSubtotal) + '</span></div>';
-  html += '<div class="pricing-btw"><span>BTW ' + btwPct + '%</span><span>' + fmt(btwBedrag) + '</span></div>';
-  html += '<div class="pricing-grand"><span>Totaal incl. BTW</span><span>' + fmt(round50(totaalIncl)) + '</span></div>';
-
-  // Frequentie info
-  var freqTxt = wizState.freq === 0 ? 'Eenmalig' : wizState.freq === 1 ? 'Jaarlijks' : 'Halfjaarlijks';
-  var duurTxt = wizState.duur === 0 ? 'Eenmalig' : wizState.duur + ' jaar';
-  html += '<div class="pricing-freq">' + freqTxt + ' | ' + duurTxt + '</div>';
-
-  document.getElementById('pricing-lines').innerHTML = html;
-
-  // Store totals in state for save
-  wizState._subtotalExcl = grandSubtotal;
-  wizState._btwPct = btwPct;
-  wizState._btwBedrag = btwBedrag;
-  wizState._totaalIncl = round50(totaalIncl);
-  wizState._transportCost = transportCost;
-  wizState._korting = korting;
   wizState._allLines = allLines;
+  // Sync afstand-pad ook naar state (komt van wizard's stap-4-input via setSharedState
+  // maar bij eerste calc kan de component een eigen default hebben).
+  if (result && typeof result.afst === 'number') wizState.afstandKm = result.afst;
+
+  // CTA enable/disable: minstens 1 sector + niet op-aanvraag.
+  var nextBtn = document.getElementById('btn-step3-next');
+  if (nextBtn) nextBtn.disabled = wizState.selectedSectors.length === 0 || !!wizState._opAanvraag;
+}
+
+// recalcPricing-shim: bestaande code (renderSummary) verwacht een synchroon
+// recalc-pad. Bij gemounte WizCalc forceren we een fresh calc + onChange-sync.
+// Zonder mount (defensief): no-op.
+function recalcPricing() {
+  if (wizCalcInstance && typeof wizCalcInstance.recalc === 'function') {
+    try { wizCalcInstance.recalc(); } catch (e) { console.warn('WizCalc recalc faalde:', e); }
+  }
 }
 
 // =============================================
-// STAP 4: FREQUENTIE & DUUR
+// STAP 4: FREQUENTIE & DUUR — synct naar WizCalc-instance via setSharedState.
 // =============================================
 function selectFreq(el) {
-  el.parentElement.querySelectorAll('.freq-card').forEach(c => c.classList.remove('selected'));
+  el.parentElement.querySelectorAll('.freq-card').forEach(function(c) { c.classList.remove('selected'); });
   el.classList.add('selected');
   wizState.freq = parseInt(el.dataset.freq);
-  recalcPricing();
+  if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
+    wizCalcInstance.setSharedState({ freq: wizState.freq });
+  }
 }
 
 function selectDuur(el) {
-  el.parentElement.querySelectorAll('.freq-card').forEach(c => c.classList.remove('selected'));
+  el.parentElement.querySelectorAll('.freq-card').forEach(function(c) { c.classList.remove('selected'); });
   el.classList.add('selected');
   wizState.duur = parseInt(el.dataset.duur);
   calcEinddatum();
-  recalcPricing();
+  if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
+    wizCalcInstance.setSharedState({ duur: wizState.duur });
+  }
 }
 
 function calcEinddatum() {
@@ -2471,13 +2229,18 @@ function renderSummary() {
   }
   html += '</div>';
 
-  // Diensten
+  // Diensten — meta uit shim, summary-text via WizCalc (calculator-bron).
   html += '<div class="summary-card"><h4>Diensten</h4>';
   wizState.selectedSectors.forEach(function(sec) {
-    var cfg = SECTORS[sec];
+    var meta = SECTORS_META[sec] || { label: sec, badgeClass: '' };
     var configs = wizState.sectorConfigs[sec] || [];
-    html += '<div style="margin-bottom:8px"><span class="summary-sector-badge ' + cfg.badgeClass + '">' + cfg.label + '</span> ';
-    html += '<span style="font-size:13px;color:var(--navy)">' + cfg.summaryDescription(configs) + '</span></div>';
+    var inputs = configs[0] || null;
+    var desc = '';
+    if (window.WizCalc && typeof window.WizCalc.summaryDescription === 'function' && inputs) {
+      desc = window.WizCalc.summaryDescription(sec, inputs) || '';
+    }
+    html += '<div style="margin-bottom:8px"><span class="summary-sector-badge ' + esc(meta.badgeClass) + '">' + esc(meta.label) + '</span> ';
+    html += '<span style="font-size:13px;color:var(--navy)">' + desc + '</span></div>';
   });
   html += '</div>';
 
@@ -2716,6 +2479,1232 @@ async function saveContract() {
 // INIT
 // =============================================
 checkAuth();
+</script>
+
+<!--
+  ════════════════════════════════════════════════════════════════════════
+  WizCalc — IIFE namespace die wizard-stap-3 aandrijft.
+  Bron: 1-op-1 kopie van calculator/index.html (stap-1 + stap-2 UI + JS).
+  ────────────────────────────────────────────────────────────────────────
+  Verantwoordelijkheid: rendert sector-pick + USP-bar + info-blocks +
+  sector-tabs + sector-form-container + BTW/freq/duur/afstand cards +
+  result-card + staffel-table + op-aanvraag-banner. Calculatie volgt de
+  calculator's `calculateAll` / `updateResultCard` exact.
+
+  Mount: window.WizCalc.mount(host, opts) — opts: {partner, partnerSectors,
+  partnerSectorConfig, allPricing, allSupplements, initialState, onChange}.
+  ════════════════════════════════════════════════════════════════════════
+-->
+<script>
+(function() {
+  'use strict';
+
+  // ── Private state ───────────────────────────────────────────────────
+  var partner = null;
+  var partnerSectors = [];
+  var partnerSectorConfig = {};
+  var allPricing = {};
+  var allSupplements = {};
+  var calcConfig = {};            // sector_config-overrides (niet geladen in wizard — leeg = code-defaults)
+  var selectedSectors = [];
+  var activeSectorTab = '';
+  var sectorResults = {};
+  var sharedState = {};
+  var hostEl = null;
+  var onChangeCb = null;
+
+  // ── Utilities (kopie uit calculator) ────────────────────────────────
+  function round50(n) { return Math.round(n * 2) / 2; }
+  function fmt(n) { return '€ ' + n.toFixed(2).replace('.', ','); }
+  function fmtTotal(n) { var r = round50(n); return '€ ' + r.toFixed(2).replace('.', ','); }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function getSectorSupplement(sector, type) {
+    var sups = allSupplements[sector] || [];
+    for (var i = 0; i < sups.length; i++) {
+      if (sups[i].type === type) return parseFloat(sups[i].bedrag);
+    }
+    return 0;
+  }
+
+  function toggleInfo(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('open');
+  }
+  function expandFirstInfoBlock() {
+    var first = hostEl ? hostEl.querySelector('#info-container .info-block') : null;
+    if (first) first.classList.add('open');
+  }
+  function getSectorCfg(sector, key) {
+    if (!calcConfig || !calcConfig[sector]) return undefined;
+    return calcConfig[sector][key];
+  }
+
+  // ── SECTORS blob — 1-op-1 kopie uit calculator/index.html (lines 1632-2695)
+  var SECTORS = {
+    // ────────── ZONNEPANELEN ──────────
+    zonnepanelen: {
+      key: 'zonnepanelen',
+      label: 'Zonnepanelen reiniging',
+      shortLabel: 'Zonnepanelen',
+      subtitle: 'Professionele reiniging met osmosewater + technische controle',
+      headerSubtitle: 'Professionele zonnepanelen reiniging',
+      icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+      seizoenMaanden: [3,4,5,6,7,8,9,10],
+      seizoenLabel: 'maart–oktober',
+      availableFrequencies: [1],
+
+      usps: [
+        { icon: '<svg viewBox="0 0 24 24"><path d="M12 2C6.5 8 4 12.5 4 15.5a8 8 0 0 0 16 0C20 12.5 17.5 8 12 2Z"/></svg>', text: 'Osmosewater<br>zonder chemie' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z"/></svg>', text: 'Tot 20% meer<br>opbrengst' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>', text: 'Gecertificeerd<br>+ technische controle' }
+      ],
+
+      renderInfoBlocks: function() {
+        return '<div class="info-block" id="info-waarom-solar">' +
+          '<div class="info-toggle" onclick="toggleInfo(\'info-waarom-solar\')">' +
+          '<div class="info-toggle-left"><div class="info-toggle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>' +
+          '<div><h3>Waarom uw zonnepanelen reinigen?</h3><div class="info-teaser">Ontdek hoeveel rendement u misloopt zonder reiniging</div></div></div>' +
+          '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
+          '<div class="info-content"><div class="info-body">' +
+          '<p>Regen spoelt oppervlakkig stof weg, maar hardnekkig vuil blijft vastzitten: vogeluitwerpselen, fijnstof, pollen, mos en algen vormen een film die het zonlicht blokkeert.</p>' +
+          '<div class="info-highlight"><p>Een typische installatie van 20 panelen verliest jaarlijks tot 1.250 kWh bij 15% vervuiling. Na 3 jaar is dat 3.750 kWh gemist.</p></div>' +
+          '<p>Veel fabrikanten vereisen regelmatig onderhoud voor de garantie. Verwaarlozing kan uw productgarantie in het gedrang brengen.</p>' +
+          '</div></div></div>';
+      },
+
+      renderForm: function(pricing, supplements) {
+        var vervBedrag = getSectorSupplement('zonnepanelen', 'vervuiling');
+        var vervBedragStr = vervBedrag > 0 ? fmt(vervBedrag) : '€ 2,00';
+        return '<div class="card">' +
+          '<div class="card-title">Uw installatie</div>' +
+          '<div class="field"><label>Aantal zonnepanelen</label>' +
+          '<input type="number" id="solar-panelen" min="1" max="200" value="12" oninput="calculateAll()"></div>' +
+          '<div class="field-row">' +
+          '<div class="field"><label>Type dak</label><select id="solar-daktype" onchange="calculateAll()"><option value="hellend">Hellend dak</option><option value="plat">Plat dak</option><option value="grond">Grondopstelling</option></select></div>' +
+          '<div class="field"><label>Dakrandhoogte <small>(ca.)</small></label><select id="solar-dakhoogte" onchange="calculateAll()"><option value="laag">Lager dan 7,5 m</option><option value="hoog">7,5 – 17 m (hoogtewerker)</option></select><small style="display:block;margin-top:4px;color:#6B6B7E;font-size:11px;line-height:1.4">Boven 17 m: niet bereikbaar met onze standaard-hoogtewerker — offerte op maat.</small></div>' +
+          '</div></div>' +
+          '<div class="card"><div class="card-title">Bijzonderheden</div>' +
+          '<div style="background:var(--primary-bg);border-left:3px solid var(--primary);border-radius:6px;padding:14px 18px;margin-bottom:14px;font-size:13px;line-height:1.55;color:#1A1A2E;display:flex;gap:12px;align-items:flex-start">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;color:var(--primary)" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+            '<div style="flex:1">' +
+              '<p style="margin:0 0 8px;font-weight:600">Onze prijs is gebaseerd op normaal vervuilde panelen.</p>' +
+              '<p style="margin:0 0 10px">Bij hevige vervuiling rekenen we een toeslag van <strong>+ ' + vervBedragStr + ' excl. btw per paneel</strong>. Onze technieker beoordeelt dit ter plaatse en bevestigt het bedrag vóór de start van de werken &mdash; geen verrassingen op uw factuur.</p>' +
+              '<p style="margin:0 0 6px;font-weight:600">Hevige vervuiling herkent u aan:</p>' +
+              '<ul style="margin:0;padding-left:20px;color:#3D3D55">' +
+                '<li>Mos- of korstmosgroei op of tussen de panelen</li>' +
+                '<li>Vogelpoep-aankoeken die niet wegspoelen</li>' +
+                '<li>Roet of stoflagen (industriële omgeving)</li>' +
+                '<li>Boomzappen of plakkerige aanslag</li>' +
+                '<li>Panelen niet gereinigd in de laatste 3 jaar</li>' +
+              '</ul>' +
+            '</div>' +
+          '</div>' +
+          '<label class="toggle-group" for="solar-vervuiling"><div class="toggle-label">Mijn panelen zijn hevig vervuild<small>Optioneel &mdash; geeft de technieker vooraf een seintje, factuur klopt direct</small></div>' +
+          '<div class="switch"><input type="checkbox" id="solar-vervuiling" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+          '<div class="field" style="margin-top:22px"><label>Hoe goed is uw woning bereikbaar voor onze servicewagen?</label>' +
+            '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Onze bestelwagen heeft een korte parkeerplaats nodig in de buurt van uw woning om materiaal vlot te lossen.</small>' +
+            '<select id="klant-bereik" onchange="calculateAll()">' +
+              '<option value="Goed">Goed bereikbaar &mdash; bestelwagen kan vlot tot bij de woning</option>' +
+              '<option value="Beperkt">Beperkt bereikbaar &mdash; smalle straat, paaltjes of obstakels op de oprit</option>' +
+              '<option value="Parkeervergunning">Parkeervergunning nodig &mdash; woning in centrum of zone met betalend parkeren (+€25)</option>' +
+            '</select></div>' +
+          '<div class="field"><label>Is er een werkende buitenkraan beschikbaar?</label>' +
+            '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Met een buitenkraan werken we het vlotst; zonder geen probleem &mdash; we brengen onze eigen watertank mee.</small>' +
+            '<select id="klant-water">' +
+              '<option value="Ja">Ja, er is een werkende buitenkraan beschikbaar</option>' +
+              '<option value="Nee">Nee, breng zelf water mee</option>' +
+            '</select></div>' +
+          '</div>';
+      },
+
+      readInputs: function() {
+        var bereikEl = document.getElementById('klant-bereik');
+        return {
+          pan: Math.max(1, parseInt(document.getElementById('solar-panelen').value) || 1),
+          daktype: document.getElementById('solar-daktype').value,
+          hoog: document.getElementById('solar-dakhoogte').value === 'hoog',
+          verv: document.getElementById('solar-vervuiling').checked,
+          bereik: bereikEl ? bereikEl.value : 'Goed'
+        };
+      },
+
+      getHoogtewerkerKostPerInstallatie: function(pan) {
+        var HOOGTEWERKER_DAGHUUR = 375;
+        var n = parseInt(pan, 10) || 0;
+        if (n <= 0)  return 0;
+        if (n <= 14) return HOOGTEWERKER_DAGHUUR / 4;
+        if (n <= 25) return HOOGTEWERKER_DAGHUUR / 3;
+        if (n <= 40) return HOOGTEWERKER_DAGHUUR / 2;
+        if (n <= 75) return HOOGTEWERKER_DAGHUUR / 1;
+        return 0;
+      },
+
+      calculate: function(inputs, pricing, supplements, partner) {
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var planFee = parseFloat(partner.planning_fee);
+
+        if (inputs.pan > 75) {
+          return {
+            lines: [], subtotalExcl: 0, forfaitLabel: 'Op aanvraag',
+            forfaitExcl: 0, vervC: 0, hoogC: 0, hoogBedrag: 0, vervPP: 0,
+            parkeerC: 0, parkeerFee: 0, opAanvraag: true
+          };
+        }
+
+        var f = { amt: 0, lbl: 'Geen tarief' };
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          var max = pr.staffel_max || 999999;
+          if (inputs.pan >= pr.staffel_min && inputs.pan <= max) {
+            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+            break;
+          }
+        }
+        if (f.amt === 0 && pricing.length > 0) {
+          var last = pricing[pricing.length - 1];
+          var lastMax = last.staffel_max || 40;
+          var basePrice = parseFloat(last.flancco_forfait) * (1 + marge) + planFee;
+          var extraPP = 5.64 * (1 + marge);
+          f = { amt: basePrice + (inputs.pan - lastMax) * extraPP, lbl: (lastMax + 1) + '+ panelen' };
+        }
+
+        var vervPP = getSectorSupplement('zonnepanelen', 'vervuiling') * (1 + marge);
+        var hoogBedrag = SECTORS.zonnepanelen.getHoogtewerkerKostPerInstallatie(inputs.pan);
+        var parkeerFeeBase = 25;
+        var vervC = inputs.verv ? inputs.pan * vervPP : 0;
+        var hoogC = inputs.hoog ? hoogBedrag : 0;
+        var parkeerC = (inputs.bereik === 'Parkeervergunning') ? parkeerFeeBase : 0;
+        var subtotalExcl = f.amt + vervC + hoogC + parkeerC;
+
+        var lines = [{ label: 'Reiniging ' + inputs.pan + ' panelen (' + f.lbl + ')', amount: f.amt }];
+        if (vervC > 0) lines.push({ label: 'Vervuiling (' + inputs.pan + ' pan. × ' + fmt(vervPP) + ')', amount: vervC });
+        if (hoogC > 0) lines.push({ label: 'Hoogtewerker (dakrand 7,5–17 m)', amount: hoogC });
+        if (parkeerC > 0) lines.push({ label: 'Parkeervergunning (administratiekost)', amount: parkeerC });
+
+        return { lines: lines, subtotalExcl: subtotalExcl, forfaitLabel: f.lbl, forfaitExcl: f.amt, vervC: vervC, hoogC: hoogC, hoogBedrag: hoogBedrag, vervPP: vervPP, parkeerC: parkeerC, parkeerFee: parkeerFeeBase, opAanvraag: false };
+      },
+
+      renderStaffelTable: function(pricing, partner, btwPct) {
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var planFee = parseFloat(partner.planning_fee);
+        var pan = parseInt(document.getElementById('solar-panelen').value) || 1;
+        var rows = pricing.map(function(pr) {
+          var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * (1 + btwPct / 100);
+          var max = pr.staffel_max || 9999;
+          var cls = (pan >= pr.staffel_min && pan <= max) ? ' class="active"' : '';
+          return '<tr' + cls + '><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
+        }).join('');
+        return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Zonnepanelen</div>' +
+          '<table class="staffel-table"><thead><tr><th>Aantal panelen</th><th>Forfait</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table></div>';
+      },
+
+      summaryDescription: function(inputs) {
+        return inputs.pan + ' zonnepanelen — ' + (inputs.daktype === 'hellend' ? 'hellend dak' : inputs.daktype === 'plat' ? 'plat dak' : 'grondopstelling');
+      }
+    },
+
+    // ────────── WARMTEPOMP (additief parameter-model) ──────────
+    warmtepomp: {
+      key: 'warmtepomp',
+      label: 'Warmtepomp onderhoud',
+      shortLabel: 'Warmtepomp',
+      subtitle: 'Periodiek onderhoud &amp; controle van uw warmtepompsysteem',
+      headerSubtitle: 'Professioneel warmtepomp onderhoud',
+      icon: '<svg viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+      seizoenMaanden: [3,4,9,10],
+      seizoenLabel: 'maart–april / september–oktober',
+
+      usps: [
+        { icon: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>', text: 'Gecertificeerd<br>onderhoud' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z"/></svg>', text: 'Optimale<br>efficiëntie' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M12 2C6.5 8 4 12.5 4 15.5a8 8 0 0 0 16 0C20 12.5 17.5 8 12 2Z"/></svg>', text: 'Verlengde<br>levensduur' }
+      ],
+
+      _wpTypes: function() {
+        var cfg = (partnerSectorConfig.warmtepomp || {}).types || {};
+        var out = [];
+        if (cfg.lucht_lucht && cfg.lucht_lucht.actief) out.push({ key: 'lucht_lucht', label: 'Airconditioning (lucht-lucht)' });
+        if (cfg.lucht_water && cfg.lucht_water.actief) out.push({ key: 'lucht_water', label: 'Vloerverwarming / radiatoren (lucht-water)' });
+        if (cfg.geothermie  && cfg.geothermie.actief)  out.push({ key: 'geothermie',  label: 'Geothermische warmtepomp (bodem-water)' });
+        return out;
+      },
+      _wpTypeCfg: function(typeKey) {
+        var t = ((partnerSectorConfig.warmtepomp || {}).types || {})[typeKey];
+        return t || { actief: false, formule: 'basic' };
+      },
+      _param: function(pricing, subtype, key, formule) {
+        var scope = (subtype === 'lucht_lucht' && formule === 'allin') ? 'allin' : 'basic';
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          if (pr.subtype === subtype && pr.parameter_key === key && pr.formule_scope === scope) {
+            return parseFloat(pr.flancco_forfait) || 0;
+          }
+        }
+        return 0;
+      },
+
+      renderInfoBlocks: function() {
+        return '<div class="info-block" id="info-waarom-wp">' +
+          '<div class="info-toggle" onclick="toggleInfo(\'info-waarom-wp\')">' +
+          '<div class="info-toggle-left"><div class="info-toggle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>' +
+          '<div><h3>Waarom uw warmtepomp laten onderhouden?</h3><div class="info-teaser">Bespaar tot 30% op energiekosten met regelmatig onderhoud</div></div></div>' +
+          '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
+          '<div class="info-content"><div class="info-body">' +
+          '<p>Een warmtepomp zonder onderhoud verliest tot 30% aan efficiëntie door vervuilde filters, warmtewisselaars en condensafvoer.</p>' +
+          '<div class="info-highlight"><p>Regelmatig onderhoud verlengt de levensduur van uw warmtepomp met gemiddeld 5–10 jaar en voorkomt dure herstellingen.</p></div>' +
+          '<p>Bij sommige merken is periodiek onderhoud vereist om de fabrieksgarantie te behouden.</p>' +
+          '</div></div></div>';
+      },
+
+      renderForm: function(pricing, supplements) {
+        var types = this._wpTypes();
+        if (types.length === 0) {
+          return '<div class="card"><div class="card-title">Warmtepomp niet beschikbaar</div>' +
+            '<p style="font-size:13px;color:var(--grey)">Deze partner biedt momenteel geen warmtepomp-onderhoud aan.</p></div>';
+        }
+        var defaultType = types[0].key;
+        var typeOpts = types.map(function(t) { return '<option value="' + t.key + '">' + t.label + '</option>'; }).join('');
+        var typeField = types.length > 1
+          ? '<div class="field"><label>Type warmtepomp</label><select id="wp-type" onchange="onWpTypeChange()">' + typeOpts + '</select></div>'
+          : '<input type="hidden" id="wp-type" value="' + defaultType + '">';
+
+        var formLL = '<div id="wp-form-lucht_lucht" class="wp-subform"' + (defaultType === 'lucht_lucht' ? '' : ' style="display:none"') + '>' +
+          '<div class="field-row">' +
+          '<div class="field"><label>Aantal binnenunits</label><input type="number" id="wp-ll-binnenunits" min="1" max="10" value="1" oninput="calculateAll()"></div>' +
+          '<div class="field"><label>Aantal buitenunits</label><input type="number" id="wp-ll-buitenunits" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
+          '</div>' +
+          '<label class="toggle-group" for="wp-ll-vierweg" id="wp-ll-vierweg-row" style="display:none"><div class="toggle-label">Vierwegkanaal-units (cassette)<small>Meerprijs per binnenunit — alleen van toepassing op cassette-modellen bij ALL-IN</small></div>' +
+          '<div class="switch"><input type="checkbox" id="wp-ll-vierweg" onchange="onWpVierwegToggle()"><span class="slider"></span></div></label>' +
+          '<div id="wp-ll-vierweg-aantal" style="display:none;padding:8px 0 0 44px">' +
+          '<div class="field"><label>Hoeveel van uw binnenunits zijn vierwegkanaal?</label><input type="number" id="wp-ll-vierweg-n" min="1" max="10" value="1" oninput="onWpVierwegNumberInput()"></div>' +
+          '</div>' +
+          '<label class="toggle-group" for="wp-ll-moeilijk"><div class="toggle-label">Moeilijk bereikbare units<small>Op hoogte, in technische ruimte, etc.</small></div>' +
+          '<div class="switch"><input type="checkbox" id="wp-ll-moeilijk" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+          '</div>';
+
+        var formLW = '<div id="wp-form-lucht_water" class="wp-subform"' + (defaultType === 'lucht_water' ? '' : ' style="display:none"') + '>' +
+          '<div class="field-row">' +
+          '<div class="field"><label>Aantal buitenunits</label><input type="number" id="wp-lw-buitenunits" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
+          '<div class="field"><label>Aantal ketels</label><input type="number" id="wp-lw-ketels" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
+          '</div>' +
+          '<label class="toggle-group" for="wp-lw-glycol"><div class="toggle-label">Glycol-vulling<small>Bijvullen of vervangen koudemiddel-circuit</small></div>' +
+          '<div class="switch"><input type="checkbox" id="wp-lw-glycol" onchange="onWpGlycolToggle()"><span class="slider"></span></div></label>' +
+          '<div id="wp-lw-glycol-liter" style="display:none;padding:8px 0 0 44px">' +
+          '<div class="field"><label>Aantal liter</label><input type="number" id="wp-lw-glycol-n" min="1" max="50" value="5" oninput="calculateAll()"></div>' +
+          '</div>' +
+          '<label class="toggle-group" for="wp-lw-moeilijk"><div class="toggle-label">Moeilijk bereikbaar<small>Buitenunit op hoogte, ketelruimte krap, etc.</small></div>' +
+          '<div class="switch"><input type="checkbox" id="wp-lw-moeilijk" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+          '</div>';
+
+        var formGEO = '<div id="wp-form-geothermie" class="wp-subform"' + (defaultType === 'geothermie' ? '' : ' style="display:none"') + '>' +
+          '<div class="field-row">' +
+          '<div class="field"><label>Aantal buitenunits</label><input type="number" id="wp-geo-buitenunits" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
+          '<div class="field"><label>Aantal ketels</label><input type="number" id="wp-geo-ketels" min="1" max="5" value="1" oninput="calculateAll()"></div>' +
+          '</div>' +
+          '<label class="toggle-group" for="wp-geo-glycol"><div class="toggle-label">Glycol-vulling bodemcircuit<small>Bijvullen of vervangen van het bodemwisselaar-circuit</small></div>' +
+          '<div class="switch"><input type="checkbox" id="wp-geo-glycol" onchange="onWpGlycolToggle()"><span class="slider"></span></div></label>' +
+          '<div id="wp-geo-glycol-liter" style="display:none;padding:8px 0 0 44px">' +
+          '<div class="field"><label>Aantal liter</label><input type="number" id="wp-geo-glycol-n" min="1" max="50" value="5" oninput="calculateAll()"></div>' +
+          '</div>' +
+          '<label class="toggle-group" for="wp-geo-moeilijk"><div class="toggle-label">Moeilijk bereikbaar<small>Boorput moeilijk toegankelijk, ketelruimte krap, etc.</small></div>' +
+          '<div class="switch"><input type="checkbox" id="wp-geo-moeilijk" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+          '</div>';
+
+        return '<div class="card"><div class="card-title">Uw warmtepompsysteem</div>' + typeField + '</div>' +
+          '<div class="card"><div class="card-title">Configuratie</div>' + formLL + formLW + formGEO + '</div>';
+      },
+
+      readInputs: function() {
+        var typeEl = document.getElementById('wp-type');
+        var typeKey = typeEl ? typeEl.value : (this._wpTypes()[0] || { key: 'lucht_lucht' }).key;
+        var typeCfg = this._wpTypeCfg(typeKey);
+        var formule = typeCfg.formule || 'basic';
+
+        var vrRow = document.getElementById('wp-ll-vierweg-row');
+        if (vrRow) vrRow.style.display = (typeKey === 'lucht_lucht' && formule === 'allin') ? '' : 'none';
+
+        if (typeKey === 'lucht_lucht') {
+          var vierwegOn = !!(document.getElementById('wp-ll-vierweg') || {}).checked;
+          var vrAantalEl = document.getElementById('wp-ll-vierweg-aantal');
+          if (vrAantalEl) vrAantalEl.style.display = (formule === 'allin' && vierwegOn) ? 'block' : 'none';
+
+          var binnenunits = Math.max(1, parseInt((document.getElementById('wp-ll-binnenunits') || {}).value) || 1);
+          var vierwegRaw = parseInt((document.getElementById('wp-ll-vierweg-n') || {}).value) || 1;
+          var vierwegAantal = (formule === 'allin' && vierwegOn)
+            ? Math.max(0, Math.min(binnenunits, vierwegRaw))
+            : 0;
+          var vrInputEl = document.getElementById('wp-ll-vierweg-n');
+          if (vrInputEl) {
+            vrInputEl.max = String(binnenunits);
+            if (vierwegOn && formule === 'allin' && parseInt(vrInputEl.value) > binnenunits) {
+              vrInputEl.value = binnenunits;
+            }
+          }
+
+          return {
+            subtype: 'lucht_lucht',
+            formule: formule,
+            binnenunits: binnenunits,
+            buitenunits: Math.max(1, parseInt((document.getElementById('wp-ll-buitenunits') || {}).value) || 1),
+            moeilijk: !!(document.getElementById('wp-ll-moeilijk') || {}).checked,
+            vierweg_aantal: vierwegAantal
+          };
+        }
+        if (typeKey === 'geothermie') {
+          var glycolOnG = !!(document.getElementById('wp-geo-glycol') || {}).checked;
+          var glLiterElG = document.getElementById('wp-geo-glycol-liter');
+          if (glLiterElG) glLiterElG.style.display = glycolOnG ? 'block' : 'none';
+          return {
+            subtype: 'geothermie', formule: 'basic',
+            buitenunits: Math.max(1, parseInt((document.getElementById('wp-geo-buitenunits') || {}).value) || 1),
+            ketels: Math.max(1, parseInt((document.getElementById('wp-geo-ketels') || {}).value) || 1),
+            glycol_liter: glycolOnG ? Math.max(1, parseInt((document.getElementById('wp-geo-glycol-n') || {}).value) || 0) : 0,
+            moeilijk: !!(document.getElementById('wp-geo-moeilijk') || {}).checked
+          };
+        }
+        var glycolOn = !!(document.getElementById('wp-lw-glycol') || {}).checked;
+        var glLiterEl = document.getElementById('wp-lw-glycol-liter');
+        if (glLiterEl) glLiterEl.style.display = glycolOn ? 'block' : 'none';
+        return {
+          subtype: 'lucht_water', formule: 'basic',
+          buitenunits: Math.max(1, parseInt((document.getElementById('wp-lw-buitenunits') || {}).value) || 1),
+          ketels: Math.max(1, parseInt((document.getElementById('wp-lw-ketels') || {}).value) || 1),
+          glycol_liter: glycolOn ? Math.max(1, parseInt((document.getElementById('wp-lw-glycol-n') || {}).value) || 0) : 0,
+          moeilijk: !!(document.getElementById('wp-lw-moeilijk') || {}).checked
+        };
+      },
+
+      calculate: function(inputs, pricing, supplements, partner) {
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var planFee = parseFloat(partner.planning_fee);
+        var sub = inputs.subtype;
+        var P = SECTORS.warmtepomp._param;
+
+        var lines = [];
+        var subtotalFlancco = 0;
+        function add(label, flanccoBedrag) {
+          if (!flanccoBedrag) return;
+          subtotalFlancco += flanccoBedrag;
+          lines.push({ label: label, flancco: flanccoBedrag });
+        }
+
+        if (sub === 'lucht_lucht') {
+          var f = inputs.formule || 'basic';
+          var basis = P(pricing, 'lucht_lucht', 'basispakket', f);
+          add('Basispakket (1 binnen + 1 buiten)', basis);
+          if (inputs.binnenunits >= 2) add('2e binnenunit', P(pricing, 'lucht_lucht', 'extra_binnenunit', f));
+          if (inputs.binnenunits >= 3) {
+            var nDriePlus = inputs.binnenunits - 2;
+            add(nDriePlus + ' × extra binnenunit (vanaf 3e)', nDriePlus * P(pricing, 'lucht_lucht', 'derde_plus_binnenunit', f));
+          }
+          var extraBuiten = Math.max(0, inputs.buitenunits - 1);
+          if (extraBuiten > 0) add(extraBuiten + ' × extra buitenunit', extraBuiten * P(pricing, 'lucht_lucht', 'extra_buitenunit', f));
+          if (inputs.moeilijk) add('Moeilijk bereikbare units', P(pricing, 'lucht_lucht', 'moeilijk_bereikbaar', f));
+          if (f === 'allin' && inputs.vierweg_aantal > 0) {
+            add('Meerprijs vierwegkanaal (' + inputs.vierweg_aantal + ' × cassette-binnenunit)', inputs.vierweg_aantal * P(pricing, 'lucht_lucht', 'vierwegkanaal', f));
+          }
+          var subtotalExcl = subtotalFlancco * (1 + marge) + planFee;
+          var displayLines = lines.map(function(l, idx) {
+            var amt = l.flancco * (1 + marge) + (idx === 0 ? planFee : 0);
+            return { label: l.label, amount: amt };
+          });
+          return { lines: displayLines, subtotalExcl: subtotalExcl, basePrice: subtotalExcl, subtype: sub, formule: f, multiplier: 1, rawLines: lines, marge: marge, planFee: planFee };
+        }
+
+        var subKey = (sub === 'geothermie') ? 'geothermie' : 'lucht_water';
+        var basisLabel = (sub === 'geothermie')
+          ? 'Basispakket (bodemcircuit + mengpomp + warmtewisselaar + magneetfilter)'
+          : 'Basispakket (buitenunit + mengpomp + ketel + magneetfilter)';
+        var b = P(pricing, subKey, 'basispakket', 'basic');
+        add(basisLabel, b);
+        var extraB = Math.max(0, inputs.buitenunits - 1);
+        if (extraB > 0) add(extraB + ' × extra buitenunit', extraB * P(pricing, subKey, 'extra_buitenunit', 'basic'));
+        var extraK = Math.max(0, inputs.ketels - 1);
+        if (extraK > 0) add(extraK + ' × extra ketel', extraK * P(pricing, subKey, 'extra_ketel', 'basic'));
+        if (inputs.glycol_liter > 0) add(inputs.glycol_liter + ' liter glycol-vulling', inputs.glycol_liter * P(pricing, subKey, 'glycol_vulling', 'basic'));
+        if (inputs.moeilijk) add('Moeilijk bereikbaar', P(pricing, subKey, 'moeilijk_bereikbaar', 'basic'));
+
+        var subtotalExcl2 = subtotalFlancco * (1 + marge) + planFee;
+        var displayLines2 = lines.map(function(l, idx) {
+          return { label: l.label, amount: l.flancco * (1 + marge) + (idx === 0 ? planFee : 0) };
+        });
+        return { lines: displayLines2, subtotalExcl: subtotalExcl2, basePrice: subtotalExcl2, subtype: sub, formule: 'basic', multiplier: 1, rawLines: lines, marge: marge, planFee: planFee };
+      },
+
+      renderStaffelTable: function(pricing, partner, btwPct) {
+        var typeEl = document.getElementById('wp-type');
+        var typeKey = typeEl ? typeEl.value : ((SECTORS.warmtepomp._wpTypes()[0] || { key: 'lucht_lucht' }).key);
+        var typeCfg = SECTORS.warmtepomp._wpTypeCfg(typeKey);
+        var formule = typeCfg.formule || 'basic';
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var btwMult = 1 + btwPct / 100;
+
+        var params = pricing.filter(function(pr) {
+          if (pr.subtype !== typeKey) return false;
+          if (pr.formule_scope === 'allin' && formule !== 'allin') return false;
+          if (pr.formule_scope === 'basic' && formule !== 'basic') return false;
+          return true;
+        }).sort(function(a, b) { return (a.sort_order || 0) - (b.sort_order || 0); });
+
+        var rows = params.map(function(pr) {
+          var bedrag = (parseFloat(pr.flancco_forfait) || 0) * (1 + marge) * btwMult;
+          var unitTxt = (pr.parameter_key === 'glycol_vulling') ? ' / liter' :
+                        (pr.parameter_key === 'vierwegkanaal') ? ' / binnenunit (meerprijs)' :
+                        (pr.parameter_key === 'extra_buitenunit' || pr.parameter_key === 'extra_ketel' || pr.parameter_key === 'derde_plus_binnenunit') ? ' / stuk' : '';
+          return '<tr><td>' + esc(pr.label) + '</td><td>' + fmt(bedrag) + unitTxt + '</td></tr>';
+        }).join('');
+
+        var typeLabel = typeKey === 'lucht_lucht' ? 'Lucht-lucht (airco)'
+          : typeKey === 'geothermie' ? 'Geothermie (bodem-water)'
+          : 'Lucht-water';
+        var formuleLabel = (typeKey === 'lucht_lucht') ? (formule === 'allin' ? ' — ALL-IN' : ' — BASIC') : '';
+        return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Warmtepomp ' + typeLabel + formuleLabel + '</div>' +
+          '<table class="staffel-table"><thead><tr><th>Parameter</th><th>Tarief incl. btw</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table>' +
+          '<div style="font-size:11px;color:var(--grey);padding:8px 14px 0">Eindprijs is een additieve som: basispakket + supplementen die op uw installatie van toepassing zijn.</div>' +
+          '</div>';
+      },
+
+      summaryDescription: function(inputs) {
+        if (inputs.subtype === 'lucht_lucht') {
+          var formuleTxt = inputs.formule === 'allin' ? 'ALL-IN' : 'BASIC';
+          return inputs.binnenunits + ' binnenunit(s) airconditioning — ' + formuleTxt;
+        }
+        if (inputs.subtype === 'geothermie') {
+          return inputs.buitenunits + ' buitenunit(s) + ' + inputs.ketels + ' ketel(s) — geothermie';
+        }
+        return inputs.buitenunits + ' buitenunit(s) + ' + inputs.ketels + ' ketel(s) — lucht-water';
+      }
+    },
+
+    // ────────── VENTILATIE ──────────
+    ventilatie: {
+      key: 'ventilatie',
+      label: 'Ventilatie onderhoud',
+      shortLabel: 'Ventilatie',
+      subtitle: 'Onderhoud &amp; reiniging van uw ventilatiesysteem (C of D)',
+      headerSubtitle: 'Professioneel ventilatie onderhoud',
+      icon: '<svg viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>',
+      seizoenMaanden: null,
+      seizoenLabel: 'heel het jaar',
+
+      usps: [
+        { icon: '<svg viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>', text: 'Gezonde<br>binnenlucht' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z"/></svg>', text: 'Lager<br>energieverbruik' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>', text: 'Conform<br>EPB-regelgeving' }
+      ],
+
+      renderInfoBlocks: function() {
+        return '<div class="info-block" id="info-waarom-vent">' +
+          '<div class="info-toggle" onclick="toggleInfo(\'info-waarom-vent\')">' +
+          '<div class="info-toggle-left"><div class="info-toggle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>' +
+          '<div><h3>Waarom uw ventilatiesysteem onderhouden?</h3><div class="info-teaser">Voorkom vuile filters, schimmel en hoge energiekosten</div></div></div>' +
+          '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
+          '<div class="info-content"><div class="info-body">' +
+          '<p>Uw ventilatiesysteem draait 24 uur per dag, 365 dagen per jaar. Filters raken verstopt met stof, pollen en fijnstof.</p>' +
+          '<div class="info-highlight"><p>Een vervuild ventilatiesysteem kan tot 30% meer energie verbruiken.</p></div>' +
+          '<p>Regelmatig onderhoud is verplicht volgens de EPB-regelgeving.</p>' +
+          '</div></div></div>';
+      },
+
+      renderForm: function(pricing, supplements) {
+        return '<div class="card">' +
+          '<div class="card-title">Uw ventilatiesysteem</div>' +
+          '<div class="field"><label>Type systeem</label>' +
+          '<select id="vent-type" onchange="calculateAll()">' +
+          '<option value="C">Systeem C (mechanische afvoer)</option>' +
+          '<option value="D">Systeem D (mechanische aan- en afvoer met warmterecuperatie)</option>' +
+          '</select></div>' +
+          '<div class="field"><label>Aantal ventielen</label><input type="number" id="vent-ventielen" min="1" max="50" value="10" oninput="calculateAll()"></div>' +
+          '</div>' +
+          '<div class="card"><div class="card-title">Extra opties</div>' +
+          '<label class="toggle-group" for="vent-kanaal"><div class="toggle-label">Kanaalreiniging<small>Reiniging van de ventilatiekanalen per strekkende meter</small></div>' +
+          '<div class="switch"><input type="checkbox" id="vent-kanaal" onchange="calculateAll()"><span class="slider"></span></div></label>' +
+          '<div id="vent-kanaal-meters" style="display:none;padding:8px 0 0 44px">' +
+          '<div class="field"><label>Aantal strekkende meter</label><input type="number" id="vent-lm" min="1" max="200" value="20" oninput="calculateAll()"></div>' +
+          '</div></div>';
+      },
+
+      readInputs: function() {
+        var kanaalChecked = document.getElementById('vent-kanaal').checked;
+        var meterEl = document.getElementById('vent-kanaal-meters');
+        if (meterEl) meterEl.style.display = kanaalChecked ? 'block' : 'none';
+        return {
+          systeem: document.getElementById('vent-type').value,
+          ventielen: Math.max(1, parseInt(document.getElementById('vent-ventielen').value) || 10),
+          kanaalreiniging: kanaalChecked,
+          lm: kanaalChecked ? Math.max(1, parseInt(document.getElementById('vent-lm').value) || 20) : 0
+        };
+      },
+
+      calculate: function(inputs, pricing, supplements, partner) {
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var planFee = parseFloat(partner.planning_fee);
+        var typeCode = inputs.systeem === 'C' ? 1 : 2;
+        var f = { amt: 0, lbl: 'Geen tarief' };
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          if (pr.staffel_min === typeCode) {
+            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+            break;
+          }
+        }
+        var basePrice = f.amt;
+        var extraVent = Math.max(0, inputs.ventielen - 10);
+        var ventSup = getSectorSupplement('ventilatie', 'extra_ventiel') * (1 + marge);
+        var ventCost = extraVent * ventSup;
+        var kanaalSup = getSectorSupplement('ventilatie', 'kanaalreiniging') * (1 + marge);
+        var kanaalCost = inputs.kanaalreiniging ? inputs.lm * kanaalSup : 0;
+        var subtotalExcl = basePrice + ventCost + kanaalCost;
+        var lines = [{ label: 'Ventilatie onderhoud Systeem ' + inputs.systeem + ' (tot 10 ventielen)', amount: basePrice }];
+        if (ventCost > 0) lines.push({ label: 'Extra ventielen (' + extraVent + '× ' + fmt(ventSup) + ')', amount: ventCost });
+        if (kanaalCost > 0) lines.push({ label: 'Kanaalreiniging (' + inputs.lm + ' lm × ' + fmt(kanaalSup) + ')', amount: kanaalCost });
+        return { lines: lines, subtotalExcl: subtotalExcl, basePrice: basePrice, ventCost: ventCost, kanaalCost: kanaalCost, ventSup: ventSup, kanaalSup: kanaalSup, forfaitLabel: f.lbl };
+      },
+
+      renderStaffelTable: function(pricing, partner, btwPct) {
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var planFee = parseFloat(partner.planning_fee);
+        var currentType = document.getElementById('vent-type').value;
+        var typeCode = currentType === 'C' ? 1 : 2;
+        var rows = pricing.map(function(pr) {
+          var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * (1 + btwPct / 100);
+          var cls = pr.staffel_min === typeCode ? ' class="active"' : '';
+          return '<tr' + cls + '><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
+        }).join('');
+        return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Ventilatie</div>' +
+          '<table class="staffel-table"><thead><tr><th>Systeem</th><th>Forfait</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table>' +
+          '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Basisforfait inclusief tot 10 ventielen.</p></div>';
+      },
+
+      summaryDescription: function(inputs) {
+        var desc = 'Systeem ' + inputs.systeem + ' — ' + inputs.ventielen + ' ventielen';
+        if (inputs.kanaalreiniging) desc += ' + kanaalreiniging (' + inputs.lm + ' lm)';
+        return desc;
+      }
+    },
+
+    // ────────── VERWARMING ──────────
+    verwarming: {
+      key: 'verwarming',
+      label: 'Verwarming onderhoud',
+      shortLabel: 'Verwarming',
+      subtitle: 'Ketelonderhoud inclusief rookgasanalyse',
+      headerSubtitle: 'Professioneel ketelonderhoud',
+      icon: '<svg viewBox="0 0 24 24"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
+      seizoenMaanden: [8,9,10],
+      seizoenLabel: 'augustus–oktober (voor stookseizoen)',
+
+      usps: [
+        { icon: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>', text: 'Wettelijk<br>verplicht' },
+        { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c-4 4-7 7.5-7 11a7 7 0 0 0 14 0c0-3.5-3-7-7-11z"/><path d="M12 22a4 4 0 0 0 4-4c0-2-2-4-4-6-2 2-4 4-4 6a4 4 0 0 0 4 4z"/></svg>', text: 'Lager<br>verbruik' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>', text: 'Veilige<br>verbranding' }
+      ],
+
+      renderInfoBlocks: function() {
+        return '<div class="info-block" id="info-waarom-verw">' +
+          '<div class="info-toggle" onclick="toggleInfo(\'info-waarom-verw\')">' +
+          '<div class="info-toggle-left"><div class="info-toggle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>' +
+          '<div><h3>Waarom uw verwarmingsketel onderhouden?</h3><div class="info-teaser">Wettelijk verplicht én goed voor uw portemonnee</div></div></div>' +
+          '<div class="info-chevron"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div></div>' +
+          '<div class="info-content"><div class="info-body">' +
+          '<p>In Vlaanderen is tweejaarlijks ketelonderhoud wettelijk verplicht.</p>' +
+          '<div class="info-highlight"><p>Een onderhouden ketel verbruikt tot 5% minder brandstof.</p></div>' +
+          '<p>De rookgasanalyse is inbegrepen bij elk onderhoud.</p>' +
+          '</div></div></div>';
+      },
+
+      renderForm: function(pricing, supplements) {
+        var hasPricing = pricing.some(function(p) { return parseFloat(p.flancco_forfait) > 0; });
+        if (!hasPricing) {
+          return '<div class="card" style="text-align:center;padding:40px 24px">' +
+            '<p style="color:var(--grey);font-size:14px">Prijzen voor verwarming worden binnenkort beschikbaar gesteld.</p>' +
+            '<p style="color:var(--grey);font-size:12px;margin-top:8px">Neem contact op voor een offerte op maat.</p></div>';
+        }
+        return '<div class="card">' +
+          '<div class="card-title">Uw verwarmingsinstallatie</div>' +
+          '<div class="field"><label>Type ketel</label>' +
+          '<select id="verw-type" onchange="calculateAll()">' +
+          '<option value="gas">Gasketel</option>' +
+          '<option value="mazout">Mazoutketel</option>' +
+          '<option value="condensatie">Condensatieketel</option>' +
+          '</select></div>' +
+          '<p style="font-size:12px;color:var(--grey);margin:4px 0 0">Rookgasanalyse en verbrandingsattest inbegrepen.</p>' +
+          '</div>';
+      },
+
+      readInputs: function() {
+        var el = document.getElementById('verw-type');
+        return { ketelType: el ? el.value : 'gas' };
+      },
+
+      calculate: function(inputs, pricing, supplements, partner) {
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var planFee = parseFloat(partner.planning_fee);
+        var typeCode = inputs.ketelType === 'gas' ? 1 : inputs.ketelType === 'mazout' ? 2 : 3;
+        var f = { amt: 0, lbl: 'Geen tarief' };
+        for (var i = 0; i < pricing.length; i++) {
+          var pr = pricing[i];
+          if (pr.staffel_min === typeCode) {
+            f = { amt: parseFloat(pr.flancco_forfait) * (1 + marge) + planFee, lbl: pr.label };
+            break;
+          }
+        }
+        var basePrice = f.amt;
+        var lines = [{ label: 'Ketelonderhoud (' + inputs.ketelType + ') incl. rookgasanalyse', amount: basePrice }];
+        return { lines: lines, subtotalExcl: basePrice, basePrice: basePrice, forfaitLabel: f.lbl };
+      },
+
+      renderStaffelTable: function(pricing, partner, btwPct) {
+        var marge = parseFloat(partner.marge_pct) / 100;
+        var planFee = parseFloat(partner.planning_fee);
+        var hasPricing = pricing.some(function(p) { return parseFloat(p.flancco_forfait) > 0; });
+        if (!hasPricing) return '';
+        var currentType = document.getElementById('verw-type') ? document.getElementById('verw-type').value : 'gas';
+        var typeCode = currentType === 'gas' ? 1 : currentType === 'mazout' ? 2 : 3;
+        var rows = pricing.map(function(pr) {
+          var cp = (parseFloat(pr.flancco_forfait) * (1 + marge) + planFee) * (1 + btwPct / 100);
+          var cls = pr.staffel_min === typeCode ? ' class="active"' : '';
+          return '<tr' + cls + '><td>' + esc(pr.label) + '</td><td>' + fmt(cp) + '</td></tr>';
+        }).join('');
+        return '<div class="card"><div class="card-title">Tariefoverzicht &mdash; Verwarming</div>' +
+          '<table class="staffel-table"><thead><tr><th>Keteltype</th><th>Forfait</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table>' +
+          '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Inclusief rookgasanalyse en verbrandingsattest.</p></div>';
+      },
+
+      summaryDescription: function(inputs) {
+        var typeTxt = inputs.ketelType === 'gas' ? 'Gasketel' : inputs.ketelType === 'mazout' ? 'Mazoutketel' : 'Condensatieketel';
+        return typeTxt + ' onderhoud incl. rookgasanalyse';
+      }
+    }
+  };
+
+  // ── Render functies (kopie uit calculator) ──────────────────────────
+  function renderUspBar(sector) {
+    var cfg = SECTORS[sector];
+    if (!cfg || !cfg.usps || cfg.usps.length === 0) return '';
+    return '<div class="usp-bar">' + cfg.usps.map(function(u) {
+      return '<div class="usp-item"><div class="usp-icon">' + u.icon + '</div><div class="usp-text">' + u.text + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  function renderMotivatieBlock(sector) {
+    var cfg = SECTORS[sector];
+    return (cfg && typeof cfg.renderInfoBlocks === 'function') ? cfg.renderInfoBlocks() : '';
+  }
+
+  function renderSectorCards() {
+    var grid = document.getElementById('sector-grid');
+    if (!grid) return;
+    grid.innerHTML = partnerSectors.map(function(sec) {
+      var cfg = SECTORS[sec];
+      if (!cfg) return '';
+      return '<div class="sector-card" data-sector="' + sec + '" onclick="toggleSectorCard(\'' + sec + '\')">' +
+        '<div class="sector-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>' +
+        '<div class="sector-card-icon">' + cfg.icon + '</div>' +
+        '<h3>' + cfg.label + '</h3>' +
+        '<p>' + cfg.subtitle + '</p>' +
+        '</div>';
+    }).join('');
+    // Reflecteer reeds-geselecteerde sectoren (bij re-mount op terug-navigatie)
+    selectedSectors.forEach(function(sec) {
+      var card = grid.querySelector('.sector-card[data-sector="' + sec + '"]');
+      if (card) card.classList.add('selected');
+    });
+  }
+
+  function toggleSectorCard(sector) {
+    var idx = selectedSectors.indexOf(sector);
+    if (idx === -1) selectedSectors.push(sector);
+    else selectedSectors.splice(idx, 1);
+
+    if (hostEl) {
+      hostEl.querySelectorAll('.sector-card').forEach(function(card) {
+        card.classList.toggle('selected', selectedSectors.indexOf(card.dataset.sector) !== -1);
+      });
+    }
+    if (selectedSectors.length > 0 && (!activeSectorTab || selectedSectors.indexOf(activeSectorTab) < 0)) {
+      activeSectorTab = selectedSectors[0];
+    }
+    if (selectedSectors.length === 0) activeSectorTab = '';
+
+    renderConfigArea();
+    calculateAll();
+  }
+
+  function renderSectorTabs() {
+    var tabsEl = document.getElementById('sector-tabs');
+    if (!tabsEl) return;
+    if (selectedSectors.length > 1) {
+      tabsEl.innerHTML = selectedSectors.map(function(sec) {
+        var cfg = SECTORS[sec];
+        var cls = sec === activeSectorTab ? ' active' : '';
+        return '<button class="sector-tab-btn' + cls + '" data-sector="' + sec + '" onclick="switchSectorTab(\'' + sec + '\')">' + cfg.icon + ' ' + cfg.shortLabel + '</button>';
+      }).join('');
+      tabsEl.style.display = 'flex';
+    } else {
+      tabsEl.innerHTML = '';
+      tabsEl.style.display = 'none';
+    }
+  }
+
+  function switchSectorTab(sector) {
+    activeSectorTab = sector;
+    if (hostEl) {
+      hostEl.querySelectorAll('.sector-tab-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.sector === sector);
+      });
+      selectedSectors.forEach(function(s) {
+        var el = document.getElementById('sector-form-' + s);
+        if (el) el.style.display = s === sector ? 'block' : 'none';
+      });
+    }
+    var cfg = SECTORS[sector];
+    if (cfg) {
+      var uspC = document.getElementById('usp-container');
+      var infoC = document.getElementById('info-container');
+      if (uspC) uspC.innerHTML = renderUspBar(sector);
+      if (infoC) infoC.innerHTML = renderMotivatieBlock(sector);
+      expandFirstInfoBlock();
+    }
+    applyAvailableFrequencies();
+    calculateAll();
+  }
+
+  function renderActiveSectorForm() {
+    var sec = activeSectorTab;
+    var cfg = SECTORS[sec];
+    if (!cfg) return;
+
+    var uspC = document.getElementById('usp-container');
+    var infoC = document.getElementById('info-container');
+    if (uspC) uspC.innerHTML = renderUspBar(sec);
+    if (infoC) infoC.innerHTML = renderMotivatieBlock(sec);
+    expandFirstInfoBlock();
+
+    var formsHtml = '';
+    selectedSectors.forEach(function(s) {
+      var c = SECTORS[s];
+      if (!c) return;
+      var display = s === sec ? 'block' : 'none';
+      formsHtml += '<div id="sector-form-' + s + '" style="display:' + display + '">' + c.renderForm(allPricing[s] || [], allSupplements[s] || []) + '</div>';
+    });
+    var formContainer = document.getElementById('sector-form-container');
+    if (formContainer) formContainer.innerHTML = formsHtml;
+
+    applyAvailableFrequencies();
+  }
+
+  function renderConfigArea() {
+    renderSectorTabs();
+    if (selectedSectors.length === 0) {
+      // Lege staat: geen sectoren → leeg config-blok
+      var uspC = document.getElementById('usp-container');
+      var infoC = document.getElementById('info-container');
+      var formC = document.getElementById('sector-form-container');
+      var staffelC = document.getElementById('staffel-container');
+      var resultC = document.getElementById('result-card');
+      if (uspC) uspC.innerHTML = '';
+      if (infoC) infoC.innerHTML = '';
+      if (formC) formC.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--grey)">Selecteer minstens één dienst om verder te configureren.</div>';
+      if (staffelC) staffelC.innerHTML = '';
+      if (resultC) resultC.style.display = 'none';
+      return;
+    }
+    var resultC2 = document.getElementById('result-card');
+    if (resultC2) resultC2.style.display = '';
+    renderActiveSectorForm();
+  }
+
+  function applyAvailableFrequencies() {
+    if (!selectedSectors || selectedSectors.length === 0) return;
+    var available = null;
+    selectedSectors.forEach(function(s) {
+      var cfg = SECTORS[s];
+      var freqs = (cfg && Array.isArray(cfg.availableFrequencies)) ? cfg.availableFrequencies.slice() : [1, 2];
+      if (available === null) available = freqs.slice();
+      else available = available.filter(function(f) { return freqs.indexOf(f) >= 0; });
+    });
+    if (!available || available.length === 0) available = [1];
+    if (!hostEl) return;
+    var radios = hostEl.querySelectorAll('input[name="freq"]');
+    radios.forEach(function(input) {
+      var wrapper = input.closest('.radio-option');
+      var allowed = available.indexOf(parseInt(input.value, 10)) >= 0;
+      if (wrapper) wrapper.style.display = allowed ? '' : 'none';
+      input.disabled = !allowed;
+    });
+    var checked = hostEl.querySelector('input[name="freq"]:checked');
+    if (!checked || available.indexOf(parseInt(checked.value, 10)) < 0) {
+      var first = hostEl.querySelector('input[name="freq"][value="' + available[0] + '"]');
+      if (first) {
+        first.checked = true;
+        sharedState.freq = available[0];
+      }
+    }
+  }
+
+  function calculateAll() {
+    if (!partner || selectedSectors.length === 0) {
+      sectorResults = {};
+      sharedState = Object.assign({}, sharedState, { totalExcl: 0, total: 0, transportExcl: 0, discountAmount: 0, combinedSubtotal: 0 });
+      updateResultCard();
+      if (typeof onChangeCb === 'function') {
+        onChangeCb(getStateSnapshot(), getResultSnapshot());
+      }
+      return;
+    }
+
+    var afst = Math.max(0, parseInt((document.getElementById('afstand') || {}).value) || 0);
+    if (afst === 0 && typeof sharedState.afstandKm === 'number') afst = sharedState.afstandKm;
+    var btwEl = hostEl ? hostEl.querySelector('input[name="btw"]:checked') : null;
+    var freqEl = hostEl ? hostEl.querySelector('input[name="freq"]:checked') : null;
+    var duurEl = hostEl ? hostEl.querySelector('input[name="duur"]:checked') : null;
+    var btwPct = btwEl ? parseInt(btwEl.value) : (sharedState.btwPct || 21);
+    var freq = freqEl ? parseInt(freqEl.value) : (sharedState.freq || 1);
+    var duur = duurEl ? parseInt(duurEl.value) : (typeof sharedState.duur === 'number' ? sharedState.duur : 0);
+    var korting = (duur >= 3) ? 0.05 : 0;
+    var freeKm = parseInt(partner.transport_gratis_km) || 30;
+    var extraKm = Math.max(0, afst - freeKm);
+
+    var transPKM = 0;
+    selectedSectors.forEach(function(sec) {
+      var rate = getSectorSupplement(sec, 'transport');
+      if (rate > transPKM) transPKM = rate;
+    });
+    var marge = parseFloat(partner.marge_pct) / 100;
+    var transportExcl = extraKm > 0 ? extraKm * transPKM * (1 + marge) : 0;
+
+    var combinedSubtotal = 0;
+    sectorResults = {};
+    selectedSectors.forEach(function(sec) {
+      var cfg = SECTORS[sec];
+      if (!cfg) return;
+      var inputs = cfg.readInputs();
+      var result = cfg.calculate(inputs, allPricing[sec] || [], allSupplements[sec] || [], partner);
+      result.inputs = inputs;
+      sectorResults[sec] = result;
+      combinedSubtotal += result.subtotalExcl;
+    });
+
+    var totalBeforeDiscount = combinedSubtotal + transportExcl;
+    var discountAmount = totalBeforeDiscount * korting;
+    var totalExcl = totalBeforeDiscount - discountAmount;
+    var total = totalExcl * (1 + btwPct / 100);
+
+    sharedState = {
+      afst: afst, afstandKm: afst, btwPct: btwPct, freq: freq, duur: duur, korting: korting,
+      freeKm: freeKm, transPKM: transPKM, extraKm: extraKm,
+      transportExcl: transportExcl, combinedSubtotal: combinedSubtotal,
+      discountAmount: discountAmount, totalExcl: totalExcl, total: total
+    };
+
+    updateResultCard();
+
+    var staffelHtml = '';
+    selectedSectors.forEach(function(sec) {
+      var cfg = SECTORS[sec];
+      if (cfg && cfg.renderStaffelTable) {
+        staffelHtml += cfg.renderStaffelTable(allPricing[sec] || [], partner, btwPct);
+      }
+    });
+    var staffelC = document.getElementById('staffel-container');
+    if (staffelC) staffelC.innerHTML = staffelHtml;
+
+    var btwNote = document.getElementById('btw-note');
+    if (btwNote) btwNote.textContent = 'Alle bedragen incl. ' + btwPct + '% btw';
+
+    if (typeof onChangeCb === 'function') {
+      onChangeCb(getStateSnapshot(), getResultSnapshot());
+    }
+  }
+
+  function updateResultCard() {
+    var s = sharedState;
+    var btwMult = 1 + (s.btwPct || 21) / 100;
+    var linesHtml = '';
+
+    var anyOpAanvraag = false;
+    selectedSectors.forEach(function(sec) {
+      var r = sectorResults[sec];
+      if (r && r.opAanvraag) anyOpAanvraag = true;
+    });
+
+    var resultCard = document.getElementById('result-card');
+    var banner = document.getElementById('op-aanvraag-banner');
+
+    if (anyOpAanvraag) {
+      if (resultCard) resultCard.classList.add('is-op-aanvraag');
+      if (banner) banner.style.display = '';
+    } else {
+      if (resultCard) resultCard.classList.remove('is-op-aanvraag');
+      if (banner) banner.style.display = 'none';
+    }
+
+    selectedSectors.forEach(function(sec) {
+      var result = sectorResults[sec];
+      if (!result) return;
+      result.lines.forEach(function(line) {
+        linesHtml += '<div class="result-line"><span>' + line.label + '</span><span>' + fmt(line.amount * btwMult) + '</span></div>';
+      });
+    });
+
+    if (!anyOpAanvraag && s.transportExcl > 0) {
+      linesHtml += '<div class="result-line"><span>Verplaatsing (' + s.extraKm + ' km boven ' + s.freeKm + ' km)</span><span>' + fmt(s.transportExcl * btwMult) + '</span></div>';
+    }
+
+    if (!anyOpAanvraag && s.discountAmount > 0) {
+      var _kPct = Math.round((s.korting || 0) * 100);
+      linesHtml += '<div class="result-line"><span>Contractkorting (' + s.duur + ' jaar, -' + _kPct + '%)</span><span>- ' + fmt(s.discountAmount * btwMult) + '</span></div>';
+    }
+
+    var resultLines = document.getElementById('result-lines');
+    var totalEl = document.getElementById('total');
+    if (resultLines) resultLines.innerHTML = linesHtml;
+    if (totalEl) totalEl.textContent = anyOpAanvraag ? '' : fmtTotal(s.total || 0);
+
+    var lj = document.getElementById('line-jaar');
+    if (lj) {
+      if (!anyOpAanvraag && s.freq === 2) {
+        lj.classList.remove('hidden');
+        var valJaar = document.getElementById('val-jaar');
+        if (valJaar) valJaar.textContent = fmtTotal((s.total || 0) * 2);
+      } else {
+        lj.classList.add('hidden');
+      }
+    }
+  }
+
+  // ── Warmtepomp helpers ─────────────────────────────────────────────
+  function onWpTypeChange() {
+    var typeEl = document.getElementById('wp-type');
+    if (!typeEl) return;
+    var active = typeEl.value;
+    var forms = hostEl ? hostEl.querySelectorAll('.wp-subform') : [];
+    for (var i = 0; i < forms.length; i++) {
+      forms[i].style.display = (forms[i].id === 'wp-form-' + active) ? '' : 'none';
+    }
+    calculateAll();
+  }
+  function onWpVierwegToggle() {
+    var cb = document.getElementById('wp-ll-vierweg');
+    var wrap = document.getElementById('wp-ll-vierweg-aantal');
+    if (wrap) wrap.style.display = (cb && cb.checked) ? 'block' : 'none';
+    calculateAll();
+  }
+  function onWpVierwegNumberInput() {
+    var binnenEl = document.getElementById('wp-ll-binnenunits');
+    var vrEl = document.getElementById('wp-ll-vierweg-n');
+    if (binnenEl && vrEl) {
+      var max = Math.max(1, parseInt(binnenEl.value) || 1);
+      var val = parseInt(vrEl.value) || 1;
+      if (val > max) vrEl.value = max;
+      if (val < 1) vrEl.value = 1;
+      vrEl.max = String(max);
+    }
+    calculateAll();
+  }
+  function onWpGlycolToggle() {
+    var cb = document.getElementById('wp-lw-glycol');
+    var wrap = document.getElementById('wp-lw-glycol-liter');
+    if (wrap) wrap.style.display = (cb && cb.checked) ? 'block' : 'none';
+    var cb2 = document.getElementById('wp-geo-glycol');
+    var wrap2 = document.getElementById('wp-geo-glycol-liter');
+    if (wrap2) wrap2.style.display = (cb2 && cb2.checked) ? 'block' : 'none';
+    calculateAll();
+  }
+
+  // ── State snapshots ─────────────────────────────────────────────────
+  function getStateSnapshot() {
+    return {
+      selectedSectors: selectedSectors.slice(),
+      activeSectorTab: activeSectorTab,
+      btwPct: sharedState.btwPct,
+      freq: sharedState.freq,
+      duur: sharedState.duur,
+      afstandKm: sharedState.afst
+    };
+  }
+  function getResultSnapshot() {
+    var anyOp = false;
+    Object.keys(sectorResults).forEach(function(k) { if (sectorResults[k] && sectorResults[k].opAanvraag) anyOp = true; });
+    return Object.assign({}, sharedState, {
+      sectorResults: sectorResults,
+      opAanvraag: anyOp
+    });
+  }
+
+  // ── Build host DOM (calculator stap-1+2) ───────────────────────────
+  function buildHostDom() {
+    if (!hostEl) return;
+    hostEl.innerHTML =
+      '<div class="intro">' +
+        '<h1>Selecteer de gewenste diensten</h1>' +
+        '<p>Klik op &eacute;&eacute;n of meerdere sectoren om de configuratie te starten. Het prijsblok rechtsonder updatet live.</p>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-title">Diensten</div>' +
+        '<div class="sector-grid" id="sector-grid"></div>' +
+      '</div>' +
+      '<div class="sector-tabs" id="sector-tabs" style="display:none"></div>' +
+      '<div id="usp-container"></div>' +
+      '<div id="info-container"></div>' +
+      '<div id="sector-form-container"></div>' +
+      '<div class="card">' +
+        '<div class="card-title">BTW-tarief</div>' +
+        '<div class="radio-group" id="btw-group">' +
+          '<label class="radio-option"><input type="radio" name="btw" value="21" checked onchange="calculateAll()"><div class="radio-text"><span>21% BTW</span><small>Standaardtarief</small></div></label>' +
+          '<label class="radio-option" id="btw6-option"><input type="radio" name="btw" value="6" onchange="calculateAll()"><div class="radio-text"><span>6% BTW</span><small>Renovatie &mdash; woning ouder dan 10 jaar (enkel Belgi&euml;)</small></div></label>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-title">Frequentie</div>' +
+        '<div class="radio-group">' +
+          '<label class="radio-option"><input type="radio" name="freq" value="1" checked onchange="calculateAll()"><div class="radio-text"><span>Jaarlijks</span><small>1 onderhoudsbeurt per jaar</small></div></label>' +
+          '<label class="radio-option"><input type="radio" name="freq" value="2" onchange="calculateAll()"><div class="radio-text"><span>Halfjaarlijks</span><small>2 onderhoudsbeurten per jaar</small></div></label>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-title">Contractduur</div>' +
+        '<div class="radio-group">' +
+          '<label class="radio-option"><input type="radio" name="duur" value="0" onchange="calculateAll()"><div class="radio-text"><span>Eenmalige interventie</span><small>Standaardtarief, geen doorlopend contract</small></div></label>' +
+          '<label class="radio-option"><input type="radio" name="duur" value="3" checked onchange="calculateAll()"><div class="radio-text"><span>3 jaar</span><small>5% korting op alle tarieven</small></div></label>' +
+          '<label class="radio-option"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text"><span>5 jaar</span><small>5% korting op alle tarieven</small></div></label>' +
+        '</div>' +
+      '</div>' +
+      // Verborgen afstand-input (bron-of-truth zit in stap-4 wiz-afstand; via setSharedState).
+      '<input type="hidden" id="afstand" value="0">' +
+      '<div class="result-card" id="result-card">' +
+        '<div class="result-title">Uw prijsindicatie per beurt</div>' +
+        '<div class="op-aanvraag-banner" id="op-aanvraag-banner" style="display:none">' +
+          '<div class="op-aanvraag-title">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+            '<span>Project op maat &mdash; geen automatische prijs</span>' +
+          '</div>' +
+          '<div class="op-aanvraag-body">' +
+            'Het aantal panelen overschrijdt onze standaardstaffel (max 75). Voor projecten boven 75 panelen maken we graag een offerte op maat &mdash; neem contact op met je Flancco-partner of via <a href="mailto:gillian.geernaert@flancco.be?subject=Offerte%20op%20maat%20%E2%80%94%20zonnepanelen%20%3E%2075">gillian.geernaert@flancco.be</a>.' +
+          '</div>' +
+        '</div>' +
+        '<div class="result-lines" id="result-lines"></div>' +
+        '<hr class="result-divider">' +
+        '<div class="result-total">' +
+          '<span class="result-total-label">Per beurt</span>' +
+          '<span class="result-total-amount" id="total"></span>' +
+        '</div>' +
+        '<div class="result-line hidden" id="line-jaar" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15)">' +
+          '<span>Per jaar (2 beurten)</span><span id="val-jaar" style="font-size:18px"></span>' +
+        '</div>' +
+        '<div class="result-note" id="btw-note">Alle bedragen incl. 21% btw</div>' +
+      '</div>' +
+      '<div id="staffel-container" style="margin-top:24px"></div>';
+  }
+
+  // ── Public API ──────────────────────────────────────────────────────
+  window.WizCalc = {
+    mount: function(host, opts) {
+      opts = opts || {};
+      hostEl = host;
+      partner = opts.partner || null;
+      partnerSectors = (opts.partnerSectors || []).slice();
+      partnerSectorConfig = opts.partnerSectorConfig || {};
+      allPricing = opts.allPricing || {};
+      allSupplements = opts.allSupplements || {};
+      onChangeCb = opts.onChange || null;
+
+      var initial = opts.initialState || {};
+      selectedSectors = (initial.selectedSectors || []).filter(function(s) { return partnerSectors.indexOf(s) >= 0; });
+      activeSectorTab = selectedSectors[0] || '';
+      sharedState = {
+        btwPct: initial.btwPct || 21,
+        freq: (typeof initial.freq === 'number') ? initial.freq : 1,
+        duur: (typeof initial.duur === 'number') ? initial.duur : 0,
+        afst: initial.afstandKm || 0,
+        afstandKm: initial.afstandKm || 0
+      };
+
+      buildHostDom();
+      // Sync afstand input naar initial state
+      var afstandInput = document.getElementById('afstand');
+      if (afstandInput) afstandInput.value = String(sharedState.afst);
+      // Sync radios naar initial state
+      var btwRadio = hostEl.querySelector('input[name="btw"][value="' + sharedState.btwPct + '"]');
+      if (btwRadio) btwRadio.checked = true;
+      var freqRadio = hostEl.querySelector('input[name="freq"][value="' + sharedState.freq + '"]');
+      if (freqRadio) freqRadio.checked = true;
+      var duurRadio = hostEl.querySelector('input[name="duur"][value="' + sharedState.duur + '"]');
+      if (duurRadio) duurRadio.checked = true;
+
+      renderSectorCards();
+      renderConfigArea();
+      calculateAll();
+
+      // Public instance API
+      return {
+        recalc: function() { calculateAll(); },
+        setSharedState: function(patch) {
+          if (!patch) return;
+          if (typeof patch.btwPct === 'number') {
+            sharedState.btwPct = patch.btwPct;
+            var r = hostEl.querySelector('input[name="btw"][value="' + patch.btwPct + '"]');
+            if (r) r.checked = true;
+          }
+          if (typeof patch.freq === 'number') {
+            sharedState.freq = patch.freq;
+            var rf = hostEl.querySelector('input[name="freq"][value="' + patch.freq + '"]');
+            if (rf) rf.checked = true;
+          }
+          if (typeof patch.duur === 'number') {
+            sharedState.duur = patch.duur;
+            var rd = hostEl.querySelector('input[name="duur"][value="' + patch.duur + '"]');
+            if (rd) rd.checked = true;
+          }
+          if (typeof patch.afstandKm === 'number') {
+            sharedState.afst = patch.afstandKm;
+            sharedState.afstandKm = patch.afstandKm;
+            var ai = document.getElementById('afstand');
+            if (ai) ai.value = String(patch.afstandKm);
+          }
+          calculateAll();
+        },
+        getState: getStateSnapshot,
+        getResult: getResultSnapshot,
+        destroy: function() {
+          if (hostEl) hostEl.innerHTML = '';
+          partner = null;
+          partnerSectors = [];
+          allPricing = {};
+          allSupplements = {};
+          selectedSectors = [];
+          activeSectorTab = '';
+          sectorResults = {};
+          sharedState = {};
+          hostEl = null;
+          onChangeCb = null;
+        }
+      };
+    },
+    summaryDescription: function(sector, inputs) {
+      var cfg = SECTORS[sector];
+      if (!cfg || typeof cfg.summaryDescription !== 'function') return '';
+      try { return cfg.summaryDescription(inputs); } catch (e) { return ''; }
+    }
+  };
+
+  // Inline-handlers in SECTORS-strings & buildHostDom verwijzen direct naar
+  // deze namen — exposeer als globals zodat ze opgelost worden bij DOM-events.
+  window.calculateAll = calculateAll;
+  window.toggleInfo = toggleInfo;
+  window.toggleSectorCard = toggleSectorCard;
+  window.switchSectorTab = switchSectorTab;
+  window.onWpTypeChange = onWpTypeChange;
+  window.onWpVierwegToggle = onWpVierwegToggle;
+  window.onWpVierwegNumberInput = onWpVierwegNumberInput;
+  window.onWpGlycolToggle = onWpGlycolToggle;
+})();
 </script>
 
 <!-- Cookie-consent banner (strikt-noodzakelijk; GDPR/AVG info) -->
