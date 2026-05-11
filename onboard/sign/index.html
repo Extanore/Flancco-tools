@@ -1007,21 +1007,70 @@
         </div>
 
         <div class="ap-card">
-          <h3 class="ap-card-title">Pricing — jouw marge: <span id="ap-step3-marge-inline">—</span>%</h3>
-          <p class="ap-card-sub">Drie voorbeeldprojecten met jouw afgesproken marge. Formule: <strong>(Flancco-forfait + jouw marge + planning fee) × 1,21 btw</strong>.</p>
-          <table class="ap-pricing-table" aria-label="Voorbeeldprojecten met jouw marge">
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th class="num">Flancco-forfait</th>
-                <th class="num">Jouw marge</th>
-                <th class="num">Planning fee</th>
-                <th class="num">Eindklant incl. btw</th>
-              </tr>
-            </thead>
-            <tbody id="ap-step3-tbody"></tbody>
-          </table>
-          <p class="ap-pricing-help">De marge wordt op de Flancco-forfait toegepast. De planning fee dekt agendabeheer, klant-communicatie en rapportage. Eindklanten kunnen voor zonnepanelen-reiniging gebruik maken van het verlaagde btw-tarief van 6% indien de woning ouder is dan 10 jaar — dit verandert niets aan jouw marge.</p>
+          <h3 class="ap-card-title">Hoofdstaffel — zonnepanelen reiniging</h3>
+          <p class="ap-card-sub">Volledige Flancco-staffel met jouw marge erop toegepast. Formule per beurt: <code style="font-size:12px;color:var(--navy)">forfait × (1 + marge%) + planning fee</code> (excl. 21% btw).</p>
+          <div class="ap-summary" style="margin-bottom:16px">
+            <dt>Marge</dt><dd id="ap-step3-marge-inline">—</dd>
+            <dt>Planning fee</dt><dd>€ 5,00 per beurt</dd>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ap-pricing-table">
+              <thead><tr><th>Aantal panelen</th><th class="num">Flancco prijs</th><th class="num">Jouw marge</th><th class="num">Klant excl. btw</th></tr></thead>
+              <tbody id="ap-step3-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="ap-card">
+          <h3 class="ap-card-title" style="color:#15803D">Toeslagen <span style="font-weight:500;color:#15803D;font-size:13px">— met jouw marge</span></h3>
+          <p class="ap-card-sub">Bovenop de basisstaffel — alleen indien van toepassing per beurt. Je marge wordt ook hierop toegepast.</p>
+          <div style="overflow-x:auto">
+            <table class="ap-pricing-table">
+              <thead><tr><th>Toeslag</th><th class="num">Flancco prijs</th><th class="num">Jouw marge</th><th class="num">Klant excl. btw</th></tr></thead>
+              <tbody id="ap-step3-tbody-marge"></tbody>
+            </table>
+          </div>
+          <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0;line-height:1.55"><strong style="color:var(--ink)">Wanneer geldt de toeslag?</strong> Onze technieker beoordeelt dit ter plaatse op basis van: mos- of korstmosgroei, vogelpoep-aankoeken die niet wegspoelen, roet/stoflagen (industriële omgeving), boomzappen of plakkerige aanslag, of panelen niet gereinigd in de laatste 3 jaar. De klant krijgt vooraf bevestiging van het bedrag — geen factuur-verrassing.</p>
+        </div>
+
+        <div class="ap-card">
+          <h3 class="ap-card-title" style="color:#C2410C">Doorlopende kosten <span style="font-weight:500;color:#C2410C;font-size:13px">— zonder marge</span></h3>
+          <p class="ap-card-sub">Vaste kosten die je 1-op-1 doorrekent aan de eindklant. Geen marge — transparant zichtbaar op factuur.</p>
+
+          <h4 style="font-size:13px;font-weight:600;margin:8px 0 8px;color:var(--ink)">Hoogtewerker — varieert per project-grootte</h4>
+          <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.5">Daghuur hoogtewerker bedraagt € 375. Hoeveel installaties je die dag haalt hangt af van project-grootte — daarom verschilt de doorgerekende kost per installatie. Onze standaard-hoogtewerker reikt tot <strong>max. 17 m</strong> dakrand; boven 17 m maken we een offerte op maat.</p>
+          <div style="overflow-x:auto;margin-bottom:18px">
+            <table class="ap-pricing-table">
+              <thead><tr><th>Project-grootte</th><th class="num">Realistisch / dag</th><th class="num">Hoogtewerker / installatie</th></tr></thead>
+              <tbody id="ap-step3-tbody-hoog"></tbody>
+            </table>
+          </div>
+
+          <h4 style="font-size:13px;font-weight:600;margin:0 0 8px;color:var(--ink)">Andere doorlopende kosten</h4>
+          <div style="overflow-x:auto">
+            <table class="ap-pricing-table">
+              <thead><tr><th>Kost</th><th class="num">Bedrag</th><th>Wanneer</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Parkeervergunning</strong></td>
+                  <td class="num">€ 25,00 vast</td>
+                  <td>Bij locaties waar parkeervergunning bij gemeente vereist is.</td>
+                </tr>
+                <tr>
+                  <td><strong>Planning fee</strong></td>
+                  <td class="num">€ 5,00 per beurt</td>
+                  <td>Standaard inbegrepen — al verwerkt in hoofdstaffel hierboven.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="ap-card" style="background:#F8FAFC;border:1px solid var(--border)">
+          <h3 class="ap-card-title">Concrete rekenvoorbeelden</h3>
+          <p class="ap-card-sub">Twee voorbeelden met je afgesproken marge.</p>
+          <p id="ap-step3-example-small" style="font-size:14px;line-height:1.7;margin:12px 0;color:var(--ink)"></p>
+          <p id="ap-step3-example-large" style="font-size:14px;line-height:1.7;margin:12px 0 0;color:var(--ink)"></p>
         </div>
 
         <div class="ap-actions">
@@ -1632,22 +1681,145 @@
       '<dt>Sectoren</dt><dd>' + escapeHtml(sectoren) + '</dd>' +
       '<dt>Afgesproken marge</dt><dd>' + (marge ? marge + '%' : '—') + '</dd>';
 
-    // Pricing voorbeelden
-    var planFee = PLANNING_FEE_DEFAULT;
-    var rows = '';
-    PRICING_EXAMPLES.forEach(function(ex){
-      var margeAmt = ex.forfait * (marge / 100);
-      var subtotal = ex.forfait + margeAmt + planFee;
-      var total = subtotal * 1.21;
-      rows += '<tr>';
-      rows +=   '<td><strong>' + escapeHtml(ex.label) + '</strong><br><span style="font-size:12px;color:var(--muted);font-weight:500">' + escapeHtml(ex.desc) + '</span></td>';
-      rows +=   '<td class="num">' + formatEUR(ex.forfait) + '</td>';
-      rows +=   '<td class="num" style="color:#10B981">+ ' + formatEUR(margeAmt) + '</td>';
-      rows +=   '<td class="num">' + formatEUR(planFee) + '</td>';
-      rows +=   '<td class="num"><strong>' + formatEUR(total) + '</strong></td>';
-      rows += '</tr>';
+    // Pricing: volledige staffel + toeslagen + doorlopende kosten + rekenvoorbeelden
+    // (identiek aan admin "Activeer partner" wizard stap 2)
+    wizRenderPricingFull(marge).catch(function(e) {
+      console.warn('[pricing] render failed:', e);
     });
-    $id('ap-step3-tbody').innerHTML = rows;
+  }
+
+  // ─── Pricing render-helpers (poort van admin/index.html apRenderPricingPreview) ──
+  var _wizFlanccoTiers = null;
+  async function wizLoadFlanccoPricingTiers() {
+    if (_wizFlanccoTiers) return _wizFlanccoTiers;
+    try {
+      var url = SUPA_URL + '/rest/v1/pricing'
+        + '?partner_id=eq.93679849-afb0-4a69-8bd5-b74afdf22cad'
+        + '&select=staffel_min,staffel_max,label,flancco_forfait'
+        + '&staffel_min=gte.1'
+        + '&order=staffel_min.asc';
+      var resp = await fetch(url, {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      if (!resp.ok) return [];
+      var data = await resp.json();
+      // Filter op zonnepanelen-staffels (HVAC etc. gebruiken staffel_min=0).
+      var tiers = (data || []).filter(function(p) { return /panelen/i.test(p.label || ''); });
+      _wizFlanccoTiers = tiers;
+      return tiers;
+    } catch (e) {
+      console.warn('[wizLoadFlanccoPricingTiers] failed:', e);
+      return [];
+    }
+  }
+
+  async function wizRenderPricingFull(marge) {
+    var margeInline = document.getElementById('ap-step3-marge-inline');
+    if (margeInline) margeInline.textContent = marge + '%';
+
+    var tbody = document.getElementById('ap-step3-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Bezig met laden…</td></tr>';
+
+    var tiers = await wizLoadFlanccoPricingTiers();
+    if (!tiers || !tiers.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#B91C1C;padding:20px">Pricing kon niet geladen worden — refresh de pagina.</td></tr>';
+      return;
+    }
+
+    var planningFee = 5;
+    var EXTRA_PER_PANEL_BOVEN_40 = 5.64;
+    var VERVUILING_PER_PANEEL = 2.00;
+    var HOOGTEWERKER_DAGHUUR = 375;
+    var HOOGTEWERKER_TIERS = [
+      { label: '1–14 panelen',  perDag: 4 },
+      { label: '15–25 panelen', perDag: 3 },
+      { label: '26–30 panelen', perDag: 2 },
+      { label: '31–35 panelen', perDag: 2 },
+      { label: '36–40 panelen', perDag: 2 },
+      { label: '41–75 panelen', perDag: 1 }
+    ];
+
+    // ─── Hoofdstaffel ─────────────────────────────────────────────────
+    var rows = tiers.map(function(t) {
+      var forfait = parseFloat(t.flancco_forfait) || 0;
+      var klantExcl = forfait * (1 + marge / 100) + planningFee;
+      var margeAmt = forfait * (marge / 100);
+      var labelHtml = '<strong>' + escapeHtml(t.label || '') + '</strong>';
+      if (t.staffel_min === 41 || /41/.test(t.label || '')) {
+        labelHtml += '<br><span style="font-size:11px;color:var(--muted);font-weight:400">+ € ' + EXTRA_PER_PANEL_BOVEN_40.toFixed(2).replace('.', ',') + ' per paneel boven 40</span>';
+      }
+      return '<tr>' +
+        '<td>' + labelHtml + '</td>' +
+        '<td class="num">' + formatEUR(forfait) + '</td>' +
+        '<td class="num" style="color:#10B981">+ ' + formatEUR(margeAmt) + '</td>' +
+        '<td class="num"><strong>' + formatEUR(klantExcl) + '</strong></td>' +
+      '</tr>';
+    }).join('');
+    rows += '<tr style="background:#FAFBFC">' +
+      '<td><strong>Boven 75 panelen</strong></td>' +
+      '<td colspan="3" style="color:var(--muted);font-style:italic">Op aanvraag — neem contact op voor een offerte op maat</td>' +
+    '</tr>';
+    tbody.innerHTML = rows;
+
+    // ─── Hoogtewerker per tier (zonder marge) ─────────────────────────
+    var tbodyHoog = document.getElementById('ap-step3-tbody-hoog');
+    if (tbodyHoog) {
+      tbodyHoog.innerHTML = HOOGTEWERKER_TIERS.map(function(h) {
+        var perInst = HOOGTEWERKER_DAGHUUR / h.perDag;
+        return '<tr>' +
+          '<td><strong>' + escapeHtml(h.label) + '</strong></td>' +
+          '<td class="num">' + h.perDag + ' / dag</td>' +
+          '<td class="num"><strong>' + formatEUR(perInst) + '</strong></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    // ─── Toeslagen MET marge ─────────────────────────────────────────
+    var tbodyMarge = document.getElementById('ap-step3-tbody-marge');
+    if (tbodyMarge) {
+      var vervKlant = VERVUILING_PER_PANEEL * (1 + marge / 100);
+      var vervMargeAmt = VERVUILING_PER_PANEEL * (marge / 100);
+      tbodyMarge.innerHTML =
+        '<tr>' +
+          '<td><strong>Hevige vervuiling / mosvorming</strong><br>' +
+            '<span style="font-size:11px;color:var(--muted)">Toeslag per paneel</span></td>' +
+          '<td class="num">' + formatEUR(VERVUILING_PER_PANEEL) + ' / paneel</td>' +
+          '<td class="num" style="color:#10B981">+ ' + formatEUR(vervMargeAmt) + ' / paneel</td>' +
+          '<td class="num"><strong>' + formatEUR(vervKlant) + ' / paneel</strong></td>' +
+        '</tr>';
+    }
+
+    // ─── Concrete rekenvoorbeelden ───────────────────────────────────
+    var exSmall = document.getElementById('ap-step3-example-small');
+    var exLarge = document.getElementById('ap-step3-example-large');
+    if (exSmall) {
+      var smF = 90;
+      var smMarge = smF * (marge / 100);
+      var smKlant = smF + smMarge + planningFee;
+      var smIncl = smKlant * 1.21;
+      exSmall.innerHTML =
+        '<strong>Klein —</strong> Voor <strong>12 panelen</strong> rekent Flancco ' +
+        formatEUR(smF) + '; met ' + marge + '% marge (' +
+        formatEUR(smMarge) + ') en € 5 planning fee factureer je <strong>' +
+        formatEUR(smKlant) + '</strong> excl. btw aan de klant (' +
+        formatEUR(smIncl) + ' incl. 21%).';
+    }
+    if (exLarge) {
+      var lgBase = 218;
+      var lgExtra = 10 * EXTRA_PER_PANEL_BOVEN_40;
+      var lgF = lgBase + lgExtra;
+      var lgMarge = lgF * (marge / 100);
+      var lgKlant = lgF + lgMarge + planningFee;
+      var lgIncl = lgKlant * 1.21;
+      exLarge.innerHTML =
+        '<strong>Groot —</strong> Voor <strong>50 panelen</strong> rekent Flancco ' +
+        formatEUR(lgBase) + ' basis + 10 × € ' + EXTRA_PER_PANEL_BOVEN_40.toFixed(2).replace('.', ',') +
+        ' = ' + formatEUR(lgF) + '; met ' + marge + '% marge (' +
+        formatEUR(lgMarge) + ') en € 5 planning fee factureer je <strong>' +
+        formatEUR(lgKlant) + '</strong> excl. btw aan de klant (' +
+        formatEUR(lgIncl) + ' incl. 21%).';
+    }
   }
 
   // ─── Step 4 render ──────────────────────────────────────────
