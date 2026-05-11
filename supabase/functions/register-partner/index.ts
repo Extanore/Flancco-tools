@@ -74,17 +74,19 @@ interface PartnerApplication {
   partner_id: string | null;
   bedrijfsnaam: string;
   contactpersoon_voornaam?: string | null;
+  contactpersoon_naam?: string | null;
   contactpersoon_email: string;
   contactpersoon_telefoon?: string | null;
   website?: string | null;
   marge_pct?: number | null;
   sectoren?: unknown;
-  // Optioneel: aanvullende velden uit wizard (adres, btw, etc.) — defensief uitgelezen
+  // Aanvullende bedrijfsgegevens uit signing-flow (Slot X.2): worden tijdens
+  // remote-signing aangevuld via public_record_remote_signing. Bij in-person
+  // signing reeds gevuld via admin_create_partner_application.
   btw_nummer?: string | null;
   adres?: string | null;
   postcode?: string | null;
   gemeente?: string | null;
-  contactpersoon?: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────────────
@@ -260,6 +262,18 @@ Deno.serve(async (req: Request) => {
       ? app.marge_pct
       : 10;
 
+    // Bedrijfsgegevens-mapping (Slot X.2): partner_applications splitst voornaam +
+    // naam apart op; partners-tabel heeft één `contactpersoon` veld → samenvoegen.
+    // Empty-string trim om "  null  " of "John  " te normaliseren naar null.
+    const contactpersoonFull = [
+      (app.contactpersoon_voornaam ?? "").trim(),
+      (app.contactpersoon_naam ?? "").trim(),
+    ].filter(Boolean).join(" ").trim() || null;
+
+    const adresNorm    = (app.adres    ?? "").trim() || null;
+    const postcodeNorm = (app.postcode ?? "").trim() || null;
+    const gemeenteNorm = (app.gemeente ?? "").trim() || null;
+
     const partnerInsert = {
       naam: app.bedrijfsnaam,
       bedrijfsnaam: app.bedrijfsnaam,
@@ -269,13 +283,20 @@ Deno.serve(async (req: Request) => {
       kleur_primair: "#1A1A2E", // Flancco-default tot partner branding kiest
       kleur_donker: "#0F0F1E",
       email: app.contactpersoon_email,
-      telefoon: app.contactpersoon_telefoon ?? null,
-      website: app.website ?? "",
-      contactpersoon: app.contactpersoon ?? null,
-      btw_nummer: app.btw_nummer ?? null,
-      adres: app.adres ?? null,
-      postcode: app.postcode ?? null,
-      gemeente: app.gemeente ?? null,
+      telefoon: (app.contactpersoon_telefoon ?? "").trim() || null,
+      website: (app.website ?? "").trim() || "",
+      contactpersoon: contactpersoonFull,
+      btw_nummer: (app.btw_nummer ?? "").trim() || null,
+      // Dutch primaire kolommen
+      adres: adresNorm,
+      postcode: postcodeNorm,
+      gemeente: gemeenteNorm,
+      // English shadow-kolommen op partners (street/postal_code/city) houden we
+      // gesynchroniseerd zodat downstream-views/PDF-renderers consistent zijn,
+      // ongeacht welke naamruimte ze hanteren.
+      street: adresNorm,
+      postal_code: postcodeNorm,
+      city: gemeenteNorm,
       contract_getekend: true,
       contract_datum: new Date().toISOString().slice(0, 10),
       actief: true,
