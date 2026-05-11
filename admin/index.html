@@ -9384,6 +9384,8 @@ var PA_STATUSES = [
 ];
 
 function showPartnerPipelinePage() {
+  // Page-bezoek: clear tab-badge zodat ongelezen-counter terug op 0 staat.
+  try { paClearNewLeadBadge(); } catch (_) {}
   loadPartnerPipeline();
   if (window.flanccoTrack) {
     try { window.flanccoTrack('Partner Pipeline View', { count: partnerApplications.length }); } catch (_) {}
@@ -9413,7 +9415,13 @@ function setupPartnerAppRealtime() {
   if (partnerAppRealtimeChannel) return;
   try {
     partnerAppRealtimeChannel = sb.channel('partner_applications_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_applications' }, function(_payload) {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_applications' }, function(payload) {
+        // Visuele cue bij nieuwe inkomende lead (INSERT-event).
+        // Tab-badge + audio-ding alleen als pipeline-page niet zichtbaar is, anders
+        // dubbele feedback (page reload toont de nieuwe rij al direct).
+        if (payload && payload.eventType === 'INSERT' && payload.new) {
+          try { paOnNewLeadEvent(payload.new); } catch (_) {}
+        }
         // Throttle: schedule single reload per burst
         if (window._paReloadTimer) return;
         window._paReloadTimer = setTimeout(function() {
@@ -9423,6 +9431,54 @@ function setupPartnerAppRealtime() {
       })
       .subscribe();
   } catch (e) { console.warn('partner_applications realtime subscribe failed', e); }
+}
+
+// ─── Nieuwe-lead notificatie helpers ─────────────────────────────────
+function paOnNewLeadEvent(row) {
+  var bedrijf = (row && row.bedrijfsnaam) || 'Onbekend bedrijf';
+  showToast('Nieuwe lead binnen: ' + bedrijf);
+  try { paPlayLeadDing(); } catch (_) {}
+  // Tab-badge enkel verhogen wanneer de pipeline-page niet actief getoond wordt.
+  var pipelinePage = document.getElementById('page-partner-pipeline');
+  var isActive = pipelinePage && pipelinePage.classList.contains('active');
+  if (!isActive) {
+    window._paNewLeadCount = (window._paNewLeadCount || 0) + 1;
+    paUpdateTitleBadge();
+  }
+}
+
+function paUpdateTitleBadge() {
+  var n = window._paNewLeadCount || 0;
+  // Onthoud de originele titel zodat we hem clean kunnen restoren.
+  if (!window._paOriginalTitle) window._paOriginalTitle = document.title.replace(/^\(\d+\)\s*/, '');
+  document.title = (n > 0 ? '(' + n + ') ' : '') + window._paOriginalTitle;
+}
+
+function paClearNewLeadBadge() {
+  window._paNewLeadCount = 0;
+  paUpdateTitleBadge();
+}
+
+function paPlayLeadDing() {
+  // Web Audio API: korte 2-toon beep zonder externe asset. Stilletjes falen
+  // als AudioContext niet beschikbaar is (oudere browsers / autoplay-blokkade
+  // vóór eerste user-gesture).
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  var ctx = new AC();
+  if (ctx.state === 'suspended') { try { ctx.resume(); } catch (_) {} }
+  var o = ctx.createOscillator();
+  var g = ctx.createGain();
+  o.type = 'sine';
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(880, ctx.currentTime);            // A5
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+  o.frequency.setValueAtTime(1175, ctx.currentTime + 0.1);     // D6
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+  o.start(ctx.currentTime);
+  o.stop(ctx.currentTime + 0.35);
+  setTimeout(function() { try { ctx.close(); } catch (_) {} }, 500);
 }
 
 function paFilterApplications() {
@@ -9614,6 +9670,10 @@ function viewPartnerApplication(id) {
   if (a.status !== 'lost') {
     html += '<button type="button" class="btn btn-ghost" style="color:#B91C1C;border-color:#FECACA" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'mark_lost\')">Markeer verloren</button>';
   }
+  // Verwijderen: enkel voor leads/lost/demo (NIET voor signed contracts of reeds gekoppelde partners)
+  if (a.status !== 'contract_signed' && !a.partner_id) {
+    html += '<button type="button" class="btn btn-ghost" style="color:#7F1D1D;border-color:#FCA5A5;margin-left:auto" onclick="partnerApplicationAction(\'' + esc(a.id) + '\', \'delete\')">Verwijderen</button>';
+  }
   html += '</div>';
 
   html += '</div>';
@@ -9682,6 +9742,37 @@ async function partnerApplicationAction(id, action) {
     if (lostReden) lostReden.value = '';
     document.getElementById('modal-pa-lost').dataset.targetId = id;
     document.getElementById('modal-pa-lost').classList.add('open');
+    return;
+  }
+  if (action === 'delete') {
+    // Defense-in-depth: blokkeer verwijdering van getekende contracten of reeds
+    // geactiveerde partners (boekhoudkundige bewaarplicht 7j voor signed records).
+    if (a.status === 'contract_signed' || a.partner_id) {
+      showToast('Getekende contracten of geactiveerde partners kunnen niet verwijderd worden', 'error');
+      return;
+    }
+    if (!(await confirmDialog({
+      title: 'Lead permanent verwijderen?',
+      message: 'De aanvraag van "' + (a.bedrijfsnaam || 'Onbekend bedrijf') + '" wordt definitief verwijderd. Dit kan niet ongedaan gemaakt worden. Audit-trail blijft bewaard.',
+      confirmLabel: 'Verwijder definitief',
+      cancelLabel: 'Annuleren'
+    }))) return;
+    var oldSnap = JSON.stringify({
+      bedrijfsnaam: a.bedrijfsnaam,
+      status: a.status,
+      contactpersoon_email: a.contactpersoon_email,
+      contactpersoon_naam: a.contactpersoon_naam,
+      sectoren: a.sectoren,
+      marge_pct: a.marge_pct,
+      created_at: a.created_at
+    });
+    var del = await sb.from('partner_applications').delete().eq('id', id);
+    if (del.error) { showToast('Verwijderen mislukt: ' + del.error.message, 'error'); return; }
+    try { auditLog('partner_applications', id, 'verwijderd', oldSnap, null); } catch (_) {}
+    partnerApplications = partnerApplications.filter(function(x) { return x.id !== id; });
+    showToast('Aanvraag verwijderd');
+    document.getElementById('modal-pa-detail').classList.remove('open');
+    renderPartnerPipeline();
     return;
   }
   if (action === 'retrigger_create') {
