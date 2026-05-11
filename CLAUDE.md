@@ -270,7 +270,7 @@ Gesyncd met productie-DB op 2026-05-11. Alleen Flancco Direct is actief — alle
 |------|-----|------|-------|-------------|----------------|
 | Flancco Direct | `93679849-afb0-4a69-8bd5-b74afdf22cad` | flancco | 10% | €0 | `#1A1A2E` (navy) |
 
-Voorheen aanwezig (verwijderd 2026-05-11 via admin-cleanup): Proenergy Solutions BV, Renson, Solora, TEST E2E v4 Live. Eerdere seed-partners (Novectra, CW Solar) waren al eerder weggehaald. Verouderde bestandsstructuur-comments (`novectra/index.html`, `cwsolar/index.html`) hierboven zijn legacy — vandaag draait alles via gedeelde `calculator/index.html` met `?partner=<slug>` query-param.
+Voorheen aanwezig (verwijderd 2026-05-11 via admin-cleanup): Proenergy Solutions BV, Renson, Solora, TEST E2E v4 Live, Extanore (test van eigen onboarding-flow). Eerdere seed-partners (Novectra, CW Solar) waren al eerder weggehaald. Verouderde bestandsstructuur-comments (`novectra/index.html`, `cwsolar/index.html`) hierboven zijn legacy — vandaag draait alles via gedeelde `calculator/index.html` met `?partner=<slug>` query-param.
 
 ### Admin User
 - Email: `gillian.geernaert@flancco.be`
