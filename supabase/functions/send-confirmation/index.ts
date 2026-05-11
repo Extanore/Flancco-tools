@@ -338,14 +338,18 @@ function resolveBranding(
 
   const isFlancco = (partner.slug || "").toLowerCase() === "flancco" || /flancco/i.test(partner.bedrijfsnaam || partner.naam || "");
 
+  // Klant-communicatie: dedicated communicatie_email/telefoon, fallback naar account-contact.
+  const klantEmail = (partner.communicatie_email || partner.email || "") as string;
+  const klantTelefoon = (partner.communicatie_telefoon || partner.telefoon || "") as string;
+
   if (isFlancco) {
     return {
       ...FLANCCO_DEFAULT_BRANDING,
       slug: partner.slug || "flancco",
       name: partner.bedrijfsnaam || partner.naam || "Flancco BV",
       logoUrl: partner.logo_url || "",
-      email: partner.email || FLANCCO_DEFAULT_BRANDING.email,
-      telefoon: partner.telefoon || "",
+      email: klantEmail || FLANCCO_DEFAULT_BRANDING.email,
+      telefoon: klantTelefoon,
       website: partner.website || FLANCCO_DEFAULT_BRANDING.website,
     };
   }
@@ -356,8 +360,8 @@ function resolveBranding(
     primaryColor: partner.kleur_primair || FLANCCO_DEFAULT_BRANDING.primaryColor,
     secondaryColor: partner.kleur_donker || FLANCCO_DEFAULT_BRANDING.secondaryColor,
     logoUrl: partner.logo_url || "",
-    email: partner.email || "",
-    telefoon: partner.telefoon || "",
+    email: klantEmail,
+    telefoon: klantTelefoon,
     website: partner.website || "",
     isFlancco: false,
   };
@@ -398,7 +402,7 @@ Deno.serve(async (req: Request) => {
         totaal_incl_btw, btw_type, frequentie, contractduur, contract_nummer, datum_ondertekening,
         pdf_url, status, created_at, verzonden_bevestiging_op, lang,
         client_id, client_contact_id,
-        partners ( id, slug, naam, bedrijfsnaam, kleur_primair, kleur_donker, logo_url, email, telefoon, website, actief )
+        partners ( id, slug, naam, bedrijfsnaam, kleur_primair, kleur_donker, logo_url, email, telefoon, communicatie_email, communicatie_telefoon, website, actief )
       `)
       .eq("id", contract_id)
       .maybeSingle<ContractRow>();

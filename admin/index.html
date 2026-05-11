@@ -2761,14 +2761,30 @@
         </div>
         <div class="modal-row">
           <div class="modal-field">
-            <label>E-mail</label>
+            <label>E-mail <span style="color:var(--grey);font-weight:400;font-size:11px">&middot; account &amp; portaal-notificaties</span></label>
             <input type="email" id="set-email">
           </div>
           <div class="modal-field">
-            <label>Telefoon</label>
+            <label>Telefoon <span style="color:var(--grey);font-weight:400;font-size:11px">&middot; administratief</span></label>
             <input type="tel" id="set-telefoon">
           </div>
         </div>
+
+        <div style="margin-top:24px;padding:18px 20px;background:#F9FAFB;border:1px solid var(--rule);border-radius:10px">
+          <label style="display:block;font-weight:600;font-size:13px;color:var(--navy);margin-bottom:4px">Communicatie met klanten <span style="color:var(--grey);font-weight:400">(optioneel)</span></label>
+          <p style="font-size:12px;color:var(--grey);margin:0 0 14px;line-height:1.5">Wordt getoond aan klanten in contracten, calculator-bevestiging en transactionele mails. Laat leeg om je account-gegevens hierboven te gebruiken.</p>
+          <div class="modal-row" style="margin-bottom:0">
+            <div class="modal-field">
+              <label style="font-weight:500">E-mail voor klant-communicatie</label>
+              <input type="email" id="set-comm-email" placeholder="bv. support@bedrijf.be">
+            </div>
+            <div class="modal-field">
+              <label style="font-weight:500">Telefoon voor klant-communicatie</label>
+              <input type="tel" id="set-comm-telefoon" placeholder="bv. 09 123 45 67">
+            </div>
+          </div>
+        </div>
+
         <div style="margin-top:20px">
           <label style="font-weight:600;font-size:13px">Sector-branding (optioneel)</label>
           <p style="font-size:12px;color:var(--grey);margin:4px 0 12px">Afwijkende bedrijfsnaam en kleuren per sector, zoals getoond op contracten en de calculator.</p>
@@ -6325,6 +6341,11 @@ function loadSettings(p) {
   document.getElementById('set-contact').value = p.contactpersoon || '';
   document.getElementById('set-email').value = p.email || '';
   document.getElementById('set-telefoon').value = p.telefoon || '';
+  // Klant-communicatie velden — optioneel, fallback naar account-velden in display-points
+  var commEmailEl = document.getElementById('set-comm-email');
+  var commTelEl = document.getElementById('set-comm-telefoon');
+  if (commEmailEl) commEmailEl.value = p.communicatie_email || '';
+  if (commTelEl) commTelEl.value = p.communicatie_telefoon || '';
   document.getElementById('set-transport-km').value = p.transport_gratis_km || 30;
   document.getElementById('set-marge').value = p.marge_pct || 10;
   document.getElementById('set-planning').value = p.planning_fee || 5;
@@ -6436,6 +6457,10 @@ async function saveSettings() {
     }
   });
 
+  // Klant-communicatie velden: lege string → NULL zodat fallback naar account-velden werkt.
+  var commEmailRaw = (document.getElementById('set-comm-email') || { value: '' }).value.trim();
+  var commTelRaw = (document.getElementById('set-comm-telefoon') || { value: '' }).value.trim();
+
   const updates = {
     logo_url: document.getElementById('set-logo-url').value.trim() || null,
     kleur_primair: kleurPrimair,
@@ -6444,6 +6469,8 @@ async function saveSettings() {
     contactpersoon: document.getElementById('set-contact').value,
     email: document.getElementById('set-email').value,
     telefoon: document.getElementById('set-telefoon').value,
+    communicatie_email: commEmailRaw || null,
+    communicatie_telefoon: commTelRaw || null,
     sector_namen: sectorNamen
   };
 
@@ -16066,6 +16093,9 @@ function previewContract(contractId, mode) {
   var today = c.datum_ondertekening ? new Date(c.datum_ondertekening).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
   var pAdres = p ? [p.adres, p.postcode, p.gemeente].filter(Boolean).join(', ') : '';
   var pBtw = p ? (p.btw_nummer || '') : '';
+  // Klant-communicatie: gebruik dedicated contact als ingevuld, anders fallback naar account-contact.
+  var pCommEmail = p ? (p.communicatie_email || p.email || '') : '';
+  var pCommTel = p ? (p.communicatie_telefoon || p.telefoon || '') : '';
   var st = computeStatus(c);
   var statusColor = { concept:'#9CA3AF', actief:'#059669', verlopen:'#D97706', geannuleerd:'#DC2626' };
   var statusBg = { concept:'#F3F4F6', actief:'#ECFDF5', verlopen:'#FFFBEB', geannuleerd:'#FEF2F2' };
@@ -16281,9 +16311,10 @@ function previewContract(contractId, mode) {
   }
   html += '</div></div>';
 
-  // Footer
+  // Footer \u2014 gebruikt klant-communicatie contact (fallback naar account-contact via pCommEmail/pCommTel).
   html += '<p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb">' +
-    pName + (pAdres ? ' \u00B7 ' + pAdres : '') + (pBtw ? ' \u00B7 ' + pBtw : '') + '</p>';
+    pName + (pAdres ? ' \u00B7 ' + pAdres : '') + (pBtw ? ' \u00B7 ' + pBtw : '') +
+    (pCommTel ? ' \u00B7 ' + pCommTel : '') + (pCommEmail ? ' \u00B7 ' + pCommEmail : '') + '</p>';
 
   html += '</body></html>';
 
