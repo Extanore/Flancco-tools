@@ -71,7 +71,7 @@
       var raw = localStorage.getItem('flancco_partner_branding');
       if (!raw) return;
       var b = JSON.parse(raw);
-      if (!b || !b.kleur_donker) return;
+      if (!b || !b.kleur_primair) return;
       // Stale-cache guard: als er een actieve session is en de user_id matcht niet
       // met de cache-user_id, beschouw cache als verouderd en wis 'm.
       // (Geen session in localStorage = geen vergelijking mogelijk = cache toepassen,
@@ -93,8 +93,11 @@
       } catch(_) { /* auth-token parse-fail: val terug op cache toepassen */ }
       window.__flanccoBoot = b;
       var root = document.documentElement;
-      root.style.setProperty('--navy', b.kleur_donker);
-      root.style.setProperty('--navy-light', b.kleur_primair || b.kleur_donker);
+      // --navy = primaire brand-kleur (navbar + main accents). --navy-light = donkere
+      // accent-kleur (hover, secondary surfaces). Pre-paint mapping moet identiek zijn
+      // met applyBranding() zodat geen kleur-flash optreedt bij hydratation.
+      root.style.setProperty('--navy', b.kleur_primair);
+      root.style.setProperty('--navy-light', b.kleur_donker || b.kleur_primair);
       // Voorkomt Flancco-rode "O" via generieke :root-regel — partner-span krijgt geen rood.
       root.style.setProperty('--red-fouc-override', 'inherit');
       // Favicon swap: partner-logo vervangt standaard-favicon in browser-tab.
@@ -2042,9 +2045,11 @@
           el.innerHTML = '<h2 style="color:white;font-size:18px">' + name + '</h2>' +
                          '<small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>';
         }
-        // Sidebar background inline — belt-and-suspenders naast CSS-var --navy
+        // Sidebar background inline — belt-and-suspenders naast CSS-var --navy.
+        // Gebruikt PRIMAIRE kleur (brand-identiteit zichtbaar in navbar), identiek
+        // met applyBranding() zodat post-hydration geen kleur-flash optreedt.
         var sb = document.getElementById('sidebar');
-        if (sb && b.kleur_donker) sb.style.background = b.kleur_donker;
+        if (sb && b.kleur_primair) sb.style.background = b.kleur_primair;
       })();
     </script>
     <!-- UNIFIED NAV — admin + partner, role-classes gate what elk ziet -->
@@ -2737,7 +2742,7 @@
             </div>
           </div>
           <div class="modal-field">
-            <label>Donkere kleur</label>
+            <label>Accent kleur</label>
             <div style="display:flex;gap:8px;align-items:center">
               <input type="color" id="set-kleur2" style="width:48px;height:36px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:2px">
               <input type="text" id="set-kleur2-hex" placeholder="#066b5e" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:14px">
@@ -3034,7 +3039,7 @@
             </div>
           </div>
           <div>
-            <label style="font-size:12px;color:var(--grey);font-weight:600">Donkere kleur (sidebar)</label>
+            <label style="font-size:12px;color:var(--grey);font-weight:600">Accent kleur</label>
             <div style="display:flex;gap:6px;margin-top:4px">
               <input type="color" id="np-kleur2" value="#066b5e" oninput="document.getElementById('np-kleur2-hex').value=this.value" style="width:44px;height:42px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px;background:#fff">
               <input type="text" id="np-kleur2-hex" value="#066b5e" oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)) document.getElementById('np-kleur2').value=this.value" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">
@@ -6200,17 +6205,18 @@ function applyBranding(p) {
   const primary = p.kleur_primair || '#098979';
   const dark = p.kleur_donker || '#066b5e';
 
-  // Sidebar
+  // Sidebar — gebruikt PRIMAIRE kleur (= brand-identiteit, zichtbaar in navbar)
   const sidebar = document.getElementById('sidebar');
-  sidebar.style.background = dark;
+  sidebar.style.background = primary;
 
   // Sidebar logo
   const logo = document.getElementById('sidebar-logo');
   logo.innerHTML = `<h2 style="color:white;font-size:18px">${p.bedrijfsnaam || p.naam}</h2><small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>`;
 
-  // Stat cards and accents
-  document.documentElement.style.setProperty('--navy', dark);
-  document.documentElement.style.setProperty('--navy-light', primary);
+  // Stat cards and accents — `--navy` = brand-identiteit (knoppen, headers, links).
+  // `--navy-light` = donkere accent-kleur (hover-states, secondary surfaces).
+  document.documentElement.style.setProperty('--navy', primary);
+  document.documentElement.style.setProperty('--navy-light', dark);
 
   // Page title
   document.getElementById('page-title').textContent = 'Dashboard — ' + p.naam;
@@ -6340,7 +6346,7 @@ function loadSettings(p) {
       '<label style="width:110px;font-size:12px;color:var(--grey);flex-shrink:0">' + sectorLabelsMap[s] + '</label>' +
       '<input id="sn-' + s + '" value="' + esc(naam) + '" placeholder="' + esc(p.bedrijfsnaam || p.naam) + '" title="Bedrijfsnaam" style="flex:1;padding:6px 10px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;min-width:0">' +
       '<input type="color" id="sn-kp-' + s + '" value="' + (kp || defPrimair) + '" title="Hoofdkleur" style="width:32px;height:32px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:1px;flex-shrink:0;' + (kp ? '' : 'opacity:0.35') + '" onchange="this.style.opacity=1">' +
-      '<input type="color" id="sn-kd-' + s + '" value="' + (kd || defDonker) + '" title="Donkere kleur" style="width:32px;height:32px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:1px;flex-shrink:0;' + (kd ? '' : 'opacity:0.35') + '" onchange="this.style.opacity=1">' +
+      '<input type="color" id="sn-kd-' + s + '" value="' + (kd || defDonker) + '" title="Accent kleur" style="width:32px;height:32px;border:1.5px solid var(--rule);border-radius:6px;cursor:pointer;padding:1px;flex-shrink:0;' + (kd ? '' : 'opacity:0.35') + '" onchange="this.style.opacity=1">' +
     '</div>';
   }).join('');
 
@@ -8969,7 +8975,7 @@ function renderPartnerDetail(p, actieve, alleContracten) {
   h += '<h4 class="pd-section-title" style="margin-top:16px">Branding</h4>';
   h += '<div class="pd-branding">';
   h += '<span class="pd-color-chip" style="background:' + esc(p.kleur_primair || '#ccc') + '" title="Primaire kleur: ' + esc(p.kleur_primair || '—') + '"></span>';
-  h += '<span class="pd-color-chip" style="background:' + esc(p.kleur_donker || p.kleur_secundair || '#ccc') + '" title="Donkere/secundaire kleur"></span>';
+  h += '<span class="pd-color-chip" style="background:' + esc(p.kleur_donker || p.kleur_secundair || '#ccc') + '" title="Accent kleur"></span>';
   if (p.logo_url) h += '<img src="' + esc(p.logo_url) + '" class="pd-branding-logo" alt="">';
   h += '</div>';
 
@@ -9204,7 +9210,7 @@ function renderAdminSettings() {
     html += '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Branding</label>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
     html += '<div><label style="font-size:11px;color:var(--grey)">Primaire kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur1-' + p.id + '" value="' + normalizeHex(p.kleur_primair || '#098979') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px" oninput="syncColorPickerToHex(this,\'adm-kleur1t-' + p.id + '\')"><input type="text" id="adm-kleur1t-' + p.id + '" value="' + normalizeHex(p.kleur_primair || '#098979') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="syncHexToColorPicker(this,\'adm-kleur1-' + p.id + '\')"></div></div>';
-    html += '<div><label style="font-size:11px;color:var(--grey)">Donkere kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur2-' + p.id + '" value="' + normalizeHex(p.kleur_donker || '#066b5e') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px" oninput="syncColorPickerToHex(this,\'adm-kleur2t-' + p.id + '\')"><input type="text" id="adm-kleur2t-' + p.id + '" value="' + normalizeHex(p.kleur_donker || '#066b5e') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="syncHexToColorPicker(this,\'adm-kleur2-' + p.id + '\')"></div></div>';
+    html += '<div><label style="font-size:11px;color:var(--grey)">Accent kleur</label><div style="display:flex;gap:4px"><input type="color" id="adm-kleur2-' + p.id + '" value="' + normalizeHex(p.kleur_donker || '#066b5e') + '" style="width:36px;height:32px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;padding:1px" oninput="syncColorPickerToHex(this,\'adm-kleur2t-' + p.id + '\')"><input type="text" id="adm-kleur2t-' + p.id + '" value="' + normalizeHex(p.kleur_donker || '#066b5e') + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:12px" oninput="syncHexToColorPicker(this,\'adm-kleur2-' + p.id + '\')"></div></div>';
     html += '<div><label style="font-size:11px;color:var(--grey)">Logo</label><div id="adm-logo-uploader-' + p.id + '" style="margin-top:4px"></div><input type="hidden" id="adm-logo-' + p.id + '" value="' + esc(p.logo_url || '') + '"></div>';
     html += '</div></div>';
 
@@ -10649,9 +10655,9 @@ function renderOnbStep() {
     html += '<input type="text" id="onb-kleur-hex" value="' + esc(onbDraft.kleur_primair) + '" oninput="onbOnColorChange(this.value, false)" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
     html += '</div>';
     html += '<p style="font-size:11px;color:var(--grey);margin:8px 0 0">Sidebar, buttons en accenten.</p>';
-    // Donkere kleur — voor headers / hover-states. Default = auto-afgeleid uit primair (HSL darken 18%).
+    // Accent kleur — voor headers / hover-states. Default = auto-afgeleid uit primair (HSL darken 18%).
     // Knop ↺ herberekent uit huidige primair zodat partner snel terug kan naar auto-default.
-    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin:14px 0 6px">Donkere kleur</label>';
+    html += '<label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin:14px 0 6px">Accent kleur</label>';
     html += '<div style="display:flex;gap:8px;align-items:center">';
     html += '<input type="color" id="onb-kleur-donker" value="' + esc(onbDraft.kleur_donker) + '" oninput="onbOnDarkColorChange(this.value, true)" style="width:48px;height:40px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;padding:2px">';
     html += '<input type="text" id="onb-kleur-donker-hex" value="' + esc(onbDraft.kleur_donker) + '" oninput="onbOnDarkColorChange(this.value, false)" style="flex:1;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace">';
