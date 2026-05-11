@@ -257,11 +257,17 @@ BEFORE UPDATE trigger `partners_commercial_lock` op `partners` (functie `protect
 - Optioneel: `DISPATCH_ENABLE_EMAIL`, `DISPATCH_ENABLE_SMS`, `DISPATCH_ENABLE_WHATSAPP` (default `true`) — staged rollout flags
 
 ### Partners in Database
-| Naam | ID | Slug | Marge | Planning fee |
-|------|-----|------|-------|-------------|
-| Novectra | `7791bfc4-7923-4eec-936a-a4acdb09c718` | novectra | 15% | €25 |
-| CW Solar | `50c2f3c8-10f5-491a-bcfb-73c23ac38a1a` | cwsolar | 15% | €25 |
-| Flancco Direct | `93679849-afb0-4a69-8bd5-b74afdf22cad` | flancco | 0% | €0 |
+Gesyncd met productie-DB op 2026-05-04. Alleen actieve partners.
+
+| Naam | ID | Slug | Marge | Planning fee | Kleur primair |
+|------|-----|------|-------|-------------|----------------|
+| Flancco Direct | `93679849-afb0-4a69-8bd5-b74afdf22cad` | flancco | 10% | €0 | `#1A1A2E` (navy) |
+| Proenergy Solutions BV | `a68cab5a-eb15-4b20-89fc-8b729b6caa41` | proenergy-solutions-bv | 10% | €5 | `#77bb41` (groen) |
+| Renson | `f21debc3-8dd4-4442-9965-9fbc50826add` | renson | 10% | €5 | `#0042aa` (blauw) |
+| Solora | `f332caf9-8a7e-43ad-ae45-a84512af0102` | solora | 15% | €25 | `#ffd877` (geel) |
+| TEST E2E v4 Live | `6034e102-1bc7-4d55-92fd-43af0141376d` | test-e2e-v4-live | 12% | €0 | `#aa7942` (cooper) |
+
+Novectra + CW Solar zijn niet meer in `partners`-tabel (vroegere seed-partners). Verouderde bestandsstructuur-comments (`novectra/index.html`, `cwsolar/index.html`) hierboven zijn legacy — vandaag draait alles via gedeelde `calculator/index.html` met `?partner=<slug>` query-param.
 
 ### Admin User
 - Email: `gillian.geernaert@flancco.be`
