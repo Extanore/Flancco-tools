@@ -16017,9 +16017,41 @@ async function deleteContract(id) {
 // =============================================
 // `mode` can be 'window' (default, open preview-tab) or 'html' (return HTML string zonder UI).
 // Beide paden bouwen EXACT dezelfde branded HTML, zodat preview en PDF visueel identiek zijn (M).
+//
+// Browser pop-up blocker workaround: `window.open()` moet onmiddellijk na de
+// user-gesture (klik) gebeuren, anders blokkeert Safari/Firefox het. Daarom
+// openen we het venster eerst (met loading-placeholder), bouwen de HTML, en
+// schrijven die in het reeds-geopende venster.
 function previewContract(contractId, mode) {
+  // Stap 1: window OPEN eerst (binnen click-call-stack), enkel in 'window'-mode.
+  // Mode 'html' wordt synchroon aangeroepen voor PDF-generatie en heeft geen venster nodig.
+  var win = null;
+  if (mode !== 'html') {
+    try {
+      win = window.open('', '_blank');
+    } catch (e) {
+      win = null;
+    }
+    if (!win) {
+      showToast('Pop-up geblokkeerd door je browser. Sta pop-ups toe voor deze pagina om de preview te zien.', 'error');
+      return;
+    }
+    // Loading-placeholder zodat partner niet naar een blanco tab kijkt
+    // terwijl HTML wordt gebouwd (typisch <50ms maar visueel netter).
+    try {
+      win.document.open();
+      win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contract laden…</title><style>body{font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#6b7280}</style></head><body>Contract laden…</body></html>');
+      win.document.close();
+    } catch (_) { /* sommige browsers: write faalt voor about:blank — niet kritiek */ }
+  }
+
   var c = allContracten.find(x => x.id === contractId);
-  if (!c) { if (mode === 'html') return null; showToast('Contract niet gevonden', 'error'); return; }
+  if (!c) {
+    if (mode === 'html') return null;
+    showToast('Contract niet gevonden', 'error');
+    try { if (win) win.close(); } catch (_) {}
+    return;
+  }
   var p = partners.find(x => x.id === c.partner_id);
   var contractSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
   var branding = getPartnerBranding(p, contractSector);
@@ -16257,10 +16289,18 @@ function previewContract(contractId, mode) {
 
   if (mode === 'html') return html;
 
-  var win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
+  // `win` werd al geopend bovenaan de functie (pop-up-blocker workaround).
+  // Schrijf nu de gebouwde HTML in dat venster en geef het focus.
+  try {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+  } catch (e) {
+    console.error('[previewContract] write naar preview-window faalde:', e);
+    showToast('Kon preview niet renderen — controleer de console voor details.', 'error');
+    try { win.close(); } catch (_) {}
+  }
 }
 
 // =============================================
