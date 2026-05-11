@@ -554,6 +554,18 @@
   .wiz-btw6-box .check-row input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--navy); cursor: pointer; }
   .wiz-btw6-box .check-row.is-required-missing { border-color: var(--red); background: rgba(229,62,62,0.05); }
   .wiz-btw6-box .verklaring-disclaimer { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #D9C285; font-size: 11px; color: #7A6520; }
+
+  /* Stap 4 (Afronden) — details-card met startdatum + radio-grid */
+  .wiz-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  @media (max-width: 600px) { .wiz-details-grid { grid-template-columns: 1fr; } }
+  .wiz-radio-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px; }
+  @media (max-width: 700px) { .wiz-radio-grid { grid-template-columns: 1fr; } }
+  .wiz-radio-option { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; background: var(--light); border: 1.5px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .wiz-radio-option:hover { border-color: var(--navy); }
+  .wiz-radio-option.is-selected { border-color: var(--navy); background: #F8F8FB; }
+  .wiz-radio-option input[type="radio"] { margin-top: 2px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--navy); cursor: pointer; }
+  .wiz-radio-option .wiz-radio-text { font-size: 14px; font-weight: 600; color: var(--navy); line-height: 1.3; }
+  .wiz-radio-option .wiz-radio-text small { display: block; font-weight: 400; font-size: 11.5px; color: var(--grey); margin-top: 3px; line-height: 1.4; }
 </style>
 <!-- Flancco Client Combobox (shared) — searchable klant-picker met grouped headers.
      Geladen synchroon (geen defer) zodat window.FlanccoClientCombobox + window.FlanccoClientItems
@@ -644,8 +656,7 @@
         <div class="step-tab active" data-step="1"><span class="step-num">1</span><span>Type</span></div>
         <div class="step-tab" data-step="2"><span class="step-num">2</span><span>Klant</span></div>
         <div class="step-tab" data-step="3"><span class="step-num">3</span><span>Diensten & tarieven</span></div>
-        <div class="step-tab" data-step="4"><span class="step-num">4</span><span>Frequentie</span></div>
-        <div class="step-tab" data-step="5"><span class="step-num">5</span><span>Afronden</span></div>
+        <div class="step-tab" data-step="4"><span class="step-num">4</span><span>Afronden</span></div>
       </div>
     </div>
 
@@ -818,98 +829,33 @@
       </div>
     </div>
 
-    <!-- STAP 4: FREQUENTIE & DUUR -->
+    <!-- STAP 4: AFRONDEN -->
     <div class="wiz-step" id="wiz-step-4">
-      <div class="card">
-        <div class="card-title">Frequentie</div>
-        <div class="freq-grid">
-          <div class="freq-card selected" data-freq="1" onclick="selectFreq(this)">
-            <h4>Jaarlijks</h4>
-            <p>1x per jaar</p>
-          </div>
-          <div class="freq-card" data-freq="2" onclick="selectFreq(this)">
-            <h4>Halfjaarlijks</h4>
-            <p>2x per jaar</p>
-          </div>
-          <div class="freq-card" data-freq="0" onclick="selectFreq(this)">
-            <h4>Eenmalig</h4>
-            <p>Eenmalige interventie</p>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Looptijd</div>
-        <div class="duur-grid">
-          <div class="freq-card" data-duur="0" onclick="selectDuur(this)">
-            <h4>Eenmalig</h4>
-            <p>Geen contract</p>
-          </div>
-          <div class="freq-card" data-duur="3" onclick="selectDuur(this)">
-            <h4>3 jaar</h4>
-            <p>Standaard</p>
-            <span class="badge-korting">-5% korting</span>
-          </div>
-          <div class="freq-card" data-duur="5" onclick="selectDuur(this)">
-            <h4>5 jaar</h4>
-            <p>Langetermijn</p>
-            <span class="badge-korting">-5% korting</span>
-          </div>
-        </div>
-      </div>
-      <!-- Slot O2 — BTW-tarief + verklaring op eer (KB nr. 20) -->
-      <div class="card">
-        <div class="card-title">BTW-tarief</div>
-        <div class="btw-card-grid">
-          <div class="btw-tile is-selected" id="wiz-btw-tile-21" onclick="onWizBtwSelect(21)">
-            <h4>21% BTW</h4>
-            <p>Standaardtarief</p>
-          </div>
-          <div class="btw-tile" id="wiz-btw-tile-6" onclick="onWizBtwSelect(6)">
-            <h4>6% BTW</h4>
-            <p>Renovatie — woning ouder dan 10 jaar (enkel Belgi&euml;)</p>
-            <small id="wiz-btw-tile-6-hint" style="display:none">Enkel beschikbaar voor Belgische postcodes.</small>
-          </div>
-        </div>
-        <div class="wiz-btw6-box" id="wiz-btw6-verklaring" style="display:none">
-          <strong>Verklaring op eer — verlaagd btw-tarief van 6%</strong>
-          <p style="margin-top:6px">Volgens KB nr. 20 (rubriek XXXVIII en XXXI van tabel A) kan het verlaagd btw-tarief van 6% enkel worden toegepast wanneer de woning aan beide onderstaande voorwaarden voldoet. Vink beide verklaringen aan om het tarief van 6% te bevestigen.</p>
-          <label class="check-row" id="wiz-btw6-check-prive-row">
-            <input type="checkbox" id="wiz-btw6-check-prive" onchange="onWizBtw6CheckChange()">
-            <span>De partner bevestigt dat het gebouw waar de werken worden uitgevoerd uitsluitend of hoofdzakelijk wordt gebruikt als priv&eacute;woning, en dat de eindverbruiker rechtstreeks wordt gefactureerd.</span>
-          </label>
-          <label class="check-row" id="wiz-btw6-check-ouderdom-row">
-            <input type="checkbox" id="wiz-btw6-check-ouderdom" onchange="onWizBtw6CheckChange()">
-            <span>De partner bevestigt dat de eerste ingebruikname van het gebouw minstens tien jaar voorafgaat aan het eerste tijdstip waarop deze btw opeisbaar wordt.</span>
-          </label>
-          <div class="verklaring-disclaimer">Bij een onjuiste verklaring kan het verschil in btw (15%), evenals eventuele verwijlinteresten en boetes, integraal op de eindverbruiker worden verhaald (KB nr. 20 — art. 1quater).</div>
-        </div>
-      </div>
+      <div class="card" id="wiz-details-card">
+        <div class="card-title">Looptijd &amp; planning</div>
+        <p class="card-sub" style="margin-top:4px;color:var(--grey);font-size:13px">Het contract gaat onmiddellijk in. Kies wanneer de eerste onderhoudsbeurt mag plaatsvinden.</p>
 
-      <div class="card">
-        <div class="card-title">Details</div>
-        <div class="field-row">
+        <div class="wiz-details-grid">
           <div class="field">
-            <label>Startdatum</label>
-            <input type="date" id="wiz-startdatum" onchange="calcEinddatum()">
+            <label>Contract-startdatum</label>
+            <input type="text" id="wiz-startdatum-display" readonly value="" style="background:var(--light);color:var(--navy);font-weight:500">
           </div>
           <div class="field">
             <label>Einddatum (berekend)</label>
-            <input type="date" id="wiz-einddatum" readonly style="background:var(--light)">
+            <input type="text" id="wiz-einddatum-display" readonly value="" style="background:var(--light);color:var(--navy);font-weight:500">
           </div>
         </div>
-        <div class="field">
-          <label>Afstand partner → klant (km)</label>
-          <input type="number" id="wiz-afstand" min="0" max="200" value="0" oninput="onWizAfstandInput()">
+
+        <div class="field" style="margin-top:18px">
+          <label>Eerste onderhoudsbeurt vanaf</label>
+          <div class="wiz-radio-grid" id="wiz-eerste-uitvoer-group">
+            <label class="wiz-radio-option is-selected"><input type="radio" name="wiz-eerste-uitvoer" value="onmiddellijk" checked onchange="onWizEersteUitvoerChange()"><div class="wiz-radio-text"><span>Onmiddellijk</span><small>Eerstvolgende seizoens-gebonden datum</small></div></label>
+            <label class="wiz-radio-option"><input type="radio" name="wiz-eerste-uitvoer" value="plus6" onchange="onWizEersteUitvoerChange()"><div class="wiz-radio-text"><span>+ 6 maanden</span><small>Bv. einde halfjaar-garantie</small></div></label>
+            <label class="wiz-radio-option"><input type="radio" name="wiz-eerste-uitvoer" value="plus12" onchange="onWizEersteUitvoerChange()"><div class="wiz-radio-text"><span>+ 12 maanden</span><small>Bv. nieuwe installatie &mdash; onderhoud pas na 1 jaar</small></div></label>
+          </div>
+          <p style="font-size:11.5px;color:var(--grey);margin:10px 0 0;line-height:1.55">Gebruik dit voor contracten gekoppeld aan een nieuwe installatie waar het eerste onderhoud pas later mag plaatsvinden.</p>
         </div>
       </div>
-      <div class="wizard-footer">
-        <button class="btn btn-ghost" onclick="goStep(3)">&larr; Vorige</button>
-        <button class="btn btn-primary" onclick="goStep(5)">Volgende &rarr;</button>
-      </div>
-    </div>
-
-    <!-- STAP 5: AFRONDEN -->
-    <div class="wiz-step" id="wiz-step-5">
       <div class="card">
         <div class="card-title">Samenvatting</div>
         <div id="summary-content"></div>
@@ -926,7 +872,7 @@
         </div>
       </div>
       <div class="wizard-footer">
-        <button class="btn btn-ghost" onclick="goStep(4)">&larr; Vorige</button>
+        <button class="btn btn-ghost" onclick="goStep(3)">&larr; Vorige</button>
         <button class="btn btn-primary" id="btn-save-concept" onclick="saveContract()">Opslaan als concept</button>
       </div>
     </div>
@@ -995,7 +941,9 @@ let wizState = {
   btwPct: 21,                                        // 21 (default) | 6
   verklaring6BtwPriveAangevinkt: false,
   verklaring6BtwOuderdan10jAangevinkt: false,
-  verklaring6BtwDatum: null
+  verklaring6BtwDatum: null,
+  // Stap 4 (Afronden) — eerste-uitvoeringsdatum keuze: 'onmiddellijk' | 'plus6' | 'plus12'
+  eersteUitvoerKeuze: 'onmiddellijk'
 };
 
 // =============================================
@@ -1356,11 +1304,9 @@ async function initApp() {
     if (opmaatCard) opmaatCard.style.display = 'none';
   }
 
-  // Set default start date to today
+  // Set default start date to today (ISO yyyy-mm-dd voor DB-payload)
   var today = new Date().toISOString().split('T')[0];
-  document.getElementById('wiz-startdatum').value = today;
   wizState.startDatum = today;
-  calcEinddatum();
 
   // Honor ?client=<id> deep-link (vanuit admin klant-dossier) (J.3)
   applyClientFromUrl();
@@ -1427,15 +1373,16 @@ function goStep(n) {
       wizState._ncBtwValidatedPayload = (ncVies && ncVies.valid === true) ? ncVies : null;
     }
   }
-  if (n === 4 && wizState.selectedSectors.length === 0) {
-    showToast('Selecteer minstens 1 sector');
-    return;
-  }
-  if (n === 5) {
-    // Check of er een looptijd is gekozen
-    var duurSelected = document.querySelector('.duur-grid .freq-card.selected');
-    if (!duurSelected) {
-      showToast('Kies een looptijd');
+  if (n === 4) {
+    // Sectoren-check (was voorheen stap 4 = Frequentie; nu stap 4 = Afronden).
+    if (wizState.selectedSectors.length === 0) {
+      showToast('Selecteer minstens 1 sector');
+      return;
+    }
+    // Looptijd-keuze zit nu in de calculator-UI van stap 3 (radio name="duur").
+    // Validatie: een numerieke wizState.duur moet gesynct zijn (0=eenmalig, 3, 5).
+    if (typeof wizState.duur !== 'number') {
+      showToast('Kies een looptijd in stap 3');
       return;
     }
     renderSummary();
@@ -1452,10 +1399,6 @@ function goStep(n) {
     if (i === n - 1) tab.classList.add('active');
   });
 
-  // Slot O2 — bij stap 4: BTW-tile-availability syncen met klant-postcode
-  if (n === 4 && typeof refreshWizBtw6Availability === 'function') {
-    try { refreshWizBtw6Availability(); } catch (_) {}
-  }
   // Slot O2 — bij stap 2: warmup postcode-data
   if (n === 2 && window.flanccoPostcodes && typeof window.flanccoPostcodes.warmup === 'function') {
     try { window.flanccoPostcodes.warmup(); } catch (_) {}
@@ -1467,16 +1410,12 @@ function goStep(n) {
     mountWizCalc();
   }
 
-  window.scrollTo(0, 0);
-}
-
-// Stap 3 → afstand-input synct naar WizCalc-instance.
-function onWizAfstandInput() {
-  var v = parseInt(document.getElementById('wiz-afstand').value) || 0;
-  wizState.afstandKm = v;
-  if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
-    wizCalcInstance.setSharedState({ afstandKm: v });
+  // Stap 4 (Afronden): render startdatum + einddatum display + sync eerste-uitvoer radio.
+  if (n === 4) {
+    refreshWizDetailsCard();
   }
+
+  window.scrollTo(0, 0);
 }
 
 // =============================================
@@ -2004,61 +1943,18 @@ function getActiveKlantPostcode() {
   return '';
 }
 
+// refreshWizBtw6Availability: no-op stub. Stap 4 (oude Frequentie-pagina met
+// BTW-tiles) is geschrapt — de calculator-UI in stap 3 heeft een eigen 6%-BTW
+// radio en regelt postcode-gating in zijn eigen calculateAll(). Deze stub blijft
+// als safety-net zodat callers in de nieuwe-klant postcode-flow geen ReferenceError
+// gooien. Eventuele postcode-driven BTW6-state wordt gesynct via setSharedState
+// op de WizCalc-instance.
 function refreshWizBtw6Availability() {
-  var pc = getActiveKlantPostcode();
-  var allow = isBePc(pc);
-  var tile6 = document.getElementById('wiz-btw-tile-6');
-  var hint6 = document.getElementById('wiz-btw-tile-6-hint');
-  if (tile6) tile6.classList.toggle('is-disabled', !allow);
-  if (hint6) hint6.style.display = allow ? 'none' : 'block';
-  // Force-revert naar 21% als 6% niet (langer) toegestaan is
-  if (!allow && wizState.btwPct === 6) onWizBtwSelect(21, /*silent*/ true);
-}
-
-function onWizBtwSelect(pct, silent) {
-  if (pct !== 6 && pct !== 21) return;
-  if (pct === 6) {
-    var pc = getActiveKlantPostcode();
-    if (!isBePc(pc)) {
-      if (!silent) showToast('6% BTW is enkel beschikbaar voor Belgische postcodes.', 'error');
-      pct = 21;
-    }
-  }
-  wizState.btwPct = pct;
-  var t21 = document.getElementById('wiz-btw-tile-21');
-  var t6  = document.getElementById('wiz-btw-tile-6');
-  if (t21) t21.classList.toggle('is-selected', pct === 21);
-  if (t6)  t6.classList.toggle('is-selected', pct === 6);
-  var box = document.getElementById('wiz-btw6-verklaring');
-  if (box) box.style.display = (pct === 6) ? 'block' : 'none';
-  if (pct !== 6) {
-    var p = document.getElementById('wiz-btw6-check-prive');
-    var o = document.getElementById('wiz-btw6-check-ouderdom');
-    if (p) p.checked = false;
-    if (o) o.checked = false;
-    wizState.verklaring6BtwPriveAangevinkt = false;
-    wizState.verklaring6BtwOuderdan10jAangevinkt = false;
-    wizState.verklaring6BtwDatum = null;
-  }
-  // Sync naar WizCalc-instance (stap 3 result-card recalculeert direct).
   if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
-    wizCalcInstance.setSharedState({ btwPct: pct });
-  }
-}
-
-function onWizBtw6CheckChange() {
-  var p = document.getElementById('wiz-btw6-check-prive');
-  var o = document.getElementById('wiz-btw6-check-ouderdom');
-  var rowP = document.getElementById('wiz-btw6-check-prive-row');
-  var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
-  if (rowP) rowP.classList.remove('is-required-missing');
-  if (rowO) rowO.classList.remove('is-required-missing');
-  wizState.verklaring6BtwPriveAangevinkt = !!(p && p.checked);
-  wizState.verklaring6BtwOuderdan10jAangevinkt = !!(o && o.checked);
-  if (wizState.verklaring6BtwPriveAangevinkt && wizState.verklaring6BtwOuderdan10jAangevinkt) {
-    if (!wizState.verklaring6BtwDatum) wizState.verklaring6BtwDatum = new Date().toISOString();
-  } else {
-    wizState.verklaring6BtwDatum = null;
+    // Trigger een recalc door bestaande btwPct nogmaals te zetten — zo pakt
+    // de calculator een nieuwe postcode op (al via shared state) zonder dat
+    // we de calculator-UI direct manipuleren.
+    try { wizCalcInstance.setSharedState({ btwPct: wizState.btwPct || 21 }); } catch (_) {}
   }
 }
 
@@ -2124,9 +2020,16 @@ function mountWizCalc() {
 
 // Wordt door WizCalc aangeroepen bij elke (re)calc. Synct selected sectors,
 // per-sector-inputs en totals naar wizState zodat saveContract/renderSummary
-// blijven werken zonder duplicate accounting-logica.
+// blijven werken zonder duplicate accounting-logica. Sinds stap 4 (Frequentie)
+// is geschrapt, syncen we hier ook freq/duur/btwPct rechtstreeks vanuit de
+// calculator-UI in stap 3 — dit is de enige bron-of-truth voor die velden.
 function onWizCalcChange(state, result) {
   wizState.selectedSectors = (state && state.selectedSectors) || [];
+  // Bridge: calculator-UI controls → wizState (geen DOM-input meer in stap 4).
+  if (state && typeof state.btwPct === 'number') wizState.btwPct = state.btwPct;
+  if (state && typeof state.freq === 'number') wizState.freq = state.freq;
+  if (state && typeof state.duur === 'number') wizState.duur = state.duur;
+  if (state && typeof state.afstandKm === 'number') wizState.afstandKm = state.afstandKm;
   // Calculator slaat één-inputs-per-sector op (geen array-of-installations).
   // Voor backwards-compat met saveContract/renderSummary wikkelen we het in
   // een 1-element array zodat sectorConfigs[sec][0] dezelfde shape behoudt.
@@ -2185,41 +2088,75 @@ function recalcPricing() {
 }
 
 // =============================================
-// STAP 4: FREQUENTIE & DUUR — synct naar WizCalc-instance via setSharedState.
+// STAP 4 (AFRONDEN) — details-card + eerste-uitvoeringsdatum
 // =============================================
-function selectFreq(el) {
-  el.parentElement.querySelectorAll('.freq-card').forEach(function(c) { c.classList.remove('selected'); });
-  el.classList.add('selected');
-  wizState.freq = parseInt(el.dataset.freq);
-  if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
-    wizCalcInstance.setSharedState({ freq: wizState.freq });
+// Onmiddellijk → null in payload (eerstvolgende seizoens-gebonden datum).
+// plus6/plus12 → ISO yyyy-mm-dd offset vanaf vandaag.
+function computeEersteUitvoeringDatum(keuze) {
+  if (keuze === 'onmiddellijk' || !keuze) return null;
+  var today = new Date();
+  var d = new Date(today);
+  if (keuze === 'plus6') d.setMonth(d.getMonth() + 6);
+  else if (keuze === 'plus12') d.setMonth(d.getMonth() + 12);
+  else return null;
+  // ISO yyyy-mm-dd (DATE-kolom in Postgres).
+  return d.toISOString().slice(0, 10);
+}
+
+function onWizEersteUitvoerChange() {
+  var radios = document.querySelectorAll('input[name="wiz-eerste-uitvoer"]');
+  for (var i = 0; i < radios.length; i++) {
+    var wrap = radios[i].closest('.wiz-radio-option');
+    if (radios[i].checked) {
+      wizState.eersteUitvoerKeuze = radios[i].value;
+      if (wrap) wrap.classList.add('is-selected');
+    } else {
+      if (wrap) wrap.classList.remove('is-selected');
+    }
   }
 }
 
-function selectDuur(el) {
-  el.parentElement.querySelectorAll('.freq-card').forEach(function(c) { c.classList.remove('selected'); });
-  el.classList.add('selected');
-  wizState.duur = parseInt(el.dataset.duur);
-  calcEinddatum();
-  if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
-    wizCalcInstance.setSharedState({ duur: wizState.duur });
-  }
+// NL-format dd/mm/yyyy voor read-only display in stap 4. ISO-input verwacht.
+function formatDateBeNL(iso) {
+  if (!iso) return '—';
+  var parts = String(iso).slice(0, 10).split('-');
+  if (parts.length !== 3) return '—';
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-function calcEinddatum() {
-  var start = document.getElementById('wiz-startdatum').value;
-  wizState.startDatum = start;
-  if (!start || wizState.duur === 0) {
-    document.getElementById('wiz-einddatum').value = '';
-    return;
+// Stap-4 entry: vul read-only datums + sync radio-state met wizState.eersteUitvoerKeuze.
+// Looptijd/freq/btwPct komen al uit de calculator-UI (gesynct via onWizCalcChange).
+function refreshWizDetailsCard() {
+  var startIso = wizState.startDatum || new Date().toISOString().split('T')[0];
+  wizState.startDatum = startIso;
+  var startDisp = document.getElementById('wiz-startdatum-display');
+  if (startDisp) startDisp.value = formatDateBeNL(startIso);
+
+  var eindDisp = document.getElementById('wiz-einddatum-display');
+  if (eindDisp) {
+    if (typeof wizState.duur === 'number' && wizState.duur > 0) {
+      var d = new Date(startIso);
+      d.setFullYear(d.getFullYear() + wizState.duur);
+      eindDisp.value = formatDateBeNL(d.toISOString().slice(0, 10));
+    } else {
+      eindDisp.value = '—';
+    }
   }
-  var d = new Date(start);
-  d.setFullYear(d.getFullYear() + wizState.duur);
-  document.getElementById('wiz-einddatum').value = d.toISOString().split('T')[0];
+
+  // Sync radio-state met wizState (default 'onmiddellijk').
+  var keuze = wizState.eersteUitvoerKeuze || 'onmiddellijk';
+  wizState.eersteUitvoerKeuze = keuze;
+  var radios = document.querySelectorAll('input[name="wiz-eerste-uitvoer"]');
+  for (var i = 0; i < radios.length; i++) {
+    var wrap = radios[i].closest('.wiz-radio-option');
+    var match = (radios[i].value === keuze);
+    radios[i].checked = match;
+    if (wrap) wrap.classList.toggle('is-selected', match);
+  }
 }
 
 // =============================================
-// STAP 5: SAMENVATTING
+// STAP 4 (AFRONDEN): SAMENVATTING
 // =============================================
 function renderSummary() {
   recalcPricing();
@@ -2290,11 +2227,17 @@ function renderSummary() {
   html += '<div class="summary-row"><span class="label">Klanttype</span><span class="value">' + (wizState.klantType === 'partner' ? 'Partner/installateur' : 'Eindklant') + '</span></div>';
   html += '<div class="summary-row"><span class="label">Frequentie</span><span class="value">' + freqTxt + '</span></div>';
   html += '<div class="summary-row"><span class="label">Looptijd</span><span class="value">' + duurTxt + '</span></div>';
-  html += '<div class="summary-row"><span class="label">Startdatum</span><span class="value">' + (wizState.startDatum || '—') + '</span></div>';
-  var eindDatum = document.getElementById('wiz-einddatum').value;
-  if (eindDatum) {
-    html += '<div class="summary-row"><span class="label">Einddatum</span><span class="value">' + eindDatum + '</span></div>';
+  html += '<div class="summary-row"><span class="label">Startdatum</span><span class="value">' + formatDateBeNL(wizState.startDatum) + '</span></div>';
+  // Einddatum: berekend uit startDatum + duur (geen DOM-input meer in stap 4).
+  if (typeof wizState.duur === 'number' && wizState.duur > 0 && wizState.startDatum) {
+    var _d = new Date(wizState.startDatum);
+    _d.setFullYear(_d.getFullYear() + wizState.duur);
+    html += '<div class="summary-row"><span class="label">Einddatum</span><span class="value">' + formatDateBeNL(_d.toISOString().slice(0, 10)) + '</span></div>';
   }
+  // Eerste-uitvoeringsdatum (uit nieuwe radio-keuze).
+  var _eerste = computeEersteUitvoeringDatum(wizState.eersteUitvoerKeuze);
+  var _eersteTxt = _eerste ? formatDateBeNL(_eerste) : 'Onmiddellijk (eerstvolgende seizoens-gebonden datum)';
+  html += '<div class="summary-row"><span class="label">Eerste onderhoudsbeurt</span><span class="value">' + esc(_eersteTxt) + '</span></div>';
   html += '</div>';
 
   document.getElementById('summary-content').innerHTML = html;
@@ -2304,16 +2247,28 @@ function renderSummary() {
 // SAVE CONTRACT
 // =============================================
 async function saveContract() {
-  // Slot O2 — guard 6% BTW: beide verklaringen verplicht of revert naar 21%
+  // Slot O2 — guard 6% BTW: beide verklaringen verplicht of revert naar 21%.
+  // Sinds stap 4 (Frequentie) is geschrapt zit de BTW-keuze in de calculator-UI
+  // van stap 3, maar de verklaring-op-eer checkboxes hebben (nog) geen UI in de
+  // calculator. Defensieve check: als checkboxes aanwezig zijn, valideer; anders
+  // blokkeer save met instructieve toast — eindgebruiker moet 21% kiezen of de
+  // verklaring elders bekrachtigen.
   if (wizState.btwPct === 6) {
     var p = document.getElementById('wiz-btw6-check-prive');
     var o = document.getElementById('wiz-btw6-check-ouderdom');
-    if (!p || !p.checked || !o || !o.checked) {
-      var rowP = document.getElementById('wiz-btw6-check-prive-row');
-      var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
-      if (rowP && (!p || !p.checked)) rowP.classList.add('is-required-missing');
-      if (rowO && (!o || !o.checked)) rowO.classList.add('is-required-missing');
-      showToast('Vink beide verklaringen aan voor 6% BTW, of selecteer 21%.', 'error');
+    if (p && o) {
+      // Legacy-pad: checkboxes bestaan nog in de DOM.
+      if (!p.checked || !o.checked) {
+        var rowP = document.getElementById('wiz-btw6-check-prive-row');
+        var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
+        if (rowP && !p.checked) rowP.classList.add('is-required-missing');
+        if (rowO && !o.checked) rowO.classList.add('is-required-missing');
+        showToast('Vink beide verklaringen aan voor 6% BTW, of selecteer 21%.', 'error');
+        return;
+      }
+    } else if (!wizState.verklaring6BtwPriveAangevinkt || !wizState.verklaring6BtwOuderdan10jAangevinkt) {
+      // Nieuw-pad: geen UI meer voor de verklaring; weiger 6% zonder vooraf-bekrachtigde state.
+      showToast('6% BTW vereist een verklaring op eer. Selecteer 21% of bekrachtig de verklaring in de calculator.', 'error');
       return;
     }
     if (!wizState.verklaring6BtwDatum) wizState.verklaring6BtwDatum = new Date().toISOString();
@@ -2409,7 +2364,13 @@ async function saveContract() {
       korting: wizState._korting
     };
 
-    var eindDatum = document.getElementById('wiz-einddatum').value || null;
+    // Einddatum afleiden uit startDatum + duur (geen DOM-input meer in stap 4).
+    var eindDatum = null;
+    if (typeof wizState.duur === 'number' && wizState.duur > 0 && wizState.startDatum) {
+      var _eindD = new Date(wizState.startDatum);
+      _eindD.setFullYear(_eindD.getFullYear() + wizState.duur);
+      eindDatum = _eindD.toISOString().slice(0, 10);
+    }
 
     var payload = {
       partner_id: wizState.partnerId,
@@ -2447,6 +2408,9 @@ async function saveContract() {
       contract_start: wizState.startDatum || null,
       contract_einde: eindDatum,
       verlopen_op: eindDatum,
+      // Nieuw veld: eerste uitvoeringsdatum. 'onmiddellijk' → NULL (eerstvolgende seizoens-datum).
+      // 'plus6' / 'plus12' → ISO yyyy-mm-dd offset vanaf vandaag. Kolom toegevoegd door Agent A's migratie.
+      eerste_uitvoering_datum: computeEersteUitvoeringDatum(wizState.eersteUitvoerKeuze),
       afstand_km: wizState.afstandKm || null,
       beschrijving: document.getElementById('wiz-beschrijving').value.trim() || null,
       status: 'concept',
@@ -3595,7 +3559,7 @@ checkAuth();
           '<label class="radio-option"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text"><span>5 jaar</span><small>5% korting op alle tarieven</small></div></label>' +
         '</div>' +
       '</div>' +
-      // Verborgen afstand-input (bron-of-truth zit in stap-4 wiz-afstand; via setSharedState).
+      // Verborgen afstand-input (waarde komt uit calculator postcode-RPC, gesynct via setSharedState).
       '<input type="hidden" id="afstand" value="0">' +
       '<div class="result-card" id="result-card">' +
         '<div class="result-title">Uw prijsindicatie per beurt</div>' +
