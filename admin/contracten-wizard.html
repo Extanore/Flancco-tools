@@ -802,19 +802,13 @@
           <p style="font-size:11.5px;color:var(--grey);margin:10px 0 0;line-height:1.55">Gebruik dit voor contracten gekoppeld aan een nieuwe installatie waar het eerste onderhoud pas later mag plaatsvinden.</p>
         </div>
 
-        <!-- 6% BTW verklaring-op-eer — alleen zichtbaar wanneer 6% BTW gekozen is in stap 2 (Diensten & tarieven) -->
-        <div class="wiz-btw6-box" id="wiz-btw6-verklaring" style="display:none">
-          <strong>Verklaring op eer — 6% BTW</strong>
-          <p style="margin:6px 0 4px;font-size:12.5px">Het verlaagde BTW-tarief van 6% (renovatie) is enkel van toepassing wanneer beide voorwaarden voldaan zijn. Bevestig hieronder dat de klant deze verklaring aflegt.</p>
-          <label class="check-row" id="wiz-btw6-check-prive-row">
-            <input type="checkbox" id="wiz-btw6-check-prive" onchange="onWizBtw6CheckboxChange()">
-            <span>De klant verklaart op eer dat de woning <strong>uitsluitend of hoofdzakelijk als priv&eacute;woning</strong> wordt gebruikt.</span>
-          </label>
-          <label class="check-row" id="wiz-btw6-check-ouderdom-row">
-            <input type="checkbox" id="wiz-btw6-check-ouderdom" onchange="onWizBtw6CheckboxChange()">
-            <span>De klant verklaart op eer dat de woning <strong>ouder is dan 10 jaar</strong> (eerste ingebruikname).</span>
-          </label>
-          <div class="verklaring-disclaimer">Onjuiste verklaringen zijn de exclusieve verantwoordelijkheid van de klant. Flancco mag terugvallen op de verklaring bij een eventuele BTW-controle. Datum en IP-adres van bevestiging worden bewaard.</div>
+        <!-- 6% BTW info — alleen zichtbaar wanneer 6% BTW gekozen is in stap 2 (Diensten & tarieven).
+             De verklaring-op-eer wordt door de klant zelf bevestigd in de signing-stap; partner ziet enkel informatie. -->
+        <div class="wiz-btw6-box wiz-btw6-info" id="wiz-btw6-verklaring" style="display:none">
+          <strong>6% BTW &mdash; verklaring bij ondertekening</strong>
+          <p style="margin:8px 0 0;font-size:13px;line-height:1.55">
+            Het 6%-BTW-tarief wordt enkel toegepast wanneer de klant bij ondertekening verklaart dat (1) de woning uitsluitend of hoofdzakelijk als priv&eacute;woning wordt gebruikt en (2) ouder is dan 10 jaar (eerste ingebruikname). Deze verklaring wordt door de klant zelf bevestigd in de signing-stap &mdash; je hoeft hier niets aan te vinken.
+          </p>
         </div>
       </div>
       <div class="card">
@@ -2113,50 +2107,12 @@ function refreshWizDetailsCard() {
     if (wrap) wrap.classList.toggle('is-selected', match);
   }
 
-  // 6% BTW verklaring-op-eer: toon enkel wanneer 6% gekozen is in stap 2
-  // (Diensten & tarieven), sync checkbox-state met wizState-flags (default
-  // false). Verberg + reset flags wanneer admin terug naar 21% switcht in
-  // de calculator.
+  // 6% BTW info-card: toon enkel wanneer 6% gekozen is in stap 2 (Diensten & tarieven).
+  // De klant bevestigt de verklaring-op-eer zelf in de signing-stap (calculator); partner ziet
+  // hier alleen een informatief blok. Geen state-mutaties meer nodig.
   var btw6Box = document.getElementById('wiz-btw6-verklaring');
   if (btw6Box) {
-    if (wizState.btwPct === 6) {
-      btw6Box.style.display = 'block';
-      var cbPrive = document.getElementById('wiz-btw6-check-prive');
-      var cbOuderdom = document.getElementById('wiz-btw6-check-ouderdom');
-      if (cbPrive) cbPrive.checked = !!wizState.verklaring6BtwPriveAangevinkt;
-      if (cbOuderdom) cbOuderdom.checked = !!wizState.verklaring6BtwOuderdan10jAangevinkt;
-      // Clear de error-state visualisatie bij re-entry
-      var rowP = document.getElementById('wiz-btw6-check-prive-row');
-      var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
-      if (rowP) rowP.classList.remove('is-required-missing');
-      if (rowO) rowO.classList.remove('is-required-missing');
-    } else {
-      btw6Box.style.display = 'none';
-      // Bij niet-6% BTW: flags resetten zodat saveContract niet faalt op stale state
-      wizState.verklaring6BtwPriveAangevinkt = false;
-      wizState.verklaring6BtwOuderdan10jAangevinkt = false;
-    }
-  }
-}
-
-// Checkbox-handler voor de 6% BTW verklaringen — schrijft naar wizState zodat
-// saveContract's guard niet meer enkel op DOM-elementen vertrouwt (defense-in-depth).
-function onWizBtw6CheckboxChange() {
-  var cbPrive = document.getElementById('wiz-btw6-check-prive');
-  var cbOuderdom = document.getElementById('wiz-btw6-check-ouderdom');
-  if (cbPrive) {
-    wizState.verklaring6BtwPriveAangevinkt = !!cbPrive.checked;
-    var rowP = document.getElementById('wiz-btw6-check-prive-row');
-    if (rowP && cbPrive.checked) rowP.classList.remove('is-required-missing');
-  }
-  if (cbOuderdom) {
-    wizState.verklaring6BtwOuderdan10jAangevinkt = !!cbOuderdom.checked;
-    var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
-    if (rowO && cbOuderdom.checked) rowO.classList.remove('is-required-missing');
-  }
-  // Eerste keer aanvinken: registreer datum-stempel voor audit-trail
-  if (!wizState.verklaring6BtwDatum && (wizState.verklaring6BtwPriveAangevinkt || wizState.verklaring6BtwOuderdan10jAangevinkt)) {
-    wizState.verklaring6BtwDatum = new Date().toISOString();
+    btw6Box.style.display = (wizState.btwPct === 6) ? 'block' : 'none';
   }
 }
 
@@ -2252,32 +2208,10 @@ function renderSummary() {
 // SAVE CONTRACT
 // =============================================
 async function saveContract() {
-  // Slot O2 — guard 6% BTW: beide verklaringen verplicht of revert naar 21%.
-  // De BTW-keuze zit in de calculator-UI van stap 2 (Diensten & tarieven),
-  // maar de verklaring-op-eer checkboxes hebben (nog) geen UI in de calculator.
-  // Defensieve check: als checkboxes aanwezig zijn, valideer; anders blokkeer
-  // save met instructieve toast — eindgebruiker moet 21% kiezen of de verklaring
-  // elders bekrachtigen.
-  if (wizState.btwPct === 6) {
-    var p = document.getElementById('wiz-btw6-check-prive');
-    var o = document.getElementById('wiz-btw6-check-ouderdom');
-    if (p && o) {
-      // Legacy-pad: checkboxes bestaan nog in de DOM.
-      if (!p.checked || !o.checked) {
-        var rowP = document.getElementById('wiz-btw6-check-prive-row');
-        var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
-        if (rowP && !p.checked) rowP.classList.add('is-required-missing');
-        if (rowO && !o.checked) rowO.classList.add('is-required-missing');
-        showToast('Vink beide verklaringen aan voor 6% BTW, of selecteer 21%.', 'error');
-        return;
-      }
-    } else if (!wizState.verklaring6BtwPriveAangevinkt || !wizState.verklaring6BtwOuderdan10jAangevinkt) {
-      // Nieuw-pad: geen UI meer voor de verklaring; weiger 6% zonder vooraf-bekrachtigde state.
-      showToast('6% BTW vereist een verklaring op eer. Selecteer 21% of bekrachtig de verklaring in de calculator.', 'error');
-      return;
-    }
-    if (!wizState.verklaring6BtwDatum) wizState.verklaring6BtwDatum = new Date().toISOString();
-  }
+  // 6% BTW verklaring-op-eer wordt door de klant zelf bekrachtigd in de signing-stap
+  // (calculator). Partner mag het contract opslaan met 6% BTW zonder vooraf-bevestiging;
+  // de signing-RPC (anon_sign_contract_complete) zet de drie verklaring-kolommen pas bij
+  // de feitelijke ondertekening. Geen guard meer hier.
 
   var btn = document.getElementById('btn-save-concept');
   btn.disabled = true;
@@ -2405,10 +2339,12 @@ async function saveContract() {
       korting_pct: wizState.duur >= 3 ? 5 : 0,
       totaal_incl_btw: wizState._totaalIncl,
       btw_type: wizState._btwPct + '%',
-      // Slot O2 — verklaring op eer (CHECK-constraint compliant)
-      verklaring_6btw_privewoning_aangevinkt: (wizState.btwPct === 6) ? !!wizState.verklaring6BtwPriveAangevinkt : false,
-      verklaring_6btw_ouderdan10j_aangevinkt: (wizState.btwPct === 6) ? !!wizState.verklaring6BtwOuderdan10jAangevinkt : false,
-      verklaring_6btw_datum: (wizState.btwPct === 6) ? (wizState.verklaring6BtwDatum || new Date().toISOString()) : null,
+      // 6% BTW verklaring-op-eer: defaults op concept-niveau; klant bekrachtigt bij signing.
+      // De signing-RPC (anon_sign_contract_complete) zet deze 3 kolommen pas bij feitelijke
+      // ondertekening. Explicit false/null hier om CHECK-constraints op concept-rij te voldoen.
+      verklaring_6btw_privewoning_aangevinkt: false,
+      verklaring_6btw_ouderdan10j_aangevinkt: false,
+      verklaring_6btw_datum: null,
       forfait_bedrag: wizState._subtotalExcl,
       contract_start: wizState.startDatum || null,
       contract_einde: eindDatum,
