@@ -1980,6 +1980,23 @@
       generateContractPDF({ autoDownload: true }).catch(function(e){
         console.warn('[pdf-auto]', e);
       });
+      // Best-effort bevestigingsmail naar prospect + admin-notificatie
+      // (send-partner-application-confirmation: verify_jwt=false, anon-aanroepbaar).
+      // Non-blocking: success-pane is al getoond, mail-fout mag UX niet breken.
+      var _appIdForMail = state.appData && state.appData.application_id;
+      if (_appIdForMail) {
+        fetch(SUPA_URL + '/functions/v1/send-partner-application-confirmation', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPA_KEY,
+            'Authorization': 'Bearer ' + SUPA_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ application_id: _appIdForMail })
+        }).catch(function(mailErr) {
+          console.warn('[sign] confirmation mail trigger faalde:', mailErr);
+        });
+      }
     } catch (err) {
       console.error('[sign]', err);
       var code = extractErrorCode(err);

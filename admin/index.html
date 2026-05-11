@@ -10573,6 +10573,22 @@ async function activateSubmitInPersonSigning() {
     if (window.flanccoTrack) {
       try { window.flanccoTrack('Activate Partner Signed', { mode: 'in_person', application_id: s.applicationId }); } catch (_) {}
     }
+    // Best-effort bevestigingsmail naar prospect + admin-notificatie
+    // (send-partner-application-confirmation: verify_jwt=false, anon-aanroepbaar).
+    // Non-blocking: signing is reeds in DB, mail-fout mag de wizard-flow niet breken.
+    try {
+      fetch(SUPA_URL + '/functions/v1/send-partner-application-confirmation', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ application_id: s.applicationId })
+      }).catch(function(mailErr) {
+        console.warn('[in-person-sign] confirmation mail trigger faalde:', mailErr);
+      });
+    } catch (_) { /* defensive */ }
     // Reset wizard-state + reload pipeline
     window.activateState = { applicationId: null, mode: null, step: 1, formData: {} };
     showPage('partner-pipeline');
