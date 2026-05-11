@@ -7248,7 +7248,13 @@ async function doLogout() {
     });
   } catch(_) {}
   await sb.auth.signOut();
-  location.reload();
+  // Post-logout redirect naar publieke landingspagina i.p.v. terug naar admin-login.
+  // Voor partners + admins: vermijdt dat ze direct opnieuw geconfronteerd worden met
+  // de admin-login-flow. Vanuit de root kan iedere user-soort opnieuw de juiste
+  // ingang kiezen (inlog-CTA voor partners, admin-login via direct URL).
+  // `replace` i.p.v. `assign`: logout-pagina niet in browser-history zodat de
+  // back-knop niet terug naar het inlog-scherm leidt.
+  window.location.replace('https://app.flancco-platform.be/');
 }
 
 function openPasswordModal() {

@@ -1344,7 +1344,8 @@ async function doLogout() {
   try { if (window.__flanccoBoot) { delete window.__flanccoBoot; } } catch(_) {}
   try { resetWizardBranding(); } catch(_) {}
   await sb.auth.signOut();
-  window.location.href = 'index.html';
+  // Post-logout redirect naar publieke landingspagina (mirror van admin/index.html doLogout).
+  window.location.replace('https://app.flancco-platform.be/');
 }
 
 async function initApp() {
