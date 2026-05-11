@@ -17229,8 +17229,9 @@ function renderKlantInstallatieBadges(clientId) {
 }
 
 // Hoofdentry — geroepen vanuit klanten-lijst klik op klant-naam.
-function showKlantDetailPage(clientId) {
+function showKlantDetailPage(clientId, opts) {
   if (!clientId) return;
+  opts = opts || {};
   kdCurrentClientId = clientId;
   showPage('klant-detail');
   // Lege placeholders direct tonen, dan async hydrateren.
@@ -17242,7 +17243,12 @@ function showKlantDetailPage(clientId) {
   document.getElementById('kd-historiek-list').innerHTML = '';
   document.getElementById('kd-installaties-count').textContent = '— installaties';
   document.getElementById('kd-historiek-count').textContent = '— taken';
-  kdLoadKlantDetail(clientId).catch(function(err) {
+  kdLoadKlantDetail(clientId).then(function() {
+    // Optioneel: direct na load de installatie-modal openen (deep-link UX vanuit klanten-overzicht).
+    if (opts.openInstallatieModal && typeof kdOpenInstallatieModal === 'function') {
+      kdOpenInstallatieModal();
+    }
+  }).catch(function(err) {
     console.error('kdLoadKlantDetail error:', err);
     if (typeof showToast === 'function') showToast('Fout bij laden klantdetail: ' + (err.message || 'onbekend'), 'error');
     document.getElementById('kd-klant-naam').textContent = 'Klant niet gevonden';
@@ -18222,6 +18228,8 @@ async function buildKlantDetailHTML(clientId) {
   // Actie-knoppen
   html += '<div class="kd-actions">';
   html += '<button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); editKlant(\'' + clientId + '\')">Volledig bewerken</button>';
+  html += '<button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); showKlantDetailPage(\'' + clientId + '\')">Open klantdossier</button>';
+  html += '<button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); showKlantDetailPage(\'' + clientId + '\', { openInstallatieModal: true })">+ Installatie</button>';
   html += '<button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); openNieuwContractVoorKlant(\'' + clientId + '\')">+ Nieuw contract</button>';
   html += '<button type="button" class="btn btn-primary" onclick="event.stopPropagation(); window.location.href=\'planning.html?client=' + clientId + '\'">Plan taak</button>';
   html += '</div>';
