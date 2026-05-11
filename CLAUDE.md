@@ -242,6 +242,13 @@ Voorkomt dat een partner-admin zichzelf of collega's binnen eigen partner kan up
   - `user_role_has_manage_users(user_id UUID)` — gegeven user_role-rij heeft manage_users=true
 - Deze helpers zijn herbruikbaar voor andere partner-tenant policies die "alleen partner-admin van eigen scope mag dit"-semantiek nodig hebben
 
+### Partner-application notify (2026-05-11)
+AFTER INSERT trigger `trg_partner_application_notify` op `partner_applications` (functie `fn_partner_application_notify`) genereert automatisch een rij in `notifications` (type `partner_application_new`) zodat admin een bell-dropdown entry krijgt bij elke nieuwe lead of getekend partner-contract. Titel-variant op basis van `status` (lead vs contract_signed). Partner-anchor voor RLS: Flancco Direct's id (`is_admin()` ziet via standaard policy). SECURITY DEFINER + `search_path = public, pg_temp`, EXECUTE-rechten ingetrokken op anon/authenticated/PUBLIC.
+
+Bijbehorende migraties:
+- `ALTER PUBLICATION supabase_realtime ADD TABLE partner_applications` — zonder dit ontving de admin-pipeline-page geen realtime INSERT-events, dus de bestaande toast/audio/tab-badge cue (`paOnNewLeadEvent` in admin/index.html) bleef stom
+- `ALTER TABLE notifications` CHECK-constraint uitgebreid met type `partner_application_new`
+
 ### Slot Z anti-partner-overreach (column-lock op partners)
 BEFORE UPDATE trigger `partners_commercial_lock` op `partners` (functie `protect_partner_commercial_fields`) blokkeert partner-rol wijziging van operationele/commerciele kolommen. Admin + service-role (auth.uid() NULL) blijven full edit. Backend-verdedigingslinie naast frontend disabled inputs — voorkomt curl-bypass van de RLS row-level policy `partners_update` (die `is_admin() OR is_partner_of(id)` check op rij-niveau doet, geen kolom-niveau).
 - Beschermde kolommen: `slug, marge_pct, planning_fee, transport_gratis_km, akkoord_flancco_inzage, akkoord_datum, contract_getekend, contract_datum, actief, sla_fase_1_uren, sla_fase_2_uren, sla_fase_4_uren, sla_fase_5_uren`
