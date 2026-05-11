@@ -1,9 +1,9 @@
 # Flancco Platform — Openstaande Backlog
 
-**Laatst bijgewerkt**: 2026-04-23
+**Laatst bijgewerkt**: 2026-05-11
 **Status**: multi-sector architectuur + operationele features grotendeels geïmplementeerd. Dit document beschrijft enkel nog wat écht openstaat. Voor de volledige historiek zie git log en `CLAUDE.md`.
 
-**Scope-beslissing**: op 2026-04-23 per item afgestemd met Gillian. Geschrapt: weekcapaciteit-enforcement, contract-sharing tussen partners, verdienste-overzicht portal. Behouden: 6 items in 2 sprints.
+**Scope-beslissing**: op 2026-04-23 per item afgestemd met Gillian. Geschrapt: weekcapaciteit-enforcement, contract-sharing tussen partners, verdienste-overzicht portal. Behouden: 7 items in 2 sprints (item 1.4 sector-amendment toegevoegd op 2026-05-11 na audit van scope-uitbreiding zonder handtekening).
 
 ---
 
@@ -50,9 +50,9 @@ Volledig geaudit op 2026-04-23. De volgende capaciteiten zijn productieklaar aan
 
 ---
 
-## 2. Openstaande backlog — 6 items
+## 2. Openstaande backlog — 7 items
 
-### Sprint 1 — Juridische hardening (1-2 dagen totaal)
+### Sprint 1 — Juridische hardening (3-4 dagen totaal)
 
 #### 1.1 `signing_ip` opslaan op contract-signing
 **Probleem**: bij contractondertekening worden `signing_user_agent`, `signing_timestamp` en `signing_methode` opgeslagen, maar het IP-adres niet. Juridisch zwakker bij betwisting van de elektronische handtekening.
@@ -100,6 +100,43 @@ Volledig geaudit op 2026-04-23. De volgende capaciteiten zijn productieklaar aan
 **Raakt**: `admin/index.html` (helper + meerdere callsites), eventueel `calculator/index.html` voor contract-submit.
 
 **Risico**: laag. Additief, breekt niks. Performance-impact verwaarloosbaar (1 insert per actie).
+
+---
+
+#### 1.4 Sector-amendment vereist signing-flow (geen directe DB-write meer)
+**Probleem**: een admin kan in de partner-edit-page in `admin/index.html` zomaar een extra sector toggelen voor een bestaande partner. Dat is een **contractuele scope-uitbreiding** (eigen pricing-staffel, eigen marge-impact, eigen aansprakelijkheid per technologie) en hoort dezelfde signing-discipline te volgen als de initiële partner-onboarding. Nu gebeurt het zonder spoor, zonder handtekening, zonder pricing-acknowledgment. Juridisch zwak bij dispute, audit-wise onbruikbaar.
+
+**Scope**:
+- DB-migratie op `partner_applications`:
+  - Nieuwe kolom `application_type TEXT NOT NULL DEFAULT 'new_partner'` met CHECK (`new_partner` | `sector_amendment`)
+  - Nieuwe kolom `amendment_for_partner_id UUID NULL` FK → `partners(id)` ON DELETE SET NULL
+  - CHECK-constraint: `application_type='sector_amendment'` vereist `amendment_for_partner_id IS NOT NULL`
+  - Index `WHERE application_type = 'sector_amendment'` (sparse)
+- Nieuwe RPC `admin_create_sector_amendment(target_partner_id, sector_keys, pricing_overrides, marge_pct, signing_mode)` — variant van bestaande `admin_create_partner_application`, type='sector_amendment'. Hergebruikt 90% van bestaande logica (rate-limit, validation, audit).
+- Bestaande signing-RPC's `admin_record_in_person_signing` + `public_record_remote_signing` uitbreiden: bij signing van een amendment-application → trigger functie die `partner_sectors.actief = true` zet voor de sectoren in de application, plus `partners` ongewijzigd laat.
+- PDF-template variant `contract_amendment` (naast `contract_signed`) met afwijkende wording ("Aanvulling op contract dd. ___ — toevoeging sector: ___").
+- Frontend (`admin/index.html` partner-edit page):
+  - Bestaande sectoren tonen als read-only chips met groene check + "Actief sinds dd/mm/jjjj"
+  - Toggle vervangen door "Sector toevoegen → contract opstellen" knop
+  - Knop opent mini-wizard (hergebruik van activeer-partner-wizard met partner pre-filled): sector-keuze + pricing-stap + Mode A/B keuze
+  - Bij Mode B: signing-token mail via `send-partner-contract-link` edge function
+  - Bij Mode A: canvas in admin-UI direct
+  - Pending amendment toont in dashboard-tegel "X partners wachten op sector-uitbreiding handtekening"
+- Pricing-snapshot bij signing: JSONB op application-rij bewaart de exacte staffels en marge op het moment van akkoord — voorkomt "ik had andere prijzen" disputes
+- Audit-log: status-overgangen `aangemaakt → wacht_handtekening → getekend/geweigerd/verlopen` allen geregistreerd
+
+**Edge cases**:
+- Partner is inactief → amendment-trigger geblokkeerd
+- Partner heeft initial-contract nog niet getekend (status='lead' of 'demo_bekeken') → amendment geweigerd tot baseline-contract eerst gesigneerd
+- Partner weigert/laat token verlopen → status `expired/refused`, sector blijft `actief=false`, audit-spoor blijft
+
+**Raakt**: nieuwe migratie, nieuwe RPC `admin_create_sector_amendment`, trigger-functie bij signing, edge function `generate-pdf` template uitbreiden, `admin/index.html` (partner-edit page + nieuwe modal + dashboard-tegel), `onboard/sign/index.html` (Mode B: ander label "Sector-aanvulling" vs "Initial contract").
+
+**Risico**: medium. Hergebruik van bestaande Slot X.2 infrastructuur beperkt risico, maar trigger-functie die `partner_sectors.actief` toggelt bij signing is nieuw — goed testen met Mode A én Mode B in 3 scenario's: getekend, geweigerd, verlopen.
+
+**Werklast**: ~15 uur (~2 werkdagen).
+
+**Interim quick-win (optioneel, paar uur)**: indien volledige flow niet meteen haalbaar is, eerst sector-toggles read-only maken + "Sector toevoegen" knop die een modal opent met motivatie-veld + auto-audit-log entry `actie='sector_toegevoegd_zonder_signing'`. Niet juridisch waterdicht maar **traceability is dan al gegarandeerd** en koopt tijd om de volledige signing-flow zorgvuldig te bouwen. Aanrader: alleen als planning dwingt — quick wins die juridisch zwak blijven hebben de neiging blijven hangen.
 
 ---
 
@@ -192,9 +229,9 @@ Deze items stonden in het originele PLAN.md of memory en zijn afgewerkt — mag 
 
 ## 5. Prioriteitsvolgorde aanbevolen
 
-1. **Sprint 1 eerst** (3 items, juridische hardening) — hoge impact, laag risico, klein volume werk. Zonder dit is er bij een klachtenprocedure of audit geen verdediging.
+1. **Sprint 1 eerst** (4 items, juridische hardening) — hoge impact, laag-medium risico, beheersbaar volume werk. Zonder dit is er bij een klachtenprocedure of audit geen verdediging. Binnen Sprint 1: 1.1 → 1.2 → 1.3 → 1.4 in volgorde, want 1.4 bouwt op de audit-log-helpers uit 1.3 voor sterke amendment-audit-trail.
 2. **Sprint 2 daarna** (3 items, operationele verbeteringen) — voorkomt fouten in dagelijkse werking (verlopen certificaten, hardcoded config, inefficiënte routes).
 
-**Totale werklast geschat**: 3-5 werkdagen voor alle 6 items samen, mits geen onvoorziene regressies.
+**Totale werklast geschat**: 5-7 werkdagen voor alle 7 items samen, mits geen onvoorziene regressies. Item 1.4 alleen is ~2 werkdagen (grootste enkele item).
 
 **Niet in scope hier**: infrastructuur (Cloudflare WAF, rate-limiting, RLS security-audit) — zie `wild-honking-planet.md` als die nog actief is. Ook niet: mobiele app, externe API voor partners, publieke marketing-site.
