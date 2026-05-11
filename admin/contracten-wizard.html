@@ -855,6 +855,21 @@
           </div>
           <p style="font-size:11.5px;color:var(--grey);margin:10px 0 0;line-height:1.55">Gebruik dit voor contracten gekoppeld aan een nieuwe installatie waar het eerste onderhoud pas later mag plaatsvinden.</p>
         </div>
+
+        <!-- 6% BTW verklaring-op-eer — alleen zichtbaar wanneer 6% BTW gekozen is in stap 3 -->
+        <div class="wiz-btw6-box" id="wiz-btw6-verklaring" style="display:none">
+          <strong>Verklaring op eer — 6% BTW</strong>
+          <p style="margin:6px 0 4px;font-size:12.5px">Het verlaagde BTW-tarief van 6% (renovatie) is enkel van toepassing wanneer beide voorwaarden voldaan zijn. Bevestig hieronder dat de klant deze verklaring aflegt.</p>
+          <label class="check-row" id="wiz-btw6-check-prive-row">
+            <input type="checkbox" id="wiz-btw6-check-prive" onchange="onWizBtw6CheckboxChange()">
+            <span>De klant verklaart op eer dat de woning <strong>uitsluitend of hoofdzakelijk als priv&eacute;woning</strong> wordt gebruikt.</span>
+          </label>
+          <label class="check-row" id="wiz-btw6-check-ouderdom-row">
+            <input type="checkbox" id="wiz-btw6-check-ouderdom" onchange="onWizBtw6CheckboxChange()">
+            <span>De klant verklaart op eer dat de woning <strong>ouder is dan 10 jaar</strong> (eerste ingebruikname).</span>
+          </label>
+          <div class="verklaring-disclaimer">Onjuiste verklaringen zijn de exclusieve verantwoordelijkheid van de klant. Flancco mag terugvallen op de verklaring bij een eventuele BTW-controle. Datum en IP-adres van bevestiging worden bewaard.</div>
+        </div>
       </div>
       <div class="card">
         <div class="card-title">Samenvatting</div>
@@ -2152,6 +2167,51 @@ function refreshWizDetailsCard() {
     var match = (radios[i].value === keuze);
     radios[i].checked = match;
     if (wrap) wrap.classList.toggle('is-selected', match);
+  }
+
+  // 6% BTW verklaring-op-eer: toon enkel wanneer 6% gekozen is in stap 3, sync
+  // checkbox-state met wizState-flags (default false). Verberg + reset flags
+  // wanneer admin terug naar 21% switcht in de calculator.
+  var btw6Box = document.getElementById('wiz-btw6-verklaring');
+  if (btw6Box) {
+    if (wizState.btwPct === 6) {
+      btw6Box.style.display = 'block';
+      var cbPrive = document.getElementById('wiz-btw6-check-prive');
+      var cbOuderdom = document.getElementById('wiz-btw6-check-ouderdom');
+      if (cbPrive) cbPrive.checked = !!wizState.verklaring6BtwPriveAangevinkt;
+      if (cbOuderdom) cbOuderdom.checked = !!wizState.verklaring6BtwOuderdan10jAangevinkt;
+      // Clear de error-state visualisatie bij re-entry
+      var rowP = document.getElementById('wiz-btw6-check-prive-row');
+      var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
+      if (rowP) rowP.classList.remove('is-required-missing');
+      if (rowO) rowO.classList.remove('is-required-missing');
+    } else {
+      btw6Box.style.display = 'none';
+      // Bij niet-6% BTW: flags resetten zodat saveContract niet faalt op stale state
+      wizState.verklaring6BtwPriveAangevinkt = false;
+      wizState.verklaring6BtwOuderdan10jAangevinkt = false;
+    }
+  }
+}
+
+// Checkbox-handler voor de 6% BTW verklaringen — schrijft naar wizState zodat
+// saveContract's guard niet meer enkel op DOM-elementen vertrouwt (defense-in-depth).
+function onWizBtw6CheckboxChange() {
+  var cbPrive = document.getElementById('wiz-btw6-check-prive');
+  var cbOuderdom = document.getElementById('wiz-btw6-check-ouderdom');
+  if (cbPrive) {
+    wizState.verklaring6BtwPriveAangevinkt = !!cbPrive.checked;
+    var rowP = document.getElementById('wiz-btw6-check-prive-row');
+    if (rowP && cbPrive.checked) rowP.classList.remove('is-required-missing');
+  }
+  if (cbOuderdom) {
+    wizState.verklaring6BtwOuderdan10jAangevinkt = !!cbOuderdom.checked;
+    var rowO = document.getElementById('wiz-btw6-check-ouderdom-row');
+    if (rowO && cbOuderdom.checked) rowO.classList.remove('is-required-missing');
+  }
+  // Eerste keer aanvinken: registreer datum-stempel voor audit-trail
+  if (!wizState.verklaring6BtwDatum && (wizState.verklaring6BtwPriveAangevinkt || wizState.verklaring6BtwOuderdan10jAangevinkt)) {
+    wizState.verklaring6BtwDatum = new Date().toISOString();
   }
 }
 
