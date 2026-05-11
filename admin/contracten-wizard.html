@@ -347,10 +347,26 @@
   #wiz-calc-host .sector-card.selected .sector-card-icon svg { stroke: var(--white); }
   #wiz-calc-host .sector-card h3 { font-size: 16px; font-weight: 700; color: var(--black); margin-bottom: 6px; }
   #wiz-calc-host .sector-card p { font-size: 13px; color: var(--grey); line-height: 1.5; margin-bottom: 0; }
-  #wiz-calc-host .sector-card .sector-check { position: absolute; top: 16px; right: 16px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rule); background: transparent; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-  #wiz-calc-host .sector-card.selected .sector-check { background: var(--primary); border-color: var(--primary); }
-  #wiz-calc-host .sector-card .sector-check svg { width: 14px; height: 14px; stroke: white; stroke-width: 2.5; fill: none; opacity: 0; transition: opacity 0.2s; }
-  #wiz-calc-host .sector-card.selected .sector-check svg { opacity: 1; }
+  #wiz-calc-host .sector-card .sector-check { position: absolute; top: 16px; right: 16px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--primary); background: var(--white); display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: var(--primary); }
+  #wiz-calc-host .sector-card.selected .sector-check { background: var(--primary); border-color: var(--primary); color: var(--white); }
+  /* Plus-icon default → checkmark als selected. Visueel onmiddellijk duidelijk dat de card actie-baar is. */
+  #wiz-calc-host .sector-card .sector-check .sc-plus { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: opacity 0.15s; }
+  #wiz-calc-host .sector-card .sector-check .sc-check { position: absolute; width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity 0.15s; }
+  #wiz-calc-host .sector-card.selected .sector-check .sc-plus { opacity: 0; }
+  #wiz-calc-host .sector-card.selected .sector-check .sc-check { opacity: 1; }
+
+  /* CTA-footer in de card — maakt clickbaarheid expliciet. */
+  #wiz-calc-host .sector-card-cta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 13px; font-weight: 600; color: var(--primary); transition: all 0.2s; }
+  #wiz-calc-host .sector-card-cta .scc-label { display: flex; align-items: center; gap: 6px; }
+  #wiz-calc-host .sector-card-cta svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; }
+  #wiz-calc-host .sector-card:hover .sector-card-cta svg { transform: translateX(3px); }
+  #wiz-calc-host .sector-card.selected .sector-card-cta { color: #047857; }
+  /* "Geselecteerd"-text verschijnt enkel als selected, "Selecteer" wanneer niet. */
+  #wiz-calc-host .sector-card .sector-card-cta .scc-text-default { display: inline; }
+  #wiz-calc-host .sector-card .sector-card-cta .scc-text-selected { display: none; }
+  #wiz-calc-host .sector-card.selected .sector-card-cta .scc-text-default { display: none; }
+  #wiz-calc-host .sector-card.selected .sector-card-cta .scc-text-selected { display: inline; }
+  #wiz-calc-host .sector-card.selected .sector-card-cta .scc-arrow { display: none; }
 
   /* SECTOR TABS (multi-sector) */
   #wiz-calc-host .sector-tabs { display: flex; gap: 8px; margin-bottom: 24px; background: transparent; border-radius: 0; overflow: visible; box-shadow: none; }
@@ -3302,17 +3318,27 @@ checkAuth();
     grid.innerHTML = partnerSectors.map(function(sec) {
       var cfg = SECTORS[sec];
       if (!cfg) return '';
-      return '<div class="sector-card" data-sector="' + sec + '" onclick="toggleSectorCard(\'' + sec + '\')">' +
-        '<div class="sector-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>' +
+      return '<div class="sector-card" data-sector="' + sec + '" onclick="toggleSectorCard(\'' + sec + '\')" role="button" tabindex="0" aria-pressed="false">' +
+        '<div class="sector-check" aria-hidden="true">' +
+          '<svg class="sc-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+          '<svg class="sc-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>' +
+        '</div>' +
         '<div class="sector-card-icon">' + cfg.icon + '</div>' +
         '<h3>' + cfg.label + '</h3>' +
         '<p>' + cfg.subtitle + '</p>' +
+        '<div class="sector-card-cta">' +
+          '<span class="scc-label">' +
+            '<span class="scc-text-default">Klik om deze dienst toe te voegen</span>' +
+            '<span class="scc-text-selected">Geselecteerd &mdash; klik om te verwijderen</span>' +
+          '</span>' +
+          '<svg class="scc-arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>' +
+        '</div>' +
         '</div>';
     }).join('');
     // Reflecteer reeds-geselecteerde sectoren (bij re-mount op terug-navigatie)
     selectedSectors.forEach(function(sec) {
       var card = grid.querySelector('.sector-card[data-sector="' + sec + '"]');
-      if (card) card.classList.add('selected');
+      if (card) { card.classList.add('selected'); card.setAttribute('aria-pressed', 'true'); }
     });
   }
 
@@ -3323,7 +3349,9 @@ checkAuth();
 
     if (hostEl) {
       hostEl.querySelectorAll('.sector-card').forEach(function(card) {
-        card.classList.toggle('selected', selectedSectors.indexOf(card.dataset.sector) !== -1);
+        var isSelected = selectedSectors.indexOf(card.dataset.sector) !== -1;
+        card.classList.toggle('selected', isSelected);
+        card.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
       });
     }
     if (selectedSectors.length > 0 && (!activeSectorTab || selectedSectors.indexOf(activeSectorTab) < 0)) {
@@ -3643,7 +3671,7 @@ checkAuth();
     hostEl.innerHTML =
       '<div class="intro">' +
         '<h1>Selecteer de gewenste diensten</h1>' +
-        '<p>Klik op &eacute;&eacute;n of meerdere sectoren om de configuratie te starten. Het prijsblok rechtsonder updatet live.</p>' +
+        '<p>Klik op een dienstkaart hieronder om die toe te voegen aan het contract. Het prijsblok rechtsonder updatet live mee.</p>' +
       '</div>' +
       '<div class="card">' +
         '<div class="card-title">Diensten</div>' +
