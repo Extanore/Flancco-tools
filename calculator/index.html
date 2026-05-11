@@ -4636,7 +4636,10 @@ async function submitSigning() {
     document.getElementById('signing-post-duur').textContent = c.contractduur || (window.t ? window.t('success.nvt') : 'n.v.t.');
     document.getElementById('signing-post-bedrag').textContent = c.totaal_incl_btw ? fmt(parseFloat(c.totaal_incl_btw)) : '\u2014';
     var postSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
-    document.getElementById('signing-post-contact').textContent = getPartnerDisplayName(p, postSector) + (p.telefoon ? ' \u2014 ' + p.telefoon : '') + (p.email ? ' \u2014 ' + p.email : '');
+    // Klant-communicatie: dedicated communicatie_email/telefoon, fallback naar account-contact.
+    var pSignTel = p.communicatie_telefoon || p.telefoon || '';
+    var pSignEmail = p.communicatie_email || p.email || '';
+    document.getElementById('signing-post-contact').textContent = getPartnerDisplayName(p, postSector) + (pSignTel ? ' \u2014 ' + pSignTel : '') + (pSignEmail ? ' \u2014 ' + pSignEmail : '');
 
     // Sync lokale contract-state met getekende waarden zodat PDF direct handtekening toont
     signingContract = Object.assign({}, c, updatePayload);
@@ -7043,8 +7046,11 @@ async function submitContract() {
       ? window.t('success.seizoenPrefix', { seizoenen: seizoenen.join(' / ') })
       : ('Wij plannen uw eerste onderhoudsbeurt in de periode ' + seizoenen.join(' / '));
 
+    // Klant-communicatie: dedicated communicatie_email/telefoon, fallback naar account-contact.
+    var pPostTel = partner.communicatie_telefoon || partner.telefoon || '';
+    var pPostEmail = partner.communicatie_email || partner.email || '';
     document.getElementById('post-contact').textContent = getPartnerDisplayName(partner, selectedSectors[0] || null) +
-      (partner.telefoon ? ' \u2014 ' + partner.telefoon : '') + (partner.email ? ' \u2014 ' + partner.email : '');
+      (pPostTel ? ' \u2014 ' + pPostTel : '') + (pPostEmail ? ' \u2014 ' + pPostEmail : '');
 
     // Cache de getekende contract-row + state voor downloadContract() (sectie M)
     window._lastSignedContract = Object.assign({}, payload, contractNummer ? { contract_nummer: contractNummer } : {});
