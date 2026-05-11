@@ -1115,11 +1115,16 @@
         </div>
 
         <div class="form-row">
-          <label for="f-naam">Naam contactpersoon</label>
-          <input id="f-naam" name="contactpersoon_naam" type="text" autocomplete="name" required>
-          <span class="err" data-err="contactpersoon_naam"></span>
+          <label for="f-voornaam">Voornaam</label>
+          <input id="f-voornaam" name="contactpersoon_voornaam" type="text" autocomplete="given-name" required>
+          <span class="err" data-err="contactpersoon_voornaam"></span>
         </div>
         <div class="form-row">
+          <label for="f-naam">Familienaam</label>
+          <input id="f-naam" name="contactpersoon_naam" type="text" autocomplete="family-name" required>
+          <span class="err" data-err="contactpersoon_naam"></span>
+        </div>
+        <div class="form-row full">
           <label for="f-tel">Telefoon</label>
           <input id="f-tel" name="telefoon" type="tel" inputmode="tel" autocomplete="tel" required>
           <span class="err" data-err="telefoon"></span>
@@ -1345,13 +1350,14 @@
     if (!f) return true;
     var v = (f[name] && f[name].value || '').trim();
     if (name === 'bedrijfsnaam' && v.length < 2) { setErr('bedrijfsnaam', 'Vul je bedrijfsnaam in.'); return false; }
-    if (name === 'contactpersoon_naam' && v.length < 2) { setErr('contactpersoon_naam', 'Vul je naam in.'); return false; }
+    if (name === 'contactpersoon_voornaam' && v.length < 2) { setErr('contactpersoon_voornaam', 'Vul je voornaam in.'); return false; }
+    if (name === 'contactpersoon_naam' && v.length < 2) { setErr('contactpersoon_naam', 'Vul je familienaam in.'); return false; }
     if (name === 'telefoon' && v.length < 6) { setErr('telefoon', 'Telefoon ontbreekt of is te kort.'); return false; }
     if (name === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setErr('email', 'Ongeldig e-mailadres.'); return false; }
     clearErr(name);
     return true;
   }
-  ['bedrijfsnaam','contactpersoon_naam','telefoon','email'].forEach(function(name){
+  ['bedrijfsnaam','contactpersoon_voornaam','contactpersoon_naam','telefoon','email'].forEach(function(name){
     var f = document.getElementById('lead-form');
     if (!f || !f[name]) return;
     f[name].addEventListener('blur', function(){ validateCallbackField(name); });
@@ -1363,7 +1369,7 @@
 
   function validateCallbackForm() {
     var ok = true;
-    ['bedrijfsnaam','contactpersoon_naam','telefoon','email'].forEach(function(name){
+    ['bedrijfsnaam','contactpersoon_voornaam','contactpersoon_naam','telefoon','email'].forEach(function(name){
       if (!validateCallbackField(name)) ok = false;
     });
     // Sectoren + range zijn kwalificatie-velden — verplicht bij submit
@@ -1430,6 +1436,7 @@
       var payload = {
         status: 'lead',
         bedrijfsnaam: leadForm.bedrijfsnaam.value.trim(),
+        contactpersoon_voornaam: leadForm.contactpersoon_voornaam.value.trim(),
         contactpersoon_naam: leadForm.contactpersoon_naam.value.trim(),
         contactpersoon_email: leadForm.email.value.trim(),
         contactpersoon_telefoon: leadForm.telefoon.value.trim(),
