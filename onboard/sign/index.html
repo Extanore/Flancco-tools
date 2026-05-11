@@ -336,6 +336,89 @@
     color: #fff;
   }
 
+  /* ─── Sector-keuze chips (interactief, stap 1) ─────────────── */
+  .sector-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .sector-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s, border-color .15s, color .15s, transform .12s;
+    user-select: none;
+  }
+  .sector-chip:hover:not(:disabled) {
+    border-color: var(--navy);
+    background: #F9FAFB;
+  }
+  .sector-chip:active:not(:disabled) { transform: translateY(1px); }
+  .sector-chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .sector-chip.is-selected {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }
+  .sector-chip.is-selected:hover { background: var(--navy-soft); }
+  .sector-chip.is-selected::before {
+    content: '\2713';
+    font-weight: 700;
+  }
+
+  /* ─── Marge-slider (interactief, stap 1) ───────────────────── */
+  .marge-slider-wrap {
+    margin-top: 12px;
+    padding: 16px 18px;
+    background: #FAFBFC;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+  }
+  .marge-slider-wrap input[type="range"] {
+    width: 100%;
+    accent-color: var(--navy);
+    cursor: pointer;
+  }
+  .marge-display {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .marge-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+  }
+  .marge-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ─── Inline-error voor wizard-fields ───────────────────────── */
+  .ap-field-error {
+    color: var(--danger);
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 6px;
+  }
+
   /* ─── Welkom card highlights ────────────────────────────────── */
   .ap-greet {
     background: var(--bg-card);
@@ -872,34 +955,38 @@
         <div class="ap-step-pill" data-step="4"><div class="ap-step-num">4</div><div class="ap-step-label">Ondertekenen</div></div>
       </div>
 
-      <!-- ===== STEP 1 — Welkom & overzicht ===== -->
+      <!-- ===== STEP 1 — Welkom, sector- en marge-keuze (interactief) ===== -->
       <div id="ap-step-1" class="ap-step-pane">
         <div class="ap-greet">
-          <h2>Beste <span id="ap-greet-name"></span>,</h2>
-          <p>Hieronder vind je de afgesproken commerciële voorwaarden. Doorloop de wizard om je <strong>bedrijfsgegevens aan te vullen</strong> en je <strong>contract te ondertekenen</strong>.</p>
+          <h2>Welkom <span id="step1-firstname"></span></h2>
+          <p>Kies de sectoren waarin je actief wil zijn als Flancco-partner en je gewenste marge. Je kan deze keuze later nog aanpassen in overleg met Flancco.</p>
         </div>
 
         <div class="ap-card">
-          <h3 class="ap-card-title">Sectoren waarvoor je samenwerkt</h3>
-          <p class="ap-card-sub">Flancco voert in jouw opdracht onderhouds- en reinigingsdiensten uit binnen deze sectoren. Deze keuze werd vooraf met je afgestemd.</p>
-          <div class="ap-pills" id="ap-step1-sectoren" role="list" aria-label="Geselecteerde sectoren"></div>
+          <h3 class="ap-card-title">Sectoren <span class="req" style="color:var(--danger-soft)">*</span></h3>
+          <p class="ap-card-sub">Kies één of meerdere sectoren waarin Flancco voor jou onderhouds- en reinigingsdiensten uitvoert.</p>
+          <div class="sector-chips" id="step1-sector-chips" role="group" aria-label="Sectoren-keuze">
+            <!-- Dynamisch gerenderd via renderSectorChips() -->
+          </div>
+          <div class="ap-field-error" id="step1-sectoren-error" style="display:none">Kies minstens één sector</div>
         </div>
 
         <div class="ap-card">
-          <h3 class="ap-card-title">Commerciële voorwaarden</h3>
-          <p class="ap-card-sub">Deze marge wordt toegepast op de Flancco-forfait. In de volgende stappen zie je concrete rekenvoorbeelden.</p>
-          <dl class="ap-summary">
-            <dt>Bedrijf</dt><dd id="ap-step1-bedrijf">—</dd>
-            <dt>Contactpersoon</dt><dd id="ap-step1-contact">—</dd>
-            <dt>E-mail</dt><dd id="ap-step1-email">—</dd>
-            <dt>Afgesproken marge</dt><dd id="ap-step1-marge">—</dd>
-          </dl>
+          <h3 class="ap-card-title">Jouw marge <span class="req" style="color:var(--danger-soft)">*</span></h3>
+          <p class="ap-card-sub">Op de Flancco-forfait pas jij een marge toe tussen <strong>10% en 15%</strong>. Bekijk in stap 3 de impact op je eindklant-prijzen.</p>
+          <div class="marge-slider-wrap">
+            <input type="range" id="step1-marge-slider" min="10" max="15" step="1" value="10" aria-label="Marge in procent">
+            <div class="marge-display">
+              <span class="marge-value"><span id="step1-marge-value">10</span>%</span>
+              <span class="marge-label" id="step1-marge-label">Scherp voor je klant</span>
+            </div>
+          </div>
         </div>
 
         <div class="ap-actions">
           <span></span>
           <div class="ap-actions-right">
-            <button type="button" class="btn primary" id="ap-step1-next" onclick="wizGoToStep(2)">
+            <button type="button" class="btn primary" id="step1-next-btn" onclick="wizGoToStep(2)" disabled>
               <span>Volgende: bedrijfsgegevens</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
@@ -1544,23 +1631,129 @@
     return result;
   }
 
-  // ─── Step 1 render ──────────────────────────────────────────
-  function renderStep1(d) {
-    var first = (d.contactpersoon_voornaam || fullName(d)).split(' ')[0];
-    $id('wiz-firstname').textContent = first || '';
-    $id('ap-greet-name').textContent = first || '';
-    $id('ap-step1-bedrijf').textContent = d.bedrijfsnaam || '—';
-    $id('ap-step1-contact').textContent = fullName(d);
-    $id('ap-step1-email').textContent = d.contactpersoon_email || '—';
-    var marge = (typeof d.marge_pct === 'number') ? d.marge_pct : null;
-    $id('ap-step1-marge').textContent = marge != null ? (marge + '%') : '—';
+  // ─── Step 1 — beschikbare sectoren + marge-labels ───────────
+  var STEP1_SECTORS = [
+    { key: 'zonnepanelen',         label: 'Zonnepanelen' },
+    { key: 'warmtepomp',           label: 'Warmtepomp' },
+    { key: 'ventilatie',           label: 'Ventilatie' },
+    { key: 'industriele_koeling',  label: 'Industriële koeling' }
+  ];
+  var MARGE_LABELS = {
+    10: 'Scherp voor je klant',
+    11: 'Scherp +',
+    12: 'Gebalanceerd',
+    13: 'Gebalanceerd +',
+    14: 'Premium',
+    15: 'Premium — maximaal mogelijk'
+  };
 
-    var arr = sectorenList(d);
-    var pillsHtml = arr.length
-      ? arr.map(function(s){ return '<span class="ap-pill readonly" role="listitem">' + escapeHtml(s) + '</span>'; }).join('')
-      : '<span style="font-size:13px;color:var(--muted);font-weight:500">Geen sectoren bevestigd — neem contact op met Gillian.</span>';
-    $id('ap-step1-sectoren').innerHTML = pillsHtml;
+  function normalizeMarge(v) {
+    var n = (typeof v === 'number') ? v : parseInt(v, 10);
+    if (!isFinite(n)) return 10;
+    if (n < 10) n = 10;
+    if (n > 15) n = 15;
+    return n;
   }
+
+  function normalizeSectorKey(s) {
+    if (s == null) return '';
+    return String(s).trim().toLowerCase().replace(/\s+/g, '_');
+  }
+
+  // ─── Step 1 render — interactief (sectoren + marge) ─────────
+  function renderStep1(d) {
+    d = d || {};
+    // Welkom-titel: voornaam uit appData (kan leeg zijn)
+    var first = (d.contactpersoon_voornaam || fullName(d)).split(' ')[0];
+    if (first === '—') first = '';
+    var topName = $id('wiz-firstname');
+    if (topName) topName.textContent = first || '';
+    var step1Name = $id('step1-firstname');
+    if (step1Name) step1Name.textContent = first || '';
+
+    // Pre-fill state.formData met appData waar bruikbaar
+    var preSectors = Array.isArray(d.sectoren)
+      ? d.sectoren.map(normalizeSectorKey).filter(function(s){ return !!s; })
+      : [];
+    state.formData.sectoren = preSectors.slice();
+
+    var preMarge = (typeof d.marge_pct === 'number' && d.marge_pct >= 10 && d.marge_pct <= 15)
+      ? d.marge_pct
+      : 10;
+    state.formData.marge_pct = preMarge;
+
+    renderSectorChips();
+    renderMargeSlider(preMarge);
+    validateStep1();
+  }
+
+  function renderSectorChips() {
+    var wrap = $id('step1-sector-chips');
+    if (!wrap) return;
+    var selected = state.formData.sectoren || [];
+    wrap.innerHTML = STEP1_SECTORS.map(function(s){
+      var isSel = selected.indexOf(s.key) !== -1;
+      return '<button type="button" class="sector-chip' + (isSel ? ' is-selected' : '') +
+        '" role="checkbox" aria-checked="' + (isSel ? 'true' : 'false') +
+        '" data-sector-key="' + escapeHtml(s.key) + '">' +
+        escapeHtml(s.label) + '</button>';
+    }).join('');
+    // Bind listeners (één keer per render — wrap is innerHTML-vervangen)
+    var btns = wrap.querySelectorAll('.sector-chip');
+    Array.prototype.forEach.call(btns, function(btn){
+      btn.addEventListener('click', function(){
+        toggleSector(btn.getAttribute('data-sector-key'));
+      });
+    });
+  }
+
+  function toggleSector(key) {
+    if (!key) return;
+    var arr = state.formData.sectoren || [];
+    var idx = arr.indexOf(key);
+    if (idx === -1) arr.push(key);
+    else arr.splice(idx, 1);
+    state.formData.sectoren = arr;
+    state.touched['step1-sectoren'] = true;
+    renderSectorChips();
+    validateStep1();
+  }
+
+  function renderMargeSlider(initial) {
+    var slider = $id('step1-marge-slider');
+    var valEl = $id('step1-marge-value');
+    var labelEl = $id('step1-marge-label');
+    if (!slider || !valEl || !labelEl) return;
+    slider.value = String(initial);
+    valEl.textContent = String(initial);
+    labelEl.textContent = MARGE_LABELS[initial] || '';
+    // Bind input-event idempotent — clone-pattern voorkomt dubbele binds
+    var clone = slider.cloneNode(true);
+    slider.parentNode.replaceChild(clone, slider);
+    clone.addEventListener('input', function(e){
+      var v = normalizeMarge(parseInt(e.target.value, 10));
+      state.formData.marge_pct = v;
+      var ve = $id('step1-marge-value');
+      var le = $id('step1-marge-label');
+      if (ve) ve.textContent = String(v);
+      if (le) le.textContent = MARGE_LABELS[v] || '';
+      validateStep1();
+    });
+  }
+
+  function validateStep1() {
+    var sectoren = state.formData.sectoren || [];
+    var marge = state.formData.marge_pct;
+    var ok = sectoren.length >= 1 && typeof marge === 'number' && marge >= 10 && marge <= 15;
+    var btn = $id('step1-next-btn');
+    if (btn) btn.disabled = !ok;
+    var errEl = $id('step1-sectoren-error');
+    if (errEl) {
+      errEl.style.display = (sectoren.length === 0 && state.touched && state.touched['step1-sectoren']) ? 'block' : 'none';
+    }
+    return ok;
+  }
+  window.validateStep1 = validateStep1;
 
   // ─── Step 2 prefill ─────────────────────────────────────────
   function prefillStep2(d) {
@@ -1662,7 +1855,8 @@
   function renderStep3() {
     var d = state.appData || {};
     var fd = state.formData || {};
-    var marge = (typeof d.marge_pct === 'number') ? d.marge_pct : 0;
+    // Marge en sectoren komen nu uit formData (stap 1 keuze van partner)
+    var marge = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 10;
     $id('ap-step3-marge-inline').textContent = marge;
 
     // Summary
@@ -1670,7 +1864,15 @@
     var contactFinal = ((fd.contactpersoon_voornaam || d.contactpersoon_voornaam || '') + ' ' + (fd.contactpersoon_naam || d.contactpersoon_naam || '')).trim() || '—';
     var emailFinal = d.contactpersoon_email || '—';
     var adresParts = [fd.adres, [fd.postcode, fd.gemeente].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
-    var sectoren = sectorenLabel(d);
+    var sectorKeys = Array.isArray(fd.sectoren) ? fd.sectoren : [];
+    var sectorLabels = sectorKeys.map(function(k){
+      for (var i=0; i<STEP1_SECTORS.length; i++) {
+        if (STEP1_SECTORS[i].key === k) return STEP1_SECTORS[i].label;
+      }
+      var v = String(k || '').replace(/_/g, ' ');
+      return v ? v.charAt(0).toUpperCase() + v.slice(1) : '';
+    }).filter(Boolean);
+    var sectorenStr = sectorLabels.length ? sectorLabels.join(', ') : '—';
 
     $id('ap-step3-summary').innerHTML =
       '<dt>Bedrijf</dt><dd>' + escapeHtml(bedrijfFinal) + '</dd>' +
@@ -1678,11 +1880,11 @@
       '<dt>Adres</dt><dd>' + escapeHtml(adresParts) + '</dd>' +
       '<dt>Contactpersoon</dt><dd>' + escapeHtml(contactFinal) + '</dd>' +
       '<dt>E-mail</dt><dd>' + escapeHtml(emailFinal) + '</dd>' +
-      '<dt>Sectoren</dt><dd>' + escapeHtml(sectoren) + '</dd>' +
-      '<dt>Afgesproken marge</dt><dd>' + (marge ? marge + '%' : '—') + '</dd>';
+      '<dt>Sectoren</dt><dd>' + escapeHtml(sectorenStr) + '</dd>' +
+      '<dt>Jouw marge</dt><dd>' + (marge ? marge + '%' : '—') + '</dd>';
 
     // Pricing: volledige staffel + toeslagen + doorlopende kosten + rekenvoorbeelden
-    // (identiek aan admin "Activeer partner" wizard stap 2)
+    // Gebruikt nu de partner-gekozen marge uit stap 1
     wizRenderPricingFull(marge).catch(function(e) {
       console.warn('[pricing] render failed:', e);
     });
@@ -1832,8 +2034,17 @@
     var adres = escapeHtml(adresParts);
     var voornaam = escapeHtml(fd.contactpersoon_voornaam || d.contactpersoon_voornaam || '');
     var naam = escapeHtml(fd.contactpersoon_naam || d.contactpersoon_naam || '');
-    var sectorenStr = escapeHtml(sectorenLabel(d));
-    var margePct = (typeof d.marge_pct === 'number') ? d.marge_pct : 0;
+    // Sectoren en marge uit formData (partner-keuze stap 1)
+    var sectorKeys = Array.isArray(fd.sectoren) ? fd.sectoren : [];
+    var sectorLabels = sectorKeys.map(function(k){
+      for (var i=0; i<STEP1_SECTORS.length; i++) {
+        if (STEP1_SECTORS[i].key === k) return STEP1_SECTORS[i].label;
+      }
+      var v = String(k || '').replace(/_/g, ' ');
+      return v ? v.charAt(0).toUpperCase() + v.slice(1) : '';
+    }).filter(Boolean);
+    var sectorenStr = escapeHtml(sectorLabels.length ? sectorLabels.join(', ') : '—');
+    var margePct = (typeof fd.marge_pct === 'number') ? fd.marge_pct : 10;
     var datum = escapeHtml(formatDate(new Date()));
 
     var html = '';
@@ -1871,7 +2082,12 @@
     if (target) target.style.display = '';
     state.currentStep = n;
 
-    if (n === 2) {
+    if (n === 1) {
+      // Re-render chips + slider zodat back-nav vanuit stap 2/3 de huidige formData reflecteert
+      renderSectorChips();
+      renderMargeSlider(state.formData.marge_pct || 10);
+      validateStep1();
+    } else if (n === 2) {
       // Op stap 2: validate-on-enter zodat user direct feedback krijgt over al-gevulde velden
       // maar geen rode markeringen op velden die nog niet aangeraakt zijn
       wizValidateStep2(false);
@@ -2112,6 +2328,13 @@
       if (errEl) { errEl.textContent = 'Bedrijfsgegevens onvolledig — keer terug naar stap 2 om aan te vullen.'; errEl.classList.add('show'); }
       return;
     }
+    // Stap 1-keuzes valideren: minstens 1 sector + marge in [10,15]
+    var sectorenOk = Array.isArray(fd.sectoren) && fd.sectoren.length >= 1;
+    var margeOk = typeof fd.marge_pct === 'number' && fd.marge_pct >= 10 && fd.marge_pct <= 15;
+    if (!sectorenOk || !margeOk) {
+      if (errEl) { errEl.textContent = 'Sectoren of marge ontbreekt — keer terug naar stap 1 om je keuze te maken.'; errEl.classList.add('show'); }
+      return;
+    }
 
     btn.disabled = true;
     var origInner = btn.innerHTML;
@@ -2134,6 +2357,8 @@
         p_contactpersoon_naam: fd.contactpersoon_naam,
         p_contactpersoon_telefoon: fd.contactpersoon_telefoon || null,
         p_website: fd.website || null,
+        p_marge_pct: fd.marge_pct,
+        p_sectoren: fd.sectoren,
         p_ip: state.ip,
         p_user_agent: (navigator.userAgent || '').slice(0, 500)
       });
@@ -2209,7 +2434,17 @@
     var ua = (navigator.userAgent || '').slice(0, 200);
     var bodyHtml = $id('ap-contract-body') ? $id('ap-contract-body').innerHTML : '';
     var prTbody = $id('ap-step3-tbody') ? $id('ap-step3-tbody').innerHTML : '';
-    var marge = typeof d.marge_pct === 'number' ? d.marge_pct : 0;
+    // Marge en sectoren uit formData (partner-keuze stap 1) — niet meer uit appData
+    var marge = typeof fd.marge_pct === 'number' ? fd.marge_pct : 10;
+    var pdfSectorKeys = Array.isArray(fd.sectoren) ? fd.sectoren : [];
+    var pdfSectorLabels = pdfSectorKeys.map(function(k){
+      for (var i=0; i<STEP1_SECTORS.length; i++) {
+        if (STEP1_SECTORS[i].key === k) return STEP1_SECTORS[i].label;
+      }
+      var v = String(k || '').replace(/_/g, ' ');
+      return v ? v.charAt(0).toUpperCase() + v.slice(1) : '';
+    }).filter(Boolean);
+    var pdfSectorenStr = pdfSectorLabels.length ? pdfSectorLabels.join(', ') : '—';
     var bedrijfFinal = fd.bedrijfsnaam || d.bedrijfsnaam || 'Partner';
 
     var html = '';
@@ -2248,7 +2483,7 @@
     html += '<tr><td><strong>E-mail</strong></td><td>' + escapeHtml(d.contactpersoon_email || '—') + '</td></tr>';
     if (fd.contactpersoon_telefoon) html += '<tr><td><strong>Telefoon</strong></td><td>' + escapeHtml(fd.contactpersoon_telefoon) + '</td></tr>';
     if (fd.website) html += '<tr><td><strong>Website</strong></td><td>' + escapeHtml(fd.website) + '</td></tr>';
-    html += '<tr><td><strong>Sectoren</strong></td><td>' + escapeHtml(sectorenLabel(d)) + '</td></tr>';
+    html += '<tr><td><strong>Sectoren</strong></td><td>' + escapeHtml(pdfSectorenStr) + '</td></tr>';
     html += '<tr><td><strong>Marge</strong></td><td>' + marge + '%</td></tr>';
     html += '</tbody></table></div>';
 
