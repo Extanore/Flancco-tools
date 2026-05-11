@@ -486,6 +486,98 @@
   #signing-app .data-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--rule); }
   #signing-app .data-label { color: var(--grey); }
   #signing-app .data-value { font-weight: 600; color: var(--dark); }
+
+  /* Signing — USP-strip per sector */
+  #signing-app .signing-usp-strip {
+    padding: 20px 24px;
+    background: linear-gradient(to bottom, #FAF7F4, #fff);
+    border-bottom: 1px solid var(--rule);
+  }
+  #signing-app .signing-usp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  #signing-app .signing-usp-card {
+    background: #fff;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #EEE5DA;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #signing-app .signing-usp-card .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(231,111,81,0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #signing-app .signing-usp-card .icon svg { width: 16px; height: 16px; stroke: #E76F51; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #signing-app .signing-usp-card .title { font-size: 13px; font-weight: 600; color: var(--dark); }
+  #signing-app .signing-usp-card .sub { font-size: 11px; color: var(--grey); line-height: 1.45; }
+
+  /* Signing — 6% BTW verklaring-op-eer */
+  #signing-app .signing-btw6-card {
+    margin: 18px 0;
+    background: #FFF8E7;
+    border: 1px solid #F0DCA0;
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  #signing-app .signing-btw6-card .check-row {
+    margin-top: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #5C4B10;
+  }
+  #signing-app .signing-btw6-card .check-row:hover { background: rgba(0,0,0,0.03); }
+  #signing-app .signing-btw6-card input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+  /* Signing — reminder-kaart frequentie/looptijd/eerste-beurt + flow */
+  #signing-app .signing-reminder-card {
+    background: #fff;
+    padding: 20px 22px;
+    border-radius: 12px;
+    border: 1px solid var(--rule);
+    margin: 20px 0;
+  }
+  #signing-app .reminder-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  #signing-app .reminder-item {
+    background: #FAFBFC;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--rule);
+  }
+  #signing-app .reminder-label { font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  #signing-app .reminder-value { font-size: 14px; font-weight: 600; color: var(--dark); }
+  #signing-app .signing-next-steps {
+    margin: 0;
+    padding-left: 22px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--dark);
+  }
+  @media (max-width: 640px) {
+    #signing-app .signing-usp-grid { grid-template-columns: 1fr; }
+    #signing-app .reminder-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -514,6 +606,9 @@
       <span id="signing-header-name"></span>
     </div>
     <div class="header-subtitle">Uw onderhoudscontract</div>
+  </div>
+  <div class="signing-usp-strip" id="signing-usp-strip" style="display:none">
+    <div id="signing-usp-grid" class="signing-usp-grid"></div>
   </div>
   <div class="container">
     <div id="signing-content"></div>
@@ -3567,6 +3662,109 @@ function setupPreviewMode() {
 var signingContract = null;
 var signingPartner = null;
 
+// USP-data per sector — getoond bovenaan de signing-pagina (sector-specifieke value-prop)
+// Eerste sector uit het contract bepaalt welke set wordt gerenderd; voor multi-sector
+// contracten kunnen de USPs in toekomstige iteratie samengevoegd worden.
+var SIGNING_USPS = {
+  zonnepanelen: [
+    { title: 'Osmosewater zonder chemie', sub: 'Geen schade aan panelen, fabrieksgarantie blijft behouden' },
+    { title: 'Tot 20% meer opbrengst', sub: 'Vuil onder hardnekkige aanslag verstoort de zon-instraling' },
+    { title: 'Gecertificeerd + technische controle', sub: 'Visuele check op connectoren, kabels en bevestigingen inbegrepen' }
+  ],
+  warmtepomp: [
+    { title: 'Periodiek conform fabrieksgarantie', sub: 'Garantie blijft geldig dankzij gedocumenteerd onderhoud' },
+    { title: 'Gecertificeerde techniekers', sub: 'Categorie 1 erkenning voor F-gassen' },
+    { title: 'Volledig rapport', sub: 'Druk, temperaturen, en aandachtspunten — digitaal beschikbaar' }
+  ],
+  ventilatie: [
+    { title: 'Gezonde binnenlucht', sub: 'Schimmel, fijnstof en allergenen worden verwijderd' },
+    { title: 'Volgens norm NBN D 50-001', sub: 'EPB-keuringsklaar; geldig bij verkoop of verhuur' },
+    { title: 'Compleet — kanalen + ventielen', sub: 'Geen losse onderdelen, één partij voor het hele systeem' }
+  ],
+  verwarming: [
+    { title: 'Wettelijk verplicht onderhoud', sub: 'Jaarlijks (mazout) of 2-jaarlijks (gas) — wij volgen de wet' },
+    { title: 'Rookgasmeting inbegrepen', sub: 'CO en NOx-waarden gemeten en gedocumenteerd' },
+    { title: 'Attest na uitvoering', sub: 'Direct digitaal verkrijgbaar — geldig voor verzekering en verkoop' }
+  ]
+};
+
+// Sector-agnostisch shield-icoon voor de USP-cards (vermijdt emoji's, schaalt strak).
+var SIGNING_USP_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+
+// Rendert de USP-strip bovenaan #signing-app gebaseerd op de eerste sector uit het contract.
+// Toont 3 cards (title + sub) in een grid. Geen USPs gevonden → strip blijft verborgen
+// (display:none), wat een legacy-contract zonder sectoren niet stuk maakt.
+function renderSigningUspStrip(c) {
+  var strip = document.getElementById('signing-usp-strip');
+  var grid = document.getElementById('signing-usp-grid');
+  if (!strip || !grid) return;
+
+  var sectoren = c && c.sectoren ? c.sectoren : [];
+  var firstSector = null;
+  if (Array.isArray(sectoren) && sectoren.length > 0) {
+    firstSector = (sectoren[0] && sectoren[0].sector) || sectoren[0];
+  } else if (c && c.sector) {
+    firstSector = c.sector;
+  }
+
+  var usps = firstSector ? SIGNING_USPS[firstSector] : null;
+  if (!usps || usps.length === 0) {
+    strip.style.display = 'none';
+    grid.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  usps.forEach(function(u) {
+    html += '<div class="signing-usp-card">';
+    html += '<span class="icon">' + SIGNING_USP_ICON + '</span>';
+    html += '<span class="title">' + esc(u.title) + '</span>';
+    html += '<span class="sub">' + esc(u.sub) + '</span>';
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+  strip.style.display = 'block';
+}
+
+// Vertaalt contractduur-string + frequentie naar leesbare reminder-velden.
+// Format: 'jaarlijks' / 'halfjaarlijks' / 'eenmalig' → "Jaarlijks (1x/jaar)" enz.
+// Looptijd: 'eenmalig' → "Eenmalig"; anders raw zoals "3 jaar".
+// Eerste beurt: gebruik c.eerste_uitvoering_datum (DATE) → dd/mm/yyyy; fallback "Vanaf vandaag".
+function buildSigningReminder(c) {
+  var freqRaw = (c && c.frequentie) || '';
+  var freqLabel;
+  if (freqRaw === 'halfjaarlijks') freqLabel = 'Halfjaarlijks (2x/jaar)';
+  else if (freqRaw === 'eenmalig') freqLabel = 'Eenmalig';
+  else freqLabel = 'Jaarlijks (1x/jaar)';
+
+  var duurRaw = (c && c.contractduur) || '';
+  var duurLabel;
+  if (!duurRaw) duurLabel = 'n.v.t.';
+  else if (String(duurRaw).toLowerCase() === 'eenmalig') duurLabel = 'Eenmalig';
+  else duurLabel = String(duurRaw);
+
+  var eersteLabel = 'Vanaf vandaag';
+  if (c && c.eerste_uitvoering_datum) {
+    var d = new Date(c.eerste_uitvoering_datum);
+    if (!isNaN(d.getTime())) {
+      var dd = String(d.getDate()).padStart(2, '0');
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = d.getFullYear();
+      eersteLabel = dd + '/' + mm + '/' + yyyy;
+    }
+  }
+
+  return { freqLabel: freqLabel, duurLabel: duurLabel, eersteLabel: eersteLabel };
+}
+
+// Bepaalt of het contract onder 6%-BTW valt op basis van c.btw_type ("6%" of "21%").
+// Trim + replace voor whitespace/percent-tolerantie.
+function isSigningBtw6(c) {
+  if (!c) return false;
+  var raw = String(c.btw_type || '').replace('%', '').trim();
+  return raw === '6';
+}
+
 async function loadContractForSigning(token) {
   try {
     // Fetch contract via security-definer RPC. Server-side gates: teken_token match,
@@ -3613,6 +3811,10 @@ async function loadContractForSigning(token) {
 
     // Render signing UI
     renderSigningUI();
+
+    // USP-strip bovenaan (sector-specifiek). Toont enkel als de eerste sector
+    // een match heeft in SIGNING_USPS — anders blijft de strip verborgen.
+    renderSigningUspStrip(signingContract);
 
     // Show signing app
     document.getElementById('loading').style.display = 'none';
@@ -3744,6 +3946,26 @@ function renderSigningUI() {
   html += '</div>';
   html += '</div>';
 
+  // Reminder-kaart: frequentie + looptijd + eerste-onderhoudsbeurt + flow-stappen na ondertekening.
+  // Visualiseert de "wat krijg je" + "wat gebeurt er hierna" zodat de klant geen vragen heeft
+  // bij het ondertekenen. Geplaatst tussen prijsoverzicht en benefits — logisch in de flow.
+  var sigReminder = buildSigningReminder(c);
+  html += '<div class="signing-reminder-card" id="signing-reminder-card">';
+  html +=   '<h3 style="margin:0 0 12px;font-size:15px;color:var(--dark)">Wat krijg je?</h3>';
+  html +=   '<div class="reminder-grid">';
+  html +=     '<div class="reminder-item"><div class="reminder-label">Frequentie</div><div class="reminder-value" id="reminder-frequentie">' + esc(sigReminder.freqLabel) + '</div></div>';
+  html +=     '<div class="reminder-item"><div class="reminder-label">Looptijd</div><div class="reminder-value" id="reminder-looptijd">' + esc(sigReminder.duurLabel) + '</div></div>';
+  html +=     '<div class="reminder-item"><div class="reminder-label">Eerste onderhoudsbeurt</div><div class="reminder-value" id="reminder-eerste-beurt">' + esc(sigReminder.eersteLabel) + '</div></div>';
+  html +=   '</div>';
+  html +=   '<h3 style="margin:20px 0 12px;font-size:15px;color:var(--dark)">Wat gebeurt er na ondertekening?</h3>';
+  html +=   '<ol class="signing-next-steps">';
+  html +=     '<li>Je ontvangt direct een bevestigingsmail met PDF van het contract en het wettelijke herroepingsformulier (14 dagen bedenktijd).</li>';
+  html +=     '<li>Wij contacteren je binnen 5 werkdagen om de eerste onderhoudsbeurt in te plannen op een moment dat jou past.</li>';
+  html +=     '<li>Onze technieker komt langs op de afgesproken datum — je hoeft niets voor te bereiden.</li>';
+  html +=     '<li>Na elke beurt ontvang je een digitaal rapport met foto\'s en eventuele aandachtspunten.</li>';
+  html +=   '</ol>';
+  html += '</div>';
+
   // Wat wij voor u doen — benefits per sector (zelfde als calculator)
   var chkSvg = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><circle cx="10" cy="10" r="10" fill="var(--primary)" opacity="0.12"/><path d="M6 10.5l2.5 2.5 5.5-5.5" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var sigBenefits = {
@@ -3819,6 +4041,26 @@ function renderSigningUI() {
   html += '<div style="font-size:11px;color:var(--grey);margin-top:6px">Teken met uw muis of vinger in het vak hierboven</div>';
   html += '</div>';
 
+  // 6% BTW verklaring-op-eer: enkel zichtbaar wanneer contract.btw_type = '6%'.
+  // Bevestigt 2 wettelijke voorwaarden (KB nr. 20). Beide moeten aangevinkt zijn
+  // voordat de submit-knop enabled wordt. Voor 21%-contracten blijft de card
+  // helemaal afwezig — geen impact op de bestaande flow.
+  var sigBtw6 = isSigningBtw6(c);
+  if (sigBtw6) {
+    html += '<div class="signing-btw6-card" id="signing-btw6-verklaring">';
+    html +=   '<strong style="display:block;margin-bottom:8px;color:#5C4B10;font-size:14px">Verklaring op eer — 6% BTW</strong>';
+    html +=   '<p style="margin:0 0 12px;font-size:12.5px;line-height:1.55;color:#5C4B10">Het verlaagde BTW-tarief van 6% is enkel van toepassing wanneer beide voorwaarden voldaan zijn. Vink hieronder aan om te bevestigen.</p>';
+    html +=   '<label class="check-row">';
+    html +=     '<input type="checkbox" id="signing-btw6-prive" onchange="onSigningBtw6Change()">';
+    html +=     '<span>Ik verklaar op eer dat de woning <strong>uitsluitend of hoofdzakelijk als priv&eacute;woning</strong> wordt gebruikt.</span>';
+    html +=   '</label>';
+    html +=   '<label class="check-row">';
+    html +=     '<input type="checkbox" id="signing-btw6-ouder" onchange="onSigningBtw6Change()">';
+    html +=     '<span>Ik verklaar op eer dat de woning <strong>ouder is dan 10 jaar</strong> (eerste ingebruikname).</span>';
+    html +=   '</label>';
+    html += '</div>';
+  }
+
   // Submit button
   html += '<div style="text-align:center;padding:16px 0">';
   html += '<button class="btn btn-block" id="btn-signing-submit" onclick="submitSigning()" disabled style="opacity:0.5;font-size:16px;padding:16px 32px">&#10003; Onderteken &amp; bevestig</button>';
@@ -3828,6 +4070,13 @@ function renderSigningUI() {
 
   // Init signature canvas
   initSigningCanvas();
+}
+
+// Wordt aangeroepen vanuit de twee 6%-BTW checkboxes (`signing-btw6-prive` + `signing-btw6-ouder`).
+// Synchroniseert de disabled-state van de submit-knop met de gangbare ready-check, die nu
+// ook beide 6%-checkboxes meeneemt wanneer de card aanwezig is.
+function onSigningBtw6Change() {
+  checkSigningReady();
 }
 
 function initSigningCanvas() {
@@ -3897,10 +4146,23 @@ function checkSigningReady() {
   var accepted = document.getElementById('signing-accept') && document.getElementById('signing-accept').checked;
   var canvas = document.getElementById('signing-canvas');
   var signed = canvas && canvas._hasSigned && canvas._hasSigned();
+
+  // 6% BTW verklaring-card is enkel aanwezig wanneer btw_type='6%'. Voor 21%-contracten
+  // is btw6Ok altijd true → geen blokkade. Voor 6%-contracten moeten beide checkboxes
+  // aangevinkt zijn voordat de submit-knop enabled wordt.
+  var btw6Card = document.getElementById('signing-btw6-verklaring');
+  var btw6Ok = true;
+  if (btw6Card) {
+    var prive = document.getElementById('signing-btw6-prive');
+    var ouder = document.getElementById('signing-btw6-ouder');
+    btw6Ok = !!(prive && prive.checked && ouder && ouder.checked);
+  }
+
+  var ready = accepted && signed && btw6Ok;
   var btn = document.getElementById('btn-signing-submit');
   if (btn) {
-    btn.disabled = !(accepted && signed);
-    btn.style.opacity = (accepted && signed) ? '1' : '0.5';
+    btn.disabled = !ready;
+    btn.style.opacity = ready ? '1' : '0.5';
   }
 }
 
@@ -3964,6 +4226,20 @@ async function submitSigning() {
       signingIp = null;
     }
 
+    // 6% BTW verklaring-op-eer: enkel relevant wanneer de verklaring-card is gerenderd
+    // (= contract.btw_type === '6%'). Voor 21%-contracten blijven beide waarden false.
+    // De RPC server-side enforced verklaring_6btw_required wanneer btw_type=6 maar
+    // beide booleans false zijn (Agent A's migratie).
+    var btw6Prive = false;
+    var btw6Ouder = false;
+    var btw6Card = document.getElementById('signing-btw6-verklaring');
+    if (btw6Card) {
+      var btw6PriveEl = document.getElementById('signing-btw6-prive');
+      var btw6OuderEl = document.getElementById('signing-btw6-ouder');
+      btw6Prive = !!(btw6PriveEl && btw6PriveEl.checked);
+      btw6Ouder = !!(btw6OuderEl && btw6OuderEl.checked);
+    }
+
     var signRes = await sb.rpc('anon_sign_contract_complete', {
       p_token: signingToken,
       p_handtekening_url: sigUrl,
@@ -3972,7 +4248,10 @@ async function submitSigning() {
       p_signing_ip: signingIp,
       p_client_payload: clientPayload,
       // Slot S — persisteer huidige UI-taal als ground-truth voor outbound communicatie
-      p_lang: ((window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl')
+      p_lang: ((window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl'),
+      // 6% BTW verklaring-op-eer (KB nr. 20). RPC server-side enforced wanneer btw_type=6.
+      p_verklaring_6btw_privewoning: btw6Prive,
+      p_verklaring_6btw_ouderdan10j: btw6Ouder
     });
     if (signRes.error) {
       console.error('Signing-RPC error:', signRes.error);
