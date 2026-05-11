@@ -1462,6 +1462,11 @@
           throw new Error('HTTP ' + resp.status);
         }
 
+        // RPC returnt {ok: true, id: <uuid>} — application_id nodig voor bevestigingsmail
+        var rpcBody = null;
+        try { rpcBody = await resp.json(); } catch (_) { /* parse-fout valt buiten mail-pad */ }
+        var applicationId = rpcBody && rpcBody.id;
+
         track('Onboard V2 Lead Submitted', {
           path: 'callback',
           sectors_count: String(sectoren.length),
@@ -1470,6 +1475,22 @@
 
         clearDraft();
         showSuccessPane();
+
+        // Best-effort bevestigingsmail (prospect + admin). Niet-blokkerend:
+        // submit-flow is al gelukt, mail-fout mag de success-state niet breken.
+        if (applicationId) {
+          fetch(SUPA_URL + '/functions/v1/send-partner-application-confirmation', {
+            method: 'POST',
+            headers: {
+              'apikey': SUPA_KEY,
+              'Authorization': 'Bearer ' + SUPA_KEY,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ application_id: applicationId })
+          }).catch(function(mailErr) {
+            console.warn('[lead-submit] confirmation mail trigger faalde:', mailErr);
+          });
+        }
 
       } catch (err) {
         console.error('[lead-submit]', err);
