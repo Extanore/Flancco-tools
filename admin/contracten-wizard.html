@@ -165,14 +165,7 @@
   .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--navy); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--light); }
 
   /* TYPE KAARTEN (stap 1) */
-  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .type-card { background: var(--white); border: 2px solid var(--rule); border-radius: var(--radius); padding: 24px; cursor: pointer; text-align: center; transition: all 0.2s; }
-  .type-card:hover { border-color: var(--navy); }
-  .type-card.selected { border-color: var(--navy); background: #f0f0ff; box-shadow: 0 0 0 3px rgba(26,26,46,0.1); }
-  .type-card-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--light); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
-  .type-card-icon svg { width: 24px; height: 24px; stroke: var(--navy); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .type-card h3 { font-size: 14px; color: var(--navy); margin-bottom: 4px; }
-  .type-card p { font-size: 12px; color: var(--grey); }
+  /* (Stap 1 "Type" weggevallen 2026-05-11: .type-grid/.type-card styling verwijderd; .ktype-chip blijft voor Slot O1 toggle in stap 2.) */
 
   /* KLANT-SUBTYPE TOGGLE (Slot O1) — particulier/bedrijf-pills */
   .ktype-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
@@ -408,7 +401,7 @@
   .pricing-empty { text-align: center; padding: 20px 0; color: var(--grey); font-size: 13px; }
   .pricing-freq { text-align: center; font-size: 12px; color: var(--grey); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--light); }
 
-  /* FREQUENTIE KAARTEN (stap 4) */
+  /* FREQUENTIE KAARTEN (legacy — sinds 2026-05-11 zit freq-keuze in WizCalc op stap 2) */
   .freq-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
   .freq-card { border: 2px solid var(--rule); border-radius: var(--radius); padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
   .freq-card:hover { border-color: var(--navy); }
@@ -419,7 +412,7 @@
 
   .duur-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
 
-  /* SAMENVATTING (stap 5) */
+  /* SAMENVATTING (stap 3 — Afronden) */
   .summary-card { background: var(--light); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
   .summary-card h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--grey); margin-bottom: 10px; }
   .summary-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
@@ -653,61 +646,14 @@
       </button>
 
       <div class="step-bar" id="step-bar">
-        <div class="step-tab active" data-step="1"><span class="step-num">1</span><span>Type</span></div>
-        <div class="step-tab" data-step="2"><span class="step-num">2</span><span>Klant</span></div>
-        <div class="step-tab" data-step="3"><span class="step-num">3</span><span>Diensten & tarieven</span></div>
-        <div class="step-tab" data-step="4"><span class="step-num">4</span><span>Afronden</span></div>
+        <div class="step-tab active" data-step="1"><span class="step-num">1</span><span>Klant</span></div>
+        <div class="step-tab" data-step="2"><span class="step-num">2</span><span>Diensten & tarieven</span></div>
+        <div class="step-tab" data-step="3"><span class="step-num">3</span><span>Afronden</span></div>
       </div>
     </div>
 
-    <!-- STAP 1: TYPE -->
+    <!-- STAP 1: KLANT -->
     <div class="wiz-step active" id="wiz-step-1">
-      <div class="card">
-        <div class="card-title">Klanttype</div>
-        <div class="type-grid">
-          <div class="type-card selected" data-type="eindklant" onclick="selectType('klantType', this)">
-            <div class="type-card-icon">
-              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <h3>Eindklant</h3>
-            <p>Particulier of bedrijf</p>
-          </div>
-          <div class="type-card" data-type="partner" onclick="selectType('klantType', this)">
-            <div class="type-card-icon">
-              <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <h3>Partner / Installateur</h3>
-            <p>Partner krijgt marge op doorverkoop</p>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Contracttype</div>
-        <div class="type-grid">
-          <div class="type-card selected" data-type="standaard" onclick="selectType('contractType', this)">
-            <div class="type-card-icon">
-              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <h3>Standaard</h3>
-            <p>Vaste tarieven per sector</p>
-          </div>
-          <div class="type-card" data-type="opmaat" onclick="selectType('contractType', this)">
-            <div class="type-card-icon">
-              <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </div>
-            <h3>Op maat</h3>
-            <p>Grotere projecten, offerte op maat</p>
-          </div>
-        </div>
-      </div>
-      <div class="wizard-footer">
-        <div></div>
-        <button class="btn btn-primary" onclick="goStep(2)">Volgende <span style="margin-left:4px">&rarr;</span></button>
-      </div>
-    </div>
-
-    <!-- STAP 2: KLANT -->
-    <div class="wiz-step" id="wiz-step-2">
       <div class="card">
         <div class="card-title">Partner selecteren</div>
         <div class="field admin-only" id="partner-field">
@@ -810,27 +756,27 @@
         <input type="hidden" id="wiz-werklocatie-id">
       </div>
       <div class="wizard-footer">
-        <button class="btn btn-ghost" onclick="goStep(1)">&larr; Vorige</button>
-        <button class="btn btn-primary" id="btn-step2-next" onclick="goStep(3)">Volgende &rarr;</button>
+        <div></div>
+        <button class="btn btn-primary" id="btn-step2-next" onclick="goStep(2)">Volgende &rarr;</button>
       </div>
     </div>
 
-    <!-- STAP 3: DIENSTEN & TARIEVEN
+    <!-- STAP 2: DIENSTEN & TARIEVEN
          Wordt volledig gerenderd door window.WizCalc — een 1-op-1 kopie van
          de calculator stap-1+2 UI (sector-pick + USP + info-blocks + sector-tabs +
          sector-form-container + BTW/freq/duur/afstand cards + result-card +
          staffel-table + op-aanvraag-banner). Mount-call gebeurt in mountWizCalc()
-         bij elke entry van stap 3. -->
-    <div class="wiz-step" id="wiz-step-3">
+         bij elke entry van stap 2. -->
+    <div class="wiz-step" id="wiz-step-2">
       <div id="wiz-calc-host"></div>
       <div class="wizard-footer">
-        <button class="btn btn-ghost" onclick="goStep(2)">&larr; Vorige</button>
-        <button class="btn btn-primary" id="btn-step3-next" onclick="goStep(4)" disabled>Volgende &rarr;</button>
+        <button class="btn btn-ghost" onclick="goStep(1)">&larr; Vorige</button>
+        <button class="btn btn-primary" id="btn-step3-next" onclick="goStep(3)" disabled>Volgende &rarr;</button>
       </div>
     </div>
 
-    <!-- STAP 4: AFRONDEN -->
-    <div class="wiz-step" id="wiz-step-4">
+    <!-- STAP 3: AFRONDEN -->
+    <div class="wiz-step" id="wiz-step-3">
       <div class="card" id="wiz-details-card">
         <div class="card-title">Looptijd &amp; planning</div>
         <p class="card-sub" style="margin-top:4px;color:var(--grey);font-size:13px">Het contract gaat onmiddellijk in. Kies wanneer de eerste onderhoudsbeurt mag plaatsvinden.</p>
@@ -856,7 +802,7 @@
           <p style="font-size:11.5px;color:var(--grey);margin:10px 0 0;line-height:1.55">Gebruik dit voor contracten gekoppeld aan een nieuwe installatie waar het eerste onderhoud pas later mag plaatsvinden.</p>
         </div>
 
-        <!-- 6% BTW verklaring-op-eer — alleen zichtbaar wanneer 6% BTW gekozen is in stap 3 -->
+        <!-- 6% BTW verklaring-op-eer — alleen zichtbaar wanneer 6% BTW gekozen is in stap 2 (Diensten & tarieven) -->
         <div class="wiz-btw6-box" id="wiz-btw6-verklaring" style="display:none">
           <strong>Verklaring op eer — 6% BTW</strong>
           <p style="margin:6px 0 4px;font-size:12.5px">Het verlaagde BTW-tarief van 6% (renovatie) is enkel van toepassing wanneer beide voorwaarden voldaan zijn. Bevestig hieronder dat de klant deze verklaring aflegt.</p>
@@ -887,7 +833,7 @@
         </div>
       </div>
       <div class="wizard-footer">
-        <button class="btn btn-ghost" onclick="goStep(3)">&larr; Vorige</button>
+        <button class="btn btn-ghost" onclick="goStep(2)">&larr; Vorige</button>
         <button class="btn btn-primary" id="btn-save-concept" onclick="saveContract()">Opslaan als concept</button>
       </div>
     </div>
@@ -1189,9 +1135,9 @@ function applyClientFromUrl() {
 }
 
 // =============================================
-// SECTOR-METADATA SHIM (alleen voor renderSummary in stap 5).
+// SECTOR-METADATA SHIM (alleen voor renderSummary in stap 3 — Afronden).
 // De volledige SECTORS-blob (pricing-logic, render-functies, calculate)
-// woont in window.WizCalc — gemount in stap 3 als 1-op-1 kopie van de
+// woont in window.WizCalc — gemount in stap 2 als 1-op-1 kopie van de
 // calculator. Deze shim levert enkel `label` + `badgeClass` voor de
 // summary-card. summaryDescription gaat via WizCalc als die gemount is.
 // =============================================
@@ -1302,7 +1248,9 @@ async function initApp() {
     sel.appendChild(opt);
   });
 
-  // If partner role: preselect and lock, hide "Partner" klanttype
+  // If partner role: preselect and lock partner-dropdown.
+  // (Sinds 2026-05-11 is stap "Type" verwijderd; klant/contracttype zijn defaults
+  // in wizState — geen .type-card UI meer om te verbergen voor partners.)
   if (userRole === 'partner' && roleData.partner_id) {
     userPartner = partners.find(p => p.id === roleData.partner_id);
     sel.value = roleData.partner_id;
@@ -1311,12 +1259,6 @@ async function initApp() {
     await loadPartnerData(roleData.partner_id);
     // Partner-branding toepassen zodat wizard in eigen kleuren/logo verschijnt (J.2)
     if (userPartner) applyWizardBranding(userPartner);
-    // Partners maken altijd contracten voor eindklanten — verberg de "Partner" optie
-    var partnerTypeCard = document.querySelector('.type-card[data-type="partner"]');
-    if (partnerTypeCard) partnerTypeCard.style.display = 'none';
-    // Op maat is alleen voor admin
-    var opmaatCard = document.querySelector('.type-card[data-type="opmaat"]');
-    if (opmaatCard) opmaatCard.style.display = 'none';
   }
 
   // Set default start date to today (ISO yyyy-mm-dd voor DB-payload)
@@ -1325,17 +1267,32 @@ async function initApp() {
 
   // Honor ?client=<id> deep-link (vanuit admin klant-dossier) (J.3)
   applyClientFromUrl();
+
+  // Wizard initialiseert direct op stap 1 (Klant). Roep goStep(1) aan zodat
+  // de partner-veld zichtbaarheid en eindklant-Flancco-default-partner correct
+  // gezet worden — voorheen gebeurde dat pas wanneer de gebruiker doorklikte
+  // vanaf de geschrapte "Type"-stap.
+  goStep(1);
 }
 
 // =============================================
 // STEP NAVIGATION
 // =============================================
 function goStep(n) {
-  // Bij eindklant: auto-set Flancco Direct als partner en skip partner-selectie.
-  // BELANGRIJK: enkel voor admin/bediende. Partner-users moeten ALTIJD hun eigen
-  // partner_id behouden — anders mismatcht de RLS-policy `is_partner_of(partner_id)`
-  // bij de clients/contracten-INSERT en faalt opslaan met een 403.
-  if (n === 2 && wizState.klantType === 'eindklant' && userRole !== 'partner') {
+  // Wizard heeft 3 stappen (sinds 2026-05-11, was 4 — stap "Type" verwijderd
+  // omdat alle keuzes default-only waren). Mapping van oude → nieuwe nummering:
+  //   1 (Type)      → verwijderd, defaults wizState.klantType='eindklant' + contractType='standaard'
+  //   2 (Klant)     → 1
+  //   3 (Diensten)  → 2
+  //   4 (Afronden)  → 3
+  if (n < 1 || n > 3) return;
+
+  // Stap 1 (Klant) — beheer zichtbaarheid partner-selectieveld.
+  // Eindklant + admin/bediende: auto-set Flancco Direct als partner en verberg veld.
+  // BELANGRIJK: partner-users moeten ALTIJD hun eigen partner_id behouden — anders
+  // mismatcht de RLS-policy `is_partner_of(partner_id)` bij de clients/contracten-INSERT
+  // en faalt opslaan met een 403.
+  if (n === 1 && wizState.klantType === 'eindklant' && userRole !== 'partner') {
     var flanccoPartner = partners.find(function(p) { return (p.naam || '').toLowerCase().indexOf('flancco') >= 0; });
     if (flanccoPartner) {
       wizState.partnerId = flanccoPartner.id;
@@ -1343,19 +1300,19 @@ function goStep(n) {
       loadPartnerData(flanccoPartner.id);
     }
     document.getElementById('partner-field').closest('.card').style.display = 'none';
-  } else if (n === 2 && userRole === 'partner') {
+  } else if (n === 1 && userRole === 'partner') {
     // Partner-users: partner-veld blijft verborgen want is gelocked op eigen partner_id.
     document.getElementById('partner-field').closest('.card').style.display = 'none';
-  } else if (n === 2) {
+  } else if (n === 1) {
     document.getElementById('partner-field').closest('.card').style.display = '';
   }
 
-  // Validation before advancing
-  if (n === 3 && !wizState.partnerId) {
+  // Validation voor stap 2 (Diensten & tarieven): partner + klant moeten gezet zijn.
+  if (n === 2 && !wizState.partnerId) {
     showToast('Selecteer eerst een partner');
     return;
   }
-  if (n === 3) {
+  if (n === 2) {
     // Ensure client is selected or new client data filled
     var clientSel = document.getElementById('wiz-client').value;
     var ncVoornaam = document.getElementById('nc-voornaam').value.trim();
@@ -1388,16 +1345,16 @@ function goStep(n) {
       wizState._ncBtwValidatedPayload = (ncVies && ncVies.valid === true) ? ncVies : null;
     }
   }
-  if (n === 4) {
-    // Sectoren-check (was voorheen stap 4 = Frequentie; nu stap 4 = Afronden).
+  // Validation voor stap 3 (Afronden): sectoren + looptijd moeten gezet zijn.
+  if (n === 3) {
     if (wizState.selectedSectors.length === 0) {
       showToast('Selecteer minstens 1 sector');
       return;
     }
-    // Looptijd-keuze zit nu in de calculator-UI van stap 3 (radio name="duur").
+    // Looptijd-keuze zit nu in de calculator-UI van stap 2 (radio name="duur").
     // Validatie: een numerieke wizState.duur moet gesynct zijn (0=eenmalig, 3, 5).
     if (typeof wizState.duur !== 'number') {
-      showToast('Kies een looptijd in stap 3');
+      showToast('Kies een looptijd in stap 2');
       return;
     }
     renderSummary();
@@ -1414,38 +1371,24 @@ function goStep(n) {
     if (i === n - 1) tab.classList.add('active');
   });
 
-  // Slot O2 — bij stap 2: warmup postcode-data
-  if (n === 2 && window.flanccoPostcodes && typeof window.flanccoPostcodes.warmup === 'function') {
+  // Stap 1 (Klant): warmup postcode-data voor responsive new-client formulier.
+  if (n === 1 && window.flanccoPostcodes && typeof window.flanccoPostcodes.warmup === 'function') {
     try { window.flanccoPostcodes.warmup(); } catch (_) {}
   }
-  // Stap 3: mount WizCalc (1-op-1 calculator-UI). Wordt elke keer opnieuw
-  // gerenderd bij re-entry zodat partner-switches direct de juiste sectoren
-  // tonen. WizCalc.destroy() in mountWizCalc() ruimt vorige instance op.
-  if (n === 3) {
+  // Stap 2 (Diensten & tarieven): mount WizCalc (1-op-1 calculator-UI). Wordt
+  // elke keer opnieuw gerenderd bij re-entry zodat partner-switches direct de
+  // juiste sectoren tonen. WizCalc.destroy() in mountWizCalc() ruimt vorige
+  // instance op.
+  if (n === 2) {
     mountWizCalc();
   }
 
-  // Stap 4 (Afronden): render startdatum + einddatum display + sync eerste-uitvoer radio.
-  if (n === 4) {
+  // Stap 3 (Afronden): render startdatum + einddatum display + sync eerste-uitvoer radio.
+  if (n === 3) {
     refreshWizDetailsCard();
   }
 
   window.scrollTo(0, 0);
-}
-
-// =============================================
-// STAP 1: TYPE SELECTIE
-// =============================================
-function selectType(field, el) {
-  var parent = el.parentElement;
-  parent.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  wizState[field] = el.dataset.type;
-  // Op maat: redirect naar aparte calculator pagina
-  if (field === 'contractType' && el.dataset.type === 'opmaat') {
-    window.location.href = 'opmaat-calculator.html';
-    return;
-  }
 }
 
 // =============================================
@@ -1485,7 +1428,7 @@ async function loadPartnerData(partnerId) {
   clientContacts = contactsList;
 
   // Slot T C3: laad client_locations voor de gekozen partner (filter via client_id-list).
-  // Wordt gebruikt door FlanccoWerklocatiePicker bij klantkeuze in stap 2.
+  // Wordt gebruikt door FlanccoWerklocatiePicker bij klantkeuze in stap 1 (Klant).
   var locationsList = [];
   if (clientIds.length) {
     var { data: locData } = await sb.from('client_locations').select('*').in('client_id', clientIds);
@@ -1548,8 +1491,8 @@ async function loadPartnerData(partnerId) {
     partnerSectorsList = partnerSectorsList.filter(function(s) { return sectorsMissingPricing.indexOf(s) === -1; });
     sectorsMissingPricing.forEach(function(s) { delete partnerSectorConfig[s]; });
   }
-  // Wis vorige selectie zodat re-render bij stap 3 kan beslissen op basis van
-  // de nieuwe partner-sectoren. Mount gebeurt pas in goStep(3).
+  // Wis vorige selectie zodat re-render bij stap 2 kan beslissen op basis van
+  // de nieuwe partner-sectoren. Mount gebeurt pas in goStep(2).
   wizState.selectedSectors = [];
   wizState.sectorConfigs = {};
   wizState.sectorResults = {};
@@ -1945,7 +1888,7 @@ function onNcDeelgemeenteChange() {
 // =============================================
 function getActiveKlantPostcode() {
   // Bepaalt de postcode die telt voor 6%-availability:
-  //   1. wizState.newClient.postal_code (vastgelegd bij goStep van 2 → 3)
+  //   1. wizState.newClient.postal_code (vastgelegd bij goStep van 1 → 2)
   //   2. nc-postcode input (lopende invoer)
   //   3. wizState.clientId → bestaande klant → clients.postal_code
   if (wizState.newClient && wizState.newClient.postal_code) return wizState.newClient.postal_code;
@@ -1958,12 +1901,13 @@ function getActiveKlantPostcode() {
   return '';
 }
 
-// refreshWizBtw6Availability: no-op stub. Stap 4 (oude Frequentie-pagina met
-// BTW-tiles) is geschrapt — de calculator-UI in stap 3 heeft een eigen 6%-BTW
-// radio en regelt postcode-gating in zijn eigen calculateAll(). Deze stub blijft
-// als safety-net zodat callers in de nieuwe-klant postcode-flow geen ReferenceError
-// gooien. Eventuele postcode-driven BTW6-state wordt gesynct via setSharedState
-// op de WizCalc-instance.
+// refreshWizBtw6Availability: no-op stub. De oude Frequentie-pagina met
+// BTW-tiles is geschrapt — de calculator-UI in stap 2 (Diensten & tarieven)
+// heeft een eigen 6%-BTW radio en regelt postcode-gating in zijn eigen
+// calculateAll(). Deze stub blijft als safety-net zodat callers in de
+// nieuwe-klant postcode-flow geen ReferenceError gooien. Eventuele
+// postcode-driven BTW6-state wordt gesynct via setSharedState op de
+// WizCalc-instance.
 function refreshWizBtw6Availability() {
   if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
     // Trigger een recalc door bestaande btwPct nogmaals te zetten — zo pakt
@@ -1974,13 +1918,13 @@ function refreshWizBtw6Availability() {
 }
 
 // =============================================
-// STAP 3: WIZ-CALC BRIDGE
+// STAP 2: WIZ-CALC BRIDGE (Diensten & tarieven)
 // ─────────────────────────────────────────────
-// Stap 3 wordt volledig gerenderd door window.WizCalc — een 1-op-1 kopie
+// Stap 2 wordt volledig gerenderd door window.WizCalc — een 1-op-1 kopie
 // van de calculator stap-1+2 UI. De render-functies + SECTORS-blob staan
 // onderaan dit bestand (IIFE namespace). Bridge-points:
 //
-//   • mountWizCalc()      — wordt gecalled bij entry van stap 3 (in goStep)
+//   • mountWizCalc()      — wordt gecalled bij entry van stap 2 (in goStep)
 //                           én bij re-mount na partner-switch.
 //   • partnerSectorsList  — lijst van actieve sectoren voor de gekozen
 //                           partner; gevuld in loadPartnerData (zie hierboven).
@@ -1988,7 +1932,7 @@ function refreshWizBtw6Availability() {
 //                           geothermie + gekozen formule); idem.
 //   • onChange-callback   — synct WizCalc → wizState (sectorConfigs, results,
 //                           totals) zodat saveContract en renderSummary werken.
-//   • setSharedState      — stap-4 controls (freq/duur/BTW/afstand) pushen
+//   • setSharedState      — controls op stap 3 (freq/duur/BTW/afstand) pushen
 //                           wijzigingen door naar de gemounted WizCalc-instance.
 // =============================================
 
@@ -2008,7 +1952,7 @@ function mountWizCalc() {
   var host = document.getElementById('wiz-calc-host');
   if (!host) return;
   if (!window.WizCalc || typeof window.WizCalc.mount !== 'function') {
-    console.warn('[wizard] WizCalc niet beschikbaar — stap 3 kan niet renderen.');
+    console.warn('[wizard] WizCalc niet beschikbaar — stap 2 (Diensten & tarieven) kan niet renderen.');
     return;
   }
   var partner = (partners || []).find(function(p) { return p.id === wizState.partnerId; });
@@ -2035,12 +1979,12 @@ function mountWizCalc() {
 
 // Wordt door WizCalc aangeroepen bij elke (re)calc. Synct selected sectors,
 // per-sector-inputs en totals naar wizState zodat saveContract/renderSummary
-// blijven werken zonder duplicate accounting-logica. Sinds stap 4 (Frequentie)
-// is geschrapt, syncen we hier ook freq/duur/btwPct rechtstreeks vanuit de
-// calculator-UI in stap 3 — dit is de enige bron-of-truth voor die velden.
+// blijven werken zonder duplicate accounting-logica. Sinds de oude Frequentie-
+// pagina geschrapt is, syncen we hier ook freq/duur/btwPct rechtstreeks vanuit
+// de calculator-UI in stap 2 — dit is de enige bron-of-truth voor die velden.
 function onWizCalcChange(state, result) {
   wizState.selectedSectors = (state && state.selectedSectors) || [];
-  // Bridge: calculator-UI controls → wizState (geen DOM-input meer in stap 4).
+  // Bridge: calculator-UI controls → wizState (geen DOM-input meer voor freq/duur).
   if (state && typeof state.btwPct === 'number') wizState.btwPct = state.btwPct;
   if (state && typeof state.freq === 'number') wizState.freq = state.freq;
   if (state && typeof state.duur === 'number') wizState.duur = state.duur;
@@ -2084,8 +2028,8 @@ function onWizCalcChange(state, result) {
     allLines.push({ type: 'line', label: 'Contractkorting (' + (result.duur || 0) + ' jaar, -' + kPct + '%)', amount: -(result.discountAmount * btwMult) });
   }
   wizState._allLines = allLines;
-  // Sync afstand-pad ook naar state (komt van wizard's stap-4-input via setSharedState
-  // maar bij eerste calc kan de component een eigen default hebben).
+  // Sync afstand-pad ook naar state (komt via setSharedState vanuit de calculator-UI
+  // op stap 2; bij eerste calc kan de component een eigen default hebben).
   if (result && typeof result.afst === 'number') wizState.afstandKm = result.afst;
 
   // CTA enable/disable: minstens 1 sector + niet op-aanvraag.
@@ -2131,7 +2075,7 @@ function onWizEersteUitvoerChange() {
   }
 }
 
-// NL-format dd/mm/yyyy voor read-only display in stap 4. ISO-input verwacht.
+// NL-format dd/mm/yyyy voor read-only display in stap 3 (Afronden). ISO-input verwacht.
 function formatDateBeNL(iso) {
   if (!iso) return '—';
   var parts = String(iso).slice(0, 10).split('-');
@@ -2169,9 +2113,10 @@ function refreshWizDetailsCard() {
     if (wrap) wrap.classList.toggle('is-selected', match);
   }
 
-  // 6% BTW verklaring-op-eer: toon enkel wanneer 6% gekozen is in stap 3, sync
-  // checkbox-state met wizState-flags (default false). Verberg + reset flags
-  // wanneer admin terug naar 21% switcht in de calculator.
+  // 6% BTW verklaring-op-eer: toon enkel wanneer 6% gekozen is in stap 2
+  // (Diensten & tarieven), sync checkbox-state met wizState-flags (default
+  // false). Verberg + reset flags wanneer admin terug naar 21% switcht in
+  // de calculator.
   var btw6Box = document.getElementById('wiz-btw6-verklaring');
   if (btw6Box) {
     if (wizState.btwPct === 6) {
@@ -2288,7 +2233,7 @@ function renderSummary() {
   html += '<div class="summary-row"><span class="label">Frequentie</span><span class="value">' + freqTxt + '</span></div>';
   html += '<div class="summary-row"><span class="label">Looptijd</span><span class="value">' + duurTxt + '</span></div>';
   html += '<div class="summary-row"><span class="label">Startdatum</span><span class="value">' + formatDateBeNL(wizState.startDatum) + '</span></div>';
-  // Einddatum: berekend uit startDatum + duur (geen DOM-input meer in stap 4).
+  // Einddatum: berekend uit startDatum + duur (geen DOM-input voor einddatum).
   if (typeof wizState.duur === 'number' && wizState.duur > 0 && wizState.startDatum) {
     var _d = new Date(wizState.startDatum);
     _d.setFullYear(_d.getFullYear() + wizState.duur);
@@ -2308,11 +2253,11 @@ function renderSummary() {
 // =============================================
 async function saveContract() {
   // Slot O2 — guard 6% BTW: beide verklaringen verplicht of revert naar 21%.
-  // Sinds stap 4 (Frequentie) is geschrapt zit de BTW-keuze in de calculator-UI
-  // van stap 3, maar de verklaring-op-eer checkboxes hebben (nog) geen UI in de
-  // calculator. Defensieve check: als checkboxes aanwezig zijn, valideer; anders
-  // blokkeer save met instructieve toast — eindgebruiker moet 21% kiezen of de
-  // verklaring elders bekrachtigen.
+  // De BTW-keuze zit in de calculator-UI van stap 2 (Diensten & tarieven),
+  // maar de verklaring-op-eer checkboxes hebben (nog) geen UI in de calculator.
+  // Defensieve check: als checkboxes aanwezig zijn, valideer; anders blokkeer
+  // save met instructieve toast — eindgebruiker moet 21% kiezen of de verklaring
+  // elders bekrachtigen.
   if (wizState.btwPct === 6) {
     var p = document.getElementById('wiz-btw6-check-prive');
     var o = document.getElementById('wiz-btw6-check-ouderdom');
@@ -2424,7 +2369,7 @@ async function saveContract() {
       korting: wizState._korting
     };
 
-    // Einddatum afleiden uit startDatum + duur (geen DOM-input meer in stap 4).
+    // Einddatum afleiden uit startDatum + duur (geen DOM-input voor einddatum).
     var eindDatum = null;
     if (typeof wizState.duur === 'number' && wizState.duur > 0 && wizState.startDatum) {
       var _eindD = new Date(wizState.startDatum);
