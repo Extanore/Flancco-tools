@@ -35,6 +35,16 @@ const EMAIL_REPLY_TO = Deno.env.get("EMAIL_REPLY_TO")
 const ADMIN_NOTIFICATION_EMAIL = Deno.env.get("ADMIN_NOTIFICATION_EMAIL")
   ?? "gillian.geernaert@flancco.be";
 
+// Account-manager contact — zichtbaar in de welcome-mail. Env-overridable zodat
+// we later per partner-segment of taal kunnen alterneren.
+const ACCOUNT_MANAGER_NAME = Deno.env.get("ACCOUNT_MANAGER_NAME") ?? "Gillian Geernaert";
+const ACCOUNT_MANAGER_EMAIL = Deno.env.get("ACCOUNT_MANAGER_EMAIL") ?? "gillian.geernaert@flancco.be";
+const ACCOUNT_MANAGER_PHONE = Deno.env.get("ACCOUNT_MANAGER_PHONE") ?? "+32 484 59 47 62";
+
+// Verwachtingsmanagement — kalender-doel voor eerste live-lead na contract-signing.
+// Conservatief gesteld om geen onhoudbare verwachting te creëren.
+const FIRST_LEAD_TARGET_DAYS = 10;
+
 const APP_BASE_URL = (Deno.env.get("APP_BASE_URL") ?? "https://app.flancco-platform.be")
   .replace(/\/$/, "");
 
@@ -159,12 +169,34 @@ Deno.serve(async (req: Request) => {
   // ─────────────────────────────────────────────────────────────────────────
 
   const prospectSubject = isFr
-    ? "Confirmation de votre demande de partenariat — Flancco"
-    : "Bevestiging partner-aanvraag — Flancco";
+    ? `Bienvenue chez Flancco — votre contrat est signé`
+    : `Welkom bij Flancco — je contract is getekend`;
 
-  const prospectHtml = isFr
-    ? buildFrProspectHtml({ aanhef, bedrijfsnaam, btw: app.btw_nummer, sectorenList, margePct, pdfUrl: app.contract_pdf_url })
-    : buildNlProspectHtml({ aanhef, bedrijfsnaam, btw: app.btw_nummer, sectorenList, margePct, pdfUrl: app.contract_pdf_url });
+  const ctx: ProspectCtx = {
+    aanhef,
+    bedrijfsnaam,
+    btw: app.btw_nummer,
+    sectorenList,
+    margePct,
+    pdfUrl: app.contract_pdf_url,
+    contractSignedAt: app.contract_signed_at,
+  };
+  const prospectHtml = isFr ? buildFrProspectHtml(ctx) : buildNlProspectHtml(ctx);
+
+  // PDF als bijlage: Resend kan signed URL server-side ophalen via `path`. Filename
+  // sanitized: enkel a-z0-9 + dash zodat we geen UTF-8 issues krijgen in headers.
+  const filenameSafeBedrijf = bedrijfsnaam
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\w]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "partner";
+  const attachments = app.contract_pdf_url
+    ? [{
+        filename: `contract-flancco-${filenameSafeBedrijf}.pdf`,
+        path: app.contract_pdf_url,
+      }]
+    : undefined;
 
   // Admin-mail blijft NL — interne mail.
   const adminSubject = `[Flancco] Nieuwe partner-aanvraag — ${bedrijfsnaam}`;
@@ -192,6 +224,7 @@ Deno.serve(async (req: Request) => {
       subject: prospectSubject,
       html: prospectHtml,
       replyTo: EMAIL_REPLY_TO,
+      attachments,
     }),
     sendResendEmail({
       to: ADMIN_NOTIFICATION_EMAIL,
@@ -232,26 +265,36 @@ Deno.serve(async (req: Request) => {
 // Resend wrapper
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface ResendAttachment {
+  filename: string;
+  path: string;
+}
+
 async function sendResendEmail(params: {
   to: string;
   subject: string;
   html: string;
   replyTo: string;
+  attachments?: ResendAttachment[];
 }): Promise<{ ok: boolean; status: number }> {
   try {
+    const body: Record<string, unknown> = {
+      from: EMAIL_FROM_ADDRESS,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+      reply_to: params.replyTo,
+    };
+    if (params.attachments && params.attachments.length > 0) {
+      body.attachments = params.attachments;
+    }
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: EMAIL_FROM_ADDRESS,
-        to: params.to,
-        subject: params.subject,
-        html: params.html,
-        reply_to: params.replyTo,
-      }),
+      body: JSON.stringify(body),
     });
     return { ok: resp.ok, status: resp.status };
   } catch (e) {
@@ -271,117 +314,167 @@ interface ProspectCtx {
   sectorenList: string;
   margePct: number;
   pdfUrl: string | null;
+  contractSignedAt: string | null;
+}
+
+function formatSignedAt(iso: string | null, locale: "nl-BE" | "fr-BE"): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString(locale, {
+      day: "2-digit", month: "long", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+      timeZone: "Europe/Brussels",
+    });
+  } catch {
+    return "—";
+  }
 }
 
 function buildNlProspectHtml(c: ProspectCtx): string {
-  const pdfBlock = c.pdfUrl
-    ? `<p style="margin:16px 0">
-         <a href="${escUrl(c.pdfUrl)}" style="display:inline-block;background:#1A1A2E;color:#FFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Download ondertekend contract (PDF)</a>
-       </p>`
+  const signedAt = formatSignedAt(c.contractSignedAt, "nl-BE");
+  const pdfCta = c.pdfUrl
+    ? `<p style="margin:8px 0 24px;text-align:center">
+         <a href="${escUrl(c.pdfUrl)}" style="display:inline-block;background:#1A1A2E;color:#FFF;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.3px">Bekijk getekend contract</a>
+       </p>
+       <p style="margin:0 0 24px;text-align:center;font-size:12px;color:#6b7280">Ook bijgevoegd als PDF — bewaar deze voor je boekhouding.</p>`
     : "";
 
   return `<!DOCTYPE html>
 <html lang="nl">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bevestiging partner-aanvraag</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welkom bij Flancco</title></head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#F3F4F6;color:#1A1A2E">
-<div style="max-width:600px;margin:0 auto;padding:20px">
-  <div style="background:#1A1A2E;color:#FFF;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:22px;letter-spacing:1.5px">FLANCCO</h1>
-    <p style="margin:6px 0 0;opacity:0.9;font-size:14px">Bevestiging partner-aanvraag</p>
+<div style="max-width:620px;margin:0 auto;padding:20px">
+  <div style="background:#1A1A2E;color:#FFF;padding:32px 32px;border-radius:12px 12px 0 0;text-align:center">
+    <h1 style="margin:0;font-size:24px;letter-spacing:2px;font-weight:700">FLANCCO</h1>
+    <p style="margin:8px 0 0;opacity:0.85;font-size:14px;letter-spacing:0.3px">Je contract is getekend</p>
   </div>
-  <div style="background:#FFF;padding:32px;border-radius:0 0 12px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
-    <h2 style="color:#E74C3C;font-size:20px;margin:0 0 20px">Welkom bij Flancco</h2>
-    <p style="font-size:15px;line-height:1.7;margin:0 0 16px">${escHtml(c.aanhef)},</p>
-    <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Bedankt voor je interesse om partner te worden van Flancco. We hebben je ondertekende aanvraag goed ontvangen.</p>
+  <div style="background:#FFF;padding:36px 32px;border-radius:0 0 12px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
 
-    <div style="background:#F8F9FA;border-left:3px solid #E74C3C;border-radius:8px;padding:20px;margin:24px 0">
-      <h3 style="margin:0 0 12px;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">Samenvatting van je aanvraag</h3>
+    <h2 style="color:#E74C3C;font-size:22px;margin:0 0 20px;font-weight:700;letter-spacing:-0.01em">Welkom bij Flancco</h2>
+    <p style="font-size:15px;line-height:1.7;margin:0 0 14px;color:#1f2937">${escHtml(c.aanhef)},</p>
+    <p style="font-size:14px;line-height:1.75;margin:0 0 20px;color:#374151">Je hebt zonet het partnercontract digitaal ondertekend. Welkom bij Flancco &mdash; we kijken ernaar uit onze samenwerking met <strong>${escHtml(c.bedrijfsnaam)}</strong> concreet te maken.</p>
+
+    <div style="background:#F8F9FA;border-left:3px solid #E74C3C;border-radius:8px;padding:22px 22px;margin:24px 0">
+      <h3 style="margin:0 0 14px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;font-weight:700">Samenvatting getekend contract</h3>
       <table style="width:100%;border-collapse:collapse;font-size:14px">
-        <tr><td style="padding:6px 0;color:#6b7280;width:40%">Bedrijf</td><td style="padding:6px 0;color:#1f2937;font-weight:600">${escHtml(c.bedrijfsnaam)}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;width:42%">Bedrijf</td><td style="padding:6px 0;color:#1f2937;font-weight:600">${escHtml(c.bedrijfsnaam)}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280">BTW-nummer</td><td style="padding:6px 0;color:#1f2937">${escHtml(c.btw || "—")}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280">Sectoren</td><td style="padding:6px 0;color:#1f2937">${escHtml(c.sectorenList || "—")}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280">Marge</td><td style="padding:6px 0;color:#1f2937"><strong>${escHtml(String(c.margePct))}%</strong> bovenop Flancco-prijzen</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280">Ondertekend op</td><td style="padding:6px 0;color:#1f2937">${escHtml(signedAt)}</td></tr>
       </table>
     </div>
 
-    ${pdfBlock}
+    ${pdfCta}
 
-    <h3 style="font-size:15px;margin:28px 0 12px;color:#1f2937">Wat gebeurt er nu?</h3>
-    <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;color:#374151">
-      <li>Onze partnership-team neemt binnen <strong>de 3 werkdagen</strong> contact op</li>
-      <li>Na validatie ontvang je een aparte e-mail met magic-link om je account te activeren</li>
-      <li>Via je account configureer je branding, calculator-instellingen en eerste team-leden</li>
-      <li>Je ontvangt een marketing-kit met QR-code en share-templates voor je calculator</li>
+    <h3 style="font-size:16px;margin:32px 0 14px;color:#1f2937;font-weight:700;letter-spacing:-0.01em">Wat gebeurt nu &mdash; jouw activatie-traject</h3>
+    <ol style="margin:0 0 28px;padding-left:22px;font-size:14px;line-height:1.85;color:#374151">
+      <li style="margin-bottom:6px"><strong>Binnen 1 werkdag</strong> ontvang je een aparte e-mail met een veilige activatie-link voor je partner-portaal</li>
+      <li style="margin-bottom:6px"><strong>Bij eerste login</strong> doorloop je een korte onboarding-tour: branding (logo + kleuren), calculator-instellingen en eerste teamleden</li>
+      <li style="margin-bottom:6px"><strong>Marketing-kit</strong> wordt automatisch klaargezet in je portaal: QR-codes, share-templates en banner-snippets voor je calculator</li>
+      <li style="margin-bottom:6px"><strong>Persoonlijke begeleiding</strong> door je account-manager voor de eerste live-leads</li>
     </ol>
 
-    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb">
-      <p style="font-size:14px;color:#6b7280;margin:0 0 8px">Vragen?</p>
-      <p style="font-size:14px;margin:0;line-height:1.7">
-        <strong style="color:#1f2937">Flancco BV</strong><br>
-        <a href="mailto:gillian.geernaert@flancco.be" style="color:#1A1A2E;text-decoration:none">gillian.geernaert@flancco.be</a>
-      </p>
+    <div style="background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:8px;padding:18px 20px;margin:0 0 28px">
+      <h4 style="margin:0 0 6px;font-size:12px;color:#92400E;text-transform:uppercase;letter-spacing:1px;font-weight:700">Verwachtingen voor de eerste weken</h4>
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#78350F">Reken op je eerste live-lead binnen <strong>~${FIRST_LEAD_TARGET_DAYS} werkdagen</strong> na activatie. We zorgen ervoor dat marketing-kit en calculator in de eerste week vlot bij je klanten landen, zodat je commercieel meteen kan starten.</p>
     </div>
 
-    <p style="margin-top:24px;font-size:14px;line-height:1.7">Met vriendelijke groet,<br><strong>Het Flancco team</strong></p>
+    <div style="background:#FFF;border:1.5px solid #E5E7EB;border-radius:10px;padding:22px;margin:0 0 24px">
+      <h4 style="margin:0 0 12px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;font-weight:700">Direct contact</h4>
+      <p style="font-size:14px;margin:0 0 6px;line-height:1.6;color:#1f2937"><strong>${escHtml(ACCOUNT_MANAGER_NAME)}</strong> &mdash; je account-manager</p>
+      <p style="font-size:14px;margin:0 0 4px;line-height:1.6">
+        <a href="mailto:${escAttr(ACCOUNT_MANAGER_EMAIL)}" style="color:#1A1A2E;text-decoration:none">${escHtml(ACCOUNT_MANAGER_EMAIL)}</a>
+      </p>
+      <p style="font-size:14px;margin:0 0 10px;line-height:1.6">
+        <a href="tel:${escAttr(ACCOUNT_MANAGER_PHONE.replace(/\s/g, ""))}" style="color:#1A1A2E;text-decoration:none">${escHtml(ACCOUNT_MANAGER_PHONE)}</a>
+      </p>
+      <p style="font-size:12.5px;margin:0;color:#6b7280;font-style:italic">Bewaar dit nummer &mdash; je mag altijd bellen bij vragen tijdens de activatie.</p>
+    </div>
+
+    <p style="margin:28px 0 0;font-size:14px;line-height:1.7;color:#374151">Met vriendelijke groet,<br><strong style="color:#1f2937">${escHtml(ACCOUNT_MANAGER_NAME)}</strong><br><span style="color:#6b7280">Flancco BV</span></p>
   </div>
-  <p style="text-align:center;margin:16px 0 0;color:#999;font-size:11px">Flancco BV &mdash; Partner-platform voor onderhoud en service</p>
+  <p style="text-align:center;margin:18px 0 0;color:#9ca3af;font-size:11px;line-height:1.7">
+    Flancco BV &mdash; 9080 Beervelde<br>
+    <a href="https://flancco-platform.be/privacy" style="color:#9ca3af">Privacy</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://flancco-platform.be/voorwaarden" style="color:#9ca3af">Voorwaarden</a>
+  </p>
 </div>
 </body>
 </html>`;
 }
 
 function buildFrProspectHtml(c: ProspectCtx): string {
-  const pdfBlock = c.pdfUrl
-    ? `<p style="margin:16px 0">
-         <a href="${escUrl(c.pdfUrl)}" style="display:inline-block;background:#1A1A2E;color:#FFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Télécharger le contrat signé (PDF)</a>
-       </p>`
+  const signedAt = formatSignedAt(c.contractSignedAt, "fr-BE");
+  const pdfCta = c.pdfUrl
+    ? `<p style="margin:8px 0 24px;text-align:center">
+         <a href="${escUrl(c.pdfUrl)}" style="display:inline-block;background:#1A1A2E;color:#FFF;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.3px">Voir le contrat signé</a>
+       </p>
+       <p style="margin:0 0 24px;text-align:center;font-size:12px;color:#6b7280">Également joint en PDF &mdash; conservez-le pour votre comptabilité.</p>`
     : "";
 
   return `<!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Confirmation demande de partenariat</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bienvenue chez Flancco</title></head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#F3F4F6;color:#1A1A2E">
-<div style="max-width:600px;margin:0 auto;padding:20px">
-  <div style="background:#1A1A2E;color:#FFF;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:22px;letter-spacing:1.5px">FLANCCO</h1>
-    <p style="margin:6px 0 0;opacity:0.9;font-size:14px">Confirmation demande de partenariat</p>
+<div style="max-width:620px;margin:0 auto;padding:20px">
+  <div style="background:#1A1A2E;color:#FFF;padding:32px 32px;border-radius:12px 12px 0 0;text-align:center">
+    <h1 style="margin:0;font-size:24px;letter-spacing:2px;font-weight:700">FLANCCO</h1>
+    <p style="margin:8px 0 0;opacity:0.85;font-size:14px;letter-spacing:0.3px">Votre contrat est signé</p>
   </div>
-  <div style="background:#FFF;padding:32px;border-radius:0 0 12px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
-    <h2 style="color:#E74C3C;font-size:20px;margin:0 0 20px">Bienvenue chez Flancco</h2>
-    <p style="font-size:15px;line-height:1.7;margin:0 0 16px">${escHtml(c.aanhef)},</p>
-    <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Merci de votre intérêt pour devenir partenaire de Flancco. Nous avons bien reçu votre demande signée.</p>
+  <div style="background:#FFF;padding:36px 32px;border-radius:0 0 12px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
 
-    <div style="background:#F8F9FA;border-left:3px solid #E74C3C;border-radius:8px;padding:20px;margin:24px 0">
-      <h3 style="margin:0 0 12px;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">Résumé de votre demande</h3>
+    <h2 style="color:#E74C3C;font-size:22px;margin:0 0 20px;font-weight:700;letter-spacing:-0.01em">Bienvenue chez Flancco</h2>
+    <p style="font-size:15px;line-height:1.7;margin:0 0 14px;color:#1f2937">${escHtml(c.aanhef)},</p>
+    <p style="font-size:14px;line-height:1.75;margin:0 0 20px;color:#374151">Vous venez de signer le contrat de partenariat. Bienvenue chez Flancco &mdash; nous nous réjouissons de concrétiser notre collaboration avec <strong>${escHtml(c.bedrijfsnaam)}</strong>.</p>
+
+    <div style="background:#F8F9FA;border-left:3px solid #E74C3C;border-radius:8px;padding:22px 22px;margin:24px 0">
+      <h3 style="margin:0 0 14px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;font-weight:700">Résumé du contrat signé</h3>
       <table style="width:100%;border-collapse:collapse;font-size:14px">
-        <tr><td style="padding:6px 0;color:#6b7280;width:40%">Société</td><td style="padding:6px 0;color:#1f2937;font-weight:600">${escHtml(c.bedrijfsnaam)}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;width:42%">Société</td><td style="padding:6px 0;color:#1f2937;font-weight:600">${escHtml(c.bedrijfsnaam)}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280">N° TVA</td><td style="padding:6px 0;color:#1f2937">${escHtml(c.btw || "—")}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280">Secteurs</td><td style="padding:6px 0;color:#1f2937">${escHtml(c.sectorenList || "—")}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280">Marge</td><td style="padding:6px 0;color:#1f2937"><strong>${escHtml(String(c.margePct))}%</strong> au-dessus des prix Flancco</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280">Signé le</td><td style="padding:6px 0;color:#1f2937">${escHtml(signedAt)}</td></tr>
       </table>
     </div>
 
-    ${pdfBlock}
+    ${pdfCta}
 
-    <h3 style="font-size:15px;margin:28px 0 12px;color:#1f2937">Étapes suivantes</h3>
-    <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;color:#374151">
-      <li>Notre équipe partenariats vous contactera dans <strong>les 3 jours ouvrables</strong></li>
-      <li>Après validation, vous recevrez un e-mail séparé avec un lien magique pour activer votre compte</li>
-      <li>Via votre compte, vous configurerez la marque, les paramètres du calculateur et les premiers membres d'équipe</li>
-      <li>Vous recevrez un kit marketing avec QR-code et modèles de partage pour votre calculateur</li>
+    <h3 style="font-size:16px;margin:32px 0 14px;color:#1f2937;font-weight:700;letter-spacing:-0.01em">Vos prochaines étapes &mdash; activation</h3>
+    <ol style="margin:0 0 28px;padding-left:22px;font-size:14px;line-height:1.85;color:#374151">
+      <li style="margin-bottom:6px"><strong>Dans 1 jour ouvrable</strong> vous recevrez un e-mail séparé avec un lien d'activation sécurisé pour votre portail partenaire</li>
+      <li style="margin-bottom:6px"><strong>À la première connexion</strong> vous suivrez une courte visite d'onboarding : marque (logo + couleurs), paramètres du calculateur et premiers membres d'équipe</li>
+      <li style="margin-bottom:6px"><strong>Kit marketing</strong> sera automatiquement préparé dans votre portail : QR-codes, modèles de partage et bannières pour votre calculateur</li>
+      <li style="margin-bottom:6px"><strong>Accompagnement personnel</strong> par votre account-manager pour les premiers leads en direct</li>
     </ol>
 
-    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb">
-      <p style="font-size:14px;color:#6b7280;margin:0 0 8px">Une question ?</p>
-      <p style="font-size:14px;margin:0;line-height:1.7">
-        <strong style="color:#1f2937">Flancco BV</strong><br>
-        <a href="mailto:gillian.geernaert@flancco.be" style="color:#1A1A2E;text-decoration:none">gillian.geernaert@flancco.be</a>
-      </p>
+    <div style="background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:8px;padding:18px 20px;margin:0 0 28px">
+      <h4 style="margin:0 0 6px;font-size:12px;color:#92400E;text-transform:uppercase;letter-spacing:1px;font-weight:700">Attentes pour les premières semaines</h4>
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#78350F">Comptez sur votre premier lead en direct dans <strong>~${FIRST_LEAD_TARGET_DAYS} jours ouvrables</strong> après l'activation. Nous veillons à ce que le kit marketing et le calculateur soient rapidement à disposition de vos clients dès la première semaine, pour que vous puissiez démarrer commercialement sans délai.</p>
     </div>
 
-    <p style="margin-top:24px;font-size:14px;line-height:1.7">Cordialement,<br><strong>L'équipe Flancco</strong></p>
+    <div style="background:#FFF;border:1.5px solid #E5E7EB;border-radius:10px;padding:22px;margin:0 0 24px">
+      <h4 style="margin:0 0 12px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;font-weight:700">Contact direct</h4>
+      <p style="font-size:14px;margin:0 0 6px;line-height:1.6;color:#1f2937"><strong>${escHtml(ACCOUNT_MANAGER_NAME)}</strong> &mdash; votre account-manager</p>
+      <p style="font-size:14px;margin:0 0 4px;line-height:1.6">
+        <a href="mailto:${escAttr(ACCOUNT_MANAGER_EMAIL)}" style="color:#1A1A2E;text-decoration:none">${escHtml(ACCOUNT_MANAGER_EMAIL)}</a>
+      </p>
+      <p style="font-size:14px;margin:0 0 10px;line-height:1.6">
+        <a href="tel:${escAttr(ACCOUNT_MANAGER_PHONE.replace(/\s/g, ""))}" style="color:#1A1A2E;text-decoration:none">${escHtml(ACCOUNT_MANAGER_PHONE)}</a>
+      </p>
+      <p style="font-size:12.5px;margin:0;color:#6b7280;font-style:italic">Gardez ce numéro &mdash; n'hésitez pas à appeler en cas de question pendant l'activation.</p>
+    </div>
+
+    <p style="margin:28px 0 0;font-size:14px;line-height:1.7;color:#374151">Cordialement,<br><strong style="color:#1f2937">${escHtml(ACCOUNT_MANAGER_NAME)}</strong><br><span style="color:#6b7280">Flancco BV</span></p>
   </div>
-  <p style="text-align:center;margin:16px 0 0;color:#999;font-size:11px">Flancco BV &mdash; Plateforme partenaire pour entretien et service</p>
+  <p style="text-align:center;margin:18px 0 0;color:#9ca3af;font-size:11px;line-height:1.7">
+    Flancco BV &mdash; 9080 Beervelde<br>
+    <a href="https://flancco-platform.be/privacy" style="color:#9ca3af">Confidentialité</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://flancco-platform.be/voorwaarden" style="color:#9ca3af">Conditions</a>
+  </p>
 </div>
 </body>
 </html>`;
