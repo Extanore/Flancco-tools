@@ -9132,6 +9132,25 @@ async function deletePartner(partnerId) {
   await sb.from('pricing').delete().eq('partner_id', partnerId);
   await sb.from('partner_sectors').delete().eq('partner_id', partnerId);
   await sb.from('partner_permissions').delete().eq('partner_id', partnerId);
+
+  // partner_applications + bijhorende notificaties opruimen — anders blijven
+  // zombie-kanban-kaarten staan met partner_id=NULL (FK is SET NULL op partner-delete).
+  // 1. Application-ids ophalen (incl. eventuele SET NULL'd al-eerder-orphan rijen)
+  var appsRes = await sb.from('partner_applications')
+    .select('id').eq('partner_id', partnerId);
+  var appIds = (appsRes.data || []).map(function(a) { return a.id; });
+  if (appIds.length > 0) {
+    // 2. Notificaties met related_id = application_id wegwerken
+    await sb.from('notifications').delete()
+      .eq('related_type', 'partner_application')
+      .in('related_id', appIds);
+  }
+  // 3. Application-rijen zelf wegwerken
+  await sb.from('partner_applications').delete().eq('partner_id', partnerId);
+  // 4. Resterende partner-id-gebonden notificaties (bv. type=partner_application_new
+  //    op partner_id=X zonder related_id-match) ook wegwerken
+  await sb.from('notifications').delete().eq('partner_id', partnerId);
+
   var res = await sb.from('partners').delete().eq('id', partnerId);
   if (res.error) { await infoDialog('Fout bij verwijderen: ' + res.error.message, 'Verwijderen mislukt'); return; }
 
