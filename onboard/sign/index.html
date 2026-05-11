@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <meta name="theme-color" content="#1A1A2E">
 <title>Partner-overeenkomst ondertekenen — Flancco</title>
-<meta name="description" content="Bevestig de vertrouwelijkheidsverklaring en onderteken je partnerovereenkomst met Flancco.">
+<meta name="description" content="Bevestig de vertrouwelijkheidsverklaring, vul je bedrijfsgegevens aan en onderteken je partnerovereenkomst met Flancco.">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" type="image/svg+xml" href="../../favicon-flancco.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,15 +26,20 @@
     --accent: #E76F51;
     --accent-hover: #D85B3D;
     --accent-tint: #FCE4DA;
-    --ok: #2A9D8F;
+    --ok: #10B981;
+    --ok-tint: #ECFDF5;
     --warn: #B45309;
+    --warn-tint: #FEF3C7;
     --danger: #B91C1C;
+    --danger-soft: #EF4444;
+    --danger-tint: #FEF2F2;
     --radius-sm: 6px;
     --radius: 12px;
     --radius-lg: 18px;
     --shadow: 0 1px 2px rgba(20,20,31,.04), 0 6px 22px rgba(20,20,31,.06);
     --shadow-lg: 0 12px 40px rgba(20,20,31,.12);
     --maxw: 1080px;
+    --maxw-wizard: 880px;
     --pad-x: clamp(20px, 5vw, 56px);
     --t-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   }
@@ -84,7 +89,11 @@
   .page-shell {
     max-width: var(--maxw);
     margin: 0 auto;
-    padding: clamp(40px, 6vw, 72px) var(--pad-x) 64px;
+    padding: clamp(28px, 5vw, 56px) var(--pad-x) 64px;
+  }
+  .wiz-shell {
+    max-width: var(--maxw-wizard);
+    margin: 0 auto;
   }
 
   .pane { display: none; animation: fadeUp 240ms ease-out; }
@@ -109,172 +118,483 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loader-label { font-size: 14px; color: var(--muted); letter-spacing: .04em; }
 
-  /* ─── Headers, eyebrows ──────────────────────────────────────── */
-  .eyebrow {
+  /* ─── Wizard header / intro ─────────────────────────────────── */
+  .wiz-intro {
+    margin: 0 0 22px;
+  }
+  .wiz-eyebrow {
     font-size: 12px;
     letter-spacing: .18em;
     text-transform: uppercase;
     color: var(--accent);
     font-weight: 700;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
     display: inline-block;
   }
-  h1.page-title {
-    font-size: clamp(28px, 4.4vw, 44px);
-    line-height: 1.08;
-    letter-spacing: -.022em;
+  .wiz-title {
+    font-size: clamp(26px, 4vw, 36px);
+    line-height: 1.12;
+    letter-spacing: -.02em;
     font-weight: 700;
-    margin: 0 0 14px;
-    max-width: 22ch;
+    margin: 0 0 10px;
   }
-  .sub {
-    font-size: clamp(15px, 1.4vw, 17px);
+  .wiz-sub {
+    font-size: clamp(14.5px, 1.3vw, 16px);
     line-height: 1.6;
     color: var(--muted);
-    margin: 0 0 36px;
+    margin: 0;
     max-width: 60ch;
   }
-  .sub strong { color: var(--ink); font-weight: 600; }
 
-  /* ─── Cards / sections ───────────────────────────────────────── */
-  .card {
+  /* ─── Wizard progress bar (ap-style) ────────────────────────── */
+  .ap-progress {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+    margin: 12px 0 24px;
+    padding: 14px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  .ap-step-pill {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1; min-width: 0;
+  }
+  .ap-step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #E5E7EB;
+    color: var(--muted);
+    font-size: 13px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background .18s, color .18s;
+  }
+  .ap-step-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ap-step-pill.active .ap-step-num { background: var(--navy); color: #fff; }
+  .ap-step-pill.active .ap-step-label { color: var(--navy); }
+  .ap-step-pill.done .ap-step-num { background: var(--ok); color: #fff; }
+  .ap-step-pill.done .ap-step-label { color: var(--ok); }
+  .ap-step-bar {
+    flex: 0 0 24px;
+    height: 2px;
+    background: #E5E7EB;
+    border-radius: 1px;
+    transition: background .18s;
+  }
+  .ap-step-bar.done { background: var(--ok); }
+  @media (max-width: 720px) {
+    .ap-step-label { display: none; }
+    .ap-progress { padding: 12px 14px; }
+    .ap-step-bar { flex: 1 1 auto; }
+  }
+
+  /* ─── Wizard step panes ─────────────────────────────────────── */
+  .ap-step-pane { animation: fadeUp 240ms ease-out; }
+
+  .ap-card {
     background: var(--bg-card);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: clamp(20px, 3vw, 32px);
+    padding: clamp(20px, 3vw, 28px);
+    margin-bottom: 18px;
     box-shadow: var(--shadow);
-    margin-bottom: 20px;
   }
-  .card-title {
-    font-size: 13px; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--navy);
-    font-weight: 700; margin: 0 0 14px;
+  .ap-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 0 0 4px;
+    letter-spacing: -.005em;
   }
-  .card-meta {
-    display: grid; gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    margin-top: 4px;
+  .ap-card-sub {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 0 0 18px;
+    line-height: 1.55;
   }
-  .meta-item .meta-label { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  .meta-item .meta-value { font-size: 15px; color: var(--ink); font-weight: 600; margin-top: 2px; }
+  .ap-card-sub strong { color: var(--ink); font-weight: 600; }
 
-  /* ─── Pricing-tabel ──────────────────────────────────────────── */
-  .pricing-table {
+  /* ─── Form layout ───────────────────────────────────────────── */
+  .ap-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .ap-grid-2 > .full { grid-column: 1 / -1; }
+  @media (max-width: 640px) {
+    .ap-grid-2 { grid-template-columns: 1fr; }
+  }
+  .ap-field {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .ap-field label {
+    font-size: 11px; font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .ap-field label .req { color: var(--danger-soft); margin-left: 2px; }
+  .ap-field label .opt {
+    font-size: 10.5px; font-weight: 500;
+    color: var(--muted-soft); text-transform: none;
+    letter-spacing: 0; margin-left: 6px;
+  }
+  .ap-field input,
+  .ap-field textarea,
+  .ap-field select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color .15s;
+    background: #fff;
+    color: var(--navy);
+  }
+  .ap-field input:focus,
+  .ap-field textarea:focus,
+  .ap-field select:focus {
+    border-color: var(--navy);
+  }
+  .ap-field input.ap-err,
+  .ap-field textarea.ap-err,
+  .ap-field select.ap-err {
+    border-color: var(--danger-soft);
+    background: var(--danger-tint);
+  }
+  .ap-field .ap-err-msg {
+    display: none;
+    color: var(--danger);
+    font-size: 11.5px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .ap-field.has-err .ap-err-msg { display: block; }
+
+  /* ─── BTW row (input + validate-knop) ───────────────────────── */
+  .ap-btw-row {
+    display: flex; gap: 8px; align-items: stretch;
+  }
+  .ap-btw-row input { flex: 1; }
+  .ap-btw-validate {
+    padding: 0 16px;
+    border: 1.5px solid var(--navy);
+    background: var(--navy);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s, transform .12s;
+    white-space: nowrap;
+  }
+  .ap-btw-validate:hover:not(:disabled) { background: var(--navy-soft); }
+  .ap-btw-validate:active:not(:disabled) { transform: translateY(1px); }
+  .ap-btw-validate:disabled { opacity: .55; cursor: wait; }
+  .ap-btw-msg {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.45;
+    display: none;
+  }
+  .ap-btw-msg.show { display: block; }
+  .ap-btw-msg.ok { color: #047857; }
+  .ap-btw-msg.err { color: var(--danger); }
+  .ap-btw-msg.warn { color: #92400E; }
+
+  /* ─── Chips (read-only sectoren) ────────────────────────────── */
+  .ap-pills {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .ap-pill {
+    padding: 8px 14px;
+    background: var(--line-soft);
+    border: 1.5px solid var(--line);
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--navy);
+    user-select: none;
+  }
+  .ap-pill.readonly {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+  }
+
+  /* ─── Welkom card highlights ────────────────────────────────── */
+  .ap-greet {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: clamp(22px, 3vw, 32px);
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .ap-greet h2 {
+    font-size: clamp(20px, 2.6vw, 26px);
+    margin: 0 0 8px;
+    color: var(--navy);
+    letter-spacing: -.015em;
+  }
+  .ap-greet p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 56ch;
+  }
+  .ap-greet p strong { color: var(--ink); font-weight: 600; }
+
+  .ap-summary {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 10px 22px;
+    font-size: 13.5px;
+    padding: 14px 16px;
+    background: #F9FAFB;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .ap-summary dt {
+    font-size: 11px; font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    align-self: center;
+  }
+  .ap-summary dd {
+    color: var(--navy);
+    font-weight: 500;
+    margin: 0;
+    align-self: center;
+  }
+  @media (max-width: 600px) {
+    .ap-summary { grid-template-columns: 1fr; gap: 4px 0; }
+    .ap-summary dt { margin-top: 6px; }
+  }
+
+  /* ─── Pricing table ─────────────────────────────────────────── */
+  .ap-pricing-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 16px;
+    font-size: 13.5px;
+  }
+  .ap-pricing-table th, .ap-pricing-table td {
+    text-align: left;
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ap-pricing-table th {
+    font-size: 11px; font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background: #F9FAFB;
+  }
+  .ap-pricing-table td.num {
+    text-align: right;
     font-variant-numeric: tabular-nums;
   }
-  .pricing-table th, .pricing-table td {
-    text-align: left;
-    padding: 14px 14px;
-    border-bottom: 1px solid var(--line);
-    font-size: 14.5px;
-  }
-  .pricing-table th {
-    background: var(--line-soft);
-    font-weight: 600;
-    font-size: 11.5px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .pricing-table tr:last-child td { border-bottom: none; }
-  .pricing-table td.num { text-align: right; font-feature-settings: "tnum" 1; }
-  .pricing-table .row-total td {
+  .ap-pricing-table td.num strong { color: var(--navy); }
+  .ap-pricing-table tr:last-child td { border-bottom: none; }
+  .ap-pricing-table .row-total td {
     background: var(--accent-tint);
     color: var(--navy);
     font-weight: 700;
-    font-size: 15px;
   }
-  .pricing-help {
+  .ap-pricing-help {
     margin-top: 14px;
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--muted);
     line-height: 1.55;
   }
+  .ap-pricing-help strong { color: var(--ink); font-weight: 600; }
 
-  /* ─── Contract-tekst ─────────────────────────────────────────── */
-  .contract-body {
-    font-size: 14.5px;
-    line-height: 1.7;
+  /* ─── Contract body ─────────────────────────────────────────── */
+  .ap-contract-body {
+    background: #FAFBFC;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    max-height: 360px;
+    overflow-y: auto;
+    font-size: 13.5px;
+    line-height: 1.65;
     color: var(--ink);
   }
-  .contract-body h3 {
-    font-size: 14px; letter-spacing: .04em;
-    color: var(--navy); margin: 22px 0 8px; font-weight: 700;
+  .ap-contract-body h3 {
+    font-size: 12.5px;
+    color: var(--navy);
+    margin: 16px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
   }
-  .contract-body p { margin: 0 0 12px; }
-  .contract-body p strong { color: var(--ink); }
+  .ap-contract-body h3:first-child { margin-top: 0; }
+  .ap-contract-body p { margin: 0 0 8px; }
+  .ap-contract-body p strong { color: var(--ink); font-weight: 600; }
 
-  /* ─── Signature canvas ───────────────────────────────────────── */
-  .sig-card { background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(20px, 3vw, 28px); box-shadow: var(--shadow); }
-  .sig-label { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--navy); font-weight: 700; margin-bottom: 14px; }
-  .sig-wrap { position: relative; border: 1.5px dashed var(--line); border-radius: 10px; background: #FFFFFF; overflow: hidden; }
-  .sig-wrap.has-sig { border-style: solid; border-color: var(--accent); }
-  .sig-canvas { display: block; width: 100%; height: 200px; cursor: crosshair; touch-action: none; }
-  .sig-placeholder {
+  /* ─── Signature canvas ──────────────────────────────────────── */
+  .ap-sig-wrap {
+    position: relative;
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .ap-sig-wrap.has-sig {
+    border-style: solid;
+    border-color: var(--ok);
+  }
+  .ap-sig-canvas {
+    display: block;
+    width: 100%;
+    height: 200px;
+    cursor: crosshair;
+    touch-action: none;
+    border-radius: 9px;
+  }
+  .ap-sig-placeholder {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    color: var(--muted-soft); font-size: 14px; font-weight: 500;
-    pointer-events: none; transition: opacity 200ms;
+    color: var(--muted-soft);
+    font-size: 13.5px; font-weight: 500;
+    pointer-events: none;
+    transition: opacity 200ms;
   }
-  .sig-wrap.has-sig .sig-placeholder { opacity: 0; }
-  .sig-clear {
-    position: absolute; top: 10px; right: 10px;
-    background: rgba(255,255,255,.92);
+  .ap-sig-wrap.has-sig .ap-sig-placeholder { opacity: 0; }
+  .ap-sig-clear {
+    position: absolute;
+    top: 10px; right: 10px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,.94);
     border: 1px solid var(--line);
     border-radius: 6px;
-    padding: 5px 12px;
-    font-size: 12.5px;
-    font-weight: 500;
+    font-size: 11.5px;
+    font-weight: 600;
     color: var(--muted);
     cursor: pointer;
-    font-family: var(--t-sans);
-    transition: border-color 160ms, color 160ms;
+    font-family: inherit;
+    transition: border-color .15s, color .15s;
   }
-  .sig-clear:hover { border-color: var(--ink); color: var(--ink); }
-  .sig-help { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
-  .sig-error { margin-top: 10px; font-size: 13px; color: var(--danger); font-weight: 500; display: none; }
-  .sig-error.show { display: block; }
+  .ap-sig-clear:hover { border-color: var(--navy); color: var(--navy); }
 
-  /* ─── CTA buttons ────────────────────────────────────────────── */
-  .actions { display: flex; gap: 12px; margin-top: 28px; align-items: center; flex-wrap: wrap; }
+  .ap-check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 18px;
+    padding: 14px 16px;
+    background: #F9FAFB;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .ap-check-row input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .ap-check-row strong { font-weight: 600; color: var(--ink); }
+
+  /* ─── Error banner / inline messages ────────────────────────── */
+  .ap-error-banner {
+    padding: 12px 14px;
+    background: var(--danger-tint);
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    color: #991B1B;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-top: 12px;
+    display: none;
+  }
+  .ap-error-banner.show { display: block; }
+
+  /* ─── Footer note (security stripe) ─────────────────────────── */
+  .ap-note-row {
+    margin-top: 18px;
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.55;
+  }
+  .ap-note-row svg {
+    width: 16px; height: 16px;
+    flex-shrink: 0; margin-top: 2px;
+    color: var(--muted);
+  }
+
+  /* ─── Wizard actions (bottom bar per step) ──────────────────── */
+  .ap-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .ap-actions .ap-actions-right {
+    display: flex; gap: 10px; align-items: center;
+  }
+
   .btn {
-    border: none;
+    border: 1.5px solid transparent;
     background: var(--navy);
     color: #fff;
-    padding: 14px 28px;
-    border-radius: 10px;
-    font-size: 15px;
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     font-family: var(--t-sans);
     letter-spacing: .01em;
-    display: inline-flex; align-items: center; gap: 10px;
-    transition: background 180ms, transform 120ms;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 180ms, transform 120ms, border-color .15s;
   }
   .btn:hover:not(:disabled) { background: var(--navy-soft); }
   .btn:active:not(:disabled) { transform: translateY(1px); }
   .btn:disabled { opacity: .45; cursor: not-allowed; }
-  .btn.primary { background: var(--accent); }
-  .btn.primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
   .btn.ghost {
     background: transparent;
     color: var(--muted);
-    padding: 14px 18px;
+    border-color: var(--line);
   }
-  .btn.ghost:hover:not(:disabled) { color: var(--ink); background: var(--line-soft); }
-  .btn svg { width: 18px; height: 18px; }
-
-  .note-row {
-    margin-top: 18px;
-    font-size: 13px;
-    color: var(--muted);
-    display: flex; align-items: flex-start; gap: 10px;
-    line-height: 1.55;
+  .btn.ghost:hover:not(:disabled) {
+    color: var(--navy);
+    border-color: var(--navy);
+    background: transparent;
   }
-  .note-row svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: var(--muted); }
+  .btn svg { width: 16px; height: 16px; }
 
   /* ─── NDA modal ──────────────────────────────────────────────── */
   .modal-backdrop {
@@ -396,7 +716,7 @@
   .err-icon {
     width: 64px; height: 64px;
     margin: 0 auto 22px;
-    background: #FEF2F2;
+    background: var(--danger-tint);
     color: var(--danger);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -437,18 +757,51 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.err { background: var(--danger); }
 
+  /* ─── Footer ─────────────────────────────────────────────────── */
+  .site-footer {
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    padding: 28px var(--pad-x);
+    margin-top: auto;
+  }
+  .site-footer-inner {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .site-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+  .site-footer-links a {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .site-footer-links a:hover { color: var(--navy); }
+  .site-footer-meta { letter-spacing: .03em; }
+
   /* ─── Mobile tweaks ──────────────────────────────────────────── */
   @media (max-width: 600px) {
     .topbar-inner { padding: 12px 18px; }
     .top-meta { display: none; }
-    .actions { flex-direction: column; align-items: stretch; }
-    .actions .btn { width: 100%; justify-content: center; }
+    .ap-actions { flex-direction: column-reverse; align-items: stretch; }
+    .ap-actions .btn { width: 100%; justify-content: center; }
+    .ap-actions .ap-actions-right { width: 100%; flex-direction: column-reverse; }
+    .ap-actions .ap-actions-right .btn { width: 100%; }
     .modal { max-height: calc(100vh - 32px); }
     .modal-foot .btn { align-self: stretch; width: 100%; justify-content: center; }
+    .site-footer-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
   }
 
   /* Visual focus styles for keyboard users */
-  button:focus-visible, a:focus-visible, input:focus-visible {
+  button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
     border-radius: 4px;
@@ -499,80 +852,235 @@
     </div>
   </section>
 
-  <!-- Contract pane (shown after NDA) -->
-  <section id="pane-contract" class="pane" aria-labelledby="contract-title">
-    <span class="eyebrow">Stap 2 van 2 — Onderteken uw overeenkomst</span>
-    <h1 id="contract-title" class="page-title">Welkom <span id="ct-firstname"></span>.</h1>
-    <p class="sub">Hieronder vindt u de afgesproken commerciële voorwaarden en de partnerovereenkomst. Lees aandachtig na, zet uw handtekening en uw onboarding wordt afgewerkt.</p>
+  <!-- Wizard pane (shown after NDA) -->
+  <section id="pane-wizard" class="pane" aria-labelledby="wiz-title">
+    <div class="wiz-shell">
+      <div class="wiz-intro">
+        <span class="wiz-eyebrow">Partner-activatie</span>
+        <h1 id="wiz-title" class="wiz-title">Welkom <span id="wiz-firstname"></span></h1>
+        <p class="wiz-sub">Doorloop deze korte wizard om de afgesproken voorwaarden te bevestigen en je partnerschap met <strong>Flancco</strong> digitaal te tekenen.</p>
+      </div>
 
-    <!-- Partner-context -->
-    <div class="card">
-      <h2 class="card-title">Uw bedrijfsgegevens</h2>
-      <div class="card-meta">
-        <div class="meta-item">
-          <div class="meta-label">Bedrijf</div>
-          <div class="meta-value" id="meta-bedrijf">—</div>
+      <!-- Progress bar -->
+      <div class="ap-progress" id="ap-progress" aria-label="Voortgang wizard">
+        <div class="ap-step-pill active" data-step="1"><div class="ap-step-num">1</div><div class="ap-step-label">Welkom</div></div>
+        <div class="ap-step-bar" data-bar="1"></div>
+        <div class="ap-step-pill" data-step="2"><div class="ap-step-num">2</div><div class="ap-step-label">Bedrijfsgegevens</div></div>
+        <div class="ap-step-bar" data-bar="2"></div>
+        <div class="ap-step-pill" data-step="3"><div class="ap-step-num">3</div><div class="ap-step-label">Pricing</div></div>
+        <div class="ap-step-bar" data-bar="3"></div>
+        <div class="ap-step-pill" data-step="4"><div class="ap-step-num">4</div><div class="ap-step-label">Ondertekenen</div></div>
+      </div>
+
+      <!-- ===== STEP 1 — Welkom & overzicht ===== -->
+      <div id="ap-step-1" class="ap-step-pane">
+        <div class="ap-greet">
+          <h2>Beste <span id="ap-greet-name"></span>,</h2>
+          <p>Hieronder vind je de afgesproken commerciële voorwaarden. Doorloop de wizard om je <strong>bedrijfsgegevens aan te vullen</strong> en je <strong>contract te ondertekenen</strong>.</p>
         </div>
-        <div class="meta-item">
-          <div class="meta-label">Contactpersoon</div>
-          <div class="meta-value" id="meta-contact">—</div>
+
+        <div class="ap-card">
+          <h3 class="ap-card-title">Sectoren waarvoor je samenwerkt</h3>
+          <p class="ap-card-sub">Flancco voert in jouw opdracht onderhouds- en reinigingsdiensten uit binnen deze sectoren. Deze keuze werd vooraf met je afgestemd.</p>
+          <div class="ap-pills" id="ap-step1-sectoren" role="list" aria-label="Geselecteerde sectoren"></div>
         </div>
-        <div class="meta-item">
-          <div class="meta-label">E-mail</div>
-          <div class="meta-value" id="meta-email">—</div>
+
+        <div class="ap-card">
+          <h3 class="ap-card-title">Commerciële voorwaarden</h3>
+          <p class="ap-card-sub">Deze marge wordt toegepast op de Flancco-forfait. In de volgende stappen zie je concrete rekenvoorbeelden.</p>
+          <dl class="ap-summary">
+            <dt>Bedrijf</dt><dd id="ap-step1-bedrijf">—</dd>
+            <dt>Contactpersoon</dt><dd id="ap-step1-contact">—</dd>
+            <dt>E-mail</dt><dd id="ap-step1-email">—</dd>
+            <dt>Afgesproken marge</dt><dd id="ap-step1-marge">—</dd>
+          </dl>
         </div>
-        <div class="meta-item">
-          <div class="meta-label">Sectoren</div>
-          <div class="meta-value" id="meta-sectoren">—</div>
+
+        <div class="ap-actions">
+          <span></span>
+          <div class="ap-actions-right">
+            <button type="button" class="btn primary" id="ap-step1-next" onclick="wizGoToStep(2)">
+              <span>Volgende: bedrijfsgegevens</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Pricing -->
-    <div class="card">
-      <h2 class="card-title">Pricing — uw marge: <span id="pr-marge"></span>%</h2>
-      <table class="pricing-table" aria-label="Voorbeeldprojecten met uw marge">
-        <thead>
-          <tr>
-            <th>Project</th>
-            <th class="num" style="text-align:right">Flancco-forfait</th>
-            <th class="num" style="text-align:right">Uw marge</th>
-            <th class="num" style="text-align:right">Planning fee</th>
-            <th class="num" style="text-align:right">Eindklant (incl. btw)</th>
-          </tr>
-        </thead>
-        <tbody id="pr-tbody"></tbody>
-      </table>
-      <p class="pricing-help">Formule: <strong>(Flancco-forfait + uw marge + planning fee) × 1,21 btw</strong>. Marge wordt op de Flancco-forfait toegepast. Planning fee dekt agendabeheer, klant-communicatie en rapportage.</p>
-    </div>
+      <!-- ===== STEP 2 — Bedrijfsgegevens ===== -->
+      <div id="ap-step-2" class="ap-step-pane" style="display:none">
+        <div class="ap-card">
+          <h3 class="ap-card-title">Vul je bedrijfsgegevens aan</h3>
+          <p class="ap-card-sub">Deze gegevens komen op de partner-overeenkomst en op alle facturen. Tip: voer je BTW-nummer in en klik <strong>Valideer</strong> — we vullen je bedrijfsnaam en adres automatisch aan vanuit het officiële VIES-register.</p>
 
-    <!-- Contract text -->
-    <div class="card">
-      <h2 class="card-title">Partner-overeenkomst</h2>
-      <div id="contract-body" class="contract-body"></div>
-    </div>
+          <div class="ap-grid-2">
+            <!-- BTW + validate -->
+            <div class="ap-field full">
+              <label for="ap-btw">BTW-nummer <span class="req">*</span></label>
+              <div class="ap-btw-row">
+                <input id="ap-btw" type="text" placeholder="BE0123456789" maxlength="20" autocomplete="off" oninput="wizMarkTouched('ap-btw'); wizValidateStep2(false)">
+                <button type="button" class="ap-btw-validate" id="ap-btw-validate" onclick="wizValidateBTW()">Valideer</button>
+              </div>
+              <div class="ap-btw-msg" id="ap-btw-msg"></div>
+              <span class="ap-err-msg" id="ap-btw-err">Geldig BTW-nummer vereist — bv. BE0123.456.789 of BE0123456789.</span>
+            </div>
 
-    <!-- Signature -->
-    <div class="sig-card">
-      <div class="sig-label">Uw handtekening</div>
-      <div id="sig-wrap" class="sig-wrap">
-        <canvas id="sig-canvas" class="sig-canvas" width="800" height="200" aria-label="Handtekening-vak"></canvas>
-        <div class="sig-placeholder">Teken met uw muis of vinger</div>
-        <button type="button" class="sig-clear" id="sig-clear" aria-label="Handtekening wissen">Wissen</button>
+            <!-- Bedrijfsnaam -->
+            <div class="ap-field full">
+              <label for="ap-bedrijfsnaam">Bedrijfsnaam <span class="req">*</span></label>
+              <input id="ap-bedrijfsnaam" type="text" autocomplete="organization" maxlength="200" oninput="wizMarkTouched('ap-bedrijfsnaam'); wizValidateStep2(false)">
+              <span class="ap-err-msg">Minimaal 2 tekens.</span>
+            </div>
+
+            <!-- Adres -->
+            <div class="ap-field full">
+              <label for="ap-straat">Straat <span class="req">*</span></label>
+              <input id="ap-straat" type="text" autocomplete="address-line1" maxlength="200" oninput="wizMarkTouched('ap-straat'); wizValidateStep2(false)">
+              <span class="ap-err-msg">Straatnaam vereist.</span>
+            </div>
+            <div class="ap-field">
+              <label for="ap-huisnr">Huisnummer <span class="req">*</span></label>
+              <input id="ap-huisnr" type="text" autocomplete="address-line2" maxlength="20" placeholder="bv. 25 of 25A bus 3" oninput="wizMarkTouched('ap-huisnr'); wizValidateStep2(false)">
+              <span class="ap-err-msg">Huisnummer vereist.</span>
+            </div>
+            <div class="ap-field">
+              <label for="ap-postcode">Postcode <span class="req">*</span></label>
+              <input id="ap-postcode" type="text" inputmode="numeric" maxlength="4" placeholder="0000" oninput="wizMarkTouched('ap-postcode'); wizValidateStep2(false)">
+              <span class="ap-err-msg">4 cijfers vereist (BE-postcode).</span>
+            </div>
+            <div class="ap-field full">
+              <label for="ap-gemeente">Gemeente <span class="req">*</span></label>
+              <input id="ap-gemeente" type="text" autocomplete="address-level2" maxlength="100" oninput="wizMarkTouched('ap-gemeente'); wizValidateStep2(false)">
+              <span class="ap-err-msg">Gemeente vereist.</span>
+            </div>
+
+            <!-- Website (optioneel) -->
+            <div class="ap-field full">
+              <label for="ap-website">Website <span class="opt">(optioneel)</span></label>
+              <input id="ap-website" type="url" placeholder="https://…" maxlength="200">
+            </div>
+          </div>
+        </div>
+
+        <div class="ap-card">
+          <h3 class="ap-card-title">Contactpersoon</h3>
+          <p class="ap-card-sub">De hoofdcontactpersoon voor de samenwerking. Deze persoon ontvangt operationele berichten en de getekende overeenkomst.</p>
+
+          <div class="ap-grid-2">
+            <div class="ap-field">
+              <label for="ap-voornaam">Voornaam <span class="req">*</span></label>
+              <input id="ap-voornaam" type="text" autocomplete="given-name" maxlength="100" oninput="wizMarkTouched('ap-voornaam'); wizValidateStep2(false)">
+              <span class="ap-err-msg">Verplicht veld.</span>
+            </div>
+            <div class="ap-field">
+              <label for="ap-naam">Familienaam <span class="req">*</span></label>
+              <input id="ap-naam" type="text" autocomplete="family-name" maxlength="100" oninput="wizMarkTouched('ap-naam'); wizValidateStep2(false)">
+              <span class="ap-err-msg">Verplicht veld.</span>
+            </div>
+            <div class="ap-field full">
+              <label for="ap-telefoon">Telefoon <span class="opt">(optioneel)</span></label>
+              <input id="ap-telefoon" type="tel" autocomplete="tel" maxlength="40" placeholder="bv. 0484 59 47 62">
+            </div>
+          </div>
+        </div>
+
+        <div class="ap-actions">
+          <button type="button" class="btn ghost" onclick="wizGoToStep(1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            <span>Terug</span>
+          </button>
+          <div class="ap-actions-right">
+            <button type="button" class="btn primary" id="ap-step2-next" onclick="wizSubmitStep2()">
+              <span>Volgende: pricing</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="sig-help">Door te ondertekenen aanvaardt u de bovenstaande partner-overeenkomst.</div>
-      <div class="sig-error" id="sig-error">Plaats eerst uw handtekening in het vak hierboven.</div>
 
-      <div class="actions">
-        <button type="button" class="btn primary" id="btn-sign" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-          <span>Onderteken &amp; bevestig</span>
-        </button>
-        <button type="button" class="btn ghost" id="btn-clear-2">Wissen</button>
+      <!-- ===== STEP 3 — Pricing-bevestiging ===== -->
+      <div id="ap-step-3" class="ap-step-pane" style="display:none">
+        <div class="ap-card">
+          <h3 class="ap-card-title">Overzicht</h3>
+          <p class="ap-card-sub">Controleer onderstaande gegevens. Klopt er iets niet? Ga één stap terug om aan te passen.</p>
+          <dl class="ap-summary" id="ap-step3-summary"></dl>
+        </div>
+
+        <div class="ap-card">
+          <h3 class="ap-card-title">Pricing — jouw marge: <span id="ap-step3-marge-inline">—</span>%</h3>
+          <p class="ap-card-sub">Drie voorbeeldprojecten met jouw afgesproken marge. Formule: <strong>(Flancco-forfait + jouw marge + planning fee) × 1,21 btw</strong>.</p>
+          <table class="ap-pricing-table" aria-label="Voorbeeldprojecten met jouw marge">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th class="num">Flancco-forfait</th>
+                <th class="num">Jouw marge</th>
+                <th class="num">Planning fee</th>
+                <th class="num">Eindklant incl. btw</th>
+              </tr>
+            </thead>
+            <tbody id="ap-step3-tbody"></tbody>
+          </table>
+          <p class="ap-pricing-help">De marge wordt op de Flancco-forfait toegepast. De planning fee dekt agendabeheer, klant-communicatie en rapportage. Eindklanten kunnen voor zonnepanelen-reiniging gebruik maken van het verlaagde btw-tarief van 6% indien de woning ouder is dan 10 jaar — dit verandert niets aan jouw marge.</p>
+        </div>
+
+        <div class="ap-actions">
+          <button type="button" class="btn ghost" onclick="wizGoToStep(2)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            <span>Terug</span>
+          </button>
+          <div class="ap-actions-right">
+            <button type="button" class="btn primary" onclick="wizGoToStep(4)">
+              <span>Volgende: ondertekenen</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="note-row">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>Beveiligde signing-flow. IP-adres, tijdstip en browser worden geregistreerd ter wettelijke verificatie.</span>
+
+      <!-- ===== STEP 4 — Ondertekenen ===== -->
+      <div id="ap-step-4" class="ap-step-pane" style="display:none">
+        <div class="ap-card">
+          <h3 class="ap-card-title">Partner-overeenkomst</h3>
+          <p class="ap-card-sub">Lees de overeenkomst aandachtig door. De definitieve versie met audit-trail ontvang je per mail na ondertekening.</p>
+          <div class="ap-contract-body" id="ap-contract-body" tabindex="0"></div>
+        </div>
+
+        <div class="ap-card">
+          <h3 class="ap-card-title">Jouw handtekening</h3>
+          <p class="ap-card-sub">Teken in het vak hieronder. Door te ondertekenen verklaar je (a) gemachtigd te zijn namens je bedrijf, (b) de overeenkomst gelezen en begrepen te hebben, en (c) gebonden te zijn aan de voorwaarden.</p>
+
+          <div class="ap-sig-wrap" id="ap-sig-wrap">
+            <canvas id="ap-sig-canvas" class="ap-sig-canvas" width="800" height="200" aria-label="Handtekening-vak"></canvas>
+            <div class="ap-sig-placeholder">Teken met je muis of vinger</div>
+            <button type="button" class="ap-sig-clear" id="ap-sig-clear" aria-label="Handtekening wissen">Wissen</button>
+          </div>
+
+          <label class="ap-check-row">
+            <input type="checkbox" id="ap-sign-ack">
+            <span>Ik bevestig dat ik de <strong>partnervoorwaarden</strong> gelezen heb en ga akkoord met de inhoud van de overeenkomst.</span>
+          </label>
+
+          <div class="ap-error-banner" id="ap-sign-error"></div>
+
+          <div class="ap-note-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Beveiligde signing-flow. IP-adres, tijdstip en browser worden geregistreerd ter wettelijke verificatie.</span>
+          </div>
+        </div>
+
+        <div class="ap-actions">
+          <button type="button" class="btn ghost" onclick="wizGoToStep(3)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            <span>Terug</span>
+          </button>
+          <div class="ap-actions-right">
+            <button type="button" class="btn primary" id="btn-sign" disabled onclick="wizSubmitSigning()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+              <span>Bevestig en teken contract</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -597,13 +1105,24 @@
 
 </main>
 
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div class="site-footer-links">
+      <a href="https://flancco-platform.be/privacy" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://flancco-platform.be/voorwaarden" target="_blank" rel="noopener">Voorwaarden</a>
+      <a href="https://flancco-platform.be/herroeping" target="_blank" rel="noopener">Herroepingsrecht</a>
+    </div>
+    <div class="site-footer-meta">Flancco BV — 9080 Beervelde</div>
+  </div>
+</footer>
+
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <!-- NDA modal -->
 <div id="nda-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nda-title">
   <div class="modal" tabindex="-1">
     <div class="modal-head">
-      <p class="modal-eyebrow">Stap 1 van 2 — Vertrouwelijkheidsverklaring</p>
+      <p class="modal-eyebrow">Vooraf — Vertrouwelijkheidsverklaring</p>
       <h2 id="nda-title" class="modal-title">Vertrouwelijkheidsverklaring — Flancco Partner Pricing</h2>
     </div>
     <div class="modal-body">
@@ -632,7 +1151,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 <script>
 (function(){
   'use strict';
@@ -645,7 +1163,7 @@
   var REDIRECT_DELAY_SEC = 5;
   var PLANNING_FEE_DEFAULT = 25;
 
-  // Hardcoded pricing examples (per spec)
+  // Pricing-voorbeelden (read-only) — afgestemd op typische projecten
   var PRICING_EXAMPLES = [
     { label: 'Klein project',  desc: '2 panelen / 1 toestel',     forfait: 120 },
     { label: 'Medium project', desc: '8 panelen / 4 toestellen',  forfait: 380 },
@@ -656,19 +1174,23 @@
   var state = {
     token: null,
     appData: null,
+    formData: {},        // user-input bedrijfsgegevens (stap 2)
+    btwValidatedPayload: null,
     ip: null,
     ndaAcked: false,
     signed: false,
     signingTs: null,
-    pageLoadTs: Date.now()
+    pageLoadTs: Date.now(),
+    currentStep: 1,
+    touched: {}          // welke velden de user heeft aangeraakt — controleert wanneer error-msg toont
   };
 
   // ─── Helpers ────────────────────────────────────────────────
   function $(sel) { return document.querySelector(sel); }
-  function $$(sel) { return document.querySelectorAll(sel); }
+  function $id(id) { return document.getElementById(id); }
 
   function showPane(id) {
-    var panes = ['pane-loading','pane-error','pane-contract','pane-success'];
+    var panes = ['pane-loading','pane-error','pane-wizard','pane-success'];
     panes.forEach(function(p){
       var el = document.getElementById(p);
       if (el) el.classList.toggle('active', p === id);
@@ -715,7 +1237,35 @@
 
   function tokenShort(t) { return (t || '').slice(0, 8); }
 
-  // ─── Supabase RPC ───────────────────────────────────────────
+  function getVal(id) {
+    var el = $id(id);
+    return el ? (el.value || '').trim() : '';
+  }
+
+  function setVal(id, v) {
+    var el = $id(id);
+    if (el) el.value = v == null ? '' : v;
+  }
+
+  function setFieldError(id, hasErr) {
+    var el = $id(id);
+    if (!el) return;
+    var field = el.closest('.ap-field');
+    if (hasErr) {
+      el.classList.add('ap-err');
+      if (field) field.classList.add('has-err');
+    } else {
+      el.classList.remove('ap-err');
+      if (field) field.classList.remove('has-err');
+    }
+  }
+
+  function wizMarkTouched(id) {
+    state.touched[id] = true;
+  }
+  window.wizMarkTouched = wizMarkTouched;
+
+  // ─── Supabase RPC (anon, via fetch) ─────────────────────────
   async function rpc(fn, args) {
     var resp = await fetch(SUPA_URL + '/rest/v1/rpc/' + fn, {
       method: 'POST',
@@ -736,13 +1286,12 @@
       err.status = resp.status;
       err.body = json;
       err.code = (json && (json.message || json.code)) || null;
-      // Postgres RAISE EXCEPTION text typically lives in json.message
       throw err;
     }
     return json;
   }
 
-  // ─── IP fetch (3s timeout) ──────────────────────────────────
+  // ─── IP fetch (3s timeout, best-effort) ─────────────────────
   async function fetchIp() {
     if (state.ip) return state.ip;
     try {
@@ -766,15 +1315,16 @@
     var titleEl = document.getElementById('err-title');
     var subEl = document.getElementById('err-sub');
     var map = {
-      'no_token':              ['Geen geldige link', 'Het ondertekenings-token ontbreekt in de URL. Open de link rechtstreeks vanuit de e-mail die u van ons ontvangen heeft.'],
-      'invalid_token':         ['Ongeldige link', 'Deze link is niet (meer) geldig. Mogelijk werd hij beschadigd bij het kopiëren — probeer opnieuw via uw oorspronkelijke e-mail.'],
-      'token_not_found':       ['Ongeldige link', 'Deze link werd niet teruggevonden in ons systeem. Mogelijk is hij verlopen of ingetrokken.'],
-      'token_expired':         ['Deze link is verlopen', 'De geldigheidsduur van deze ondertekenings-link is verstreken. Vraag een nieuwe link aan via Gillian — wij sturen u meteen een verse link.'],
-      'token_max_uses_reached':['Link reeds te vaak geopend', 'Deze ondertekenings-link is al meermaals geopend en kan om veiligheidsredenen niet meer gebruikt worden. Contacteer Gillian voor een nieuwe link.'],
-      'already_signed':        ['Reeds ondertekend', 'Dit contract werd reeds ondertekend. U ontving een bevestigingsmail met de getekende kopie. Heeft u die niet ontvangen? Contacteer Gillian.'],
-      'token_invalid_or_expired':['Link niet meer geldig', 'Deze link is niet meer bruikbaar voor deze actie. Contacteer Gillian voor een nieuwe link.'],
-      'token_invalid_or_already_signed_or_no_nda':['Ondertekenen niet mogelijk', 'Deze handtekening kon niet geregistreerd worden. Mogelijk is het contract al ondertekend, of werd de vertrouwelijkheidsverklaring niet bevestigd. Contacteer Gillian.'],
-      'invalid_signature':     ['Handtekening ongeldig', 'Uw handtekening kon niet verwerkt worden. Probeer opnieuw of contacteer Gillian.']
+      'no_token':                                  ['Geen geldige link', 'Het ondertekenings-token ontbreekt in de URL. Open de link rechtstreeks vanuit de e-mail die u van ons ontvangen heeft.'],
+      'invalid_token':                             ['Ongeldige link', 'Deze link is niet (meer) geldig. Mogelijk werd hij beschadigd bij het kopiëren — probeer opnieuw via uw oorspronkelijke e-mail.'],
+      'token_not_found':                           ['Ongeldige link', 'Deze link werd niet teruggevonden in ons systeem. Mogelijk is hij verlopen of ingetrokken.'],
+      'token_expired':                             ['Deze link is verlopen', 'De geldigheidsduur van deze ondertekenings-link is verstreken. Vraag een nieuwe link aan via Gillian — wij sturen u meteen een verse link.'],
+      'token_max_uses_reached':                    ['Link reeds te vaak geopend', 'Deze ondertekenings-link is al meermaals geopend en kan om veiligheidsredenen niet meer gebruikt worden. Contacteer Gillian voor een nieuwe link.'],
+      'already_signed':                            ['Reeds ondertekend', 'Dit contract werd reeds ondertekend. U ontving een bevestigingsmail met de getekende kopie. Heeft u die niet ontvangen? Contacteer Gillian.'],
+      'token_invalid_or_expired':                  ['Link niet meer geldig', 'Deze link is niet meer bruikbaar voor deze actie. Contacteer Gillian voor een nieuwe link.'],
+      'token_invalid_or_already_signed_or_no_nda': ['Ondertekenen niet mogelijk', 'Deze handtekening kon niet geregistreerd worden. Mogelijk is het contract al ondertekend, of werd de vertrouwelijkheidsverklaring niet bevestigd. Contacteer Gillian.'],
+      'invalid_signature':                         ['Handtekening ongeldig', 'Uw handtekening kon niet verwerkt worden. Probeer opnieuw of contacteer Gillian.'],
+      'incomplete_company_details':                ['Bedrijfsgegevens onvolledig', 'Een of meer verplichte bedrijfsgegevens ontbreken of zijn ongeldig. Ga terug naar stap 2 en vul alle vereiste velden in.']
     };
     var entry = map[code] || ['Ongeldige link', fallbackMessage || 'Deze link kon niet worden geverifieerd. Contacteer Gillian voor een nieuwe link.'];
     titleEl.textContent = entry[0];
@@ -786,45 +1336,303 @@
   function extractErrorCode(err) {
     if (!err) return 'unknown';
     var msg = String(err.code || err.message || '').toLowerCase();
-    var known = ['invalid_token','token_not_found','token_expired','token_max_uses_reached','already_signed','token_invalid_or_expired','token_invalid_or_already_signed_or_no_nda','invalid_signature'];
+    var known = [
+      'invalid_token','token_not_found','token_expired','token_max_uses_reached',
+      'already_signed','token_invalid_or_expired','token_invalid_or_already_signed_or_no_nda',
+      'invalid_signature','incomplete_company_details'
+    ];
     for (var i=0; i<known.length; i++) {
       if (msg.indexOf(known[i]) !== -1) return known[i];
     }
     return 'unknown';
   }
 
-  // ─── Render helpers ─────────────────────────────────────────
+  // ─── Naam / sectoren helpers ────────────────────────────────
   function fullName(d) {
     return [d.contactpersoon_voornaam, d.contactpersoon_naam].filter(Boolean).join(' ').trim() || '—';
   }
 
-  function sectorenLabel(d) {
-    var s = d.sectoren;
+  function sectorenList(d) {
+    var s = d && d.sectoren;
     if (Array.isArray(s) && s.length) {
-      var pretty = s.map(function(x){
+      return s.map(function(x){
         var v = String(x || '').replace(/_/g, ' ');
         return v.charAt(0).toUpperCase() + v.slice(1);
       });
-      return pretty.join(', ');
     }
-    return '—';
+    return [];
+  }
+  function sectorenLabel(d) { var arr = sectorenList(d); return arr.length ? arr.join(', ') : '—'; }
+
+  // ─── BTW-validate via edge function (verify_jwt=false) ──────
+  async function wizValidateBTW() {
+    var btn = $id('ap-btw-validate');
+    var msgEl = $id('ap-btw-msg');
+    var inp = $id('ap-btw');
+    if (!btn || !inp || !msgEl) return;
+
+    var btw = (inp.value || '').replace(/[\s.\-]/g, '').toUpperCase();
+    if (!btw) {
+      msgEl.textContent = 'Geen BTW-nummer ingevuld.';
+      msgEl.className = 'ap-btw-msg show err';
+      return;
+    }
+    inp.value = btw;
+    state.touched['ap-btw'] = true;
+
+    btn.disabled = true;
+    var origText = btn.textContent;
+    btn.textContent = 'Bezig…';
+    msgEl.textContent = '';
+    msgEl.className = 'ap-btw-msg';
+
+    try {
+      var resp = await fetch(SUPA_URL + '/functions/v1/validate-vat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY
+        },
+        body: JSON.stringify({ btw_nummer: btw })
+      });
+      var data = await resp.json().catch(function(){ return null; });
+
+      if (data && data.valid === true) {
+        state.btwValidatedPayload = data;
+        // Auto-fill: alleen als veld leeg, anders user-input behouden
+        var rawNaam = data.naam || data.bedrijfsnaam || data.name;
+        setIfEmpty('ap-bedrijfsnaam', reorderCompanySuffix(rawNaam));
+        var split = splitBeAdres(
+          data.adres || data.address || '',
+          data.postcode,
+          data.gemeente || data.city
+        );
+        setIfEmpty('ap-straat',   split.straat);
+        setIfEmpty('ap-huisnr',   split.huisnummer);
+        setIfEmpty('ap-postcode', split.postcode);
+        setIfEmpty('ap-gemeente', split.gemeente);
+
+        msgEl.textContent = 'BTW-nummer geldig' + (rawNaam ? ' — ' + reorderCompanySuffix(rawNaam) : '') + '. Bedrijfsnaam en adres zijn aangevuld waar nog leeg.';
+        msgEl.className = 'ap-btw-msg show ok';
+        clearFieldError('ap-btw');
+        wizValidateStep2(false);
+      } else if (data && data.valid === false) {
+        msgEl.textContent = 'BTW-nummer niet geldig in VIES. Controleer en probeer opnieuw, of vul de gegevens handmatig in.';
+        msgEl.className = 'ap-btw-msg show err';
+      } else {
+        msgEl.textContent = 'Validatie kon niet uitgevoerd worden. U kan de gegevens handmatig invoeren.';
+        msgEl.className = 'ap-btw-msg show warn';
+      }
+    } catch (e) {
+      msgEl.textContent = 'Validatie-service tijdelijk onbereikbaar — vul gegevens handmatig in.';
+      msgEl.className = 'ap-btw-msg show warn';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText || 'Valideer';
+    }
+  }
+  window.wizValidateBTW = wizValidateBTW;
+
+  function setIfEmpty(id, val) {
+    var el = $id(id);
+    if (el && !el.value && val) {
+      el.value = val;
+      clearFieldError(id);
+    }
   }
 
-  function renderNDA(d) {
-    document.getElementById('nda-bedrijf').textContent = d.bedrijfsnaam || '[uw bedrijf]';
+  function clearFieldError(id) {
+    var el = $id(id);
+    if (!el) return;
+    el.classList.remove('ap-err');
+    var f = el.closest('.ap-field');
+    if (f) f.classList.remove('has-err');
   }
 
-  function renderContractMeta(d) {
-    document.getElementById('ct-firstname').textContent = (d.contactpersoon_voornaam || fullName(d)).split(' ')[0];
-    document.getElementById('meta-bedrijf').textContent = d.bedrijfsnaam || '—';
-    document.getElementById('meta-contact').textContent = fullName(d);
-    document.getElementById('meta-email').textContent = d.contactpersoon_email || '—';
-    document.getElementById('meta-sectoren').textContent = sectorenLabel(d);
-    document.getElementById('pr-marge').textContent = (typeof d.marge_pct === 'number') ? d.marge_pct : '—';
+  /**
+   * Verplaatst een Belgische vennootschapsvorm van het begin naar het einde van
+   * de bedrijfsnaam. VIES retourneert "CommV EXTANORE" — conventie in BE is
+   * "EXTANORE CommV". Bewaart oorspronkelijke casing van de vorm.
+   */
+  function reorderCompanySuffix(name) {
+    if (!name) return name;
+    var s = String(name).trim();
+    var formsRegex = /^(BVBA|EBVBA|CVBA|CommVA|Comm\.?V\.?|SCRL|SPRL|SCS|ASBL|VZW|VOF|SNC|ESV|BV|NV|CV|CVA|SA)\s+(.+)$/i;
+    var m = s.match(formsRegex);
+    if (!m) return s;
+    return m[2].trim() + ' ' + m[1].trim();
   }
 
-  function renderPricing(d) {
-    var marge = typeof d.marge_pct === 'number' ? d.marge_pct : 0;
+  /**
+   * Parseert een Belgisch adres-blob (zoals VIES teruggeeft) naar gestructureerde
+   * velden. Dekt ±80% van BE-adressen; user kan altijd handmatig overschrijven.
+   */
+  function splitBeAdres(rawAdres, rawPostcode, rawGemeente) {
+    var result = {
+      straat: '',
+      huisnummer: '',
+      postcode: (rawPostcode || '').trim(),
+      gemeente: (rawGemeente || '').trim()
+    };
+    if (!rawAdres) return result;
+    var s = String(rawAdres).replace(/[\n,]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!result.postcode || !result.gemeente) {
+      var pcm = s.match(/^(.+?)\s+(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-']+)$/);
+      if (pcm) {
+        s = pcm[1].trim();
+        if (!result.postcode) result.postcode = pcm[2];
+        if (!result.gemeente) result.gemeente = pcm[3].trim();
+      }
+    }
+    var hnm = s.match(/^(.+?)\s+(\d[\w\s\-/]*)$/);
+    if (hnm) {
+      result.straat = hnm[1].trim();
+      result.huisnummer = hnm[2].trim();
+    } else {
+      result.straat = s;
+    }
+    return result;
+  }
+
+  // ─── Step 1 render ──────────────────────────────────────────
+  function renderStep1(d) {
+    var first = (d.contactpersoon_voornaam || fullName(d)).split(' ')[0];
+    $id('wiz-firstname').textContent = first || '';
+    $id('ap-greet-name').textContent = first || '';
+    $id('ap-step1-bedrijf').textContent = d.bedrijfsnaam || '—';
+    $id('ap-step1-contact').textContent = fullName(d);
+    $id('ap-step1-email').textContent = d.contactpersoon_email || '—';
+    var marge = (typeof d.marge_pct === 'number') ? d.marge_pct : null;
+    $id('ap-step1-marge').textContent = marge != null ? (marge + '%') : '—';
+
+    var arr = sectorenList(d);
+    var pillsHtml = arr.length
+      ? arr.map(function(s){ return '<span class="ap-pill readonly" role="listitem">' + escapeHtml(s) + '</span>'; }).join('')
+      : '<span style="font-size:13px;color:var(--muted);font-weight:500">Geen sectoren bevestigd — neem contact op met Gillian.</span>';
+    $id('ap-step1-sectoren').innerHTML = pillsHtml;
+  }
+
+  // ─── Step 2 prefill ─────────────────────────────────────────
+  function prefillStep2(d) {
+    // appData kan reeds bedrijfsnaam/contact-info hebben (admin pre-filled stap 1 in admin-wizard)
+    setVal('ap-bedrijfsnaam', d.bedrijfsnaam || state.formData.bedrijfsnaam || '');
+    setVal('ap-btw',          d.btw_nummer  || state.formData.btw_nummer  || '');
+    setVal('ap-website',      d.website     || state.formData.website     || '');
+    setVal('ap-voornaam',     d.contactpersoon_voornaam || '');
+    setVal('ap-naam',         d.contactpersoon_naam || '');
+    setVal('ap-telefoon',     d.contactpersoon_telefoon || state.formData.contactpersoon_telefoon || '');
+
+    // Adres: ofwel apart straat/huisnummer/postcode/gemeente in DB, ofwel één 'adres'-string
+    if (d.straat || d.huisnummer) {
+      setVal('ap-straat', d.straat || '');
+      setVal('ap-huisnr', d.huisnummer || '');
+    } else if (d.adres) {
+      var m = String(d.adres).match(/^(.+?)\s+(\d[\w\s\-/]*)$/);
+      if (m) {
+        setVal('ap-straat', m[1].trim());
+        setVal('ap-huisnr', m[2].trim());
+      } else {
+        setVal('ap-straat', d.adres);
+        setVal('ap-huisnr', '');
+      }
+    }
+    setVal('ap-postcode', d.postcode || '');
+    setVal('ap-gemeente', d.gemeente || '');
+  }
+
+  // ─── Step 2 validation ──────────────────────────────────────
+  function wizValidateStep2(showAll) {
+    var ok = true;
+    function check(id, valid) {
+      if (showAll || state.touched[id]) {
+        setFieldError(id, !valid);
+      }
+      if (!valid) ok = false;
+    }
+
+    var btw = getVal('ap-btw').replace(/[\s.\-]/g, '').toUpperCase();
+    var btwValid = /^[A-Z]{2}[0-9]{8,12}$/.test(btw);
+    check('ap-btw', btwValid);
+
+    var bedrijf = getVal('ap-bedrijfsnaam');
+    check('ap-bedrijfsnaam', bedrijf.length >= 2);
+
+    var straat = getVal('ap-straat');
+    check('ap-straat', !!straat);
+
+    var huisnr = getVal('ap-huisnr');
+    check('ap-huisnr', !!huisnr);
+
+    var postcode = getVal('ap-postcode');
+    check('ap-postcode', /^\d{4}$/.test(postcode));
+
+    var gemeente = getVal('ap-gemeente');
+    check('ap-gemeente', !!gemeente);
+
+    var voornaam = getVal('ap-voornaam');
+    check('ap-voornaam', !!voornaam);
+
+    var naam = getVal('ap-naam');
+    check('ap-naam', !!naam);
+
+    var nextBtn = $id('ap-step2-next');
+    if (nextBtn) nextBtn.disabled = !ok;
+
+    return ok;
+  }
+  window.wizValidateStep2 = wizValidateStep2;
+
+  function collectStep2Data() {
+    var fd = state.formData;
+    fd.bedrijfsnaam            = getVal('ap-bedrijfsnaam');
+    fd.btw_nummer              = getVal('ap-btw').replace(/[\s.\-]/g, '').toUpperCase();
+    fd.website                 = getVal('ap-website');
+    fd.contactpersoon_voornaam = getVal('ap-voornaam') || (state.appData && state.appData.contactpersoon_voornaam) || '';
+    fd.contactpersoon_naam     = getVal('ap-naam')     || (state.appData && state.appData.contactpersoon_naam)     || '';
+    fd.contactpersoon_telefoon = getVal('ap-telefoon');
+    fd.straat                  = getVal('ap-straat');
+    fd.huisnummer              = getVal('ap-huisnr');
+    fd.adres                   = (fd.straat + ' ' + fd.huisnummer).trim();
+    fd.postcode                = getVal('ap-postcode');
+    fd.gemeente                = getVal('ap-gemeente');
+    return fd;
+  }
+
+  function wizSubmitStep2() {
+    if (!wizValidateStep2(true)) {
+      showToast('Vul de verplichte velden correct in.', true);
+      return;
+    }
+    collectStep2Data();
+    wizGoToStep(3);
+  }
+  window.wizSubmitStep2 = wizSubmitStep2;
+
+  // ─── Step 3 render ──────────────────────────────────────────
+  function renderStep3() {
+    var d = state.appData || {};
+    var fd = state.formData || {};
+    var marge = (typeof d.marge_pct === 'number') ? d.marge_pct : 0;
+    $id('ap-step3-marge-inline').textContent = marge;
+
+    // Summary
+    var bedrijfFinal = fd.bedrijfsnaam || d.bedrijfsnaam || '—';
+    var contactFinal = ((fd.contactpersoon_voornaam || d.contactpersoon_voornaam || '') + ' ' + (fd.contactpersoon_naam || d.contactpersoon_naam || '')).trim() || '—';
+    var emailFinal = d.contactpersoon_email || '—';
+    var adresParts = [fd.adres, [fd.postcode, fd.gemeente].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
+    var sectoren = sectorenLabel(d);
+
+    $id('ap-step3-summary').innerHTML =
+      '<dt>Bedrijf</dt><dd>' + escapeHtml(bedrijfFinal) + '</dd>' +
+      '<dt>BTW-nummer</dt><dd>' + escapeHtml(fd.btw_nummer || '—') + '</dd>' +
+      '<dt>Adres</dt><dd>' + escapeHtml(adresParts) + '</dd>' +
+      '<dt>Contactpersoon</dt><dd>' + escapeHtml(contactFinal) + '</dd>' +
+      '<dt>E-mail</dt><dd>' + escapeHtml(emailFinal) + '</dd>' +
+      '<dt>Sectoren</dt><dd>' + escapeHtml(sectoren) + '</dd>' +
+      '<dt>Afgesproken marge</dt><dd>' + (marge ? marge + '%' : '—') + '</dd>';
+
+    // Pricing voorbeelden
     var planFee = PLANNING_FEE_DEFAULT;
     var rows = '';
     PRICING_EXAMPLES.forEach(function(ex){
@@ -832,33 +1640,39 @@
       var subtotal = ex.forfait + margeAmt + planFee;
       var total = subtotal * 1.21;
       rows += '<tr>';
-      rows +=   '<td><strong>' + escapeHtml(ex.label) + '</strong><br><span style="font-size:12.5px;color:var(--muted)">' + escapeHtml(ex.desc) + '</span></td>';
+      rows +=   '<td><strong>' + escapeHtml(ex.label) + '</strong><br><span style="font-size:12px;color:var(--muted);font-weight:500">' + escapeHtml(ex.desc) + '</span></td>';
       rows +=   '<td class="num">' + formatEUR(ex.forfait) + '</td>';
-      rows +=   '<td class="num">' + formatEUR(margeAmt) + '</td>';
+      rows +=   '<td class="num" style="color:#10B981">+ ' + formatEUR(margeAmt) + '</td>';
       rows +=   '<td class="num">' + formatEUR(planFee) + '</td>';
       rows +=   '<td class="num"><strong>' + formatEUR(total) + '</strong></td>';
       rows += '</tr>';
     });
-    document.getElementById('pr-tbody').innerHTML = rows;
+    $id('ap-step3-tbody').innerHTML = rows;
   }
 
-  function renderContractBody(d) {
-    var bedrijf = escapeHtml(d.bedrijfsnaam || '—');
-    var voornaam = escapeHtml(d.contactpersoon_voornaam || '');
-    var naam = escapeHtml(d.contactpersoon_naam || '');
+  // ─── Step 4 render ──────────────────────────────────────────
+  function renderContractBody() {
+    var d = state.appData || {};
+    var fd = state.formData || {};
+    var bedrijf = escapeHtml(fd.bedrijfsnaam || d.bedrijfsnaam || '—');
+    var btw = escapeHtml(fd.btw_nummer || '—');
+    var adresParts = [fd.adres, [fd.postcode, fd.gemeente].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
+    var adres = escapeHtml(adresParts);
+    var voornaam = escapeHtml(fd.contactpersoon_voornaam || d.contactpersoon_voornaam || '');
+    var naam = escapeHtml(fd.contactpersoon_naam || d.contactpersoon_naam || '');
     var sectorenStr = escapeHtml(sectorenLabel(d));
     var margePct = (typeof d.marge_pct === 'number') ? d.marge_pct : 0;
     var datum = escapeHtml(formatDate(new Date()));
 
     var html = '';
     html += '<h3>Tussen</h3>';
-    html += '<p><strong>Flancco BV</strong> (BTW BE.xxxx.xxx.xxx, ondernemingsnummer xxxxxxxxxx, gevestigd te [adres])<br>hierna <strong>"Flancco"</strong></p>';
+    html += '<p><strong>Flancco BV</strong>, gevestigd te 9080 Beervelde, hierna <strong>"Flancco"</strong>.</p>';
     html += '<h3>En</h3>';
-    html += '<p><strong>' + bedrijf + '</strong> (BTW [BTW_NUMMER], gevestigd te [ADRES])<br>vertegenwoordigd door <strong>' + voornaam + ' ' + naam + '</strong><br>hierna <strong>"Partner"</strong></p>';
-    html += '<h3>Voorwerp van de overeenkomst</h3>';
-    html += '<p>Flancco verbindt zich ertoe voor rekening van Partner technische onderhouds- en reinigingsdiensten uit te voeren op de installaties die Partner heeft geleverd of geïnstalleerd bij zijn eindklanten, dit binnen de volgende sectoren: <strong>' + sectorenStr + '</strong>.</p>';
+    html += '<p><strong>' + bedrijf + '</strong> (BTW ' + btw + ', gevestigd te ' + adres + '), vertegenwoordigd door <strong>' + voornaam + ' ' + naam + '</strong>, hierna <strong>"Partner"</strong>.</p>';
+    html += '<h3>Voorwerp</h3>';
+    html += '<p>Flancco voert in opdracht van Partner technische onderhouds- en reinigingsdiensten uit op installaties die Partner heeft geleverd of geïnstalleerd bij eindklanten, binnen de volgende sectoren: <strong>' + sectorenStr + '</strong>.</p>';
     html += '<h3>Prijszetting</h3>';
-    html += '<p>Flancco hanteert een vaste forfaitstructuur per beurt op basis van projectomvang. Partner past op deze forfait een marge toe van <strong>' + margePct + '%</strong>, vermeerderd met de planning fee van Flancco. Het totaalbedrag wordt aan de eindklant gefactureerd in overeenstemming met de modaliteiten zoals tussen Partner en eindklant overeengekomen.</p>';
+    html += '<p>Flancco hanteert een vaste forfaitstructuur per beurt op basis van projectomvang. Partner past op deze forfait een marge toe van <strong>' + margePct + '%</strong>, vermeerderd met de planning fee. Het totaalbedrag wordt aan de eindklant gefactureerd door Partner.</p>';
     html += '<h3>Werkomvang &amp; uitsluitingen</h3>';
     html += '<p>De standaardstaffel zonnepanelen geldt voor projecten tot 75 panelen. Boven 75 panelen wordt een offerte op maat opgesteld. Onze standaard-hoogtewerker reikt tot een dakrandhoogte van <strong>maximum 17 meter</strong>; voor werken op grotere hoogte wordt het project niet uitgevoerd via de standaardflow en gebeurt de prijszetting in onderling overleg.</p>';
     html += '<h3>Looptijd en opzeg</h3>';
@@ -871,20 +1685,73 @@
     html += '<p>Op deze overeenkomst is uitsluitend Belgisch recht van toepassing. Geschillen vallen onder de exclusieve bevoegdheid van de ondernemingsrechtbanken te Gent.</p>';
     html += '<p style="margin-top:18px"><strong>Voor akkoord, ' + datum + '.</strong></p>';
 
-    document.getElementById('contract-body').innerHTML = html;
+    $id('ap-contract-body').innerHTML = html;
   }
 
-  // ─── Signature canvas ───────────────────────────────────────
+  // ─── Wizard navigation ──────────────────────────────────────
+  function wizGoToStep(n) {
+    var paneIds = ['ap-step-1','ap-step-2','ap-step-3','ap-step-4'];
+    paneIds.forEach(function(id){
+      var el = $id(id);
+      if (el) el.style.display = 'none';
+    });
+    var target = $id('ap-step-' + n);
+    if (target) target.style.display = '';
+    state.currentStep = n;
+
+    if (n === 2) {
+      // Op stap 2: validate-on-enter zodat user direct feedback krijgt over al-gevulde velden
+      // maar geen rode markeringen op velden die nog niet aangeraakt zijn
+      wizValidateStep2(false);
+    } else if (n === 3) {
+      renderStep3();
+    } else if (n === 4) {
+      renderContractBody();
+      setTimeout(initSignaturePad, 30);
+    }
+
+    updateProgressIndicator(n);
+    scrollWizardTop();
+
+    flanccoTrack('Sign Wizard Step', { step: String(n) });
+  }
+  window.wizGoToStep = wizGoToStep;
+
+  function updateProgressIndicator(n) {
+    var bar = $id('ap-progress');
+    if (!bar) return;
+    bar.querySelectorAll('.ap-step-pill').forEach(function(p){
+      var step = parseInt(p.getAttribute('data-step'), 10);
+      p.classList.toggle('active', step === n);
+      p.classList.toggle('done', step < n);
+    });
+    bar.querySelectorAll('.ap-step-bar').forEach(function(b){
+      var idx = parseInt(b.getAttribute('data-bar'), 10);
+      b.classList.toggle('done', idx < n);
+    });
+  }
+
+  function scrollWizardTop() {
+    var shell = document.querySelector('.wiz-shell');
+    if (shell) shell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ─── Signature canvas (re-init safe) ────────────────────────
   var sigCanvas = null;
   var sigCtx = null;
   var sigDrawing = false;
   var sigHasSig = false;
 
   function initSignaturePad() {
-    sigCanvas = document.getElementById('sig-canvas');
-    if (!sigCanvas) return;
+    var origCanvas = $id('ap-sig-canvas');
+    if (!origCanvas) return;
+
+    // Clone om bestaande listeners te wissen — voorkomt dubbele binds bij re-init
+    var clone = origCanvas.cloneNode(false);
+    origCanvas.parentNode.replaceChild(clone, origCanvas);
+    sigCanvas = clone;
     sigCtx = sigCanvas.getContext('2d');
-    // High-DPI scaling for crispness, keep canvas attribute width as fixed
+
     var dpr = window.devicePixelRatio || 1;
     var rect = sigCanvas.getBoundingClientRect();
     var targetW = Math.max(800, Math.round(rect.width * dpr));
@@ -896,6 +1763,12 @@
     sigCtx.lineCap = 'round';
     sigCtx.lineJoin = 'round';
     sigCtx.strokeStyle = '#1A1A2E';
+
+    sigHasSig = false;
+    sigDrawing = false;
+    var wrap = $id('ap-sig-wrap');
+    if (wrap) wrap.classList.remove('has-sig');
+    updateSignBtn();
 
     function getPos(e) {
       var r = sigCanvas.getBoundingClientRect();
@@ -921,7 +1794,8 @@
       sigCtx.stroke();
       if (!sigHasSig) {
         sigHasSig = true;
-        document.getElementById('sig-wrap').classList.add('has-sig');
+        var w = $id('ap-sig-wrap');
+        if (w) w.classList.add('has-sig');
         updateSignBtn();
       }
     }
@@ -940,19 +1814,24 @@
     if (!sigCtx) return;
     sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
     sigHasSig = false;
-    document.getElementById('sig-wrap').classList.remove('has-sig');
-    document.getElementById('sig-error').classList.remove('show');
+    var w = $id('ap-sig-wrap');
+    if (w) w.classList.remove('has-sig');
+    var err = $id('ap-sign-error');
+    if (err) err.classList.remove('show');
     updateSignBtn();
   }
 
   function updateSignBtn() {
-    var btn = document.getElementById('btn-sign');
-    btn.disabled = !sigHasSig || state.signed;
+    var btn = $id('btn-sign');
+    var ack = $id('ap-sign-ack');
+    if (!btn) return;
+    var ackChecked = !!(ack && ack.checked);
+    btn.disabled = !sigHasSig || !ackChecked || state.signed;
   }
 
   function getSignatureBase64() {
     if (!sigHasSig || !sigCanvas) return null;
-    // Render with white background so the PNG is print-friendly
+    // Render met witte achtergrond zodat PNG print-vriendelijk is
     var out = document.createElement('canvas');
     out.width = sigCanvas.width;
     out.height = sigCanvas.height;
@@ -965,24 +1844,22 @@
 
   // ─── NDA modal ──────────────────────────────────────────────
   function openNDA() {
-    var m = document.getElementById('nda-modal');
+    var m = $id('nda-modal');
     m.classList.add('show');
     document.body.style.overflow = 'hidden';
-    // Focus trap basics: focus modal container first
     setTimeout(function(){
       var modalEl = m.querySelector('.modal');
       if (modalEl) modalEl.focus();
     }, 50);
   }
   function closeNDA() {
-    var m = document.getElementById('nda-modal');
+    var m = $id('nda-modal');
     m.classList.remove('show');
     document.body.style.overflow = '';
   }
 
-  // Focus-trap for NDA modal
   function setupNdaFocusTrap() {
-    var m = document.getElementById('nda-modal');
+    var m = $id('nda-modal');
     m.addEventListener('keydown', function(e){
       if (!m.classList.contains('show')) return;
       if (e.key !== 'Tab') return;
@@ -1000,10 +1877,14 @@
     m.addEventListener('keydown', function(e){ if (e.key === 'Escape') e.preventDefault(); });
   }
 
-  // ─── Submit handlers ────────────────────────────────────────
+  function renderNDA(d) {
+    $id('nda-bedrijf').textContent = (d && d.bedrijfsnaam) || '[uw bedrijf]';
+  }
+
+  // ─── NDA submit ─────────────────────────────────────────────
   async function onNdaAccept() {
-    var btn = document.getElementById('btn-nda-accept');
-    var check = document.getElementById('nda-check');
+    var btn = $id('btn-nda-accept');
+    var check = $id('nda-check');
     if (!check.checked) return;
     btn.disabled = true;
     var origInner = btn.innerHTML;
@@ -1020,7 +1901,8 @@
       state.ndaAcked = true;
       flanccoTrack('Sign NDA Accepted', { application_id: state.appData && state.appData.application_id });
       closeNDA();
-      showPane('pane-contract');
+      showPane('pane-wizard');
+      wizGoToStep(1);
     } catch (err) {
       console.error('[nda-ack]', err);
       var code = extractErrorCode(err);
@@ -1034,13 +1916,31 @@
     }
   }
 
-  async function onSign() {
-    var btn = document.getElementById('btn-sign');
+  // ─── Signing submit ─────────────────────────────────────────
+  async function wizSubmitSigning() {
+    var btn = $id('btn-sign');
+    var errEl = $id('ap-sign-error');
+    if (errEl) errEl.classList.remove('show');
+
     if (!sigHasSig) {
-      document.getElementById('sig-error').classList.add('show');
+      if (errEl) { errEl.textContent = 'Plaats eerst een handtekening in het vak hierboven.'; errEl.classList.add('show'); }
       return;
     }
-    document.getElementById('sig-error').classList.remove('show');
+    var ack = $id('ap-sign-ack');
+    if (!ack || !ack.checked) {
+      if (errEl) { errEl.textContent = 'Vink het akkoord-vakje aan om te bevestigen dat u de voorwaarden gelezen heeft.'; errEl.classList.add('show'); }
+      return;
+    }
+
+    // Final bedrijfsgegevens-check: alles wat in formData zit moet vol zijn
+    collectStep2Data();
+    var fd = state.formData;
+    var requiredOk = fd.bedrijfsnaam && fd.btw_nummer && fd.adres && fd.postcode && fd.gemeente && fd.contactpersoon_voornaam && fd.contactpersoon_naam;
+    if (!requiredOk) {
+      if (errEl) { errEl.textContent = 'Bedrijfsgegevens onvolledig — keer terug naar stap 2 om aan te vullen.'; errEl.classList.add('show'); }
+      return;
+    }
+
     btn.disabled = true;
     var origInner = btn.innerHTML;
     btn.innerHTML = '<span>Bezig met ondertekenen...</span>';
@@ -1053,6 +1953,15 @@
       await rpc('public_record_remote_signing', {
         p_token: state.token,
         p_handtekening_base64: base64,
+        p_bedrijfsnaam: fd.bedrijfsnaam,
+        p_btw_nummer: fd.btw_nummer,
+        p_adres: fd.adres,
+        p_postcode: fd.postcode,
+        p_gemeente: fd.gemeente,
+        p_contactpersoon_voornaam: fd.contactpersoon_voornaam,
+        p_contactpersoon_naam: fd.contactpersoon_naam,
+        p_contactpersoon_telefoon: fd.contactpersoon_telefoon || null,
+        p_website: fd.website || null,
         p_ip: state.ip,
         p_user_agent: (navigator.userAgent || '').slice(0, 500)
       });
@@ -1067,22 +1976,29 @@
       });
       showPane('pane-success');
       startRedirectCountdown();
-      // Generate PDF in background, auto-trigger download
+      // PDF op de achtergrond genereren + auto-trigger download
       generateContractPDF({ autoDownload: true }).catch(function(e){
         console.warn('[pdf-auto]', e);
       });
     } catch (err) {
       console.error('[sign]', err);
       var code = extractErrorCode(err);
-      if (['invalid_token','token_invalid_or_already_signed_or_no_nda','invalid_signature','already_signed'].indexOf(code) !== -1) {
-        showErrorPane(code);
+      if (['invalid_token','token_invalid_or_already_signed_or_no_nda','invalid_signature','already_signed','incomplete_company_details','token_expired','token_max_uses_reached'].indexOf(code) !== -1) {
+        if (code === 'incomplete_company_details') {
+          if (errEl) { errEl.textContent = 'De bedrijfsgegevens zijn onvolledig of ongeldig. Ga terug naar stap 2 om aan te vullen.'; errEl.classList.add('show'); }
+          btn.disabled = false;
+          btn.innerHTML = origInner;
+        } else {
+          showErrorPane(code);
+        }
       } else {
-        showToast('Ondertekenen lukte niet. Probeer opnieuw of contacteer Gillian.', true);
+        if (errEl) { errEl.textContent = 'Ondertekenen lukte niet: ' + (err && err.message ? err.message : 'onbekende fout') + '. Probeer opnieuw of contacteer Gillian.'; errEl.classList.add('show'); }
         btn.disabled = false;
         btn.innerHTML = origInner;
       }
     }
   }
+  window.wizSubmitSigning = wizSubmitSigning;
 
   // ─── PDF generation (jsPDF + html2canvas, lazy-load) ────────
   async function ensureScript(src, globalCheckKey) {
@@ -1097,13 +2013,15 @@
 
   function buildPdfHtml() {
     var d = state.appData || {};
+    var fd = state.formData || {};
     var sigImg = state.signatureBase64 || '';
     var datumStr = formatDate(state.signingTs || new Date());
     var ipStr = state.ip || 'onbekend';
     var ua = (navigator.userAgent || '').slice(0, 200);
-    var bodyHtml = document.getElementById('contract-body').innerHTML;
-    var prTbody = document.getElementById('pr-tbody').innerHTML;
+    var bodyHtml = $id('ap-contract-body') ? $id('ap-contract-body').innerHTML : '';
+    var prTbody = $id('ap-step3-tbody') ? $id('ap-step3-tbody').innerHTML : '';
     var marge = typeof d.marge_pct === 'number' ? d.marge_pct : 0;
+    var bedrijfFinal = fd.bedrijfsnaam || d.bedrijfsnaam || 'Partner';
 
     var html = '';
     html += '<!doctype html><html><head><meta charset="utf-8"><style>';
@@ -1128,14 +2046,19 @@
     html += '</style></head><body>';
 
     html += '<div class="eyebrow">Flancco — Partner-overeenkomst</div>';
-    html += '<div class="h1">Getekende overeenkomst — ' + escapeHtml(d.bedrijfsnaam || 'Partner') + '</div>';
+    html += '<div class="h1">Getekende overeenkomst — ' + escapeHtml(bedrijfFinal) + '</div>';
     html += '<div class="muted">Datum ondertekening: <strong>' + escapeHtml(datumStr) + '</strong> &middot; Modus: remote signing</div>';
 
     html += '<div class="section"><h2>Partner-gegevens</h2>';
     html += '<table><tbody>';
-    html += '<tr><td><strong>Bedrijf</strong></td><td>' + escapeHtml(d.bedrijfsnaam || '—') + '</td></tr>';
-    html += '<tr><td><strong>Contactpersoon</strong></td><td>' + escapeHtml(fullName(d)) + '</td></tr>';
+    html += '<tr><td><strong>Bedrijf</strong></td><td>' + escapeHtml(bedrijfFinal) + '</td></tr>';
+    html += '<tr><td><strong>BTW-nummer</strong></td><td>' + escapeHtml(fd.btw_nummer || '—') + '</td></tr>';
+    var adresFull = [fd.adres, [fd.postcode, fd.gemeente].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
+    html += '<tr><td><strong>Adres</strong></td><td>' + escapeHtml(adresFull) + '</td></tr>';
+    html += '<tr><td><strong>Contactpersoon</strong></td><td>' + escapeHtml(((fd.contactpersoon_voornaam || d.contactpersoon_voornaam || '') + ' ' + (fd.contactpersoon_naam || d.contactpersoon_naam || '')).trim() || '—') + '</td></tr>';
     html += '<tr><td><strong>E-mail</strong></td><td>' + escapeHtml(d.contactpersoon_email || '—') + '</td></tr>';
+    if (fd.contactpersoon_telefoon) html += '<tr><td><strong>Telefoon</strong></td><td>' + escapeHtml(fd.contactpersoon_telefoon) + '</td></tr>';
+    if (fd.website) html += '<tr><td><strong>Website</strong></td><td>' + escapeHtml(fd.website) + '</td></tr>';
     html += '<tr><td><strong>Sectoren</strong></td><td>' + escapeHtml(sectorenLabel(d)) + '</td></tr>';
     html += '<tr><td><strong>Marge</strong></td><td>' + marge + '%</td></tr>';
     html += '</tbody></table></div>';
@@ -1149,7 +2072,7 @@
     html += '<div class="sig-block">';
     html += '<div class="sig-cell"><div class="label">Voor Partner</div>';
     if (sigImg) html += '<img class="sig-img" src="' + sigImg + '" alt="Handtekening">';
-    html += '<div style="font-size:10pt;margin-top:4pt"><strong>' + escapeHtml(fullName(d)) + '</strong><br>' + escapeHtml(d.bedrijfsnaam || '') + '</div></div>';
+    html += '<div style="font-size:10pt;margin-top:4pt"><strong>' + escapeHtml(((fd.contactpersoon_voornaam || d.contactpersoon_voornaam || '') + ' ' + (fd.contactpersoon_naam || d.contactpersoon_naam || '')).trim() || '') + '</strong><br>' + escapeHtml(bedrijfFinal) + '</div></div>';
     html += '<div class="sig-cell"><div class="label">Voor Flancco BV</div>';
     html += '<div style="font-size:10pt;margin-top:50pt"><strong>Gillian Geernaert</strong><br>Business Development</div></div>';
     html += '</div>';
@@ -1234,7 +2157,9 @@
       }
 
       var d = state.appData || {};
-      var bedrijfSlug = String(d.bedrijfsnaam || 'partner').replace(/[^a-zA-Z0-9]+/g, '_');
+      var fd = state.formData || {};
+      var bedrijfFinal = fd.bedrijfsnaam || d.bedrijfsnaam || 'partner';
+      var bedrijfSlug = String(bedrijfFinal).replace(/[^a-zA-Z0-9]+/g, '_');
       var datumSlug = (state.signingTs || new Date()).toISOString().slice(0, 10);
       var filename = 'Partnerovereenkomst_' + bedrijfSlug + '_' + datumSlug + '.pdf';
 
@@ -1248,8 +2173,8 @@
   // ─── Redirect countdown ────────────────────────────────────
   function startRedirectCountdown() {
     var sec = REDIRECT_DELAY_SEC;
-    var el = document.getElementById('redirect-count');
-    el.textContent = sec;
+    var el = $id('redirect-count');
+    if (el) el.textContent = sec;
     var timer = setInterval(function(){
       sec--;
       if (el) el.textContent = Math.max(0, sec);
@@ -1265,26 +2190,20 @@
     setupNdaFocusTrap();
 
     // Wire UI events
-    document.getElementById('nda-check').addEventListener('change', function(e){
-      document.getElementById('btn-nda-accept').disabled = !e.target.checked;
+    $id('nda-check').addEventListener('change', function(e){
+      $id('btn-nda-accept').disabled = !e.target.checked;
     });
-    document.getElementById('btn-nda-accept').addEventListener('click', onNdaAccept);
-    document.getElementById('sig-clear').addEventListener('click', clearSignature);
-    document.getElementById('btn-clear-2').addEventListener('click', clearSignature);
-    document.getElementById('btn-sign').addEventListener('click', onSign);
-    document.getElementById('btn-pdf-download').addEventListener('click', function(){
+    $id('btn-nda-accept').addEventListener('click', onNdaAccept);
+    $id('ap-sig-clear').addEventListener('click', clearSignature);
+    $id('ap-sign-ack').addEventListener('change', updateSignBtn);
+    $id('btn-pdf-download').addEventListener('click', function(){
       generateContractPDF({ autoDownload: true }).catch(function(e){
         console.error('[pdf-manual]', e);
         showToast('PDF-download mislukt. Probeer opnieuw.', true);
       });
     });
 
-    // Lucide icons activate (for any inline <i data-lucide>)
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-      try { window.lucide.createIcons(); } catch(_){}
-    }
-
-    // Read token
+    // Read token uit URL
     var params = new URLSearchParams(window.location.search);
     var token = (params.get('token') || '').trim();
     state.token = token;
@@ -1296,7 +2215,7 @@
       return;
     }
 
-    // Open token (consume action)
+    // Consume token (action=open) — verlaagt remaining_uses
     try {
       var data = await rpc('public_consume_signing_token', {
         p_token: token,
@@ -1308,24 +2227,24 @@
       }
       state.appData = data;
 
-      // Pre-fetch IP non-blocking (we'll await at submit-time too)
+      // Pre-fetch IP non-blocking
       fetchIp();
 
-      // Render content
+      // Render wizard content (alle stappen worden lazy gerendered bij navigatie,
+      // behalve stap 1 die direct getoond moet worden)
       renderNDA(data);
-      renderContractMeta(data);
-      renderPricing(data);
-      renderContractBody(data);
-      initSignaturePad();
-      updateSignBtn();
+      renderStep1(data);
+      prefillStep2(data);
 
-      // If NDA already acked previously (e.g. user reopened link), skip modal
+      // Toon wizard pane vooraf zodat de blur-NDA over wizard-shell zit
       if (data.confidentiality_ack_ts) {
+        // NDA reeds geaccepteerd in eerdere sessie → meteen wizard tonen
         state.ndaAcked = true;
-        showPane('pane-contract');
+        showPane('pane-wizard');
+        wizGoToStep(1);
       } else {
-        // Show contract pane behind blur but keep modal on top
-        showPane('pane-contract');
+        showPane('pane-wizard');
+        wizGoToStep(1);
         openNDA();
       }
     } catch (err) {
