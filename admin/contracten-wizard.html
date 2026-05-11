@@ -49,7 +49,7 @@
       var raw = localStorage.getItem('flancco_partner_branding');
       if (!raw) return;
       var b = JSON.parse(raw);
-      if (!b || !b.kleur_donker) return;
+      if (!b || (!b.kleur_donker && !b.kleur_primair)) return;
       // Stale-cache guard: cache van een andere user negeren.
       try {
         // Pattern-match Supabase auth-token-key (project-ref-agnostisch).
@@ -66,8 +66,17 @@
       } catch(_) {}
       window.__flanccoBoot = b;
       var root = document.documentElement;
-      root.style.setProperty('--navy', b.kleur_donker);
-      root.style.setProperty('--navy-light', b.kleur_primair || b.kleur_donker);
+      // Brand-color resolutie: kleur_donker valt terug op kleur_primair (niet
+      // hardcoded groen) zodat partners zonder expliciete donker-variant ook
+      // consistent gerenderd worden.
+      var bootDark = b.kleur_donker || b.kleur_primair;
+      var bootPrimary = b.kleur_primair || b.kleur_donker;
+      root.style.setProperty('--navy', bootDark);
+      root.style.setProperty('--navy-light', bootPrimary);
+      // --brand-primary scheidt brand-color van semantic --navy zodat CTA-knoppen
+      // ook partner-color volgen wanneer --navy door iets anders gereset wordt.
+      root.style.setProperty('--brand-primary', bootDark);
+      root.style.setProperty('--brand-primary-hover', bootPrimary);
       if (b.logo_url) {
         var fav = document.getElementById('app-favicon');
         if (fav) {
@@ -442,8 +451,8 @@
   .btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
   .btn.btn-sm { padding:6px 12px; font-size:12px; line-height:1.2; }
 
-  .btn.btn-primary { background: var(--navy); color:#fff; border-color: var(--navy); }
-  .btn.btn-primary:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .btn.btn-primary { background: var(--brand-primary, var(--navy)); color:#fff; border-color: var(--brand-primary, var(--navy)); }
+  .btn.btn-primary:hover:not(:disabled) { background: var(--brand-primary-hover, #2A2A44); border-color: var(--brand-primary-hover, #2A2A44); }
   .btn.btn-primary:disabled { background: var(--rule); border-color: var(--rule); color:#fff; }
 
   .btn.btn-ghost { background:#fff; color:var(--navy); border-color: var(--rule); }
@@ -480,14 +489,14 @@
   .btn-save, .btn-submit {
     display:inline-flex; align-items:center; justify-content:center; gap:6px;
     padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600; line-height:1;
-    border-radius:8px; border:1.5px solid var(--navy);
-    background: var(--navy); color:#fff; cursor:pointer;
+    border-radius:8px; border:1.5px solid var(--brand-primary, var(--navy));
+    background: var(--brand-primary, var(--navy)); color:#fff; cursor:pointer;
     appearance:none; -webkit-appearance:none;
     transition: background .15s, border-color .15s, transform .05s;
     white-space:nowrap;
   }
   .btn-save:hover:not(:disabled),
-  .btn-submit:hover:not(:disabled) { background:#2A2A44; border-color:#2A2A44; }
+  .btn-submit:hover:not(:disabled) { background: var(--brand-primary-hover, #2A2A44); border-color: var(--brand-primary-hover, #2A2A44); }
   .btn-save:disabled, .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
   .btn-save:active:not(:disabled),
   .btn-submit:active:not(:disabled) { transform: translateY(1px); }
@@ -1133,10 +1142,17 @@ var DEFAULT_NAVY_LIGHT = '#2a2a4a';
 
 function applyWizardBranding(p) {
   if (!p) { resetWizardBranding(); return; }
-  var primary = p.kleur_primair || '#098979';
-  var dark    = p.kleur_donker  || '#066b5e';
+  var primary = p.kleur_primair || DEFAULT_NAVY;
+  // Fallback naar primary i.p.v. hardcoded groen-donker zodat partners zonder
+  // expliciete kleur_donker waarde toch consistent worden gerenderd (CTA-knop +
+  // sidebar trekken samen op met de primary brand-color).
+  var dark    = p.kleur_donker  || primary;
   document.documentElement.style.setProperty('--navy', dark);
   document.documentElement.style.setProperty('--navy-light', primary);
+  // Brand-specific vars (gescheiden van semantic --navy) — borgen dat CTA-knoppen
+  // ALTIJD partner-color volgen ook al wordt --navy ergens anders gereset.
+  document.documentElement.style.setProperty('--brand-primary', dark);
+  document.documentElement.style.setProperty('--brand-primary-hover', primary);
   var sidebar = document.getElementById('sidebar');
   if (sidebar) sidebar.style.background = dark;
   var logo = document.getElementById('sidebar-logo');
@@ -1174,6 +1190,9 @@ function applyWizardBranding(p) {
 function resetWizardBranding() {
   document.documentElement.style.setProperty('--navy', DEFAULT_NAVY);
   document.documentElement.style.setProperty('--navy-light', DEFAULT_NAVY_LIGHT);
+  // Brand-vars verwijderen → CTA-knoppen vallen terug op semantic --navy.
+  document.documentElement.style.removeProperty('--brand-primary');
+  document.documentElement.style.removeProperty('--brand-primary-hover');
   var sidebar = document.getElementById('sidebar');
   if (sidebar) sidebar.style.background = '';
   var logo = document.getElementById('sidebar-logo');
