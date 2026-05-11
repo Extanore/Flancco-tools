@@ -44,8 +44,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 
+// Default FROM-adres MOET overeenkomen met een verified domain in Resend.
+// `flancco-platform.be` is verified (gebruikt door send-partner-application-confirmation
+// + send-confirmation). Voorheen stond hier `partners@flancco.be` als fallback — dat
+// domein is NIET verified in Resend en veroorzaakte stille `resend_failed` errors.
 const EMAIL_FROM_ADDRESS = Deno.env.get("EMAIL_FROM_ADDRESS")
-  ?? "Flancco <partners@flancco.be>";
+  ?? "Flancco <noreply@flancco-platform.be>";
 const EMAIL_REPLY_TO = Deno.env.get("EMAIL_REPLY_TO")
   ?? "gillian.geernaert@flancco.be";
 const APP_BASE_URL = (Deno.env.get("APP_BASE_URL") ?? "https://app.flancco-platform.be")
@@ -241,8 +245,10 @@ Deno.serve(async (req: Request) => {
       ok: false,
       error: "resend_failed",
       detail: `status_${resendResult.status}`,
+      resend_error_body: resendResult.errorBody ?? null,
       // Token blijft geldig — admin kan handmatig URL ophalen uit DB
       expires_at: tokenRow.expires_at,
+      signing_url: signingUrl,
     }, 500);
   }
 
@@ -260,6 +266,7 @@ interface ResendResult {
   ok: boolean;
   status: number;
   messageId: string | null;
+  errorBody?: string;
 }
 
 async function sendResendEmail(params: {
@@ -286,7 +293,21 @@ async function sendResendEmail(params: {
     });
 
     if (!resp.ok) {
-      return { ok: false, status: resp.status, messageId: null };
+      // Verbose error-logging: Resend's response body bevat de exacte reden
+      // (suppression-list hit, validation error, sandbox-mode, etc). Log + return.
+      let errorBody = "";
+      try {
+        errorBody = await resp.text();
+      } catch {
+        errorBody = "<failed to read response body>";
+      }
+      console.error("[sendResendEmail] resend rejected", {
+        status: resp.status,
+        body: errorBody.slice(0, 500),
+        from: EMAIL_FROM_ADDRESS,
+        to_domain: (params.to.split("@")[1] || "").toLowerCase(),
+      });
+      return { ok: false, status: resp.status, messageId: null, errorBody: errorBody.slice(0, 500) };
     }
 
     let messageId: string | null = null;
@@ -302,7 +323,7 @@ async function sendResendEmail(params: {
     return { ok: true, status: resp.status, messageId };
   } catch (e) {
     console.error("[sendResendEmail] fetch failed:", (e as Error).message);
-    return { ok: false, status: 0, messageId: null };
+    return { ok: false, status: 0, messageId: null, errorBody: (e as Error).message };
   }
 }
 
