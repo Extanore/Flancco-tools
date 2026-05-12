@@ -19911,8 +19911,12 @@ async function openKlantModal(editData) {
   document.getElementById('kl-btw').value = editData ? editData.vat_number || '' : '';
   document.getElementById('kl-po').value = editData ? editData.po_number || '' : '';
 
-  // Zet type-toggle (default: bedrijf voor nieuwe klant, anders uit DB)
-  var klType = (editData && editData.client_type) ? editData.client_type : 'bedrijf';
+  // Zet type-toggle. Default rol-afhankelijk: partner-rol typisch zonnepanelen-
+  // installateur met overwegend particuliere klanten → default 'particulier'.
+  // Admin/bediende default 'bedrijf' (Flancco-portefeuille is meer B2B).
+  // Bij bewerken: altijd de bestaande DB-waarde gebruiken.
+  var klTypeDefault = (userRole === 'partner') ? 'particulier' : 'bedrijf';
+  var klType = (editData && editData.client_type) ? editData.client_type : klTypeDefault;
   var typeRadio = document.querySelector('input[name="kl-type"][value="' + klType + '"]');
   if (typeRadio) typeRadio.checked = true;
 
