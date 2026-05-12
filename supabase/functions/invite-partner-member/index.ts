@@ -192,7 +192,8 @@ interface InviteEmailInput {
   recipient: { email: string; voornaam: string; naam: string };
   loginUrl: string;
   inviterDisplay: string;
-  tempPassword: string | null; // null wanneer magic-link mode (toekomstig); nu altijd gevuld
+  tempPassword: string | null; // gevuld bij nieuwe user; null bij re-invite van bestaande user
+  magicLinkUrl: string | null;  // gevuld bij re-invite van bestaande user (magic-link); null bij nieuwe user
   permissions: Record<PermissionKey, boolean>;
   lang: "nl" | "fr";
 }
@@ -217,7 +218,7 @@ function permissionLabels(lang: "nl" | "fr"): Record<PermissionKey, string> {
 }
 
 function buildInviteEmailHtml(opts: InviteEmailInput): { subject: string; html: string } {
-  const { brand, recipient, loginUrl, inviterDisplay, tempPassword, permissions, lang } = opts;
+  const { brand, recipient, loginUrl, inviterDisplay, tempPassword, magicLinkUrl, permissions, lang } = opts;
   const primary = brand.primaryColor;
   const accent = "#E74C3C";
   const safeBrandName = escHtml(brand.name);
@@ -242,6 +243,11 @@ function buildInviteEmailHtml(opts: InviteEmailInput): { subject: string; html: 
     ? `${safeInviter} vous a ajout\u00E9 \u00E0 l'\u00E9quipe <strong>${safeBrandName}</strong> sur la plateforme partenaire Flancco. Vous pouvez maintenant g\u00E9rer les contrats, clients et interventions de votre tenant.`
     : `${safeInviter} heeft je toegevoegd aan het team van <strong>${safeBrandName}</strong> op het Flancco partner-platform. Je kan nu contracten, klanten en interventies binnen jouw tenant beheren.`;
 
+  // Drie scenarios:
+  //  1. Nieuwe user → tempPassword box met email + password
+  //  2. Bestaande user (re-invite via andere of geen tenant) → magic-link banner
+  //     (geen wachtwoord-disruption van bestaand account)
+  //  3. Onbekend (theoretisch onmogelijk) → enkel email tonen
   const credentialsBox = tempPassword
     ? `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;margin-top:18px">
@@ -251,7 +257,21 @@ function buildInviteEmailHtml(opts: InviteEmailInput): { subject: string; html: 
           <div style="font-size:13px;color:#374151"><strong style="color:${primary}">${lang === "fr" ? "Mot de passe temporaire" : "Tijdelijk wachtwoord"}:</strong> <code style="display:inline-block;background:#fff;border:1px solid #E5E7EB;padding:4px 10px;border-radius:6px;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:13px;color:${primary};margin-left:4px">${escHtml(tempPassword)}</code></div>
         </td></tr>
       </table>`
-    : "";
+    : (magicLinkUrl
+      ? `
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;margin-top:18px">
+        <tr><td style="padding:18px 20px">
+          <div style="font-size:11px;font-weight:600;color:#0369A1;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px">${lang === "fr" ? "Connexion en un clic" : "Eén-klik login"}</div>
+          <div style="font-size:13px;color:#0C4A6E;line-height:1.55">${lang === "fr"
+            ? `Vous avez déjà un compte (<strong>${escHtml(recipient.email)}</strong>). Connectez-vous directement avec le bouton ci-dessous — votre mot de passe existant reste inchangé.`
+            : `Je hebt al een account (<strong>${escHtml(recipient.email)}</strong>). Klik op de knop hieronder om direct in te loggen — je bestaande wachtwoord blijft ongewijzigd.`
+          }</div>
+        </td></tr>
+      </table>`
+      : "");
+
+  // CTA-target: magic-link voor bestaande user, anders generieke login-url
+  const ctaHref = magicLinkUrl || loginUrl;
 
   const permsBox = enabledPerms
     ? `
@@ -287,11 +307,11 @@ function buildInviteEmailHtml(opts: InviteEmailInput): { subject: string; html: 
       </td></tr>
       <tr><td style="padding:8px 28px 8px">${credentialsBox}${permsBox}</td></tr>
       <tr><td style="padding:22px 28px 8px">
-        <a href="${escUrl(loginUrl)}" style="display:inline-block;background:${primary};color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600">${escHtml(ctaLabel)}</a>
+        <a href="${escUrl(ctaHref)}" style="display:inline-block;background:${primary};color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600">${escHtml(magicLinkUrl ? (lang === "fr" ? "Se connecter maintenant" : "Direct inloggen") : ctaLabel)}</a>
       </td></tr>
-      <tr><td style="padding:18px 28px 8px">
+      ${tempPassword ? `<tr><td style="padding:18px 28px 8px">
         <div style="background:#FEF3F2;border-left:3px solid ${accent};padding:12px 14px;border-radius:4px;font-size:13px;color:#7F1D1D;line-height:1.5"><strong>${escHtml(securityHeading)}:</strong> ${securityNote}</div>
-      </td></tr>
+      </td></tr>` : ""}
       <tr><td style="padding:22px 28px 28px;border-top:1px solid #E5E7EB;font-size:12px;color:#9CA3AF;line-height:1.6">
         ${escHtml(footerNote)}
         <br>${brand.isFlancco ? "Flancco BV" : safeBrandName + " &middot; " + (lang === "fr" ? "via la plateforme Flancco" : "via Flancco-platform")}
@@ -505,9 +525,32 @@ Deno.serve(async (req: Request) => {
       || caller.email
       || (lang === "fr" ? "un administrateur" : "een beheerder");
 
+    // Bij bestaande user (geen tempPassword): genereer magic-link zodat hij
+    // in één klik kan inloggen zonder zijn bestaande wachtwoord te resetten.
+    // Audit-fix 2026-05-13: voorheen werd emailSent=true gezet zonder dat er
+    // werkelijk een mail werd verstuurd → bestaande users kregen GEEN bevestiging.
+    let magicLinkUrl: string | null = null;
+    if (!tempPassword) {
+      try {
+        const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+          type: "magiclink",
+          email,
+          options: { redirectTo: APP_BASE_URL },
+        });
+        if (linkErr) {
+          console.warn("invite-partner-member: magic-link gen faalde:", linkErr.message);
+        } else {
+          magicLinkUrl = (linkData?.properties as { action_link?: string } | undefined)?.action_link ?? null;
+        }
+      } catch (e) {
+        console.warn("invite-partner-member: magic-link exception:", (e as Error).message);
+      }
+    }
+
     let emailSent = false;
     let emailError: string | null = null;
-    if (RESEND_KEY && tempPassword) {
+    // Stuur mail als RESEND configured EN we ofwel temp_password ofwel magic-link hebben
+    if (RESEND_KEY && (tempPassword || magicLinkUrl)) {
       try {
         const { subject, html } = buildInviteEmailHtml({
           brand,
@@ -515,6 +558,7 @@ Deno.serve(async (req: Request) => {
           loginUrl: APP_BASE_URL,
           inviterDisplay: String(inviterDisplay),
           tempPassword,
+          magicLinkUrl,
           permissions,
           lang,
         });
@@ -533,17 +577,17 @@ Deno.serve(async (req: Request) => {
         if (resp.ok) {
           emailSent = true;
         } else {
-          const detail = await resp.json().catch(() => ({}));
-          emailError = `Resend ${resp.status}: ${JSON.stringify(detail)}`;
+          // Audit-fix SEC-H3: geen Resend-detail in error (alleen status-code)
+          emailError = `Resend ${resp.status}`;
         }
       } catch (e) {
         emailError = (e as Error).message;
       }
     } else if (!RESEND_KEY) {
       emailError = "RESEND_API_KEY niet geconfigureerd";
-    } else if (!tempPassword) {
-      // Bestaande gebruiker → magic-link of bestaande sessie. Geen nieuwe credentials nodig.
-      emailSent = true;
+    } else if (!tempPassword && !magicLinkUrl) {
+      // Onverwacht: bestaande user maar magic-link gen faalde.
+      emailError = "Magic-link generatie mislukt — gebruiker moet via password-reset zelf inloggen";
     }
 
     // 10) Logging — geen PII in regel; alleen partner + outcome.
