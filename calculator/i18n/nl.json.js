@@ -125,7 +125,8 @@
       privacy: 'Ik heb de {link} gelezen en ga akkoord met de verwerking van mijn gegevens.',
       privacyLink: 'privacyverklaring',
       ctaNext: 'Bekijk samenvatting \u2192',
-      ctaBack: '\u2190 Terug'
+      ctaBack: '\u2190 Terug',
+      fieldsFilled: 'velden ingevuld'
     },
     // Slot S \u2014 In-browser samenvatting (review-step) labels
     summary: {
@@ -320,6 +321,7 @@
       viesValid: 'Geverifieerd via VIES \u2014 gegevens automatisch ingevuld',
       viesInvalid: 'Ongeldig BTW-nummer (formaat of niet bekend in VIES-register)',
       viesError: 'Validatie tijdelijk niet beschikbaar \u2014 u kunt doorgaan, we valideren later',
+      viesFallbackNotice: 'VIES is tijdelijk niet bereikbaar \u2014 uw BTW-nummer wordt later automatisch geverifieerd. U kan in alle vertrouwen doorgaan met ondertekenen.',
       // Slot T A5 \u2014 bedrijf-only sub-toggle
       bedrijfOnlyTitle: 'Wie tekent dit contract?',
       bedrijfOnlyContactTitle: 'Specifieke contactpersoon',
