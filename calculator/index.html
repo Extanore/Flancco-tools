@@ -72,6 +72,17 @@
     --radius: 12px;
   }
 
+  /* VIS-008 — A11y: visible focus indicator op alle interactieve elementen (WCAG 2.4.7) */
+  :focus-visible {
+    outline: 2px solid var(--navy, #1A1A2E);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--navy, #1A1A2E);
+    outline-offset: 2px;
+  }
+
   body { font-family: 'Inter', -apple-system, sans-serif; background: var(--light); color: var(--dark); line-height: 1.6; }
 
   /* LOADING SKELETON */
@@ -181,6 +192,10 @@
   .field input.is-vies-valid { border-color: #16A34A; box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
   .field input.is-vies-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,62,62,0.12); }
   .field input.is-vies-error { border-color: #D97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.12); }
+  /* WF-011 — VIES-outage fallback notice (oranje, niet-blokkerend) */
+  .vies-fallback-notice { display: none; align-items: flex-start; gap: 8px; margin-top: 8px; padding: 10px 12px; border: 1px solid #FBD38D; background: #FFFBEB; border-radius: 8px; color: #92400E; font-size: 12.5px; line-height: 1.45; }
+  .vies-fallback-notice.is-shown { display: flex; }
+  .vies-fallback-notice svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; stroke: #B45309; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
   /* TOGGLES */
   .toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--light); border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: background 0.2s; }
@@ -263,10 +278,6 @@
   .info-highlight p { margin: 0; font-size: 14px; font-weight: 600; color: var(--primary-dark); }
 
   /* BUTTONS */
-  /* UX-001 — CTA-class conventie (2026-05-12): deze calculator gebruikt `.btn` als base
-     met `.btn-outline` + `.btn-block` modifiers (BEM-light). Bewust verschillend van
-     admin's `.btn.btn-primary` patroon: klant-facing checkout-stijl met partner-branding
-     via `var(--primary)`. Geen alias-mapping nodig — visuele identiteit is intentioneel. */
   .btn { display: inline-block; background: var(--primary); color: var(--white); padding: 14px 36px; border-radius: 8px; font-size: 15px; font-weight: 600; border: none; cursor: pointer; letter-spacing: 0.3px; transition: background 0.2s, transform 0.1s; box-shadow: 0 2px 8px rgba(9,137,121,0.3); font-family: inherit; }
   .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
   .btn:disabled { opacity: 0.4; pointer-events: none; }
@@ -307,9 +318,6 @@
   .sig-canvas-wrap canvas { display: block; width: 100%; height: 100px; cursor: crosshair; touch-action: none; }
   .sig-canvas-wrap .sig-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 13px; color: var(--rule); pointer-events: none; transition: opacity 0.3s; }
   .sig-canvas-wrap.has-sig .sig-placeholder { opacity: 0; }
-  .signing-canvas-wrap { position: relative; }
-  .signing-canvas-wrap .signing-canvas-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--grey); font-size: 14px; pointer-events: none; user-select: none; transition: opacity 0.25s; letter-spacing: 0.2px; }
-  .signing-canvas-wrap.has-signature .signing-canvas-placeholder { opacity: 0; }
   .sig-clear { display: inline-block; font-size: 11px; color: var(--grey); cursor: pointer; margin-top: 4px; text-decoration: underline; }
   .sig-clear:hover { color: var(--primary); }
   .accept-box { background: var(--primary-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 16px 20px; margin: 24px 0 0; }
@@ -394,6 +402,11 @@
   .cta-progress.is-warning { color: #B47A1A; font-weight: 600; }
   .cta-progress.is-ok { color: #1B9E77; font-weight: 600; }
 
+  /* WF-010 — Veld-progress counter (mobile-first feedback) */
+  .step2-field-progress { font-size: 13px; color: var(--grey); margin-top: 10px; text-align: center; min-height: 18px; transition: color 0.18s ease; }
+  .step2-field-progress.is-complete { color: #1B9E77; font-weight: 600; }
+  .step2-field-progress #step2-filled-count { font-weight: 600; }
+
   /* Disabled-look for 6% radio when foreign postcode */
   .radio-option.is-disabled { opacity: 0.55; cursor: not-allowed; }
   .radio-option.is-disabled input[type="radio"] { pointer-events: none; }
@@ -429,10 +442,24 @@
   .sector-card.selected .sector-card-icon svg { stroke: var(--white); }
   .sector-card h3 { font-size: 16px; font-weight: 700; color: var(--black); margin-bottom: 6px; }
   .sector-card p { font-size: 13px; color: var(--grey); line-height: 1.5; margin-bottom: 0; }
-  .sector-card .sector-check { position: absolute; top: 16px; right: 16px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rule); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-  .sector-card.selected .sector-check { background: var(--primary); border-color: var(--primary); }
-  .sector-card .sector-check svg { width: 14px; height: 14px; stroke: white; stroke-width: 2.5; fill: none; opacity: 0; transition: opacity 0.2s; }
-  .sector-card.selected .sector-check svg { opacity: 1; }
+  .sector-card .sector-check { position: absolute; top: 16px; right: 16px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--primary); background: var(--white); display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: var(--primary); }
+  .sector-card.selected .sector-check { background: var(--primary); border-color: var(--primary); color: var(--white); }
+  .sector-card .sector-check .sc-plus { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: opacity 0.15s; }
+  .sector-card .sector-check .sc-check { position: absolute; width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity 0.15s; }
+  .sector-card.selected .sector-check .sc-plus { opacity: 0; }
+  .sector-card.selected .sector-check .sc-check { opacity: 1; }
+
+  /* CTA-footer in de card — maakt clickbaarheid expliciet. */
+  .sector-card-cta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 13px; font-weight: 600; color: var(--primary); transition: all 0.2s; }
+  .sector-card-cta .scc-label { display: flex; align-items: center; gap: 6px; }
+  .sector-card-cta svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; }
+  .sector-card:hover .sector-card-cta svg { transform: translateX(3px); }
+  .sector-card.selected .sector-card-cta { color: #047857; }
+  .sector-card .sector-card-cta .scc-text-default { display: inline; }
+  .sector-card .sector-card-cta .scc-text-selected { display: none; }
+  .sector-card.selected .sector-card-cta .scc-text-default { display: none; }
+  .sector-card.selected .sector-card-cta .scc-text-selected { display: inline; }
+  .sector-card.selected .sector-card-cta .scc-arrow { display: none; }
 
   /* SECTOR TABS (Step 1 multi-sector) */
   .sector-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
@@ -493,6 +520,98 @@
   #signing-app .data-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--rule); }
   #signing-app .data-label { color: var(--grey); }
   #signing-app .data-value { font-weight: 600; color: var(--dark); }
+
+  /* Signing — USP-strip per sector */
+  #signing-app .signing-usp-strip {
+    padding: 20px 24px;
+    background: linear-gradient(to bottom, #FAF7F4, #fff);
+    border-bottom: 1px solid var(--rule);
+  }
+  #signing-app .signing-usp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  #signing-app .signing-usp-card {
+    background: #fff;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #EEE5DA;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #signing-app .signing-usp-card .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(231,111,81,0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #signing-app .signing-usp-card .icon svg { width: 16px; height: 16px; stroke: #E76F51; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #signing-app .signing-usp-card .title { font-size: 13px; font-weight: 600; color: var(--dark); }
+  #signing-app .signing-usp-card .sub { font-size: 11px; color: var(--grey); line-height: 1.45; }
+
+  /* Signing — 6% BTW verklaring-op-eer */
+  #signing-app .signing-btw6-card {
+    margin: 18px 0;
+    background: #FFF8E7;
+    border: 1px solid #F0DCA0;
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  #signing-app .signing-btw6-card .check-row {
+    margin-top: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #5C4B10;
+  }
+  #signing-app .signing-btw6-card .check-row:hover { background: rgba(0,0,0,0.03); }
+  #signing-app .signing-btw6-card input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+  /* Signing — reminder-kaart frequentie/looptijd/eerste-beurt + flow */
+  #signing-app .signing-reminder-card {
+    background: #fff;
+    padding: 20px 22px;
+    border-radius: 12px;
+    border: 1px solid var(--rule);
+    margin: 20px 0;
+  }
+  #signing-app .reminder-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  #signing-app .reminder-item {
+    background: #FAFBFC;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--rule);
+  }
+  #signing-app .reminder-label { font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  #signing-app .reminder-value { font-size: 14px; font-weight: 600; color: var(--dark); }
+  #signing-app .signing-next-steps {
+    margin: 0;
+    padding-left: 22px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--dark);
+  }
+  @media (max-width: 640px) {
+    #signing-app .signing-usp-grid { grid-template-columns: 1fr; }
+    #signing-app .reminder-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -521,6 +640,9 @@
       <span id="signing-header-name"></span>
     </div>
     <div class="header-subtitle">Uw onderhoudscontract</div>
+  </div>
+  <div class="signing-usp-strip" id="signing-usp-strip" style="display:none">
+    <div id="signing-usp-grid" class="signing-usp-grid"></div>
   </div>
   <div class="container">
     <div id="signing-content"></div>
@@ -829,10 +951,23 @@
         </div>
         <div class="field">
           <label><span data-i18n="klantType.btwNummer">BTW-nummer</span> <small style="color:var(--red)">*</small></label>
-          <input type="text" id="klant-btw-validated" data-i18n-attr="placeholder:klantType.btwNummerPh" placeholder="BE0123456789" autocomplete="off" inputmode="text" maxlength="20" onblur="onBtwBlur()" oninput="onBtwInput()" aria-describedby="vies-status-msg">
+          <input type="text" id="klant-btw-validated" data-i18n-attr="placeholder:klantType.btwNummerPh" placeholder="BE0123456789" autocomplete="off" inputmode="text" maxlength="20" onblur="onBtwBlur()" oninput="onBtwInput()" aria-describedby="vies-status-msg vies-fallback-notice">
           <div id="vies-status" class="vies-status" data-state="" role="status" aria-live="polite">
             <span id="vies-status-icon" aria-hidden="true"></span>
             <span id="vies-status-msg" data-i18n="klantType.btwHelper">We controleren automatisch via VIES (EU BTW-register).</span>
+          </div>
+          <!--
+            WF-011 — VIES-outage fallback notice.
+            Wordt enkel zichtbaar wanneer vies-status[data-state="error"] actief is
+            (zie .vies-status[data-state="error"] ~ #vies-fallback-notice in CSS).
+            Geeft klant rust: hij weet dat zijn BTW-nummer later geverifieerd wordt
+            en dat de signing-flow ondertussen gewoon doorloopt. Op zicht weglaten
+            zou klanten doen afhaken op een externe outage waar Flancco geen vat
+            op heeft.
+          -->
+          <div id="vies-fallback-notice" class="vies-fallback-notice" role="note" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span data-i18n="klantType.viesFallbackNotice">VIES is tijdelijk niet bereikbaar &mdash; uw BTW-nummer wordt later automatisch geverifieerd. U kan in alle vertrouwen doorgaan met ondertekenen.</span>
           </div>
         </div>
       </div>
@@ -872,7 +1007,7 @@
       <div class="accept-box" style="border-color:var(--rule);background:var(--light)">
         <label>
           <input type="checkbox" id="privacy-check" onchange="refreshCtaProgress()">
-          <div class="accept-text" style="font-size:12px;color:var(--grey)">Ik heb de <a href="#" id="privacy-link" target="_blank" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens.</div>
+          <div class="accept-text" style="font-size:12px;color:var(--grey)">Ik heb de <a href="https://flancco-platform.be/privacy/" id="privacy-link" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens.</div>
         </label>
       </div>
     </div>
@@ -930,6 +1065,16 @@
       <button class="btn btn-outline" onclick="goToStep(showStep0 ? 0 : 1)" data-i18n="step2.ctaBack">&larr; Terug</button>
       <button class="btn" id="btn-summary" onclick="goToSummary()" data-i18n="step2.ctaNext">Bekijk samenvatting &rarr;</button>
     </div>
+    <!--
+      WF-010 — Veld-progress counter: zichtbaar overzicht "X/Y velden ingevuld".
+      Geeft mobile-gebruikers (10+ velden, scrollen) directe visuele feedback
+      over hun voortgang. Gevoed door dezelfde listRequiredFieldsStep2() source-
+      of-truth als refreshCtaProgress(), zodat counter exact spiegelt wat de
+      submit-validatie vraagt.
+    -->
+    <div id="step2-field-progress" class="step2-field-progress" aria-live="polite">
+      <span id="step2-filled-count">0</span><span aria-hidden="true">/</span><span id="step2-total-count">0</span> <span data-i18n="step2.fieldsFilled">velden ingevuld</span>
+    </div>
     <div class="cta-progress" id="cta-progress" aria-live="polite"></div>
   </div>
 
@@ -938,7 +1083,7 @@
     <div class="intro"><h1 data-i18n="step2b.title">Uw offerte samengevat</h1><p data-i18n="step2b.subtitle">Controleer onderstaande gegevens voordat u doorgaat naar de overeenkomst.</p></div>
     <div id="summary-container"></div>
     <div class="btn-row">
-      <button class="btn btn-outline" onclick="goToStep(2)" data-i18n="step2b.ctaBack">&larr; Aanpassen</button>
+      <button class="btn btn-outline" onclick="goToStep(2); setTimeout(function() { var step2 = document.getElementById('step-2'); if (step2) step2.scrollIntoView({ behavior: 'smooth', block: 'start' }); var firstInput = step2 ? step2.querySelector('input:not([type=&quot;hidden&quot;]), select') : null; if (firstInput) firstInput.focus({ preventScroll: true }); }, 100);" data-i18n="step2b.ctaBack">&larr; Aanpassen</button>
       <button class="btn" onclick="generateContract()" data-i18n="step2b.ctaNext">Akkoord, ga naar overeenkomst &rarr;</button>
     </div>
   </div>
@@ -3301,6 +3446,222 @@ function onWpGlycolToggle() {
 }
 
 // ═══════════════════════════════════════════
+// PRE-FILL — laad client + installation uit URL-params zodat een nieuw
+// contract automatisch gevuld wordt met data uit een bestaande klant-
+// installatie. Aangeroepen vanuit klant-detail-page ("Maak contract").
+//
+// Contract:
+//   ?client_id=<uuid>              → klant pre-fillen (naam, email, adres)
+//   ?installation_id=<uuid>        → sector-config pre-fillen
+//   ?installation_sector=<sector>  → tabel te queryen (zonnepanelen/warmtepomp/ventilatie/verwarming)
+//
+// Non-blocking: errors loggen warning + ga door zonder pre-fill.
+// ═══════════════════════════════════════════
+// Module-state voor de prefill — bewust niet op `window` om collisions te
+// vermijden; calculator schrijft hier in tijdens init en leest er in stap-3
+// (klant) en bij contract-INSERT (installation-FK passthrough).
+var _calcPrefill = null;
+
+async function detectPrefillFromUrl() {
+  var params = new URLSearchParams(window.location.search);
+  var clientId = params.get('client_id');
+  var installationId = params.get('installation_id');
+  var installationSector = params.get('installation_sector');
+  if (!clientId && !installationId) return null;
+
+  var prefill = { client: null, installation: null, sector: null };
+
+  // 1. Load client
+  if (clientId) {
+    try {
+      var cRes = await sb.from('clients').select('*').eq('id', clientId).maybeSingle();
+      if (cRes && cRes.data) {
+        prefill.client = cRes.data;
+      } else if (cRes && cRes.error) {
+        console.warn('[prefill] clients.select error:', cRes.error);
+      }
+    } catch (e) {
+      console.warn('[prefill] clients.select exception:', e);
+    }
+  }
+
+  // 2. Load installation
+  if (installationId && installationSector) {
+    var validSectors = ['zonnepanelen', 'warmtepomp', 'ventilatie', 'verwarming'];
+    if (validSectors.indexOf(installationSector) === -1) {
+      console.warn('[prefill] Onbekende sector:', installationSector);
+    } else {
+      try {
+        var tableName = 'installations_' + installationSector;
+        var iRes = await sb.from(tableName).select('*').eq('id', installationId).maybeSingle();
+        if (iRes && iRes.data) {
+          prefill.installation = iRes.data;
+          prefill.sector = installationSector;
+        } else if (iRes && iRes.error) {
+          console.warn('[prefill] ' + tableName + '.select error:', iRes.error);
+        }
+      } catch (e) {
+        console.warn('[prefill] installations.select exception:', e);
+      }
+    }
+  } else if (installationId && !installationSector) {
+    console.warn('[prefill] installation_id zonder installation_sector — sector-tabel onbekend, skip installation-prefill.');
+  }
+  return prefill;
+}
+
+function applyPrefillSectorSelection(prefill) {
+  if (!prefill || !prefill.sector) return;
+  // Force-set selectedSectors zodat we onafhankelijk van stap-0 starten met de
+  // juiste sector geselecteerd. Werkt zowel voor partners met 1 sector (stap 0
+  // overgeslagen) als multi-sector (gebruiker kan nog aanvullen).
+  if (selectedSectors.indexOf(prefill.sector) === -1) {
+    selectedSectors = [prefill.sector];
+  }
+  if (typeof activeSectorTab !== 'undefined') activeSectorTab = prefill.sector;
+}
+
+function applyPrefillSectorInputs(prefill) {
+  if (!prefill || !prefill.installation || !prefill.sector) return;
+  var data = prefill.installation;
+  try {
+    if (prefill.sector === 'zonnepanelen') {
+      // dakvlakken is JSONB array {aantal, daktype, ...}
+      var dakvlakken = Array.isArray(data.dakvlakken) ? data.dakvlakken : [];
+      var totaalPanelen = dakvlakken.reduce(function(sum, d) {
+        return sum + (parseInt(d && d.aantal, 10) || 0);
+      }, 0);
+      // Fallback op totaal_panelen-kolom als dakvlakken leeg is
+      if (totaalPanelen <= 0 && data.totaal_panelen) {
+        totaalPanelen = parseInt(data.totaal_panelen, 10) || 0;
+      }
+      if (totaalPanelen > 0) {
+        var panInput = document.getElementById('solar-panelen');
+        if (panInput) {
+          panInput.value = totaalPanelen;
+          panInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+      // Daktype: van eerste dakvlak met daktype-veld
+      var firstDakvlak = dakvlakken.find(function(d) { return d && d.daktype; });
+      if (firstDakvlak && firstDakvlak.daktype) {
+        var daktypeSelect = document.getElementById('solar-daktype');
+        if (daktypeSelect) {
+          // Map mogelijke waardes; calculator kent: hellend|plat|grond
+          var dt = String(firstDakvlak.daktype).toLowerCase();
+          var validDakTypes = ['hellend', 'plat', 'grond'];
+          if (validDakTypes.indexOf(dt) !== -1) {
+            daktypeSelect.value = dt;
+            daktypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      }
+      // Hoogte > 7,5m → dakhoogte=hoog
+      if (data.hoogte_dakrand_m != null && parseFloat(data.hoogte_dakrand_m) > 7.5) {
+        var hoogSelect = document.getElementById('solar-dakhoogte');
+        if (hoogSelect) {
+          hoogSelect.value = 'hoog';
+          hoogSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    } else if (prefill.sector === 'warmtepomp') {
+      // Calculator-UI heeft per type prefixed id's (wp-ll-binnenunits, etc.).
+      // Bij prefill weten we (nog) niet welk subtype actief is — we vullen alle
+      // varianten in zodat ongeacht keuze de juiste waarde staat.
+      var binnen = parseInt(data.aantal_binnen_units, 10);
+      var buiten = parseInt(data.aantal_buiten_units, 10);
+      if (binnen > 0) {
+        var llBin = document.getElementById('wp-ll-binnenunits');
+        if (llBin) { llBin.value = binnen; llBin.dispatchEvent(new Event('input', { bubbles: true })); }
+      }
+      if (buiten > 0) {
+        ['wp-ll-buitenunits', 'wp-lw-buitenunits', 'wp-geo-buitenunits'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) { el.value = buiten; el.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+      }
+    } else if (prefill.sector === 'ventilatie') {
+      // installations_ventilatie.systeem_type → 'C' of 'D' (calculator-vent-type matcht)
+      var systeemSelect = document.getElementById('vent-type');
+      if (systeemSelect && data.systeem_type) {
+        var st = String(data.systeem_type).toUpperCase();
+        if (st === 'C' || st === 'D') {
+          systeemSelect.value = st;
+          systeemSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    } else if (prefill.sector === 'verwarming') {
+      // installations_verwarming.keteltype → calculator verw-type: gas|mazout|condensatie
+      var keteltypeSelect = document.getElementById('verw-type');
+      if (keteltypeSelect && data.keteltype) {
+        var kt = String(data.keteltype).toLowerCase();
+        var validKetels = ['gas', 'mazout', 'condensatie'];
+        if (validKetels.indexOf(kt) !== -1) {
+          keteltypeSelect.value = kt;
+          keteltypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    }
+    if (typeof calculateAll === 'function') {
+      try { calculateAll(); } catch (_) {}
+    }
+  } catch (e) {
+    console.warn('[prefill] applyPrefillSectorInputs error:', e);
+  }
+}
+
+// Wordt aangeroepen wanneer stap-2 (klantgegevens) zichtbaar wordt. Vult
+// alleen lege velden in zodat de eindklant manuele edits niet kwijtraakt
+// als hij toevallig stap-2 al eerder bezocht en aanpaste.
+function applyClientPrefillOnStep2() {
+  if (!_calcPrefill || !_calcPrefill.client) return;
+  var c = _calcPrefill.client;
+  try {
+    // Bedrijf-toggle: als client_type='bedrijf', schakel naar bedrijf-radio.
+    if (c.client_type === 'bedrijf') {
+      var bedrijfRadio = document.querySelector('input[name="klant-subtype"][value="bedrijf"]');
+      if (bedrijfRadio && !bedrijfRadio.checked) {
+        bedrijfRadio.checked = true;
+        bedrijfRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      var bedrijfsnaamEl = document.getElementById('klant-bedrijfsnaam');
+      if (bedrijfsnaamEl && !bedrijfsnaamEl.value && c.company_name) {
+        bedrijfsnaamEl.value = c.company_name;
+        bedrijfsnaamEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      var btwValidEl = document.getElementById('klant-btw-validated');
+      if (btwValidEl && !btwValidEl.value && c.vat_number) {
+        btwValidEl.value = c.vat_number;
+        btwValidEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    var mapping = {
+      'klant-naam':     c.contact_person || c.company_name || '',
+      'klant-contact':  c.contact_person || '',
+      'klant-email':    c.email || '',
+      'klant-tel':      c.phone || '',
+      'klant-straat':   c.street || '',
+      'klant-huisnr':   c.house_number || '',
+      'klant-postcode': c.postal_code || '',
+      'klant-gemeente': c.city || ''
+    };
+    Object.keys(mapping).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && mapping[id] && !el.value) {
+        el.value = mapping[id];
+        // Trigger handlers (validation, postcode-lookup, BTW-detectie)
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        if (el.tagName === 'INPUT' || el.tagName === 'SELECT') {
+          el.dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+      }
+    });
+  } catch (e) {
+    console.warn('[prefill] applyClientPrefillOnStep2 error:', e);
+  }
+}
+
+// ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
 async function init() {
@@ -3407,8 +3768,24 @@ async function init() {
     // render. Mislukken is non-fatal: helpers vallen terug op code-defaults.
     await loadCalcConfig();
 
+    // Pre-fill: bestaande klant/installatie laden uit URL-params (?client_id=
+    // / ?installation_id= / ?installation_sector=). Non-blocking — errors
+    // worden gelogd, calculator gaat door zonder pre-fill.
+    try {
+      _calcPrefill = await detectPrefillFromUrl();
+    } catch (prefillErr) {
+      console.warn('[prefill] detectPrefillFromUrl exception:', prefillErr);
+      _calcPrefill = null;
+    }
+
     // Determine if we need step 0
-    if (sectorParam && partnerSectors.indexOf(sectorParam) !== -1) {
+    // Pre-fill sector heeft voorrang op URL ?sector= legacy-param zodat de
+    // calculator direct naar de juiste sector-config springt.
+    var prefillSector = _calcPrefill && _calcPrefill.sector;
+    if (prefillSector && partnerSectors.indexOf(prefillSector) !== -1) {
+      selectedSectors = [prefillSector];
+      showStep0 = false;
+    } else if (sectorParam && partnerSectors.indexOf(sectorParam) !== -1) {
       // URL specifies a sector — skip step 0, select only that sector
       selectedSectors = [sectorParam];
       showStep0 = false;
@@ -3441,6 +3818,14 @@ async function init() {
     // Show app
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
+
+    // Pre-fill: sector-specifieke inputs invullen ná renderStep1 (DOM moet
+    // bestaan). Werkt enkel als we niet op stap-0 staan; bij stap-0 valt de
+    // gebruiker eerst zelf sector(en) kiezen — een prefill-sector hebben we
+    // hierboven al hard geforceerd, dus stap-0 zou normaal niet getoond zijn.
+    if (_calcPrefill && !showStep0) {
+      applyPrefillSectorInputs(_calcPrefill);
+    }
 
     // Initial calculation
     calculateAll();
@@ -3508,8 +3893,8 @@ function setupPreviewMode() {
     ].join(';');
     document.body.appendChild(badge);
 
-    // Print-versie verbergen via stylesheet (niet inline want @media werkt
-    // niet met cssText). Eén keer toevoegen.
+    // Print-versie verbergen via stylesheet (inline cssText ondersteunt geen
+    // @media-regels). Eén keer toevoegen.
     if (!document.getElementById('preview-badge-print-style')) {
       var st = document.createElement('style');
       st.id = 'preview-badge-print-style';
@@ -3574,6 +3959,109 @@ function setupPreviewMode() {
 var signingContract = null;
 var signingPartner = null;
 
+// USP-data per sector — getoond bovenaan de signing-pagina (sector-specifieke value-prop)
+// Eerste sector uit het contract bepaalt welke set wordt gerenderd; voor multi-sector
+// contracten kunnen de USPs in toekomstige iteratie samengevoegd worden.
+var SIGNING_USPS = {
+  zonnepanelen: [
+    { title: 'Osmosewater zonder chemie', sub: 'Geen schade aan panelen, fabrieksgarantie blijft behouden' },
+    { title: 'Tot 20% meer opbrengst', sub: 'Vuil onder hardnekkige aanslag verstoort de zon-instraling' },
+    { title: 'Gecertificeerd + technische controle', sub: 'Visuele check op connectoren, kabels en bevestigingen inbegrepen' }
+  ],
+  warmtepomp: [
+    { title: 'Periodiek conform fabrieksgarantie', sub: 'Garantie blijft geldig dankzij gedocumenteerd onderhoud' },
+    { title: 'Gecertificeerde techniekers', sub: 'Categorie 1 erkenning voor F-gassen' },
+    { title: 'Volledig rapport', sub: 'Druk, temperaturen, en aandachtspunten — digitaal beschikbaar' }
+  ],
+  ventilatie: [
+    { title: 'Gezonde binnenlucht', sub: 'Schimmel, fijnstof en allergenen worden verwijderd' },
+    { title: 'Volgens norm NBN D 50-001', sub: 'EPB-keuringsklaar; geldig bij verkoop of verhuur' },
+    { title: 'Compleet — kanalen + ventielen', sub: 'Geen losse onderdelen, één partij voor het hele systeem' }
+  ],
+  verwarming: [
+    { title: 'Wettelijk verplicht onderhoud', sub: 'Jaarlijks (mazout) of 2-jaarlijks (gas) — wij volgen de wet' },
+    { title: 'Rookgasmeting inbegrepen', sub: 'CO en NOx-waarden gemeten en gedocumenteerd' },
+    { title: 'Attest na uitvoering', sub: 'Direct digitaal verkrijgbaar — geldig voor verzekering en verkoop' }
+  ]
+};
+
+// Sector-agnostisch shield-icoon voor de USP-cards (vermijdt emoji's, schaalt strak).
+var SIGNING_USP_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+
+// Rendert de USP-strip bovenaan #signing-app gebaseerd op de eerste sector uit het contract.
+// Toont 3 cards (title + sub) in een grid. Geen USPs gevonden → strip blijft verborgen
+// (display:none), wat een legacy-contract zonder sectoren niet stuk maakt.
+function renderSigningUspStrip(c) {
+  var strip = document.getElementById('signing-usp-strip');
+  var grid = document.getElementById('signing-usp-grid');
+  if (!strip || !grid) return;
+
+  var sectoren = c && c.sectoren ? c.sectoren : [];
+  var firstSector = null;
+  if (Array.isArray(sectoren) && sectoren.length > 0) {
+    firstSector = (sectoren[0] && sectoren[0].sector) || sectoren[0];
+  } else if (c && c.sector) {
+    firstSector = c.sector;
+  }
+
+  var usps = firstSector ? SIGNING_USPS[firstSector] : null;
+  if (!usps || usps.length === 0) {
+    strip.style.display = 'none';
+    grid.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  usps.forEach(function(u) {
+    html += '<div class="signing-usp-card">';
+    html += '<span class="icon">' + SIGNING_USP_ICON + '</span>';
+    html += '<span class="title">' + esc(u.title) + '</span>';
+    html += '<span class="sub">' + esc(u.sub) + '</span>';
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+  strip.style.display = 'block';
+}
+
+// Vertaalt contractduur-string + frequentie naar leesbare reminder-velden.
+// Format: 'jaarlijks' / 'halfjaarlijks' / 'eenmalig' → "Jaarlijks (1x/jaar)" enz.
+// Looptijd: 'eenmalig' → "Eenmalig"; anders raw zoals "3 jaar".
+// Eerste beurt: gebruik c.eerste_uitvoering_datum (DATE) → dd/mm/yyyy; fallback "Vanaf vandaag".
+function buildSigningReminder(c) {
+  var freqRaw = (c && c.frequentie) || '';
+  var freqLabel;
+  if (freqRaw === 'halfjaarlijks') freqLabel = 'Halfjaarlijks (2x/jaar)';
+  else if (freqRaw === 'eenmalig') freqLabel = 'Eenmalig';
+  else freqLabel = 'Jaarlijks (1x/jaar)';
+
+  var duurRaw = (c && c.contractduur) || '';
+  var duurLabel;
+  if (!duurRaw) duurLabel = 'n.v.t.';
+  else if (String(duurRaw).toLowerCase() === 'eenmalig') duurLabel = 'Eenmalig';
+  else duurLabel = String(duurRaw);
+
+  var eersteLabel = 'Vanaf vandaag';
+  if (c && c.eerste_uitvoering_datum) {
+    var d = new Date(c.eerste_uitvoering_datum);
+    if (!isNaN(d.getTime())) {
+      var dd = String(d.getDate()).padStart(2, '0');
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = d.getFullYear();
+      eersteLabel = dd + '/' + mm + '/' + yyyy;
+    }
+  }
+
+  return { freqLabel: freqLabel, duurLabel: duurLabel, eersteLabel: eersteLabel };
+}
+
+// Bepaalt of het contract onder 6%-BTW valt op basis van c.btw_type ("6%" of "21%").
+// Trim + replace voor whitespace/percent-tolerantie.
+function isSigningBtw6(c) {
+  if (!c) return false;
+  var raw = String(c.btw_type || '').replace('%', '').trim();
+  return raw === '6';
+}
+
 async function loadContractForSigning(token) {
   try {
     // Fetch contract via security-definer RPC. Server-side gates: teken_token match,
@@ -3620,6 +4108,10 @@ async function loadContractForSigning(token) {
 
     // Render signing UI
     renderSigningUI();
+
+    // USP-strip bovenaan (sector-specifiek). Toont enkel als de eerste sector
+    // een match heeft in SIGNING_USPS — anders blijft de strip verborgen.
+    renderSigningUspStrip(signingContract);
 
     // Show signing app
     document.getElementById('loading').style.display = 'none';
@@ -3751,6 +4243,26 @@ function renderSigningUI() {
   html += '</div>';
   html += '</div>';
 
+  // Reminder-kaart: frequentie + looptijd + eerste-onderhoudsbeurt + flow-stappen na ondertekening.
+  // Visualiseert de "wat krijg je" + "wat gebeurt er hierna" zodat de klant geen vragen heeft
+  // bij het ondertekenen. Geplaatst tussen prijsoverzicht en benefits — logisch in de flow.
+  var sigReminder = buildSigningReminder(c);
+  html += '<div class="signing-reminder-card" id="signing-reminder-card">';
+  html +=   '<h3 style="margin:0 0 12px;font-size:15px;color:var(--dark)">Wat krijg je?</h3>';
+  html +=   '<div class="reminder-grid">';
+  html +=     '<div class="reminder-item"><div class="reminder-label">Frequentie</div><div class="reminder-value" id="reminder-frequentie">' + esc(sigReminder.freqLabel) + '</div></div>';
+  html +=     '<div class="reminder-item"><div class="reminder-label">Looptijd</div><div class="reminder-value" id="reminder-looptijd">' + esc(sigReminder.duurLabel) + '</div></div>';
+  html +=     '<div class="reminder-item"><div class="reminder-label">Eerste onderhoudsbeurt</div><div class="reminder-value" id="reminder-eerste-beurt">' + esc(sigReminder.eersteLabel) + '</div></div>';
+  html +=   '</div>';
+  html +=   '<h3 style="margin:20px 0 12px;font-size:15px;color:var(--dark)">Wat gebeurt er na ondertekening?</h3>';
+  html +=   '<ol class="signing-next-steps">';
+  html +=     '<li>Je ontvangt direct een bevestigingsmail met PDF van het contract en het wettelijke herroepingsformulier (14 dagen bedenktijd).</li>';
+  html +=     '<li>Wij contacteren je binnen 5 werkdagen om de eerste onderhoudsbeurt in te plannen op een moment dat jou past.</li>';
+  html +=     '<li>Onze technieker komt langs op de afgesproken datum — je hoeft niets voor te bereiden.</li>';
+  html +=     '<li>Na elke beurt ontvang je een digitaal rapport met foto\'s en eventuele aandachtspunten.</li>';
+  html +=   '</ol>';
+  html += '</div>';
+
   // Wat wij voor u doen — benefits per sector (zelfde als calculator)
   var chkSvg = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><circle cx="10" cy="10" r="10" fill="var(--primary)" opacity="0.12"/><path d="M6 10.5l2.5 2.5 5.5-5.5" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var sigBenefits = {
@@ -3815,17 +4327,36 @@ function renderSigningUI() {
   html += '<div class="accept-box" style="border:2px solid var(--rule);border-radius:8px;padding:12px;margin-bottom:16px">';
   html += '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">';
   html += '<input type="checkbox" id="signing-accept" style="width:20px;height:20px;margin-top:2px;accent-color:var(--primary)" onchange="checkSigningReady()">';
-  html += '<span style="font-size:13px;color:var(--grey)">Ik heb de voorwaarden en de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met dit onderhoudscontract.</span>';
+  html += '<span style="font-size:13px;color:var(--grey)">Ik heb de voorwaarden en de <a href="https://flancco-platform.be/privacy/" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met dit onderhoudscontract.</span>';
   html += '</label></div>';
 
   html += '<div style="margin-bottom:12px"><strong style="font-size:13px">Uw handtekening</strong></div>';
-  html += '<div class="signing-canvas-wrap" id="signing-canvas-wrap" style="position:relative">';
-  html += '<canvas id="signing-canvas" width="560" height="280" style="border:2px solid var(--rule);border-radius:8px;width:100%;height:clamp(180px, 28vh, 280px);cursor:crosshair;touch-action:none;display:block"></canvas>';
-  html += '<div class="signing-canvas-placeholder" id="signing-canvas-placeholder" aria-hidden="true">Teken hier</div>';
+  html += '<div style="position:relative">';
+  html += '<canvas id="signing-canvas" width="560" height="180" style="border:2px solid var(--rule);border-radius:8px;width:100%;cursor:crosshair;touch-action:none"></canvas>';
   html += '<button onclick="clearSigningCanvas()" style="position:absolute;top:8px;right:8px;background:var(--light);border:1px solid var(--rule);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--grey)">Wissen</button>';
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--grey);margin-top:6px">Teken met uw muis of vinger in het vak hierboven</div>';
   html += '</div>';
+
+  // 6% BTW verklaring-op-eer: enkel zichtbaar wanneer contract.btw_type = '6%'.
+  // Bevestigt 2 wettelijke voorwaarden (KB nr. 20). Beide moeten aangevinkt zijn
+  // voordat de submit-knop enabled wordt. Voor 21%-contracten blijft de card
+  // helemaal afwezig — geen impact op de bestaande flow.
+  var sigBtw6 = isSigningBtw6(c);
+  if (sigBtw6) {
+    html += '<div class="signing-btw6-card" id="signing-btw6-verklaring">';
+    html +=   '<strong style="display:block;margin-bottom:8px;color:#5C4B10;font-size:14px">Verklaring op eer — 6% BTW</strong>';
+    html +=   '<p style="margin:0 0 12px;font-size:12.5px;line-height:1.55;color:#5C4B10">Het verlaagde BTW-tarief van 6% is enkel van toepassing wanneer beide voorwaarden voldaan zijn. Vink hieronder aan om te bevestigen.</p>';
+    html +=   '<label class="check-row">';
+    html +=     '<input type="checkbox" id="signing-btw6-prive" onchange="onSigningBtw6Change()">';
+    html +=     '<span>Ik verklaar op eer dat de woning <strong>uitsluitend of hoofdzakelijk als priv&eacute;woning</strong> wordt gebruikt.</span>';
+    html +=   '</label>';
+    html +=   '<label class="check-row">';
+    html +=     '<input type="checkbox" id="signing-btw6-ouder" onchange="onSigningBtw6Change()">';
+    html +=     '<span>Ik verklaar op eer dat de woning <strong>ouder is dan 10 jaar</strong> (eerste ingebruikname).</span>';
+    html +=   '</label>';
+    html += '</div>';
+  }
 
   // Submit button
   html += '<div style="text-align:center;padding:16px 0">';
@@ -3836,6 +4367,13 @@ function renderSigningUI() {
 
   // Init signature canvas
   initSigningCanvas();
+}
+
+// Wordt aangeroepen vanuit de twee 6%-BTW checkboxes (`signing-btw6-prive` + `signing-btw6-ouder`).
+// Synchroniseert de disabled-state van de submit-knop met de gangbare ready-check, die nu
+// ook beide 6%-checkboxes meeneemt wanneer de card aanwezig is.
+function onSigningBtw6Change() {
+  checkSigningReady();
 }
 
 function initSigningCanvas() {
@@ -3872,11 +4410,7 @@ function initSigningCanvas() {
     ctx.strokeStyle = '#1a1a2e';
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
-    if (!hasSigned) {
-      hasSigned = true;
-      var wrap = document.getElementById('signing-canvas-wrap');
-      if (wrap) wrap.classList.add('has-signature');
-    }
+    hasSigned = true;
   }
 
   function endDraw(e) {
@@ -3902,8 +4436,6 @@ function clearSigningCanvas() {
   var ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (canvas._reset) canvas._reset();
-  var wrap = document.getElementById('signing-canvas-wrap');
-  if (wrap) wrap.classList.remove('has-signature');
   checkSigningReady();
 }
 
@@ -3911,10 +4443,23 @@ function checkSigningReady() {
   var accepted = document.getElementById('signing-accept') && document.getElementById('signing-accept').checked;
   var canvas = document.getElementById('signing-canvas');
   var signed = canvas && canvas._hasSigned && canvas._hasSigned();
+
+  // 6% BTW verklaring-card is enkel aanwezig wanneer btw_type='6%'. Voor 21%-contracten
+  // is btw6Ok altijd true → geen blokkade. Voor 6%-contracten moeten beide checkboxes
+  // aangevinkt zijn voordat de submit-knop enabled wordt.
+  var btw6Card = document.getElementById('signing-btw6-verklaring');
+  var btw6Ok = true;
+  if (btw6Card) {
+    var prive = document.getElementById('signing-btw6-prive');
+    var ouder = document.getElementById('signing-btw6-ouder');
+    btw6Ok = !!(prive && prive.checked && ouder && ouder.checked);
+  }
+
+  var ready = accepted && signed && btw6Ok;
   var btn = document.getElementById('btn-signing-submit');
   if (btn) {
-    btn.disabled = !(accepted && signed);
-    btn.style.opacity = (accepted && signed) ? '1' : '0.5';
+    btn.disabled = !ready;
+    btn.style.opacity = ready ? '1' : '0.5';
   }
 }
 
@@ -3978,6 +4523,20 @@ async function submitSigning() {
       signingIp = null;
     }
 
+    // 6% BTW verklaring-op-eer: enkel relevant wanneer de verklaring-card is gerenderd
+    // (= contract.btw_type === '6%'). Voor 21%-contracten blijven beide waarden false.
+    // De RPC server-side enforced verklaring_6btw_required wanneer btw_type=6 maar
+    // beide booleans false zijn (Agent A's migratie).
+    var btw6Prive = false;
+    var btw6Ouder = false;
+    var btw6Card = document.getElementById('signing-btw6-verklaring');
+    if (btw6Card) {
+      var btw6PriveEl = document.getElementById('signing-btw6-prive');
+      var btw6OuderEl = document.getElementById('signing-btw6-ouder');
+      btw6Prive = !!(btw6PriveEl && btw6PriveEl.checked);
+      btw6Ouder = !!(btw6OuderEl && btw6OuderEl.checked);
+    }
+
     var signRes = await sb.rpc('anon_sign_contract_complete', {
       p_token: signingToken,
       p_handtekening_url: sigUrl,
@@ -3986,7 +4545,10 @@ async function submitSigning() {
       p_signing_ip: signingIp,
       p_client_payload: clientPayload,
       // Slot S — persisteer huidige UI-taal als ground-truth voor outbound communicatie
-      p_lang: ((window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl')
+      p_lang: ((window.flanccoI18n && window.flanccoI18n.getLang && window.flanccoI18n.getLang()) || 'nl'),
+      // 6% BTW verklaring-op-eer (KB nr. 20). RPC server-side enforced wanneer btw_type=6.
+      p_verklaring_6btw_privewoning: btw6Prive,
+      p_verklaring_6btw_ouderdan10j: btw6Ouder
     });
     if (signRes.error) {
       console.error('Signing-RPC error:', signRes.error);
@@ -4117,7 +4679,10 @@ async function submitSigning() {
     document.getElementById('signing-post-duur').textContent = c.contractduur || (window.t ? window.t('success.nvt') : 'n.v.t.');
     document.getElementById('signing-post-bedrag').textContent = c.totaal_incl_btw ? fmt(parseFloat(c.totaal_incl_btw)) : '\u2014';
     var postSector = (c.sectoren || [])[0] ? ((c.sectoren[0].sector) || c.sectoren[0]) : null;
-    document.getElementById('signing-post-contact').textContent = getPartnerDisplayName(p, postSector) + (p.telefoon ? ' \u2014 ' + p.telefoon : '') + (p.email ? ' \u2014 ' + p.email : '');
+    // Klant-communicatie: dedicated communicatie_email/telefoon, fallback naar account-contact.
+    var pSignTel = p.communicatie_telefoon || p.telefoon || '';
+    var pSignEmail = p.communicatie_email || p.email || '';
+    document.getElementById('signing-post-contact').textContent = getPartnerDisplayName(p, postSector) + (pSignTel ? ' \u2014 ' + pSignTel : '') + (pSignEmail ? ' \u2014 ' + pSignEmail : '');
 
     // Sync lokale contract-state met getekende waarden zodat PDF direct handtekening toont
     signingContract = Object.assign({}, c, updatePayload);
@@ -4346,9 +4911,9 @@ function applyBranding(p, sector) {
   // Privacy link
   var privText = document.querySelector('#privacy-card .accept-text');
   if (p.slug === 'flancco') {
-    privText.innerHTML = 'Ik heb de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>Flancco BV</strong>.';
+    privText.innerHTML = 'Ik heb de <a href="https://flancco-platform.be/privacy/" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>Flancco BV</strong>.';
   } else {
-    privText.innerHTML = 'Ik heb de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>' + esc(getPartnerDisplayName(p, selectedSectors[0] || null)) + '</strong> en <strong>Flancco BV</strong>.';
+    privText.innerHTML = 'Ik heb de <a href="https://flancco-platform.be/privacy/" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>' + esc(getPartnerDisplayName(p, selectedSectors[0] || null)) + '</strong> en <strong>Flancco BV</strong>.';
   }
 }
 
@@ -4386,11 +4951,21 @@ function renderSectorCards() {
   grid.innerHTML = partnerSectors.map(function(sec) {
     var cfg = SECTORS[sec];
     if (!cfg) return '';
-    return '<div class="sector-card" data-sector="' + sec + '" onclick="toggleSectorCard(\'' + sec + '\')">' +
-      '<div class="sector-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>' +
+    return '<div class="sector-card" data-sector="' + sec + '" onclick="toggleSectorCard(\'' + sec + '\')" role="button" tabindex="0" aria-pressed="false">' +
+      '<div class="sector-check" aria-hidden="true">' +
+        '<svg class="sc-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        '<svg class="sc-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>' +
+      '</div>' +
       '<div class="sector-card-icon">' + cfg.icon + '</div>' +
       '<h3>' + cfg.label + '</h3>' +
       '<p>' + cfg.subtitle + '</p>' +
+      '<div class="sector-card-cta">' +
+        '<span class="scc-label">' +
+          '<span class="scc-text-default">Klik om deze dienst toe te voegen</span>' +
+          '<span class="scc-text-selected">Geselecteerd &mdash; klik om te verwijderen</span>' +
+        '</span>' +
+        '<svg class="scc-arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>' +
+      '</div>' +
       '</div>';
   }).join('');
 }
@@ -4404,7 +4979,9 @@ function toggleSectorCard(sector) {
   }
   // Update card visuals
   document.querySelectorAll('.sector-card').forEach(function(card) {
-    card.classList.toggle('selected', selectedSectors.indexOf(card.dataset.sector) !== -1);
+    var isSelected = selectedSectors.indexOf(card.dataset.sector) !== -1;
+    card.classList.toggle('selected', isSelected);
+    card.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
   });
   // Enable/disable next button
   document.getElementById('btn-sector-next').disabled = selectedSectors.length === 0;
@@ -5261,10 +5838,12 @@ function refreshCtaProgress() {
   var v = getValidators();
   var missing = 0;
   var ids = listRequiredFieldsStep2();
+  var filledCount = 0;
   ids.forEach(function (id) {
     var el = document.getElementById(id); if (!el) return;
     var raw = (el.value || '').trim();
     if (!raw) { missing++; return; }
+    filledCount++;
     if (id === 'klant-email' && v && !v.email(raw)) missing++;
     else if (id === 'klant-tel' && v && !v.phoneAny(raw)) missing++;
     else if (id === 'klant-postcode' && v && !v.postcodeBE(raw)) {
@@ -5272,6 +5851,11 @@ function refreshCtaProgress() {
       // We laten 'missing' staan als veld leeg is; ongeldig accepteren we (auto 21%).
     }
   });
+
+  // WF-010 — Veld-counter (alleen de pure veld-telling, géén privacy/6%-checkboxen):
+  // toont gebruiker hoeveel velden hij al heeft ingevuld op het totaal verplichte velden.
+  updateStep2FieldCounter(filledCount, ids.length);
+
   // Privacy + 6% verklaring
   var pc = document.getElementById('privacy-check');
   if (pc && !pc.checked) missing++;
@@ -5289,6 +5873,24 @@ function refreshCtaProgress() {
     hint.classList.add('is-warning');
     var tpl = window.t ? window.t('validation.remainingFieldsMany', { count: missing }) : 'Nog ' + missing + ' verplichte velden in te vullen voor u verder kan.';
     hint.textContent = tpl;
+  }
+}
+
+// WF-010 — Toont live "X/Y velden ingevuld" onder de Volgende-knop in stap 2.
+// Roept zichzelf safe aan (no-op als de DOM-knooppunten ontbreken, bv. in
+// admin-preview iframe). Synchroniseert ook .is-complete class voor groen-kleur
+// wanneer alle velden gevuld zijn.
+function updateStep2FieldCounter(filled, total) {
+  var wrap = document.getElementById('step2-field-progress');
+  var filledEl = document.getElementById('step2-filled-count');
+  var totalEl = document.getElementById('step2-total-count');
+  if (!wrap || !filledEl || !totalEl) return;
+  filledEl.textContent = filled;
+  totalEl.textContent = total;
+  if (total > 0 && filled >= total) {
+    wrap.classList.add('is-complete');
+  } else {
+    wrap.classList.remove('is-complete');
   }
 }
 
@@ -5453,15 +6055,28 @@ function syncKlantSubtypeToFields() {
 }
 
 // ─── VIES VALIDATIE ─────────────────────────────────────────────
+// WF-011 — Global flag voor analytics + interne diagnose. Wordt true gezet wanneer
+// VIES upstream onbereikbaar is op het moment dat de gebruiker zijn BTW-nummer
+// invoert. De flag wordt NIET naar de DB gestuurd (kolom bestaat niet), maar
+// het bestaande contracten.btw_nummer_validated=false samen met btw_validated_at=NULL
+// signaleert reeds aan admin dat handmatige verificatie achteraf vereist is.
+window.__viesValidationFailedAtSigning = false;
+
 function setViesStatus(state, msgKey) {
   var box = document.getElementById('vies-status');
   var icon = document.getElementById('vies-status-icon');
   var msg = document.getElementById('vies-status-msg');
   var input = document.getElementById('klant-btw-validated');
+  var fallbackNotice = document.getElementById('vies-fallback-notice');
   if (!box || !msg) return;
 
   // Reset visual states
   if (input) input.classList.remove('is-vies-valid', 'is-vies-invalid', 'is-vies-error');
+  // WF-011 — Fallback-notice default verbergen; wordt enkel bij state='error' getoond
+  if (fallbackNotice) {
+    fallbackNotice.classList.remove('is-shown');
+    fallbackNotice.hidden = true;
+  }
 
   if (!state) {
     box.removeAttribute('data-state');
@@ -5487,6 +6102,12 @@ function setViesStatus(state, msgKey) {
   } else if (state === 'error') {
     iconSvg = '<span class="vies-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="#D97706"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>';
     if (input) input.classList.add('is-vies-error');
+    // WF-011 — Toon prominente fallback-notice + zet global flag zodat admin
+    // achteraf weet dat dit contract handmatig moet geverifieerd worden.
+    if (fallbackNotice) {
+      fallbackNotice.hidden = false;
+      fallbackNotice.classList.add('is-shown');
+    }
   }
   if (icon) icon.innerHTML = iconSvg;
 
@@ -5503,6 +6124,9 @@ function onBtwInput() {
   // Reset state bij elke keypress (gebruiker is aan het editen).
   setViesStatus('', null);
   window.__viesLastResult = null;
+  // WF-011 — Reset outage-flag zodra gebruiker opnieuw begint te typen: een
+  // verse blur triggert een verse VIES-call die de flag zo nodig opnieuw zet.
+  window.__viesValidationFailedAtSigning = false;
   if (viesAbortCtrl) { try { viesAbortCtrl.abort(); } catch (_) {} viesAbortCtrl = null; }
 }
 
@@ -5537,27 +6161,38 @@ async function triggerViesValidate(raw) {
 
     if (!data) {
       setViesStatus('error', 'klantType.viesError');
+      // WF-011 — outage flag: klant heeft een ingevuld BTW-nummer maar VIES is down.
+      window.__viesValidationFailedAtSigning = true;
       trackVies('error', null);
       return;
     }
 
     if (data.valid === true) {
       window.__viesLastResult = data;
+      // WF-011 — succesvolle validatie reset eventuele eerdere outage-flag.
+      window.__viesValidationFailedAtSigning = false;
       setViesStatus('valid', 'klantType.viesValid');
       autoFillFromVies(data);
       trackVies('valid', data.country || null);
     } else if (data.valid === null || data.error === 'upstream_timeout') {
       setViesStatus('error', 'klantType.viesError');
+      // WF-011 — explicit upstream-timeout = harde outage-bevestiging.
+      window.__viesValidationFailedAtSigning = true;
       trackVies('error', data.country || null);
     } else {
       setViesStatus('invalid', 'klantType.viesInvalid');
       window.__viesLastResult = null;
+      // WF-011 — geldig request, ongeldig BTW-nummer: dit is GEEN outage. Klant
+      // moet zijn nummer corrigeren; geen fallback-notice tonen.
+      window.__viesValidationFailedAtSigning = false;
       trackVies('invalid', data.country || null);
     }
   } catch (err) {
     if (err && err.name === 'AbortError') return;
     console.warn('[VIES] validation request failed:', err);
     setViesStatus('error', 'klantType.viesError');
+    // WF-011 — network-level failure (geen response, geen JSON) = outage.
+    window.__viesValidationFailedAtSigning = true;
     trackVies('error', null);
   } finally {
     viesAbortCtrl = null;
@@ -5670,6 +6305,11 @@ function goToStep(n) {
       try { window.flanccoPostcodes.warmup(); } catch (_) {}
     }
     if (typeof refreshCtaProgress === 'function') refreshCtaProgress();
+    // Pre-fill klantgegevens uit URL-param-client. Wordt op stap-2 entry
+    // toegepast zodat de DOM-velden bestaan; vult enkel lege velden in.
+    if (_calcPrefill && _calcPrefill.client) {
+      applyClientPrefillOnStep2();
+    }
   }
 
   // Slot O2 — bij intrede stap 1: warmup postcode-data zodat eerste lookup snel is
@@ -6258,6 +6898,18 @@ async function submitContract() {
     var bedrijfsnaamVal = (klantSubtype === 'bedrijf' && bedrijfsnaamEl) ? (bedrijfsnaamEl.value || '').trim() : null;
     var viesResult = (klantSubtype === 'bedrijf') ? (window.__viesLastResult || null) : null;
     var btwValidated = !!(viesResult && viesResult.valid === true);
+    // WF-011 — Audit-signaal: bedrijfs-contract zonder VIES-validatie + outage-flag.
+    // Bij volgende combinatie weet admin dat hij dit contract handmatig moet
+    // verifiëren in VIES (BTW-nummer is wel ingevuld maar nooit live gecontroleerd
+    // omdat de upstream service down was). De flag zelf zit niet in de DB; admin-
+    // detectie via WHERE btw_nummer_validated=false AND klant_subtype='bedrijf'.
+    var viesOutageAtSigning = (klantSubtype === 'bedrijf' && !btwValidated && !!window.__viesValidationFailedAtSigning);
+    if (viesOutageAtSigning) {
+      console.warn('[WF-011] Contract ondertekend tijdens VIES-outage — admin moet BTW-nummer handmatig verifiëren');
+      if (typeof window.flanccoTrack === 'function') {
+        try { window.flanccoTrack('Calculator VIES Outage Signing', { partner: (partner && partner.slug) || 'unknown' }); } catch (_) {}
+      }
+    }
 
     var payload = {
       id: contractId,
@@ -6317,6 +6969,30 @@ async function submitContract() {
       payload.supplement_transport = s.transportExcl;
       payload.supplement_hoogte = sectorResults.zonnepanelen.hoogC;
       payload.korting_bedrag = s.discountAmount;
+    }
+
+    // ─── Snapshot-kolommen voor partner-Flancco settlement ─────────────────
+    // Bevroren bij signing zodat latere prijswijzigingen lopend contract niet raken.
+    // Formule: klant_forfait_excl = flancco_forfait × (1 + marge/100) + planning_fee
+    //   → flancco_forfait = (klant_forfait_excl - planning_fee) / (1 + marge/100)
+    var _margeSnap = parseFloat(partner.marge_pct) || 0;
+    var _planFeeSnap = parseFloat(partner.planning_fee) || 0;
+    var _klantForfait = parseFloat(payload.forfait_bedrag) || 0;
+    if (_klantForfait > 0) {
+      var _flanccoForfait = (_klantForfait - _planFeeSnap) / (1 + _margeSnap / 100);
+      payload.flancco_forfait_per_beurt = Math.round(_flanccoForfait * 100) / 100;
+    }
+    payload.marge_pct_snapshot = _margeSnap;
+    payload.planning_fee_snapshot = _planFeeSnap;
+    // indexering_start_index wordt automatisch gestempeld door trigger op contracten.
+
+    // Pre-fill: link het contract aan de bron-installatie zodat het
+    // dossier-zicht ("welke contracten lopen er op deze installatie?")
+    // klopt vanaf dag 1. Agent A levert deze FK-kolommen op contracten.
+    // Defensief: alleen wanneer prefill.installation én sector gezet zijn.
+    if (_calcPrefill && _calcPrefill.installation && _calcPrefill.sector) {
+      var _fkName = 'installation_' + _calcPrefill.sector + '_id';
+      payload[_fkName] = _calcPrefill.installation.id;
     }
 
     var insertRes = await sb.from('contracten').insert([payload]);
@@ -6498,8 +7174,11 @@ async function submitContract() {
       ? window.t('success.seizoenPrefix', { seizoenen: seizoenen.join(' / ') })
       : ('Wij plannen uw eerste onderhoudsbeurt in de periode ' + seizoenen.join(' / '));
 
+    // Klant-communicatie: dedicated communicatie_email/telefoon, fallback naar account-contact.
+    var pPostTel = partner.communicatie_telefoon || partner.telefoon || '';
+    var pPostEmail = partner.communicatie_email || partner.email || '';
     document.getElementById('post-contact').textContent = getPartnerDisplayName(partner, selectedSectors[0] || null) +
-      (partner.telefoon ? ' \u2014 ' + partner.telefoon : '') + (partner.email ? ' \u2014 ' + partner.email : '');
+      (pPostTel ? ' \u2014 ' + pPostTel : '') + (pPostEmail ? ' \u2014 ' + pPostEmail : '');
 
     // Cache de getekende contract-row + state voor downloadContract() (sectie M)
     window._lastSignedContract = Object.assign({}, payload, contractNummer ? { contract_nummer: contractNummer } : {});
@@ -6691,6 +7370,28 @@ function downloadContract() {
     console.error('PDF-download faalde:', err);
   });
 }
+
+// ═══════════════════════════════════════════
+// WF-010 — Delegated event-listener voor step-2 veld-counter
+// ─────────────────────────────────────────────
+// Sommige step-2 velden (klant-gemeente, klant-bedrijfsnaam, klant-contact)
+// hebben geen eigen oninput-handler omdat ze geen format-validatie behoeven.
+// Een delegated listener op #step-2 garandeert dat ELKE wijziging in de stap
+// de counter (én de bestaande CTA-progress hint) ververst, ongeacht of het
+// veld nu of later wordt toegevoegd (bv. sector-specifieke velden).
+// ═══════════════════════════════════════════
+(function () {
+  function _wf010Tick(e) {
+    var t = e && e.target;
+    if (!t || !t.closest) return;
+    if (!t.closest('#step-2')) return;
+    if (typeof refreshCtaProgress === 'function') {
+      try { refreshCtaProgress(); } catch (_) { /* nooit blokkerend */ }
+    }
+  }
+  document.addEventListener('input', _wf010Tick, true);
+  document.addEventListener('change', _wf010Tick, true);
+})();
 
 // ═══════════════════════════════════════════
 // INIT
