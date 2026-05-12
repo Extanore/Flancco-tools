@@ -24,8 +24,6 @@ const ACCOUNT_MANAGER_NAME = Deno.env.get("ACCOUNT_MANAGER_NAME") ?? "Gillian Ge
 const ACCOUNT_MANAGER_EMAIL = Deno.env.get("ACCOUNT_MANAGER_EMAIL") ?? "gillian.geernaert@flancco.be";
 const ACCOUNT_MANAGER_PHONE = Deno.env.get("ACCOUNT_MANAGER_PHONE") ?? "+32 484 59 47 62";
 
-const FIRST_LEAD_TARGET_DAYS = 10;
-
 const APP_BASE_URL = (Deno.env.get("APP_BASE_URL") ?? "https://app.flancco-platform.be").replace(/\/$/, "");
 
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
@@ -452,8 +450,15 @@ function buildNlSignedHtml(c: SignedCtx): string {
     </ol>
 
     <div style="background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:8px;padding:18px 20px;margin:0 0 28px">
-      <h4 style="margin:0 0 6px;font-size:12px;color:#92400E;text-transform:uppercase;letter-spacing:1px;font-weight:700">Verwachtingen voor de eerste weken</h4>
-      <p style="margin:0;font-size:14px;line-height:1.7;color:#78350F">Reken op je eerste live-lead binnen <strong>~${FIRST_LEAD_TARGET_DAYS} werkdagen</strong> na activatie. We zorgen ervoor dat marketing-kit en calculator in de eerste week vlot bij je klanten landen, zodat je commercieel meteen kan starten.</p>
+      <h4 style="margin:0 0 8px;font-size:12px;color:#92400E;text-transform:uppercase;letter-spacing:1px;font-weight:700">Verwachtingen voor de eerste weken</h4>
+      <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#78350F">Jouw bestaande netwerk is de snelste route naar je eerste live-leads. Wij leveren de tools &mdash; calculator, marketing-kit en branded portaal &mdash; jij zet ze in bij de klanten en relaties die je vandaag al hebt.</p>
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.7;color:#78350F">Maak van de eerste week een actieve lanceer-sprint:</p>
+      <ul style="margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.75;color:#78350F">
+        <li style="margin-bottom:4px">Deel je calculator-link via je mail-handtekening, WhatsApp en social</li>
+        <li style="margin-bottom:4px">Plaats QR-codes zichtbaar bij lopende projecten en op bedrijfsvoertuigen</li>
+        <li style="margin-bottom:4px">Verstuur de share-templates naar je vaste klantenbestand</li>
+      </ul>
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#78350F">Hoe consequenter je de tools in week 1 inzet, hoe sneller je eerste getekend contract volgt. Je account-manager helpt je in die eerste weken actief om elk gesprek te closen.</p>
     </div>
 
     <div style="background:#FFF;border:1.5px solid #E5E7EB;border-radius:10px;padding:22px;margin:0 0 24px">
@@ -519,8 +524,15 @@ function buildFrSignedHtml(c: SignedCtx): string {
     </ol>
 
     <div style="background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:8px;padding:18px 20px;margin:0 0 28px">
-      <h4 style="margin:0 0 6px;font-size:12px;color:#92400E;text-transform:uppercase;letter-spacing:1px;font-weight:700">Attentes pour les premières semaines</h4>
-      <p style="margin:0;font-size:14px;line-height:1.7;color:#78350F">Comptez sur votre premier lead en direct dans <strong>~${FIRST_LEAD_TARGET_DAYS} jours ouvrables</strong> après l'activation.</p>
+      <h4 style="margin:0 0 8px;font-size:12px;color:#92400E;text-transform:uppercase;letter-spacing:1px;font-weight:700">Attentes pour les premières semaines</h4>
+      <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#78350F">Votre réseau existant est la route la plus rapide vers vos premiers leads en direct. Nous fournissons les outils &mdash; calculateur, kit marketing et portail brandé &mdash; vous les déployez auprès des clients et relations que vous avez déjà aujourd'hui.</p>
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.7;color:#78350F">Faites de la première semaine un véritable sprint de lancement&nbsp;:</p>
+      <ul style="margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.75;color:#78350F">
+        <li style="margin-bottom:4px">Partagez votre lien de calculateur via votre signature e-mail, WhatsApp et les réseaux sociaux</li>
+        <li style="margin-bottom:4px">Placez les QR-codes visiblement sur les chantiers en cours et sur vos véhicules d'entreprise</li>
+        <li style="margin-bottom:4px">Envoyez les share-templates à votre fichier clients établi</li>
+      </ul>
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#78350F">Plus vous déployez les outils de manière consistante en semaine 1, plus rapidement votre premier contrat signé suit. Votre account-manager vous accompagne activement durant ces premières semaines pour conclure chaque conversation.</p>
     </div>
 
     <div style="background:#FFF;border:1.5px solid #E5E7EB;border-radius:10px;padding:22px;margin:0 0 24px">
