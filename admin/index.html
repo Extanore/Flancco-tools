@@ -885,6 +885,23 @@
   .contact-card .modal-field label { font-size: 11px; }
   .contact-card .modal-field input { font-size: 13px; padding: 8px 10px; background: #fff; }
 
+  /* BTW + VIES validate-row in klant-modal */
+  .kl-btw-row { display: flex; gap: 8px; align-items: stretch; }
+  .kl-btw-row input { flex: 1; }
+  .kl-btw-validate { background: var(--navy); color: #fff; border: none; border-radius: 8px; padding: 0 18px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; transition: background 0.15s, transform 0.05s; }
+  .kl-btw-validate:hover:not(:disabled) { background: var(--navy-light); }
+  .kl-btw-validate:active:not(:disabled) { transform: translateY(1px); }
+  .kl-btw-validate:disabled { opacity: 0.55; cursor: wait; }
+  .kl-btw-msg { display: none; font-size: 12px; margin-top: 6px; line-height: 1.4; }
+  .kl-btw-msg.show { display: block; }
+  .kl-btw-msg.ok { color: #047857; }
+  .kl-btw-msg.err { color: var(--red); }
+  .kl-btw-msg.warn { color: #92400E; }
+
+  /* Sub-frame binnen Basis tab — visueel onderscheid voor adres-blok */
+  .kl-subframe { background: var(--light); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .kl-subframe .loc-section-title { margin-top: 0; }
+
   /* DROPDOWN MENU — toolbar */
   .dropdown { position: relative; display: inline-block; }
   .dropdown-btn { padding: 6px 12px; background: #fff; color: var(--navy); border: 1.5px solid var(--rule); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
@@ -5534,7 +5551,7 @@
     </div>
     <div class="modal-tabs" role="tablist">
       <button type="button" class="modal-tab active" data-tab="basis" onclick="switchKlantTab('basis')">Basis</button>
-      <button type="button" class="modal-tab" data-tab="locaties" onclick="switchKlantTab('locaties')">Locaties</button>
+      <button type="button" class="modal-tab" data-tab="locaties" id="kl-tab-locaties" onclick="switchKlantTab('locaties')">Werflocaties</button>
       <button type="button" class="modal-tab" data-tab="facturatie" onclick="switchKlantTab('facturatie')">Facturatie</button>
       <button type="button" class="modal-tab" data-tab="notities" onclick="switchKlantTab('notities')">Notities</button>
     </div>
@@ -5613,47 +5630,74 @@
           </div>
         </div>
 
+        <!-- ADRES — particulier-variant (persoonsadres binnen Persoonsgegevens) -->
+        <div class="kl-subframe" id="kl-particulier-adres-wrap" style="display:none">
+          <p class="loc-section-title">Adres</p>
+          <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px">Het persoonlijke adres van de klant — facturatie en uitvoeringsadres tegelijk.</small>
+          <div class="modal-row">
+            <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-particulier-straat"></div>
+            <div class="modal-field"><label>Huisnr *</label><input id="kl-particulier-huisnr"></div>
+          </div>
+          <div class="modal-row">
+            <div class="modal-field"><label>Postcode *</label><input id="kl-particulier-postcode"></div>
+            <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-particulier-gemeente"></div>
+          </div>
+          <div class="modal-field">
+            <label>Land</label>
+            <select id="kl-particulier-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
+          </div>
+        </div>
+
+        <!-- FACTUURADRES — bedrijf-variant (factuuradres + BTW + VIES) -->
+        <div class="kl-subframe" id="kl-bedrijf-factuuradres-wrap">
+          <p class="loc-section-title">Factuuradres &amp; BTW</p>
+          <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px">Officieel adres van de organisatie voor facturatie. Tip: vul het BTW-nummer in en klik <strong>Valideer</strong> — we vullen bedrijfsnaam en adres aan via VIES.</small>
+
+          <div class="modal-field" style="margin-bottom:12px">
+            <label>BTW-nummer</label>
+            <div class="kl-btw-row">
+              <input id="kl-btw" placeholder="BE0123456789" autocomplete="off" oninput="onKlBtwInput()">
+              <button type="button" class="kl-btw-validate" id="kl-btw-validate" onclick="klValidateBTW()">Valideer</button>
+            </div>
+            <div class="kl-btw-msg" id="kl-btw-msg"></div>
+          </div>
+
+          <div class="modal-row">
+            <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-straat"></div>
+            <div class="modal-field"><label>Huisnr *</label><input id="kl-huisnr"></div>
+          </div>
+          <div class="modal-row">
+            <div class="modal-field"><label>Postcode *</label><input id="kl-postcode"></div>
+            <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-gemeente"></div>
+          </div>
+          <div class="modal-field">
+            <label>Land</label>
+            <select id="kl-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
+          </div>
+        </div>
+
         <!-- Hidden legacy fields voor backward-compat -->
         <input type="hidden" id="kl-voornaam">
         <input type="hidden" id="kl-achternaam">
       </div>
 
-      <!-- TAB: LOCATIES -->
+      <!-- TAB: WERFLOCATIES (bedrijf-only) -->
       <div class="modal-tab-pane" data-pane="locaties">
-        <p class="loc-section-title">Factuuradres (hoofdlocatie)</p>
-        <div class="modal-row">
-          <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-straat"></div>
-          <div class="modal-field"><label>Huisnr *</label><input id="kl-huisnr"></div>
-        </div>
-        <div class="modal-row">
-          <div class="modal-field"><label>Postcode *</label><input id="kl-postcode"></div>
-          <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-gemeente"></div>
-        </div>
-        <div class="modal-field">
-          <label>Land</label>
-          <select id="kl-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
-        </div>
-
-        <hr style="border:none;border-top:1px solid var(--rule);margin:20px 0">
-
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <p class="loc-section-title" style="margin:0">Bijkomende werklocaties</p>
-          <small style="color:var(--grey);font-size:11px">Optioneel — filialen, opslagplaatsen, ...</small>
+          <p class="loc-section-title" style="margin:0">Bijkomende werflocaties</p>
+          <small style="color:var(--grey);font-size:11px">Optioneel — filialen, werven, opslagplaatsen, ...</small>
         </div>
+        <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:14px">Het factuuradres van het bedrijf staat op de tab <strong>Basis</strong>. Voeg hier extra locaties toe waar de werkzaamheden uitgevoerd worden.</small>
         <div class="loc-repeater" id="kl-loc-repeater"></div>
-        <button type="button" class="btn-add-loc" style="margin-top:10px" onclick="addKlantLocatie()">+ Werklocatie toevoegen</button>
+        <button type="button" class="btn-add-loc" style="margin-top:10px" onclick="addKlantLocatie()">+ Werflocatie toevoegen</button>
       </div>
 
       <!-- TAB: FACTURATIE -->
       <div class="modal-tab-pane" data-pane="facturatie">
         <div class="modal-field">
-          <label>BTW-nummer</label>
-          <input id="kl-btw" placeholder="BE 0123.456.789 — optioneel">
-        </div>
-        <div class="modal-field">
           <label>Standaard PO-nummer</label>
           <input id="kl-po" placeholder="Optioneel — wordt default voorgesteld op nieuwe contracten">
-          <small style="color:var(--grey);font-size:11px">Kan per contract worden overschreven.</small>
+          <small style="color:var(--grey);font-size:11px">Kan per contract worden overschreven. BTW-nummer staat op de tab <strong>Basis</strong>.</small>
         </div>
       </div>
 
@@ -19620,6 +19664,11 @@ function klTypeChanged() {
   // Slot T A4: bedrijf-only-toggle wrapper (alleen relevant bij type=bedrijf)
   var bedrijfOnlyWrap = document.getElementById('kl-bedrijf-only-wrap');
   var bedrijfOnlyCb   = document.getElementById('kl-bedrijf-only');
+  // Adres-blokken op Basis tab (particulier vs. bedrijf)
+  var particulierAdresWrap = document.getElementById('kl-particulier-adres-wrap');
+  var bedrijfFactWrap      = document.getElementById('kl-bedrijf-factuuradres-wrap');
+  // Werflocaties tab-knop (bedrijf-only)
+  var werflocatiesTabBtn   = document.getElementById('kl-tab-locaties');
 
   if (type === 'particulier') {
     // Bedrijfsnaam verbergen + input leegmaken zodat die bij save als null gaat
@@ -19634,6 +19683,15 @@ function klTypeChanged() {
     if (btnAddContact) btnAddContact.style.display = 'none';
     if (algemeenTitle) algemeenTitle.textContent = 'Factuurgegevens';
     if (algemeenHint) algemeenHint.textContent = 'Optioneel — voor facturen. Laat leeg om de gegevens van de persoon hierboven te gebruiken.';
+    // Adres-blok: toon particulier-variant, verberg bedrijf-factuuradres
+    if (particulierAdresWrap) particulierAdresWrap.style.display = '';
+    if (bedrijfFactWrap)      bedrijfFactWrap.style.display = 'none';
+    // Werflocaties tab uit voor particulier (één adres = factuur + uitvoering)
+    if (werflocatiesTabBtn) werflocatiesTabBtn.style.display = 'none';
+    // Als Werflocaties-tab actief was, switch terug naar Basis
+    if (werflocatiesTabBtn && werflocatiesTabBtn.classList.contains('active')) {
+      switchKlantTab('basis');
+    }
     // Forceer exact 1 contact (behoud eerste, primary)
     if (klantContactsBuffer.length === 0) {
       klantContactsBuffer.push(emptyContact(true));
@@ -19652,6 +19710,11 @@ function klTypeChanged() {
     if (btnAddContact) btnAddContact.style.display = '';
     if (algemeenTitle) algemeenTitle.textContent = 'Algemene contactgegevens';
     if (algemeenHint) algemeenHint.textContent = 'Voor facturen en algemene communicatie. Laat leeg om de gegevens van de primaire contactpersoon te gebruiken.';
+    // Adres-blok: bedrijf-factuuradres aan, particulier-variant uit
+    if (particulierAdresWrap) particulierAdresWrap.style.display = 'none';
+    if (bedrijfFactWrap)      bedrijfFactWrap.style.display = '';
+    // Werflocaties tab tonen voor bedrijf
+    if (werflocatiesTabBtn) werflocatiesTabBtn.style.display = '';
     if (klantContactsBuffer.length === 0) {
       klantContactsBuffer.push(emptyContact(true));
     }
@@ -19661,6 +19724,117 @@ function klTypeChanged() {
   if (typeof renderKlantLocaties === 'function') renderKlantLocaties();
   // Slot T A4: synchroniseer zichtbaarheid contactpersonen-sectie met toggle-state
   if (typeof onBedrijfOnlyToggle === 'function') onBedrijfOnlyToggle();
+}
+
+// ─── VIES BTW-validatie op klant-modal (bedrijf-only) ─────────────
+// Roept dezelfde edge function aan als in onboard/sign + calculator.
+// Vult bedrijfsnaam + factuuradres aan waar de velden nog leeg zijn —
+// nooit overschrijven van user-input (defensief tegen onbedoeld dataverlies).
+function onKlBtwInput() {
+  // Reset feedback-bericht zodra user weer typt — vermijdt verwarrende stale state.
+  var msgEl = document.getElementById('kl-btw-msg');
+  if (msgEl) { msgEl.textContent = ''; msgEl.className = 'kl-btw-msg'; }
+}
+
+async function klValidateBTW() {
+  var btn   = document.getElementById('kl-btw-validate');
+  var msgEl = document.getElementById('kl-btw-msg');
+  var inp   = document.getElementById('kl-btw');
+  if (!btn || !inp || !msgEl) return;
+
+  var btw = (inp.value || '').replace(/[\s.\-]/g, '').toUpperCase();
+  if (!btw) {
+    msgEl.textContent = 'Geen BTW-nummer ingevuld.';
+    msgEl.className = 'kl-btw-msg show err';
+    return;
+  }
+  inp.value = btw;
+
+  var origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Bezig…';
+  msgEl.textContent = '';
+  msgEl.className = 'kl-btw-msg';
+
+  try {
+    var resp = await fetch(SUPA_URL + '/functions/v1/validate-vat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY
+      },
+      body: JSON.stringify({ btw_nummer: btw })
+    });
+    var data = await resp.json().catch(function() { return null; });
+
+    if (data && data.valid === true) {
+      var rawNaam = data.naam || data.bedrijfsnaam || data.name;
+      _klSetIfEmpty('kl-bedrijf', _klReorderCompanySuffix(rawNaam));
+      var split = _klSplitBeAdres(
+        data.adres || data.address || '',
+        data.postcode,
+        data.gemeente || data.city
+      );
+      _klSetIfEmpty('kl-straat',   split.straat);
+      _klSetIfEmpty('kl-huisnr',   split.huisnummer);
+      _klSetIfEmpty('kl-postcode', split.postcode);
+      _klSetIfEmpty('kl-gemeente', split.gemeente);
+
+      msgEl.textContent = 'BTW-nummer geldig' + (rawNaam ? ' — ' + _klReorderCompanySuffix(rawNaam) : '') + '. Bedrijfsnaam en adres aangevuld waar nog leeg.';
+      msgEl.className = 'kl-btw-msg show ok';
+    } else if (data && data.valid === false) {
+      msgEl.textContent = 'BTW-nummer niet geldig in VIES. Controleer of vul de gegevens handmatig in.';
+      msgEl.className = 'kl-btw-msg show err';
+    } else {
+      msgEl.textContent = 'Validatie kon niet uitgevoerd worden. Vul de gegevens handmatig in.';
+      msgEl.className = 'kl-btw-msg show warn';
+    }
+  } catch (e) {
+    msgEl.textContent = 'Validatie-service tijdelijk onbereikbaar — vul gegevens handmatig in.';
+    msgEl.className = 'kl-btw-msg show warn';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText || 'Valideer';
+  }
+}
+
+function _klSetIfEmpty(id, val) {
+  var el = document.getElementById(id);
+  if (el && !el.value && val) el.value = val;
+}
+
+// Verplaats Belgische vennootschapsvorm (BV, NV, CommV...) van begin naar einde.
+function _klReorderCompanySuffix(name) {
+  if (!name) return name;
+  var s = String(name).trim();
+  var formsRegex = /^(BVBA|EBVBA|CVBA|CommVA|Comm\.?V\.?|SCRL|SPRL|SCS|ASBL|VZW|VOF|SNC|ESV|BV|NV|CV|CVA|SA)\s+(.+)$/i;
+  var m = s.match(formsRegex);
+  if (!m) return s;
+  return m[2].trim() + ' ' + m[1].trim();
+}
+
+// Parser voor BE-adres-blob (VIES-formaat) → gestructureerde velden. ~80% dekking.
+function _klSplitBeAdres(rawAdres, rawPostcode, rawGemeente) {
+  var result = { straat: '', huisnummer: '', postcode: (rawPostcode || '').trim(), gemeente: (rawGemeente || '').trim() };
+  if (!rawAdres) return result;
+  var s = String(rawAdres).replace(/[\n,]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!result.postcode || !result.gemeente) {
+    var pcm = s.match(/^(.+?)\s+(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-']+)$/);
+    if (pcm) {
+      s = pcm[1].trim();
+      if (!result.postcode) result.postcode = pcm[2];
+      if (!result.gemeente) result.gemeente = pcm[3].trim();
+    }
+  }
+  var hnm = s.match(/^(.+?)\s+(\d[\w\s\-/]*)$/);
+  if (hnm) {
+    result.straat = hnm[1].trim();
+    result.huisnummer = hnm[2].trim();
+  } else {
+    result.straat = s;
+  }
+  return result;
 }
 
 // Slot T A4: bedrijf-only-toggle — verberg/toon de contactpersonen-repeater +
@@ -19902,14 +20076,32 @@ async function openKlantModal(editData) {
   document.getElementById('kl-bedrijf').value = editData ? editData.company_name || '' : '';
   document.getElementById('kl-email').value = editData ? editData.email || '' : '';
   document.getElementById('kl-telefoon').value = editData ? editData.phone || '' : '';
-  document.getElementById('kl-straat').value = editData ? editData.street || '' : '';
-  document.getElementById('kl-huisnr').value = editData ? editData.house_number || '' : '';
-  document.getElementById('kl-postcode').value = editData ? editData.postal_code || '' : '';
-  document.getElementById('kl-gemeente').value = editData ? editData.city || '' : '';
-  document.getElementById('kl-land').value = editData ? editData.country || 'BE' : 'BE';
+  // Adres-velden: bedrijf-variant (kl-straat...) en particulier-variant (kl-particulier-*) zijn
+  // visueel gescheiden inputs maar mappen op dezelfde DB-kolommen. We populeren beide en
+  // saveKlant() leest uit de actieve variant op basis van klType.
+  var _addr = {
+    street:       editData ? editData.street || '' : '',
+    house_number: editData ? editData.house_number || '' : '',
+    postal_code:  editData ? editData.postal_code || '' : '',
+    city:         editData ? editData.city || '' : '',
+    country:      editData ? editData.country || 'BE' : 'BE'
+  };
+  document.getElementById('kl-straat').value = _addr.street;
+  document.getElementById('kl-huisnr').value = _addr.house_number;
+  document.getElementById('kl-postcode').value = _addr.postal_code;
+  document.getElementById('kl-gemeente').value = _addr.city;
+  document.getElementById('kl-land').value = _addr.country;
+  document.getElementById('kl-particulier-straat').value = _addr.street;
+  document.getElementById('kl-particulier-huisnr').value = _addr.house_number;
+  document.getElementById('kl-particulier-postcode').value = _addr.postal_code;
+  document.getElementById('kl-particulier-gemeente').value = _addr.city;
+  document.getElementById('kl-particulier-land').value = _addr.country;
   document.getElementById('kl-notities').value = editData ? editData.notes || '' : '';
   document.getElementById('kl-btw').value = editData ? editData.vat_number || '' : '';
   document.getElementById('kl-po').value = editData ? editData.po_number || '' : '';
+  // VIES feedback-bericht resetten bij heropenen modal
+  var _btwMsg = document.getElementById('kl-btw-msg');
+  if (_btwMsg) { _btwMsg.textContent = ''; _btwMsg.className = 'kl-btw-msg'; }
 
   // Zet type-toggle. Default rol-afhankelijk: partner-rol typisch zonnepanelen-
   // installateur met overwegend particuliere klanten → default 'particulier'.
@@ -20106,10 +20298,15 @@ async function saveKlant() {
   var bedrijfsnaam = document.getElementById('kl-bedrijf').value.trim();
   var algEmail = document.getElementById('kl-email').value.trim();
   var algTelefoon = document.getElementById('kl-telefoon').value.trim();
-  var straat = document.getElementById('kl-straat').value.trim();
-  var huisnr = document.getElementById('kl-huisnr').value.trim();
-  var postcode = document.getElementById('kl-postcode').value.trim();
-  var gemeente = document.getElementById('kl-gemeente').value.trim();
+  // Adres lezen uit actieve variant — particulier-velden vs. bedrijf-factuuradres-velden
+  // mappen op dezelfde DB-kolommen, maar zijn visueel gescheiden zodat de UX matcht
+  // met de mentale model van de klant (persoonsadres vs. factuuradres organisatie).
+  var _adrPfx = klType === 'particulier' ? 'kl-particulier-' : 'kl-';
+  var straat   = document.getElementById(_adrPfx + 'straat').value.trim();
+  var huisnr   = document.getElementById(_adrPfx + 'huisnr').value.trim();
+  var postcode = document.getElementById(_adrPfx + 'postcode').value.trim();
+  var gemeente = document.getElementById(_adrPfx + 'gemeente').value.trim();
+  var land     = document.getElementById(_adrPfx + 'land').value;
   var partnerId = document.getElementById('kl-partner').value;
 
   // Validatie: type + partner
@@ -20198,22 +20395,29 @@ async function saveKlant() {
   var finalEmail = algEmail || (isBedrijfOnly ? null : (primary && primary.email ? primary.email.trim() : ''));
   var finalTelefoon = algTelefoon || (isBedrijfOnly ? null : (primary && primary.phone ? primary.phone.trim() : ''));
 
-  // Factuuradres verplicht
+  // Adres verplicht — voor particulier het persoonsadres (Basis-tab), voor bedrijf het factuuradres (Basis-tab).
   if (!straat || !huisnr || !postcode || !gemeente) {
-    switchKlantTab('locaties');
-    showToast('Vul het factuuradres (straat, huisnr, postcode, gemeente) in.', 'error');
-    var firstAddr = !straat ? 'kl-straat' : !huisnr ? 'kl-huisnr' : !postcode ? 'kl-postcode' : 'kl-gemeente';
-    var el2 = document.getElementById(firstAddr); if (el2) el2.focus();
+    switchKlantTab('basis');
+    var _adrLabel = klType === 'particulier' ? 'het adres' : 'het factuuradres';
+    showToast('Vul ' + _adrLabel + ' (straat, huisnr, postcode, gemeente) in.', 'error');
+    var firstAddrKey = !straat ? 'straat' : !huisnr ? 'huisnr' : !postcode ? 'postcode' : 'gemeente';
+    var el2 = document.getElementById(_adrPfx + firstAddrKey); if (el2) el2.focus();
     return;
   }
 
-  // Validatie werklocaties: label verplicht als er andere velden ingevuld zijn
-  for (var i = 0; i < klantLocatiesBuffer.length; i++) {
-    var L = klantLocatiesBuffer[i];
-    if (!L.label || !L.label.trim()) {
-      switchKlantTab('locaties');
-      showToast('Werklocatie ' + (i + 1) + ': label is verplicht. Verwijder de rij als ze leeg moet blijven.', 'error');
-      return;
+  // Validatie werflocaties: alleen relevant voor bedrijf — particulier heeft geen
+  // extra werflocaties (één adres = factuur + uitvoering). We tonen Werflocaties-tab
+  // niet voor particulier, dus skippen we deze validatie ook + leegmaken buffer.
+  if (klType === 'particulier') {
+    klantLocatiesBuffer = [];
+  } else {
+    for (var i = 0; i < klantLocatiesBuffer.length; i++) {
+      var L = klantLocatiesBuffer[i];
+      if (!L.label || !L.label.trim()) {
+        switchKlantTab('locaties');
+        showToast('Werflocatie ' + (i + 1) + ': label is verplicht. Verwijder de rij als ze leeg moet blijven.', 'error');
+        return;
+      }
     }
   }
 
@@ -20229,9 +20433,11 @@ async function saveKlant() {
     house_number: huisnr,
     postal_code: postcode,
     city: gemeente,
-    country: document.getElementById('kl-land').value,
+    country: land,
     notes: document.getElementById('kl-notities').value.trim() || null,
-    vat_number: document.getElementById('kl-btw').value.trim() || null,
+    // BTW alleen relevant voor bedrijf-klanten — voor particulier forceren we null
+    // om stale waardes uit een vroegere bedrijf-edit te vermijden.
+    vat_number: klType === 'bedrijf' ? (document.getElementById('kl-btw').value.trim() || null) : null,
     po_number: document.getElementById('kl-po').value.trim() || null
   };
 
