@@ -2054,11 +2054,24 @@
         '</tr>';
     }
 
-    // ─── Concrete rekenvoorbeelden ───────────────────────────────────
+    // ─── Concrete rekenvoorbeelden (2026-05-13: live pricing ipv hardcoded) ──
+    // Lookup-helper: zoek de staffel waar `count` in valt en return flancco_forfait.
+    // tiers komt uit wizLoadFlanccoPricingTiers() (live DB-query).
+    function _tierForCount(count) {
+      for (var i = 0; i < tiers.length; i++) {
+        var t = tiers[i];
+        var min = parseInt(t.staffel_min, 10) || 0;
+        var max = (t.staffel_max == null) ? Infinity : parseInt(t.staffel_max, 10);
+        if (count >= min && count <= max) return parseFloat(t.flancco_forfait) || 0;
+      }
+      return 0;
+    }
+
     var exSmall = document.getElementById('ap-step3-example-small');
     var exLarge = document.getElementById('ap-step3-example-large');
     if (exSmall) {
-      var smF = 90;
+      // 12 panelen → live tier-forfait (typisch staffel 1-14)
+      var smF = _tierForCount(12);
       var smMarge = smF * (marge / 100);
       var smKlant = smF + smMarge + planningFee;
       var smIncl = smKlant * 1.21;
@@ -2070,7 +2083,10 @@
         formatEUR(smIncl) + ' incl. 21%).';
     }
     if (exLarge) {
-      var lgBase = 218;
+      // 50 panelen: basis = forfait van staffel 36-40 (peak voor "boven 40" toeslag),
+      // plus extra per paneel boven 40. EXTRA_PER_PANEL_BOVEN_40 is een hardcoded
+      // toeslag-tarief — niet in pricing-tabel; bij wijziging update deze constante.
+      var lgBase = _tierForCount(40);
       var lgExtra = 10 * EXTRA_PER_PANEL_BOVEN_40;
       var lgF = lgBase + lgExtra;
       var lgMarge = lgF * (marge / 100);
