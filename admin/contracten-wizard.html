@@ -473,8 +473,7 @@
   .btn.btn-success:hover:not(:disabled) { filter: brightness(0.92); }
 
   /* Modal — minimaal noodzakelijk voor confirmDialog/infoDialog */
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
-  .modal-overlay.open { display:flex; }
+  /* UX-005: .modal-overlay rules verhuisd naar shared/modal.css (canonical) — backdrop-filter blur + z-index 300. */
   .modal { background:#fff; border-radius:16px; padding:32px; width:560px; max-width:calc(100vw - 32px); max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.15); }
 
   /* Modal-footer layout */
@@ -566,6 +565,8 @@
      auto-select primary voor single-locatie klanten). -->
 <link rel="stylesheet" href="shared/werklocatie-picker.css">
 <script src="shared/werklocatie-picker.js"></script>
+<!-- UX-005: shared modal-overlay (gecanoniceerd 2026-05-12). Lokale .modal card-rules blijven per-pagina. -->
+<link rel="stylesheet" href="shared/modal.css">
 </head>
 <body>
 
@@ -635,7 +636,7 @@
     </div>
 
     <div class="wizard-header">
-      <button class="back-link" onclick="window.location.href='index.html?page=contracten'">
+      <button class="back-link" onclick="onWizCancel()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Terug naar contracten
       </button>
@@ -999,6 +1000,233 @@ let wizState = {
 };
 
 // =============================================
+// WF-006 — Draft autosave (localStorage, 7-day TTL)
+// ─────────────────────────────────────────────
+// Beschermt tegen data-verlies bij browser-crash, tab-sluit, of network-drop
+// vóór "Opslaan als concept". Pattern uit onboard/index.html r1485-1499:
+// debounced setter (500 ms) + user-id-binding + TTL-cleanup bij load.
+// Geen impact bij quota-exceeded of private-mode (silent catch).
+// =============================================
+const WIZ_DRAFT_KEY = 'flancco_contract_wizard_draft';
+const WIZ_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+let wizDraftSaveTimer = null;
+let _wizCurrentStep = 1;  // tracked by goStep() — bewaard mee in draft
+
+function _captureWizFormInputs() {
+  // Vrije-tekst inputs die niet in wizState leven maar wel data-loss-risk hebben.
+  // (description/notities → contracten.beschrijving; startdatum/afstand staan al
+  // in wizState maar we capturen ze defensief ook hier voor herstel.)
+  function val(id) {
+    var el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+  return {
+    beschrijving: val('wiz-beschrijving'),
+    notities: val('wiz-notities'),
+    startdatum: val('wiz-startdatum'),
+    afstand: val('wiz-afstand'),
+    // Nieuwe-klant formulier — gevoelig: wordt pas naar wizState.newClient
+    // geschreven bij goStep(3). Bij crash tijdens stap 2 = data-verlies zonder capture.
+    nc: {
+      voornaam: val('nc-voornaam'),
+      achternaam: val('nc-achternaam'),
+      bedrijf: val('nc-bedrijf'),
+      email: val('nc-email'),
+      telefoon: val('nc-telefoon'),
+      straat: val('nc-straat'),
+      postcode: val('nc-postcode'),
+      gemeente: val('nc-gemeente'),
+      btw: val('nc-btw')
+    }
+  };
+}
+
+function saveWizDraft() {
+  if (wizDraftSaveTimer) clearTimeout(wizDraftSaveTimer);
+  wizDraftSaveTimer = setTimeout(function() {
+    try {
+      localStorage.setItem(WIZ_DRAFT_KEY, JSON.stringify({
+        ts: Date.now(),
+        user_id: (currentUser && currentUser.id) || null,
+        step: _wizCurrentStep,
+        state: wizState,
+        inputs: _captureWizFormInputs()
+      }));
+    } catch (_) { /* quota or private-mode: geen impact */ }
+  }, 500);
+}
+
+function loadWizDraft() {
+  try {
+    const raw = localStorage.getItem(WIZ_DRAFT_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj || !obj.ts || (Date.now() - obj.ts) > WIZ_DRAFT_TTL_MS) {
+      localStorage.removeItem(WIZ_DRAFT_KEY);
+      return null;
+    }
+    // User-id-check zoals andere caches: voorkomt stale-cache van andere user.
+    if (currentUser && currentUser.id && obj.user_id && obj.user_id !== currentUser.id) {
+      return null;
+    }
+    return obj;
+  } catch (_) { return null; }
+}
+
+function clearWizDraft() {
+  if (wizDraftSaveTimer) { clearTimeout(wizDraftSaveTimer); wizDraftSaveTimer = null; }
+  try { localStorage.removeItem(WIZ_DRAFT_KEY); } catch (_) {}
+}
+
+function _restoreWizFormInputs(inputs) {
+  if (!inputs) return;
+  function setVal(id, v) {
+    var el = document.getElementById(id);
+    if (el && v != null) el.value = v;
+  }
+  setVal('wiz-beschrijving', inputs.beschrijving);
+  setVal('wiz-notities', inputs.notities);
+  if (inputs.startdatum) setVal('wiz-startdatum', inputs.startdatum);
+  if (inputs.afstand) setVal('wiz-afstand', inputs.afstand);
+  if (inputs.nc) {
+    setVal('nc-voornaam',   inputs.nc.voornaam);
+    setVal('nc-achternaam', inputs.nc.achternaam);
+    setVal('nc-bedrijf',    inputs.nc.bedrijf);
+    setVal('nc-email',      inputs.nc.email);
+    setVal('nc-telefoon',   inputs.nc.telefoon);
+    setVal('nc-straat',     inputs.nc.straat);
+    setVal('nc-postcode',   inputs.nc.postcode);
+    setVal('nc-gemeente',   inputs.nc.gemeente);
+    setVal('nc-btw',        inputs.nc.btw);
+  }
+}
+
+async function _offerDraftResume() {
+  // Geroepen aan het einde van initApp() — eerste opening van de wizard.
+  // Toont confirm-dialog met "Hervatten" / "Nieuw starten" als draft bestaat.
+  var draft = loadWizDraft();
+  if (!draft || !draft.state) return;
+
+  var ageMs = Date.now() - (draft.ts || Date.now());
+  var ageMin = Math.floor(ageMs / 60000);
+  var ageStr;
+  if (ageMin < 1)      ageStr = 'minder dan een minuut geleden';
+  else if (ageMin < 60) ageStr = ageMin + ' min geleden';
+  else if (ageMin < 1440) ageStr = Math.floor(ageMin / 60) + ' u geleden';
+  else ageStr = Math.floor(ageMin / 1440) + ' dag(en) geleden';
+
+  var resume = await confirmDialog({
+    title: 'Concept hervatten?',
+    message: 'We vonden een opgeslagen ontwerp van ' + ageStr + '.\n\n"Hervatten" laadt je vorige invoer terug. "Nieuw starten" wist het concept en begint met een lege wizard.',
+    confirmLabel: 'Hervatten',
+    cancelLabel: 'Nieuw starten',
+    variant: 'primary'
+  });
+
+  if (!resume) {
+    clearWizDraft();
+    return;
+  }
+
+  // ── Hervatten: merge draft.state in wizState (behoud objectreferentie zodat
+  //    elders bewaarde verwijzingen blijven werken) en herstel form-inputs.
+  try {
+    Object.keys(draft.state).forEach(function(k) { wizState[k] = draft.state[k]; });
+  } catch (_) {}
+  _restoreWizFormInputs(draft.inputs);
+
+  // ── Reflecteer wizState in de UI (cards/selecties die normaal door
+  //    onclick-handlers gezet worden).
+  try {
+    // Stap 1 — type-cards
+    var typeCards = document.querySelectorAll('.type-card[data-type]');
+    typeCards.forEach(function(c) {
+      var field = c.parentElement && c.parentElement.previousElementSibling
+        ? null : null; // niet-bruikbaar; we gebruiken parent-grouping hieronder
+    });
+    document.querySelectorAll('.type-card').forEach(function(c) { c.classList.remove('selected'); });
+    // klantType-cards staan in eerste type-grid, contractType-cards in tweede.
+    // We selecteren via data-type matching binnen elke groep.
+    var grids = document.querySelectorAll('.type-grid');
+    if (grids.length >= 1 && wizState.klantType) {
+      var kc = grids[0].querySelector('.type-card[data-type="' + wizState.klantType + '"]');
+      if (kc) kc.classList.add('selected');
+    }
+    if (grids.length >= 2 && wizState.contractType) {
+      var cc = grids[1].querySelector('.type-card[data-type="' + wizState.contractType + '"]');
+      if (cc) cc.classList.add('selected');
+    }
+
+    // Stap 2 — partner-dropdown + klant-combobox + bestaande klant of nieuw-form
+    if (wizState.partnerId) {
+      var psel = document.getElementById('wiz-partner');
+      if (psel) {
+        psel.value = wizState.partnerId;
+        // loadPartnerData laadt clients + branding; await zodat client-render daarna correct gaat.
+        try { await loadPartnerData(wizState.partnerId); } catch (_) {}
+        var p = (partners || []).find(function(x) { return x.id === wizState.partnerId; });
+        if (p) { try { applyWizardBranding(p); } catch (_) {} }
+      }
+    }
+    // Klant-combobox state: of bestaande klant, of '__new'.
+    var hiddenClient = document.getElementById('wiz-client');
+    var cbWrap = document.getElementById('wiz-client-cb');
+    if (wizState.clientId && hiddenClient) {
+      // Probeer specifieke contact-prefix te reconstrueren, anders bedrijf:.
+      var vClient = wizState.clientContactId
+        ? ('contact:' + wizState.clientContactId)
+        : ('bedrijf:' + wizState.clientId);
+      hiddenClient.value = vClient;
+      if (cbWrap && cbWrap.__fcb && typeof cbWrap.__fcb.setValue === 'function') {
+        try { cbWrap.__fcb.setValue(vClient); } catch (_) {}
+      }
+      try { onClientSelect(); } catch (_) {}
+    } else if (wizState.newClient && hiddenClient) {
+      hiddenClient.value = '__new';
+      if (cbWrap && cbWrap.__fcb && typeof cbWrap.__fcb.setValue === 'function') {
+        try { cbWrap.__fcb.setValue('__new'); } catch (_) {}
+      }
+      try { onClientSelect(); } catch (_) {}
+      // _restoreWizFormInputs heeft nc-* al gevuld; new-client-form moet zichtbaar zijn.
+    }
+
+    // Stap 4 — freq/duur cards
+    document.querySelectorAll('.freq-grid .freq-card').forEach(function(c) {
+      if (parseInt(c.dataset.freq, 10) === wizState.freq) c.classList.add('selected');
+      else c.classList.remove('selected');
+    });
+    document.querySelectorAll('.duur-grid .freq-card').forEach(function(c) {
+      if (parseInt(c.dataset.duur, 10) === wizState.duur) c.classList.add('selected');
+      else c.classList.remove('selected');
+    });
+
+    // BTW-tegels
+    var t21 = document.getElementById('wiz-btw-tile-21');
+    var t6  = document.getElementById('wiz-btw-tile-6');
+    if (t21) t21.classList.toggle('is-selected', wizState.btwPct === 21);
+    if (t6)  t6.classList.toggle('is-selected', wizState.btwPct === 6);
+    var box = document.getElementById('wiz-btw6-verklaring');
+    if (box) box.style.display = (wizState.btwPct === 6) ? 'block' : 'none';
+    var cP = document.getElementById('wiz-btw6-check-prive');
+    var cO = document.getElementById('wiz-btw6-check-ouderdom');
+    if (cP) cP.checked = !!wizState.verklaring6BtwPriveAangevinkt;
+    if (cO) cO.checked = !!wizState.verklaring6BtwOuderdan10jAangevinkt;
+
+    // Einddatum-rekensom syncen
+    try { calcEinddatum(); } catch (_) {}
+  } catch (e) {
+    console.warn('[wizard] Draft-resume UI-sync gedeeltelijk mislukt:', e);
+  }
+
+  // Naar laatste opgeslagen step (default stap 1). goStep doet validation +
+  // mountWizCalc voor stap 3 zodat de sector-UI met wizState herhydrateert.
+  var targetStep = (draft.step && draft.step >= 1 && draft.step <= 5) ? draft.step : 1;
+  try { goStep(targetStep); } catch (_) {}
+
+  showToast('Concept hersteld');
+}
+
+// =============================================
 // UTILS
 // =============================================
 function round50(n) { return Math.round(n * 2) / 2; }
@@ -1038,6 +1266,8 @@ function getSectorSupplement(sector, type) {
 
 // API must stay in sync with admin/index.html en admin/planning.html showToast(msg, type).
 // Types: 'success' (default) | 'error' | 'info'.
+// UX-009 (2026-05-12): TODO extract naar shared/toast.js — onboard/index.html en
+// onboard/sign/index.html gebruiken incompatibele (msg, isErr-boolean) signature.
 function showToast(msg, type) {
   var t = document.getElementById('toast');
   if (!t) {
@@ -1364,6 +1594,29 @@ async function initApp() {
 
   // Honor ?client=<id> deep-link (vanuit admin klant-dossier) (J.3)
   applyClientFromUrl();
+
+  // WF-006 — delegated input-listener: vangt vrije-tekst inputs (textareas
+  // beschrijving/notities + nc-* nieuwe-klant velden) zonder elke input
+  // afzonderlijk te moeten patchen. Debounce zit in saveWizDraft (500 ms).
+  var wizardRoot = document.getElementById('app');
+  if (wizardRoot && !wizardRoot.__wizDraftListenerAttached) {
+    wizardRoot.__wizDraftListenerAttached = true;
+    wizardRoot.addEventListener('input', function(e) {
+      var t = e.target;
+      if (!t || !t.id) return;
+      // Whitelist: enkel velden die in _captureWizFormInputs() opgenomen zijn.
+      // Vermijdt onnodige writes bij login-fields, search-boxes, etc.
+      if (t.id === 'wiz-beschrijving' || t.id === 'wiz-notities' ||
+          t.id === 'wiz-startdatum'   || t.id === 'wiz-afstand'   ||
+          t.id.indexOf('nc-') === 0) {
+        saveWizDraft();
+      }
+    });
+  }
+
+  // WF-006 — bied draft-resume aan na alle init-state (partner-data, branding,
+  // deep-link). Als geen draft of user kiest "Nieuw starten" → no-op.
+  try { await _offerDraftResume(); } catch (e) { console.warn('[wizard] draft-resume faalde:', e); }
 }
 
 // =============================================
@@ -1467,6 +1720,11 @@ function goStep(n) {
     mountWizCalc();
   }
 
+  // WF-006 — track current step + persist after elke step-transitie zodat
+  // resume na crash de juiste step opent.
+  _wizCurrentStep = n;
+  saveWizDraft();
+
   window.scrollTo(0, 0);
 }
 
@@ -1477,6 +1735,7 @@ function onWizAfstandInput() {
   if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
     wizCalcInstance.setSharedState({ afstandKm: v });
   }
+  saveWizDraft();
 }
 
 // =============================================
@@ -1492,6 +1751,7 @@ function selectType(field, el) {
     window.location.href = 'opmaat-calculator.html';
     return;
   }
+  saveWizDraft();
 }
 
 // =============================================
@@ -1504,6 +1764,7 @@ async function onPartnerChange() {
     clients = [];
     renderClientDropdown();
     resetWizardBranding();
+    saveWizDraft();
     return;
   }
   wizState.partnerId = partnerId;
@@ -1513,6 +1774,7 @@ async function onPartnerChange() {
   if (p) applyWizardBranding(p);
   // Deep-link toepassen na late client-load (J.3)
   applyClientFromUrl();
+  saveWizDraft();
 }
 
 async function loadPartnerData(partnerId) {
@@ -1715,6 +1977,7 @@ function onClientSelect() {
     if (wlHidden) wlHidden.value = '';
     if (wlWrap && wlWrap.__fwp) { wlWrap.__fwp.destroy(); wlWrap.__fwp = null; }
   }
+  saveWizDraft();
 }
 
 // =============================================
@@ -2044,6 +2307,7 @@ function onWizBtwSelect(pct, silent) {
   if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
     wizCalcInstance.setSharedState({ btwPct: pct });
   }
+  saveWizDraft();
 }
 
 function onWizBtw6CheckChange() {
@@ -2060,6 +2324,7 @@ function onWizBtw6CheckChange() {
   } else {
     wizState.verklaring6BtwDatum = null;
   }
+  saveWizDraft();
 }
 
 // =============================================
@@ -2173,6 +2438,9 @@ function onWizCalcChange(state, result) {
   // CTA enable/disable: minstens 1 sector + niet op-aanvraag.
   var nextBtn = document.getElementById('btn-step3-next');
   if (nextBtn) nextBtn.disabled = wizState.selectedSectors.length === 0 || !!wizState._opAanvraag;
+
+  // WF-006 — autosave bij elke calc-tick (WizCalc fires bij elke input-change).
+  saveWizDraft();
 }
 
 // recalcPricing-shim: bestaande code (renderSummary) verwacht een synchroon
@@ -2194,6 +2462,7 @@ function selectFreq(el) {
   if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
     wizCalcInstance.setSharedState({ freq: wizState.freq });
   }
+  saveWizDraft();
 }
 
 function selectDuur(el) {
@@ -2204,6 +2473,7 @@ function selectDuur(el) {
   if (wizCalcInstance && typeof wizCalcInstance.setSharedState === 'function') {
     wizCalcInstance.setSharedState({ duur: wizState.duur });
   }
+  saveWizDraft();
 }
 
 function calcEinddatum() {
@@ -2211,11 +2481,13 @@ function calcEinddatum() {
   wizState.startDatum = start;
   if (!start || wizState.duur === 0) {
     document.getElementById('wiz-einddatum').value = '';
+    saveWizDraft();
     return;
   }
   var d = new Date(start);
   d.setFullYear(d.getFullYear() + wizState.duur);
   document.getElementById('wiz-einddatum').value = d.toISOString().split('T')[0];
+  saveWizDraft();
 }
 
 // =============================================
@@ -2298,6 +2570,37 @@ function renderSummary() {
   html += '</div>';
 
   document.getElementById('summary-content').innerHTML = html;
+}
+
+// =============================================
+// WF-006 — CANCEL / TERUG NAAR CONTRACTEN
+// Vraagt bevestiging als er gevulde draft-state is; wist autosave-draft
+// zodra de gebruiker bevestigt dat hij weg wil.
+// =============================================
+async function onWizCancel() {
+  function hasMeaningfulInput() {
+    if (wizState.partnerId) return true;
+    if (wizState.clientId || wizState.newClient) return true;
+    if ((wizState.selectedSectors || []).length > 0) return true;
+    var b = document.getElementById('wiz-beschrijving');
+    if (b && b.value && b.value.trim()) return true;
+    var n = document.getElementById('wiz-notities');
+    if (n && n.value && n.value.trim()) return true;
+    return false;
+  }
+
+  if (hasMeaningfulInput()) {
+    var ok = await confirmDialog({
+      title: 'Wizard verlaten?',
+      message: 'Je hebt al gegevens ingevuld. Verlaten wist je huidige concept (lokale autosave).',
+      confirmLabel: 'Verlaten',
+      cancelLabel: 'Blijven',
+      variant: 'danger'
+    });
+    if (!ok) return;
+  }
+  clearWizDraft();
+  window.location.href = 'index.html?page=contracten';
 }
 
 // =============================================
@@ -2480,6 +2783,9 @@ async function saveContract() {
     } catch (e) { console.warn('Audit log failed:', e); }
 
     showToast('Contract opgeslagen als concept');
+
+    // WF-006 — draft is nu persistent in DB; lokale autosave-cache kan weg.
+    clearWizDraft();
 
     // Redirect to contracten page
     setTimeout(function() {

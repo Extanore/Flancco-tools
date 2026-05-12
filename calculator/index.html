@@ -263,6 +263,10 @@
   .info-highlight p { margin: 0; font-size: 14px; font-weight: 600; color: var(--primary-dark); }
 
   /* BUTTONS */
+  /* UX-001 — CTA-class conventie (2026-05-12): deze calculator gebruikt `.btn` als base
+     met `.btn-outline` + `.btn-block` modifiers (BEM-light). Bewust verschillend van
+     admin's `.btn.btn-primary` patroon: klant-facing checkout-stijl met partner-branding
+     via `var(--primary)`. Geen alias-mapping nodig — visuele identiteit is intentioneel. */
   .btn { display: inline-block; background: var(--primary); color: var(--white); padding: 14px 36px; border-radius: 8px; font-size: 15px; font-weight: 600; border: none; cursor: pointer; letter-spacing: 0.3px; transition: background 0.2s, transform 0.1s; box-shadow: 0 2px 8px rgba(9,137,121,0.3); font-family: inherit; }
   .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
   .btn:disabled { opacity: 0.4; pointer-events: none; }
@@ -303,6 +307,9 @@
   .sig-canvas-wrap canvas { display: block; width: 100%; height: 100px; cursor: crosshair; touch-action: none; }
   .sig-canvas-wrap .sig-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 13px; color: var(--rule); pointer-events: none; transition: opacity 0.3s; }
   .sig-canvas-wrap.has-sig .sig-placeholder { opacity: 0; }
+  .signing-canvas-wrap { position: relative; }
+  .signing-canvas-wrap .signing-canvas-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--grey); font-size: 14px; pointer-events: none; user-select: none; transition: opacity 0.25s; letter-spacing: 0.2px; }
+  .signing-canvas-wrap.has-signature .signing-canvas-placeholder { opacity: 0; }
   .sig-clear { display: inline-block; font-size: 11px; color: var(--grey); cursor: pointer; margin-top: 4px; text-decoration: underline; }
   .sig-clear:hover { color: var(--primary); }
   .accept-box { background: var(--primary-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 16px 20px; margin: 24px 0 0; }
@@ -3812,8 +3819,9 @@ function renderSigningUI() {
   html += '</label></div>';
 
   html += '<div style="margin-bottom:12px"><strong style="font-size:13px">Uw handtekening</strong></div>';
-  html += '<div style="position:relative">';
-  html += '<canvas id="signing-canvas" width="560" height="180" style="border:2px solid var(--rule);border-radius:8px;width:100%;cursor:crosshair;touch-action:none"></canvas>';
+  html += '<div class="signing-canvas-wrap" id="signing-canvas-wrap" style="position:relative">';
+  html += '<canvas id="signing-canvas" width="560" height="280" style="border:2px solid var(--rule);border-radius:8px;width:100%;height:clamp(180px, 28vh, 280px);cursor:crosshair;touch-action:none;display:block"></canvas>';
+  html += '<div class="signing-canvas-placeholder" id="signing-canvas-placeholder" aria-hidden="true">Teken hier</div>';
   html += '<button onclick="clearSigningCanvas()" style="position:absolute;top:8px;right:8px;background:var(--light);border:1px solid var(--rule);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--grey)">Wissen</button>';
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--grey);margin-top:6px">Teken met uw muis of vinger in het vak hierboven</div>';
@@ -3864,7 +3872,11 @@ function initSigningCanvas() {
     ctx.strokeStyle = '#1a1a2e';
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
-    hasSigned = true;
+    if (!hasSigned) {
+      hasSigned = true;
+      var wrap = document.getElementById('signing-canvas-wrap');
+      if (wrap) wrap.classList.add('has-signature');
+    }
   }
 
   function endDraw(e) {
@@ -3890,6 +3902,8 @@ function clearSigningCanvas() {
   var ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (canvas._reset) canvas._reset();
+  var wrap = document.getElementById('signing-canvas-wrap');
+  if (wrap) wrap.classList.remove('has-signature');
   checkSigningReady();
 }
 

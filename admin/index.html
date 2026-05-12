@@ -626,8 +626,7 @@
   .btn-cancel:active:not(:disabled) { transform: translateY(1px); }
 
   /* MODAL */
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
-  .modal-overlay.open { display:flex; }
+  /* UX-005: .modal-overlay rules verhuisd naar shared/modal.css (canonical) — backdrop-filter blur + z-index 300. */
   .modal { background:var(--white); border-radius:16px; padding:32px; width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.15); }
   .modal h2 { font-size:18px; color:var(--navy); margin-bottom:20px; }
   .modal-field { margin-bottom:14px; }
@@ -1794,6 +1793,14 @@
     .mkt-tpl-head { flex-wrap:wrap; }
     .mkt-copy-btn { width:100%; margin-top:6px; }
   }
+
+  /* WF-015 — Bulk-acties pipeline-cards */
+  #pipeline-bulk-bar { display:none; }
+  #pipeline-bulk-bar.is-active { display:flex !important; }
+  .pipeline-bulk-check-wrap { position:absolute; top:10px; left:10px; z-index:2; }
+  .pipeline-bulk-check { width:18px; height:18px; cursor:pointer; accent-color: var(--navy); }
+  .flp-card { position:relative; }
+  .flp-card.is-bulk-selected { outline: 2px solid var(--navy); outline-offset: -2px; }
 </style>
 <!-- Flancco Client Combobox (shared) — searchable klant-picker met grouped headers.
      Geladen synchroon (geen defer) zodat window.FlanccoClientCombobox + window.FlanccoClientItems
@@ -1807,6 +1814,8 @@
 <link rel="stylesheet" href="shared/pipeline-components.css">
 <script src="shared/pipeline-components.js"></script>
 <script src="shared/pipeline-toolkit.js"></script>
+<!-- UX-005: shared modal-overlay (gecanoniceerd 2026-05-12). Lokale .modal card-rules blijven per-pagina. -->
+<link rel="stylesheet" href="shared/modal.css">
 </head>
 <body>
 
@@ -4396,6 +4405,15 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
             Vernieuwen
           </button>
+        </div>
+      </div>
+      <div id="pipeline-bulk-bar" style="display:none;position:sticky;top:0;background:var(--white);padding:12px 20px;border:1px solid var(--rule);border-radius:8px;margin-bottom:12px;z-index:10;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+        <span style="font-size:13px;color:var(--dark);font-weight:600"><span id="bulk-selected-count">0</span> geselecteerd</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto">
+          <button class="btn btn-ghost" type="button" onclick="bulkPipelineAction('markeer_uitgevoerd')">Markeer uitgevoerd</button>
+          <button class="btn btn-ghost" type="button" onclick="bulkPipelineAction('snooze')">Snooze</button>
+          <button class="btn btn-ghost" type="button" onclick="bulkPipelineAction('verplaats')">Verplaatsen</button>
+          <button class="btn btn-ghost" type="button" onclick="bulkPipelineClear()">Annuleer</button>
         </div>
       </div>
       <div id="onderhoud-pipeline-wrapper" class="flp-page"></div>
@@ -12452,7 +12470,9 @@ async function refreshCurrentPipeline(mode) {
 }
 
 // --- Action-router ---------------------------------------------------------
-async function onPipelineAction(actionKey, record, mode) {
+// isBulk=true: skip per-record confirm-prompts en skip refresh (bulk-runner refresht 1x na alle items)
+async function onPipelineAction(actionKey, record, mode, isBulk) {
+  isBulk = !!isBulk;
   try {
     if (!record || !record.id) {
       console.warn('[onPipelineAction] Geen record-id:', actionKey, record);
@@ -12460,6 +12480,11 @@ async function onPipelineAction(actionKey, record, mode) {
     }
     switch (actionKey) {
       case 'plan_in':
+        if (isBulk) {
+          // Bulk: openen van modal per record is geen zinvolle flow → skip
+          console.warn('[onPipelineAction] plan_in niet beschikbaar in bulk-flow');
+          break;
+        }
         if (typeof window.openQuickAddModal === 'function') {
           window.openQuickAddModal({ beurtId: record.id, prefill: record });
         } else {
@@ -12469,21 +12494,41 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'snooze':
+        if (isBulk) {
+          // Bulk-snooze: default 7 dagen vanaf vandaag, geen modal
+          var bulkSnoozeDate = new Date();
+          bulkSnoozeDate.setDate(bulkSnoozeDate.getDate() + 7);
+          var snResp = await sb.from('onderhoudsbeurten')
+            .update({ snooze_tot: bulkSnoozeDate.toISOString().slice(0,10) })
+            .eq('id', record.id);
+          if (snResp.error) throw snResp.error;
+          break;
+        }
         // Modal opent zelf de snooze-flow + refresht na confirm; geen await + refresh hier.
         onPipelineSnooze(record, mode);
         break;
 
       case 'annuleer':
-        if (!confirm('Record annuleren? Dit doet een soft-delete (kan teruggedraaid worden door admin).')) return;
+        if (!isBulk && !confirm('Record annuleren? Dit doet een soft-delete (kan teruggedraaid worden door admin).')) return;
         var annResp = await sb.from('onderhoudsbeurten')
           .update({ verwijderd_op: new Date().toISOString() })
           .eq('id', record.id);
         if (annResp.error) throw annResp.error;
-        await refreshCurrentPipeline(mode);
-        showToast('Record geannuleerd', 'info');
+        if (!isBulk) {
+          await refreshCurrentPipeline(mode);
+          showToast('Record geannuleerd', 'info');
+        }
         break;
 
       case 'verplaats':
+        if (isBulk) {
+          // Bulk-verplaatsen: reset plan_datum → records komen terug in fase 1 voor herplanning
+          var vpResp = await sb.from('onderhoudsbeurten')
+            .update({ status: 'in_te_plannen', plan_datum: null })
+            .eq('id', record.id);
+          if (vpResp.error) throw vpResp.error;
+          break;
+        }
         if (typeof window.openEditBeurtModal === 'function') {
           window.openEditBeurtModal({ beurtId: record.id });
         } else {
@@ -12492,6 +12537,7 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'bel_klant':
+        if (isBulk) break;
         var tel = (record.contract && record.contract.klant_telefoon) || record.klant_telefoon;
         if (tel) {
           window.location.href = 'tel:' + tel.replace(/\s/g, '');
@@ -12501,16 +12547,26 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'terug_naar_fase_1':
-        if (!confirm('Record terug naar "In te plannen"?')) return;
+        if (!isBulk && !confirm('Record terug naar "In te plannen"?')) return;
         var t1Resp = await sb.from('onderhoudsbeurten')
           .update({ status: 'in_te_plannen', plan_datum: null })
           .eq('id', record.id);
         if (t1Resp.error) throw t1Resp.error;
-        await refreshCurrentPipeline(mode);
-        showToast('Record teruggezet naar fase 1', 'info');
+        if (!isBulk) {
+          await refreshCurrentPipeline(mode);
+          showToast('Record teruggezet naar fase 1', 'info');
+        }
         break;
 
       case 'markeer_uitgevoerd':
+        if (isBulk) {
+          // Bulk: directe status-update zonder uren-modal (uren kunnen later individueel)
+          var muBulkResp = await sb.from('onderhoudsbeurten')
+            .update({ status: 'uitgevoerd' })
+            .eq('id', record.id);
+          if (muBulkResp.error) throw muBulkResp.error;
+          break;
+        }
         if (typeof window.openUrenBevestigenModal === 'function') {
           window.openUrenBevestigenModal(record.id);
         } else {
@@ -12525,22 +12581,26 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'maak_rapport':
+        if (isBulk) break;
         window.open('rapport.html?beurt=' + encodeURIComponent(record.id), '_blank');
         break;
 
       case 'direct_naar_facturatie':
       case 'controleer_verstuur':
+        if (isBulk) break;
         await openUrenControleModal(record.id, mode);
         break;
 
       case 'markeer_afgewerkt':
-        if (!confirm('Record als definitief afgewerkt markeren? Verdwijnt uit pipeline (blijft historiek).')) return;
+        if (!isBulk && !confirm('Record als definitief afgewerkt markeren? Verdwijnt uit pipeline (blijft historiek).')) return;
         var afResp = await sb.from('onderhoudsbeurten')
           .update({ status: 'afgewerkt' })
           .eq('id', record.id);
         if (afResp.error) throw afResp.error;
-        await refreshCurrentPipeline(mode);
-        showToast('Record afgewerkt', 'success');
+        if (!isBulk) {
+          await refreshCurrentPipeline(mode);
+          showToast('Record afgewerkt', 'success');
+        }
         break;
 
       default:
@@ -12548,9 +12608,185 @@ async function onPipelineAction(actionKey, record, mode) {
     }
   } catch (e) {
     console.error('[onPipelineAction]', actionKey, e);
-    showToast('Actie mislukt: ' + (e.message || String(e)), 'error');
+    if (!isBulk) showToast('Actie mislukt: ' + (e.message || String(e)), 'error');
+    else throw e;
   }
 }
+
+// --- WF-015: Bulk-acties op onderhoud-pipeline -----------------------------
+// Strategie: MutationObserver injecteert checkbox in elke .flp-card. Bulk-runner
+// haalt geselecteerde records uit window._pipelineRecords en delegeert naar
+// onPipelineAction(actionKey, record, mode, true) — skip per-record prompts.
+function getSelectedBeurten() {
+  return Array.from(document.querySelectorAll('.pipeline-bulk-check:checked'))
+    .map(function(c) { return c.dataset.beurtId; })
+    .filter(Boolean);
+}
+
+function bulkPipelineRefresh() {
+  var n = getSelectedBeurten().length;
+  var bar = document.getElementById('pipeline-bulk-bar');
+  var countEl = document.getElementById('bulk-selected-count');
+  if (!bar || !countEl) return;
+  if (n > 0) bar.classList.add('is-active');
+  else bar.classList.remove('is-active');
+  countEl.textContent = String(n);
+}
+
+async function bulkPipelineAction(actionKey) {
+  var ids = getSelectedBeurten();
+  if (ids.length === 0) return;
+  var labelMap = {
+    markeer_uitgevoerd: 'Markeer uitgevoerd',
+    snooze: 'Snooze 7 dagen',
+    verplaats: 'Terugzetten naar In te plannen'
+  };
+  var label = labelMap[actionKey] || actionKey;
+  var ok = await confirmDialog({
+    title: 'Bulk-actie',
+    message: '"' + label + '" toepassen op ' + ids.length + ' beurt(en)?',
+    confirmLabel: 'Doorgaan'
+  });
+  if (!ok) return;
+
+  var records = Array.isArray(window._pipelineRecords) ? window._pipelineRecords : [];
+  var recordById = {};
+  for (var i = 0; i < records.length; i++) {
+    if (records[i] && records[i].id) recordById[records[i].id] = records[i];
+  }
+  var mode = (typeof getCurrentPageName === 'function' && getCurrentPageName() === 'flancco-werk') ? 'flancco' : 'onderhoud';
+
+  var okCount = 0;
+  var failCount = 0;
+  for (var j = 0; j < ids.length; j++) {
+    var rec = recordById[ids[j]];
+    if (!rec) { failCount++; continue; }
+    try {
+      await onPipelineAction(actionKey, rec, mode, true);
+      okCount++;
+    } catch (e) {
+      console.error('[bulkPipelineAction]', actionKey, ids[j], e);
+      failCount++;
+    }
+  }
+  bulkPipelineClear();
+  if (typeof refreshCurrentPipeline === 'function') await refreshCurrentPipeline(mode);
+  if (failCount > 0) showToast(okCount + ' geslaagd, ' + failCount + ' mislukt', 'warning');
+  else showToast(okCount + ' beurt(en) bijgewerkt', 'success');
+}
+
+function bulkPipelineClear() {
+  var checks = document.querySelectorAll('.pipeline-bulk-check');
+  for (var i = 0; i < checks.length; i++) {
+    if (checks[i].checked) checks[i].checked = false;
+    var card = checks[i].closest('.flp-card');
+    if (card) card.classList.remove('is-bulk-selected');
+  }
+  bulkPipelineRefresh();
+}
+
+// Delegated change-listener (1x op document)
+document.addEventListener('change', function(e) {
+  var t = e.target;
+  if (!t || !t.classList || !t.classList.contains('pipeline-bulk-check')) return;
+  var card = t.closest('.flp-card');
+  if (card) {
+    if (t.checked) card.classList.add('is-bulk-selected');
+    else card.classList.remove('is-bulk-selected');
+  }
+  bulkPipelineRefresh();
+});
+
+// Checkbox-injectie in elke pipeline-card via MutationObserver.
+// Geen wijziging aan FlanccoPipeline component nodig — cards krijgen al
+// data-record-id en blijven in DOM tussen rerenders.
+function _injectBulkCheckbox(card) {
+  if (!card || card.querySelector('.pipeline-bulk-check-wrap')) return;
+  var id = card.getAttribute('data-record-id');
+  if (!id) return;
+  var wrap = document.createElement('div');
+  wrap.className = 'pipeline-bulk-check-wrap';
+  var input = document.createElement('input');
+  input.type = 'checkbox';
+  input.className = 'pipeline-bulk-check';
+  input.setAttribute('data-beurt-id', id);
+  input.setAttribute('aria-label', 'Selecteer voor bulk-actie');
+  input.addEventListener('click', function(evt) { evt.stopPropagation(); });
+  wrap.appendChild(input);
+  card.appendChild(wrap);
+}
+
+function _initBulkObserver() {
+  var wrapper = document.getElementById('onderhoud-pipeline-wrapper');
+  if (!wrapper || wrapper._bulkObserverAttached) return;
+  wrapper._bulkObserverAttached = true;
+
+  // Initial pass voor reeds gerenderde cards
+  var initialCards = wrapper.querySelectorAll('.flp-card');
+  for (var i = 0; i < initialCards.length; i++) _injectBulkCheckbox(initialCards[i]);
+
+  var observer = new MutationObserver(function(mutations) {
+    var dirty = false;
+    for (var m = 0; m < mutations.length; m++) {
+      var added = mutations[m].addedNodes;
+      for (var n = 0; n < added.length; n++) {
+        var node = added[n];
+        if (!(node instanceof Element)) continue;
+        if (node.classList && node.classList.contains('flp-card')) {
+          _injectBulkCheckbox(node);
+          dirty = true;
+        } else {
+          var nested = node.querySelectorAll ? node.querySelectorAll('.flp-card') : [];
+          for (var k = 0; k < nested.length; k++) { _injectBulkCheckbox(nested[k]); dirty = true; }
+        }
+      }
+    }
+    if (dirty) bulkPipelineRefresh();
+  });
+  observer.observe(wrapper, { childList: true, subtree: true });
+}
+
+document.addEventListener('DOMContentLoaded', function() { _initBulkObserver(); });
+// Late init voor het geval DOMContentLoaded al geweest is wanneer dit script laadt:
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  _initBulkObserver();
+}
+
+// --- WF-018: BroadcastChannel-listener voor rapport-tab-saves --------------
+// Rapport.html post een message naar `flancco_rapport_saved` na succesvolle save.
+// Wanneer admin de rapport-tab openhoudt naast het admin-dashboard, refresht de
+// onderhoud-pipeline automatisch zodat de beurt direct naar fase 5 schuift.
+(function _initRapportSavedChannel() {
+  if (typeof BroadcastChannel === 'undefined') return;
+  if (window._flanccoRapportChannel) return;
+  try {
+    var ch = new BroadcastChannel('flancco_rapport_saved');
+    window._flanccoRapportChannel = ch;
+    ch.onmessage = async function(e) {
+      if (!e || !e.data || !e.data.beurt_id) return;
+      try {
+        // Refresh actieve pipeline (onderhoud of flancco-werk) als die geladen is.
+        var currentPage = (typeof getCurrentPageName === 'function') ? getCurrentPageName() : null;
+        if (currentPage === 'onderhoud' && typeof showOnderhoudPage === 'function') {
+          await showOnderhoudPage();
+        } else if (currentPage === 'flancco-werk' && typeof showFlanccoWerkPage === 'function') {
+          await showFlanccoWerkPage();
+        } else if (typeof loadOnderhoudData === 'function') {
+          // Fallback: pre-load records-cache zodat volgende navigate naar de pipeline-page
+          // up-to-date data toont zonder extra round-trip.
+          await loadOnderhoudData();
+        }
+        if (typeof showToast === 'function') {
+          showToast('Pipeline ververst — rapport opgeslagen', 'success');
+        }
+      } catch (refreshErr) {
+        console.error('[flancco_rapport_saved] refresh mislukt', refreshErr);
+      }
+    };
+  } catch (chErr) {
+    console.warn('[flancco_rapport_saved] BroadcastChannel-init mislukt', chErr);
+  }
+})();
 
 // Snooze-flow gebruikt een modal i.p.v. native prompt() — UX-arm + niet mobile-friendly.
 // Modal-elementen: #modal-pipeline-snooze, dropdown #snooze-aantal-dagen, custom-datum-row,
@@ -17166,6 +17402,8 @@ function getPartnerBranding(partner, sector) {
 
 // API must stay in sync with admin/planning.html en admin/contracten-wizard.html showToast(msg, type).
 // Types: 'success' (default) | 'error' | 'info'.
+// UX-009 (2026-05-12): TODO extract naar shared/toast.js — onboard/index.html en
+// onboard/sign/index.html gebruiken incompatibele (msg, isErr-boolean) signature.
 function showToast(msg, type) {
   var existing = document.getElementById('admin-toast');
   if (existing) existing.remove();
