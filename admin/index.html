@@ -2672,6 +2672,38 @@
 
     <!-- PRICING PAGE -->
     <div class="page" id="page-pricing">
+
+      <!-- ===== FLANCCO-BASISTARIEVEN (admin-only) =====================
+           Centrale plek om de basistarieven per sector te bekijken en aan
+           te passen. Partner-overrides leven in de tabel hieronder.
+           ============================================================== -->
+      <div class="card admin-only" id="pi-basis-card" style="margin-bottom:20px">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Flancco-basistarieven</h2>
+            <p class="dv-subtitle">Centrale forfaits per sector. Nieuwe contracten gebruiken deze prijzen tenzij een partner een eigen override heeft. Bij wijziging wordt het automatisch toegepast op nieuwe contracten — lopende contracten blijven bevroren.</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" id="pi-basis-edit-btn" class="btn btn-ghost" onclick="piBasisToggleEdit()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span id="pi-basis-edit-label">Tarieven bewerken</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sector-tabs -->
+        <div id="pi-basis-tabs" style="display:flex;gap:4px;border-bottom:1px solid var(--rule);margin-bottom:14px;overflow-x:auto"></div>
+
+        <!-- Actieve sector-tabel -->
+        <div id="pi-basis-table-wrap" style="min-height:120px"></div>
+
+        <!-- Save/cancel-bar (alleen zichtbaar in edit-mode) -->
+        <div id="pi-basis-savebar" style="display:none;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--rule);margin-top:14px">
+          <button type="button" class="btn btn-ghost" onclick="piBasisCancelEdit()">Annuleren</button>
+          <button type="button" class="btn btn-primary" onclick="piBasisSaveEdit()">Wijzigingen opslaan</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="dv-header">
           <div class="dv-header-left">
@@ -7612,6 +7644,7 @@ function showPage(name) {
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
   if (name === 'partner-afrekening' && typeof pafrLoad === 'function') pafrLoad();
+  if (name === 'pricing' && userRole === 'admin' && typeof piBasisLoad === 'function') piBasisLoad();
   if (name === 'gebruikers') renderGebruikers();
   if (name === 'verlof-ew') renderVerlofEwPage();
   if (name === 'uren') renderUrenPage();
@@ -13425,6 +13458,201 @@ function csvEsc(val) {
 
 function formatCurrency(val) {
   return '€ ' + Number(val).toFixed(2).replace('.', ',');
+}
+
+// =============================================================================
+// FLANCCO-BASISTARIEVEN — admin-only Prijsbeheer sectie
+// -----------------------------------------------------------------------------
+// Centrale tarieven per sector. Vandaag toont rijen met partner_id IS NULL OR
+// partner.slug='flancco' (transitional: Flancco's eigen rijen fungeren ook als
+// basis tot we ze migreren naar NULL). Inline-edit per staffel met save/cancel.
+// =============================================================================
+
+var piBasisData = [];          // alle basis-rijen
+var piBasisActiveSector = null; // momenteel actieve tab
+var piBasisEditMode = false;
+var piBasisOriginalValues = {}; // {row_id: original_flancco_forfait} voor cancel
+
+var PI_BASIS_SECTORS = [
+  { key: 'zonnepanelen', label: 'Zonnepanelen' },
+  { key: 'warmtepomp',   label: 'Warmtepomp' },
+  { key: 'ventilatie',   label: 'Ventilatie' },
+  { key: 'verwarming',   label: 'Verwarming' },
+  { key: 'ic',           label: 'Industrial Cleaning' },
+  { key: 'klussen',      label: 'Klussen' }
+];
+
+async function piBasisLoad() {
+  // Transitional query: NULL-basis EN Flancco-partner-rijen (single source vandaag)
+  var flanccoPartnerId = null;
+  if (Array.isArray(partners)) {
+    var f = partners.find(function(p) { return (p.slug || '').toLowerCase() === 'flancco'; });
+    if (f) flanccoPartnerId = f.id;
+  }
+
+  var query = sb.from('pricing').select('*').order('sector').order('sort_order').order('staffel_min');
+  if (flanccoPartnerId) {
+    query = query.or('partner_id.is.null,partner_id.eq.' + flanccoPartnerId);
+  } else {
+    query = query.is('partner_id', null);
+  }
+  var res = await query;
+  if (res.error) {
+    console.error('[piBasisLoad] error:', res.error);
+    showToast('Basistarieven laden mislukt: ' + res.error.message, 'error');
+    piBasisData = [];
+  } else {
+    piBasisData = res.data || [];
+  }
+  // Default tab = eerste sector met data, anders zonnepanelen
+  if (!piBasisActiveSector) {
+    var firstWithData = PI_BASIS_SECTORS.find(function(s) {
+      return piBasisData.some(function(r) { return r.sector === s.key; });
+    });
+    piBasisActiveSector = firstWithData ? firstWithData.key : 'zonnepanelen';
+  }
+  piBasisRender();
+}
+
+function piBasisRender() {
+  // Render tabs
+  var tabsEl = document.getElementById('pi-basis-tabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = PI_BASIS_SECTORS.map(function(s) {
+      var count = piBasisData.filter(function(r) { return r.sector === s.key; }).length;
+      var isActive = (s.key === piBasisActiveSector);
+      var bg = isActive ? 'var(--navy)' : 'transparent';
+      var color = isActive ? 'white' : 'var(--grey)';
+      var border = isActive ? '2px solid var(--navy)' : '2px solid transparent';
+      return '<button type="button" onclick="piBasisSwitchSector(\'' + s.key + '\')" style="padding:8px 14px;background:transparent;border:none;border-bottom:' + border + ';color:' + color + ';cursor:pointer;font-size:13px;font-weight:' + (isActive ? '600' : '500') + ';white-space:nowrap;transition:all .15s;background:' + (isActive ? '#F8F9FA' : 'transparent') + '">' +
+        esc(s.label) + (count > 0 ? ' <span style="opacity:0.6;font-size:11px">(' + count + ')</span>' : '') +
+      '</button>';
+    }).join('');
+  }
+
+  // Render tabel voor actieve sector
+  var rows = piBasisData.filter(function(r) { return r.sector === piBasisActiveSector; });
+  var wrap = document.getElementById('pi-basis-table-wrap');
+  if (!wrap) return;
+
+  if (rows.length === 0) {
+    wrap.innerHTML = '<p style="text-align:center;color:var(--grey);padding:30px 0;font-size:13px">Geen tarieven geconfigureerd voor deze sector.</p>';
+    return;
+  }
+
+  var headerStyle = 'text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)';
+  var headerStyleRight = headerStyle + ';text-align:right';
+
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr>' +
+      '<th style="' + headerStyle + '">Staffel</th>' +
+      '<th style="' + headerStyle + '">Bereik</th>' +
+      '<th style="' + headerStyleRight + '">Forfait per beurt</th>' +
+      '<th style="' + headerStyleRight + ';width:80px">Actief</th>' +
+    '</tr></thead><tbody>';
+
+  rows.forEach(function(r) {
+    var bereik = (r.staffel_max == null || r.staffel_max === r.staffel_min)
+      ? (r.staffel_min + (r.staffel_max == null ? '+' : ''))
+      : (r.staffel_min + ' – ' + r.staffel_max);
+    var forfait = parseFloat(r.flancco_forfait || 0);
+    var valueCell;
+    if (piBasisEditMode) {
+      valueCell = '<input type="number" step="0.01" min="0" id="pi-basis-input-' + r.id + '" value="' + forfait.toFixed(2) + '" style="width:110px;padding:6px 8px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums">';
+    } else {
+      valueCell = '<span style="font-weight:600;font-variant-numeric:tabular-nums">' + formatCurrency(forfait) + '</span>';
+    }
+    var activeIcon = r.actief
+      ? '<span style="color:#10B981;font-weight:600;font-size:11px">●</span>'
+      : '<span style="color:var(--grey);font-size:11px">○</span>';
+    html += '<tr style="border-bottom:1px solid var(--rule)">' +
+      '<td style="padding:10px 6px;font-weight:500">' + esc(r.label || '—') + '</td>' +
+      '<td style="padding:10px 6px;color:var(--grey);font-size:12px">' + esc(bereik) + '</td>' +
+      '<td style="padding:10px 6px;text-align:right">' + valueCell + '</td>' +
+      '<td style="padding:10px 6px;text-align:right">' + activeIcon + '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+function piBasisSwitchSector(sectorKey) {
+  if (piBasisEditMode) {
+    // Voorkom dat user wijzigingen verliest bij tab-switch
+    if (!confirm('Je hebt onopgeslagen wijzigingen. Doorgaan zonder opslaan?')) return;
+    piBasisCancelEdit();
+  }
+  piBasisActiveSector = sectorKey;
+  piBasisRender();
+}
+
+function piBasisToggleEdit() {
+  piBasisEditMode = true;
+  piBasisOriginalValues = {};
+  piBasisData.forEach(function(r) { piBasisOriginalValues[r.id] = r.flancco_forfait; });
+  document.getElementById('pi-basis-edit-btn').style.display = 'none';
+  document.getElementById('pi-basis-savebar').style.display = 'flex';
+  piBasisRender();
+}
+
+function piBasisCancelEdit() {
+  piBasisEditMode = false;
+  // Herstel originele waarden (niet nodig in DB, alleen in geheugen)
+  piBasisData.forEach(function(r) {
+    if (piBasisOriginalValues.hasOwnProperty(r.id)) {
+      r.flancco_forfait = piBasisOriginalValues[r.id];
+    }
+  });
+  document.getElementById('pi-basis-edit-btn').style.display = 'inline-flex';
+  document.getElementById('pi-basis-savebar').style.display = 'none';
+  piBasisRender();
+}
+
+async function piBasisSaveEdit() {
+  var changes = [];
+  piBasisData.forEach(function(r) {
+    var input = document.getElementById('pi-basis-input-' + r.id);
+    if (!input) return;
+    var newVal = parseFloat(input.value);
+    if (!isNaN(newVal) && Math.abs(newVal - parseFloat(piBasisOriginalValues[r.id] || 0)) > 0.001) {
+      changes.push({ id: r.id, oude: piBasisOriginalValues[r.id], nieuwe: newVal });
+    }
+  });
+
+  if (changes.length === 0) {
+    showToast('Geen wijzigingen gedetecteerd', 'info');
+    piBasisCancelEdit();
+    return;
+  }
+
+  var ok = await confirmDialog({
+    title: 'Tarieven opslaan?',
+    message: changes.length + ' staffel' + (changes.length > 1 ? 's worden' : ' wordt') + ' bijgewerkt. Dit raakt direct nieuwe contracten — lopende contracten blijven bevroren.\n\nLet op: voor een aankondiging met 30d-termijn (juridisch vereist bij externe partners) gebruik je beter de "Indexering plannen"-flow (volgt in volgende update).',
+    confirmLabel: 'Wijzigingen opslaan',
+    cancelLabel: 'Annuleren'
+  });
+  if (!ok) return;
+
+  var saved = 0, failed = 0;
+  for (var i = 0; i < changes.length; i++) {
+    var ch = changes[i];
+    var upd = await sb.from('pricing').update({ flancco_forfait: ch.nieuwe }).eq('id', ch.id);
+    if (upd.error) {
+      console.error('[piBasisSaveEdit] error op rij ' + ch.id + ':', upd.error);
+      failed++;
+    } else {
+      saved++;
+      try { auditLog('pricing', ch.id, 'flancco_forfait_gewijzigd', JSON.stringify({ flancco_forfait: ch.oude }), JSON.stringify({ flancco_forfait: ch.nieuwe })); } catch (_) {}
+    }
+  }
+
+  piBasisEditMode = false;
+  document.getElementById('pi-basis-edit-btn').style.display = 'inline-flex';
+  document.getElementById('pi-basis-savebar').style.display = 'none';
+  showToast(saved + ' tarief' + (saved > 1 ? 'en' : '') + ' opgeslagen' + (failed > 0 ? ' (' + failed + ' mislukt)' : ''), failed > 0 ? 'error' : 'success');
+  await piBasisLoad();
+  // Trigger ook reload van de hoofd-allPricing array zodat partner-tabel synct
+  if (typeof loadPricing === 'function') { try { loadPricing(); } catch (_) {} }
 }
 
 // =============================================================================
