@@ -220,6 +220,90 @@ Admin-driven partner-activation flow vervangt de eerder geplande publieke self-s
 - Voor Wave 4a was alleen `v_winstgevendheid_per_technieker` aanwezig in productie; de Slot G 3-tab pagina (Partner / Sector / Technieker) op `admin/index.html` werkt nu volledig met alle drie de views actief.
 - `v_ew_maand_stats`, `v_kalender_beurten` — gehard met `security_invoker=on` in Wave 4a (voorheen SECURITY DEFINER-views die alle RLS bypassten).
 
+### Wave 5 — Pricing indexering + Partner-afrekening (2026-05-12)
+Volledige rebuild na zero-state cleanup (PR #68). Drie samenhangende UI-pagina's bouwen op één gedeelde DB-foundation.
+
+**Schema-additions op `contracten` (9 nieuwe kolommen):**
+- `contract_template_versie TEXT` — auto-stamped bij signing-transitie via trigger
+- `flancco_forfait_per_beurt NUMERIC` — snapshot van wat partner aan Flancco verschuldigd is per beurt; bevroren bij signing, volgt jaarlijkse indexering
+- `marge_pct_snapshot NUMERIC` — partner-marge op signing-moment
+- `planning_fee_snapshot NUMERIC` — planning-fee per beurt op signing-moment
+- `indexering_type TEXT NOT NULL DEFAULT 'gezondheidsindex_capped'` — CHECK in (`gezondheidsindex_capped`,`vast_pct`,`geen`)
+- `indexering_min_pct NUMERIC NOT NULL DEFAULT 1.5` — minimum jaarlijkse indexering
+- `indexering_max_pct NUMERIC NOT NULL DEFAULT 4.0` — maximum (cap) jaarlijkse indexering
+- `indexering_start_index NUMERIC` — gezondheidsindex-waarde bij signing (auto-fill via trigger)
+- `indexering_laatste_datum DATE` — datum van laatste toegepaste yearly-indexering
+- CHECK-constraints: `chk_contracten_indexering_type`, `chk_contracten_indexering_cap_consistent` (min ≤ max)
+
+**Schema-additions op `partner_applications`:**
+- `contract_template_versie TEXT` — auto-stamped bij contract_signed-transitie
+
+**4 nieuwe tabellen:**
+- `gezondheidsindex_metingen` — id, jaar, maand, waarde NUMERIC, bron, notitie, ingevoerd_door, updated_at. UNIQUE (jaar, maand). RLS: admin full + authenticated SELECT.
+- `pricing_indexering_planned` — id, effective_date DATE, pct_increase NUMERIC, scope_sectoren TEXT[] NULL (NULL=alle), reden, aangekondigd_op, applied_at, cancelled_at, aangemaakt_door. CHECK: `effective_date >= created_at::date + INTERVAL '30 days'` (juridisch verplichte 30d aankondigingstermijn). RLS: admin only.
+- `contract_indexering_log` — append-only audit per contract per indexering: contract_id, toegepast_op, oude_forfait, nieuwe_forfait, oude_flancco_forfait, nieuwe_flancco_forfait, pct_toegepast, basis_index, toegepaste_index, klant_aankondiging_verzonden_op, partner_aankondiging_verzonden_op, uitgevoerd_door TEXT. RLS: admin full, partner SELECT eigen via contracten JOIN.
+- `contract_indexering_announcements` — idempotency-gateway voor klant-aankondiging dispatch. id, contract_id, gepland_voor_datum DATE, verzonden_op, recipient_email, resend_message_id. UNIQUE (contract_id, gepland_voor_datum).
+
+**2 nieuwe views (security_invoker=on):**
+- `v_partner_afrekening_per_beurt` — per onderhoudsbeurt de bevroren Flancco-portie + planning-fee. Voedt admin Partner-afrekening pagina + partner-portaal "Afrekening Flancco" via RLS.
+- `v_partner_afrekening_per_maand` — maand-aggregatie per partner op v_partner_afrekening_per_beurt.
+
+**Optie Z hybride pricing:**
+- `pricing.partner_id` is **nullable**: `NULL` = Flancco-basistarief (fallback voor alle partners), niet-NULL = partner-specifieke override.
+- Unique index `uq_pricing_basis_per_sector_staffel` op (sector, staffel_min, staffel_max, subtype, parameter_key) WHERE partner_id IS NULL.
+- Transitional vandaag: Flancco-partner (slug='flancco') heeft eigen pricing-rijen die als de facto basis dienen. UI toont rijen met `partner_id IS NULL OR slug='flancco'` zodat Optie Z-migratie zonder UI-wijziging kan plaatsvinden.
+
+**5 nieuwe triggers + 2 nieuwe trigger-helper-functies:**
+- `trg_contracten_set_template_versie` + `trg_partner_applications_set_template_versie` (BEFORE INSERT/UPDATE) — stempelen versie uit `app_settings` (partner_contract_versie=`v1.1-2026-05-12`, eindklant_contract_versie=`v2.0-2026-05-12`)
+- `trg_contracten_set_indexering_start_index` — vult gezondheidsindex op signing-transitie
+- `trg_gezondheidsindex_touch_updated_at` — updated_at touch
+- `trg_pricing_indexering_planned_dispatch` (AFTER INSERT) — bij INSERT met `aangekondigd_op IS NOT NULL` triggert `pg_net.http_post` naar `send-partner-indexering-aankondiging` edge function
+
+**3 nieuwe cron-jobs (sluimerend tot eerste contract met indexering_start_index):**
+- `apply_pricing_indexering_daily` — `'0 1 * * *'` — voert geplande basis-indexering uit op effective_date. Update `pricing.flancco_forfait` voor scope-sectoren waar partner_id IS NULL.
+- `apply_yearly_contract_indexering_daily` — `'30 1 * * *'` — per contract op verjaardag: gezondheidsindex-pct met cap toepassen op forfait_bedrag + flancco_forfait_per_beurt + planning_fee_snapshot + log-entry.
+- `dispatch_klant_indexering_aankondiging_daily` — `'0 8 * * *'` — 14d vooraf klant-aankondigingsmail via send-klant-indexering-aankondiging edge fn.
+
+**2 nieuwe edge functions (verify_jwt=false, service-role-only):**
+- `send-partner-indexering-aankondiging` — bulk-mail naar actieve partners bij INSERT plan
+- `send-klant-indexering-aankondiging` — branded mail per klant 14d vooraf
+
+**Contract-tekst aanpassingen (PR #62):**
+- Eindklant-contract artikel 2 (Duur+opzegging) + artikel 3 (Prijzen en indexering) → expliciete stilzwijgende verlenging + jaarlijkse gezondheidsindex-cap 1.5%–4% + 14d klant-aankondigingstermijn
+- Partner-contract Prijszetting + nieuwe sectie "Prijsaanpassingen van basistarieven" → 30d aankondigingstermijn + opzeg-recht voor partner
+
+### Audit-fix sweep (2026-05-12 → 2026-05-13)
+Bundel security + code-quality + UX-fixes uit 4 parallelle audits (PR #74-#78):
+
+**Security CRITICAL (PR #74, #77):**
+- `anon_create_partner_application` accepteerde fake 'contract_signed' payload → forceert nu altijd `status='lead'`, signing-velden gestript
+- IP/UA in 3 signing-RPC's was client-controlled → server-side capture via nieuwe `_request_client_meta()` helper (leest cf-connecting-ip → x-forwarded-for → x-real-ip uit request.headers)
+- Off-by-one in `public_record_remote_signing` token-max-uses (`>` → `>=`)
+- NDA-version whitelist in `public_acknowledge_confidentiality` (6 erkende versies)
+- REVOKE EXECUTE FROM anon op admin_create_partner_application, admin_generate_signing_token, admin_record_in_person_signing (defense-in-depth — auth.uid()-check was al aanwezig)
+- `invite-partner` v6: temp_password niet meer in JSON-response (alleen via mail-bezorging)
+- CORS-whitelist (ALLOWED_ORIGINS env) ipv `Allow-Origin: *` op 8 edge functions: invite-partner, send-contract-link, send-partner-contract-link, create-bediende, delete-user, send-notification-email, send-partner-indexering-aankondiging, send-klant-indexering-aankondiging
+- `send-notification-email` v6 response strip naar `{sent_count, failed_count}` (geen recipient-email + Resend-message-id meer)
+- Handtekening minimum-lengte 500 bytes CHECK-constraint op contracten + partner_applications
+
+**Code-quality HIGH (PR #75, #77):**
+- 7 edge functions gerecovered naar repo (delete-user, create-bediende, send-notification-email, send-partner-indexering-aankondiging, send-klant-indexering-aankondiging, test-noop-deploy, invite-partner). Voorheen leefden alleen in Supabase-runtime.
+- `esc(0)` in rapport.html gaf empty string → `if (s == null)` ipv `if (!s)`
+- Wizard null-guard op `inserted[0].id` bij RLS-block
+- `todayISO()` helper vervangt 13× UTC-vs-CET datum-drift (`new Date().toISOString().slice(0,10)`)
+- Dubbele-submit guard op `resendSigningLink` (module-level Set _resendInflightIds)
+- PDF-race in onboard/sign: `generateContractPDF` chained via Promise.race + 7s timeout-fallback vóór countdown
+
+**UX critical (PR #76, #78):**
+- Native `prompt()` × 2 in planning.html vervangen door branded `planningInputDialog` async helper
+- NDA-modal in onboard/sign krijgt "Niet akkoord — sluit pagina" graceful-exit ghost-button
+- 6 hoofd-empty-states gemoderniseerd met shared `renderEmptyState({title,body,ctaLabel,ctaAction,icon})` helper + `.empty-state` CSS-component
+
+**DB hygiene (PR #79 → in voorbereiding):**
+- 12 tabellen krijgen BEFORE UPDATE auto-stamp trigger via `set_updated_at()` helper (app_settings, beurt_uren_registraties, checklist_templates, clients, facturatie_records, interventies, klant_installaties, onderhoudsbeurten, opmaat_projects, partner_permissions, runbook_tooltips, voertuigen)
+
+**Test-noop-deploy cleanup-TODO:** edge function `test-noop-deploy` (april 2026 deploy-test artefact) staat nog in productie met DEPRECATED-comment. Verwijderen via Supabase Dashboard → Edge Functions.
+
 ### Security hardening (Wave 4a sweep)
 Bundel kleine maar kritieke fixes uit commits `5ecb2b0` → `ef5f02a`:
 - **`beurt_uren_registraties.eindprijs`** is een **GENERATED kolom** geworden (uit `duur_minuten * uurtarief`) — voorheen schrijfbaar door client; nu altijd consistent.
