@@ -12243,7 +12243,13 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'annuleer':
-        if (!confirm('Record annuleren? Dit doet een soft-delete (kan teruggedraaid worden door admin).')) return;
+        if (!(await confirmDialog({
+          title: 'Record annuleren',
+          message: 'Record annuleren? Dit doet een soft-delete (kan teruggedraaid worden door admin).',
+          variant: 'danger',
+          confirmLabel: 'Annuleren',
+          cancelLabel: 'Terug'
+        }))) return;
         var annResp = await sb.from('onderhoudsbeurten')
           .update({ verwijderd_op: new Date().toISOString() })
           .eq('id', record.id);
@@ -12270,7 +12276,12 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'terug_naar_fase_1':
-        if (!confirm('Record terug naar "In te plannen"?')) return;
+        if (!(await confirmDialog({
+          title: 'Terugzetten naar fase 1',
+          message: 'Record terug naar "In te plannen"?',
+          variant: 'primary',
+          confirmLabel: 'Terugzetten'
+        }))) return;
         var t1Resp = await sb.from('onderhoudsbeurten')
           .update({ status: 'in_te_plannen', plan_datum: null })
           .eq('id', record.id);
@@ -12283,7 +12294,12 @@ async function onPipelineAction(actionKey, record, mode) {
         if (typeof window.openUrenBevestigenModal === 'function') {
           window.openUrenBevestigenModal(record.id);
         } else {
-          if (!confirm('Markeer als uitgevoerd? Uren-controle gebeurt in volgende fase.')) return;
+          if (!(await confirmDialog({
+            title: 'Markeer als uitgevoerd',
+            message: 'Markeer als uitgevoerd? Uren-controle gebeurt in volgende fase.',
+            variant: 'primary',
+            confirmLabel: 'Uitgevoerd'
+          }))) return;
           var muResp = await sb.from('onderhoudsbeurten')
             .update({ status: 'uitgevoerd' })
             .eq('id', record.id);
@@ -12303,7 +12319,12 @@ async function onPipelineAction(actionKey, record, mode) {
         break;
 
       case 'markeer_afgewerkt':
-        if (!confirm('Record als definitief afgewerkt markeren? Verdwijnt uit pipeline (blijft historiek).')) return;
+        if (!(await confirmDialog({
+          title: 'Definitief afgewerkt',
+          message: 'Record als definitief afgewerkt markeren? Verdwijnt uit pipeline (blijft historiek).',
+          variant: 'danger',
+          confirmLabel: 'Afwerken'
+        }))) return;
         var afResp = await sb.from('onderhoudsbeurten')
           .update({ status: 'afgewerkt' })
           .eq('id', record.id);
@@ -12340,7 +12361,16 @@ function openPipelineSnoozeModal(record, mode) {
   var customRow = document.getElementById('snooze-custom-datum-row');
   if (customRow) customRow.style.display = 'none';
   var customInput = document.getElementById('snooze-custom-datum');
-  if (customInput) customInput.value = '';
+  if (customInput) {
+    customInput.value = '';
+    // Cap browser-side: max +90 dagen (server-side check blijft in confirmPipelineSnooze).
+    var _snoozeMax = new Date();
+    _snoozeMax.setDate(_snoozeMax.getDate() + 90);
+    customInput.setAttribute('max', _snoozeMax.toISOString().slice(0, 10));
+    var _snoozeMin = new Date();
+    _snoozeMin.setDate(_snoozeMin.getDate() + 1);
+    customInput.setAttribute('min', _snoozeMin.toISOString().slice(0, 10));
+  }
   var redenEl = document.getElementById('snooze-reden');
   if (redenEl) redenEl.value = '';
   var btn = document.getElementById('snooze-confirm-btn');

@@ -917,6 +917,39 @@ let wizState = {
   eersteUitvoerKeuze: 'onmiddellijk'
 };
 
+// ─── WF-006: localStorage autosave voor wizard-draft ─────────────────────
+const WIZ_DRAFT_KEY = 'flancco_contract_wizard_draft';
+const WIZ_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+let wizDraftSaveTimer = null;
+function saveWizDraft() {
+  if (wizDraftSaveTimer) clearTimeout(wizDraftSaveTimer);
+  wizDraftSaveTimer = setTimeout(function() {
+    try {
+      localStorage.setItem(WIZ_DRAFT_KEY, JSON.stringify({
+        ts: Date.now(),
+        user_id: (typeof currentUser !== 'undefined' && currentUser && currentUser.id) || null,
+        state: wizState
+      }));
+    } catch (_) { /* quota/private-mode: silent */ }
+  }, 500);
+}
+function loadWizDraft() {
+  try {
+    var raw = localStorage.getItem(WIZ_DRAFT_KEY);
+    if (!raw) return null;
+    var obj = JSON.parse(raw);
+    if (!obj || !obj.ts || (Date.now() - obj.ts) > WIZ_DRAFT_TTL_MS) {
+      localStorage.removeItem(WIZ_DRAFT_KEY);
+      return null;
+    }
+    if (typeof currentUser !== 'undefined' && currentUser && currentUser.id && obj.user_id && obj.user_id !== currentUser.id) return null;
+    return obj.state || null;
+  } catch (_) { return null; }
+}
+function clearWizDraft() {
+  try { localStorage.removeItem(WIZ_DRAFT_KEY); } catch (_) {}
+}
+
 // =============================================
 // UTILS
 // =============================================
@@ -1445,6 +1478,23 @@ async function initApp() {
       }
     }, 600);
   }
+
+  // WF-006: bij wizard-open, check of er een opgeslagen draft is
+  try {
+    var savedDraft = loadWizDraft();
+    if (savedDraft && Object.keys(savedDraft).length > 0) {
+      setTimeout(function() {
+        var hervat = window.confirm('We vonden een opgeslagen contract-ontwerp. Wil je hervatten?\n\n(OK = hervatten, Annuleren = nieuw starten)');
+        if (hervat) {
+          Object.assign(wizState, savedDraft);
+          // Re-render — re-call van goStep(currentStep) of vergelijkbare repaint-functie
+          if (typeof goStep === 'function') goStep(savedDraft._step || 1);
+        } else {
+          clearWizDraft();
+        }
+      }, 100);
+    }
+  } catch (_) {}
 }
 
 // =============================================
@@ -1561,6 +1611,9 @@ function goStep(n) {
   }
 
   window.scrollTo(0, 0);
+
+  wizState._step = n; // remember current step in draft
+  saveWizDraft();
 }
 
 // =============================================
@@ -2579,6 +2632,8 @@ async function saveContract() {
     } catch (e) { console.warn('Audit log failed:', e); }
 
     showToast('Contract opgeslagen als concept');
+
+    clearWizDraft();
 
     // Redirect to contracten page
     setTimeout(function() {
