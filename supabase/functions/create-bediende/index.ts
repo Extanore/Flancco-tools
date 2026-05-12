@@ -340,10 +340,16 @@ Deno.serve(async (req) => {
     let magicLinkUrl: string | null = null;
 
     try {
+      // Belangrijk: redirectTo MOET naar /admin/ wijzen, niet naar root.
+      // Cloudflare Worker (_worker.js) herleidt root (/) naar /onboard/ — daar
+      // draait geen Supabase JS-SDK, dus de hash-tokens van de magic-link gaan
+      // verloren en user landt zonder sessie op de publieke wizard. Door direct
+      // naar /admin/ te wijzen pakt admin/index.html (met detectSessionInUrl=true)
+      // de tokens op en activeert de sessie automatisch.
       const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
         type: 'magiclink',
         email,
-        options: { redirectTo: APP_BASE_URL },
+        options: { redirectTo: APP_BASE_URL + 'admin/' },
       });
       if (linkErr) {
         console.warn('create-bediende: magic-link gen faalde:', linkErr.message);
