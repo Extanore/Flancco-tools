@@ -1495,21 +1495,10 @@
         clearDraft();
         showSuccessPane();
 
-        // Best-effort bevestigingsmail (prospect + admin). Niet-blokkerend:
-        // submit-flow is al gelukt, mail-fout mag de success-state niet breken.
-        if (applicationId) {
-          fetch(SUPA_URL + '/functions/v1/send-partner-application-confirmation', {
-            method: 'POST',
-            headers: {
-              'apikey': SUPA_KEY,
-              'Authorization': 'Bearer ' + SUPA_KEY,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ application_id: applicationId })
-          }).catch(function(mailErr) {
-            console.warn('[lead-submit] confirmation mail trigger faalde:', mailErr);
-          });
-        }
+        // Bevestigingsmail wordt nu door DB-trigger `trg_partner_application_send_mail`
+        // (PR #50, migration 20260512010000) verstuurd via SECURITY DEFINER → pg_net →
+        // edge function send-partner-application-confirmation. Client-side fetch is
+        // weggehaald om dubbele mails te voorkomen.
 
       } catch (err) {
         console.error('[lead-submit]', err);
