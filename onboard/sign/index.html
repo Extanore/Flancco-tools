@@ -2005,26 +2005,45 @@
     ];
 
     // ─── Hoofdstaffel ─────────────────────────────────────────────────
-    var rows = tiers.map(function(t) {
+    // Twee gegenereerde rows-sets: UI step-3 toont 4 kolommen (compact),
+    // PDF toont 5 kolommen (forfait + marge + planning + eindklant-incl-btw)
+    // voor maximale transparantie post-signing.
+    var rows = '';
+    var pdfRows = '';
+    tiers.forEach(function(t) {
       var forfait = parseFloat(t.flancco_forfait) || 0;
-      var klantExcl = forfait * (1 + marge / 100) + planningFee;
       var margeAmt = forfait * (marge / 100);
+      var klantExcl = forfait + margeAmt + planningFee;
+      var klantIncl = klantExcl * 1.21;
       var labelHtml = '<strong>' + escapeHtml(t.label || '') + '</strong>';
       if (t.staffel_min === 41 || /41/.test(t.label || '')) {
         labelHtml += '<br><span style="font-size:11px;color:var(--muted);font-weight:400">+ € ' + EXTRA_PER_PANEL_BOVEN_40.toFixed(2).replace('.', ',') + ' per paneel boven 40</span>';
       }
-      return '<tr>' +
+      rows += '<tr>' +
         '<td>' + labelHtml + '</td>' +
         '<td class="num">' + formatEUR(forfait) + '</td>' +
         '<td class="num" style="color:#10B981">+ ' + formatEUR(margeAmt) + '</td>' +
         '<td class="num"><strong>' + formatEUR(klantExcl) + '</strong></td>' +
       '</tr>';
-    }).join('');
+      pdfRows += '<tr>' +
+        '<td>' + labelHtml + '</td>' +
+        '<td class="num">' + formatEUR(forfait) + '</td>' +
+        '<td class="num">+ ' + formatEUR(margeAmt) + '</td>' +
+        '<td class="num">' + formatEUR(planningFee) + '</td>' +
+        '<td class="num"><strong>' + formatEUR(klantIncl) + '</strong></td>' +
+      '</tr>';
+    });
     rows += '<tr style="background:#FAFBFC">' +
       '<td><strong>Boven 75 panelen</strong></td>' +
       '<td colspan="3" style="color:var(--muted);font-style:italic">Op aanvraag — neem contact op voor een offerte op maat</td>' +
     '</tr>';
+    pdfRows += '<tr>' +
+      '<td><strong>Boven 75 panelen</strong></td>' +
+      '<td colspan="4" style="font-style:italic">Op aanvraag — neem contact op voor een offerte op maat</td>' +
+    '</tr>';
     tbody.innerHTML = rows;
+    // Bewaar PDF-versie op state zodat buildPdfHtml ze later kan ophalen.
+    state.pdfPricingRows = pdfRows;
 
     // ─── Hoogtewerker per tier (zonder marge) ─────────────────────────
     var tbodyHoog = document.getElementById('ap-step3-tbody-hoog');
@@ -2524,7 +2543,9 @@
     var ipStr = state.ip || 'onbekend';
     var ua = (navigator.userAgent || '').slice(0, 200);
     var bodyHtml = $id('ap-contract-body') ? $id('ap-contract-body').innerHTML : '';
-    var prTbody = $id('ap-step3-tbody') ? $id('ap-step3-tbody').innerHTML : '';
+    // PDF gebruikt de aparte 5-koloms versie (planning fee + eindklant incl. btw zichtbaar).
+    // Fallback naar UI tbody als pdfPricingRows nog niet gegenereerd is.
+    var prTbody = state.pdfPricingRows || ($id('ap-step3-tbody') ? $id('ap-step3-tbody').innerHTML : '');
     // Marge en sectoren uit formData (partner-keuze stap 1) — niet meer uit appData
     var marge = typeof fd.marge_pct === 'number' ? fd.marge_pct : 10;
     var pdfSectorKeys = Array.isArray(fd.sectoren) ? fd.sectoren : [];
