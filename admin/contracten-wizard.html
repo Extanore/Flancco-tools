@@ -2716,6 +2716,11 @@ async function saveContract(opts) {
 
     var { data: inserted, error: insertErr } = await sb.from('contracten').insert([payload]).select();
     if (insertErr) throw insertErr;
+    // Audit-fix 2026-05-12 HIGH-3: null-guard. Bij minimal-return of RLS-block kan
+    // `inserted` null/[] zijn zonder error → crash op `inserted[0].id`.
+    if (!inserted || !inserted[0] || !inserted[0].id) {
+      throw new Error('Contract aangemaakt maar geen ID teruggekregen (RLS of return=minimal). Vernieuw de pagina en probeer opnieuw.');
+    }
 
     var contractId = inserted[0].id;
     var tekenToken = inserted[0].teken_token;

@@ -8010,7 +8010,9 @@ function onCardContext(e, beurtId) {
   // Overdue-detectie: ingeplande beurt waarvan plan_datum in het verleden ligt.
   // Consistent met edit-beurt-modal-logica: dit markeert "Markeer als uitgevoerd"
   // als de dominante/primaire actie in het menu.
-  var todayIso = new Date().toISOString().slice(0, 10);
+  // Audit-fix 2026-05-12 HIGH-4: local-tz datum (Europe/Brussels) ipv UTC-slice
+  // dat tussen 00:00-02:00 CET nog gisteren toonde → overdue-misdetectie.
+  var todayIso = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
   var isOverdue = isIngepland && beurt && beurt.plan_datum && beurt.plan_datum < todayIso;
 
   // Tonen/verbergen per item
@@ -8556,7 +8558,9 @@ function openEditBeurtModal(beurtId, dropTechId, dropDate, dropTime, contextTech
   // Rationale: bij een beurt die gisteren stond, is de natuurlijke vervolgstap "Markeer
   // als uitgevoerd" — niet "Opslaan" van field-edits. We promoveren dus die actie naar
   // de hoofdknop en stoppen de save-flow in het dropdown-menu.
-  var todayIso = new Date().toISOString().slice(0, 10);
+  // Audit-fix 2026-05-12 HIGH-4: local-tz datum (Europe/Brussels) ipv UTC-slice
+  // dat tussen 00:00-02:00 CET nog gisteren toonde → overdue-misdetectie.
+  var todayIso = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
   var beurtDateIso = (dropDate || beurt.plan_datum || '');
   var isOverdue = isIngepland && !isNew && beurtDateIso && beurtDateIso < todayIso;
 

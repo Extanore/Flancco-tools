@@ -9764,31 +9764,22 @@ async function sendPartnerInvite() {
     var emailSent = !!result.email_sent;
 
     if (emailSent) {
+      // SEC-C4 (audit 2026-05-12): temp_password wordt niet meer in response
+      // geretourneerd. Wachtwoord komt enkel via de uitnodigings-mail.
       resultDiv.innerHTML =
         '<div style="font-weight:600;color:#166534;margin-bottom:8px">Uitnodiging verstuurd</div>' +
-        '<div style="font-size:13px;color:#374151;line-height:1.5">De partner heeft een email ontvangen op <strong>' + esc(email) + '</strong> met het tijdelijk wachtwoord en een inloglink.</div>' +
-        '<details style="margin-top:12px;font-size:12px;color:#6B7280">' +
-          '<summary style="cursor:pointer;font-weight:600">Toon wachtwoord als backup</summary>' +
-          '<div style="margin-top:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px">' +
-            '<div><strong>E-mail:</strong> ' + esc(email) + '</div>' +
-            '<div style="margin-top:4px"><strong>Wachtwoord:</strong> <code style="background:#fff;border:1px solid #E5E7EB;padding:2px 8px;border-radius:4px;font-size:12px">' + esc(result.temp_password) + '</code></div>' +
-            '<button onclick="copyInviteInfo()" style="margin-top:8px;padding:4px 10px;border:1px solid var(--rule);border-radius:4px;background:white;font-size:11px;font-weight:600;cursor:pointer">Kopieer</button>' +
-          '</div>' +
-        '</details>';
+        '<div style="font-size:13px;color:#374151;line-height:1.5">De partner heeft een email ontvangen op <strong>' + esc(email) + '</strong> met het tijdelijk wachtwoord en een inloglink. Vraag de partner om zijn wachtwoord direct na eerste login te wijzigen via Instellingen.</div>';
       showToast('Uitnodiging verstuurd naar ' + email);
     } else {
+      // SEC-C4: bij email-failure GEEN plaintext wachtwoord meer tonen.
+      // Admin moet via Gebruikers-pagina een password-reset triggeren.
       resultDiv.innerHTML =
-        '<div style="font-weight:600;color:#92400E;margin-bottom:8px">Account aangemaakt (email niet verstuurd)</div>' +
-        '<div style="font-size:12px;color:#92400E;margin-bottom:10px">' + esc(result.email_error || 'Onbekende fout bij verzenden') + '. Deel onderstaande gegevens zelf met de partner.</div>' +
-        '<div style="font-size:13px;color:#333;display:flex;flex-direction:column;gap:6px;padding:12px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px">' +
-          '<div><strong>E-mail:</strong> ' + esc(email) + '</div>' +
-          '<div><strong>Tijdelijk wachtwoord:</strong> <code style="background:#fff;border:1px solid #E5E7EB;padding:2px 8px;border-radius:4px;font-size:13px">' + esc(result.temp_password) + '</code></div>' +
-          '<div><strong>Login:</strong> <a href="' + esc(loginUrl) + '" target="_blank" style="color:var(--blue)">' + esc(loginUrl) + '</a></div>' +
-        '</div>' +
-        '<div style="margin-top:12px;display:flex;gap:8px">' +
-          '<button onclick="copyInviteInfo()" style="padding:6px 14px;border:1.5px solid var(--rule);border-radius:6px;background:white;font-size:12px;font-weight:600;cursor:pointer">Kopieer inloggegevens</button>' +
+        '<div style="font-weight:600;color:#92400E;margin-bottom:8px">Account aangemaakt — email niet verzonden</div>' +
+        '<div style="font-size:13px;color:#92400E;margin-bottom:10px">' + esc(result.email_error || 'Onbekende fout bij verzenden') + '.</div>' +
+        '<div style="font-size:13px;color:#374151;line-height:1.6;padding:12px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px">' +
+          '<strong>Volgende stap:</strong> ga naar <a href="#" onclick="showPage(\'gebruikers\');return false;" style="color:var(--navy);font-weight:600">Gebruikers</a>, zoek het zojuist aangemaakte account (<code style="background:#fff;border:1px solid #E5E7EB;padding:2px 6px;border-radius:4px;font-size:12px">' + esc(email) + '</code>) en klik op <strong>"Wachtwoord opnieuw versturen"</strong>. De partner ontvangt dan een nieuwe invite-mail met een vers wachtwoord.' +
         '</div>';
-      showToast('Account aangemaakt — email kon niet verzonden worden', 'error');
+      showToast('Account aangemaakt — gebruik password-reset om partner alsnog te bereiken', 'error');
     }
     resultDiv.style.display = 'block';
     btn.style.display = 'none';
@@ -9799,17 +9790,12 @@ async function sendPartnerInvite() {
   }
 }
 
+// SEC-C4 cleanup (2026-05-12): copyInviteInfo niet meer aangeroepen.
+// Wachtwoord is sinds audit-fix niet meer beschikbaar in de UI (alleen via
+// uitnodigingsmail naar de partner). Functie behouden als no-op voor
+// backward-compat met eventuele legacy event-handlers.
 function copyInviteInfo() {
-  var email = document.getElementById('invite-email').value;
-  var pw = document.querySelector('#invite-result code');
-  var loginUrl = window.location.origin + window.location.pathname;
-  var text = 'Inloggegevens Flancco Partner Platform\n' +
-    'Login: ' + loginUrl + '\n' +
-    'E-mail: ' + email + '\n' +
-    'Wachtwoord: ' + (pw ? pw.textContent : '');
-  navigator.clipboard.writeText(text).then(function() {
-    showToast('Inloggegevens gekopieerd');
-  });
+  showToast('Wachtwoorden zijn niet meer kopieerbaar via UI — partner krijgt invite via mail. Bij failure: triggert password-reset via Gebruikers-pagina.', 'info');
 }
 
 // =============================================
@@ -10701,8 +10687,14 @@ function openExistingLead(applicationId) {
 }
 
 // Re-send signing-link voor bestaande lead (vanuit detail-modal of kanban).
+// Audit-fix 2026-05-12 HIGH-6: dubbele-submit-guard op resend-signing-link.
+// btn.disabled is niet voldoende: tussen click → disabled is een micro-race-window.
+var _resendInflightIds = new Set();
+
 async function resendSigningLink(applicationId, btnEl) {
   if (!applicationId) return;
+  if (_resendInflightIds.has(applicationId)) return; // hard-guard
+  _resendInflightIds.add(applicationId);
   if (btnEl) { btnEl.disabled = true; btnEl.dataset.origLabel = btnEl.textContent; btnEl.textContent = 'Bezig…'; }
   try {
     var session = await sb.auth.getSession();
@@ -10730,6 +10722,8 @@ async function resendSigningLink(applicationId, btnEl) {
     console.error('resendSigningLink error:', e);
     showToast('Versturen mislukt: ' + (e.message || 'onbekende fout'), 'error');
     if (btnEl) { btnEl.disabled = false; btnEl.textContent = btnEl.dataset.origLabel || 'Stuur signing-link'; }
+  } finally {
+    _resendInflightIds.delete(applicationId);
   }
 }
 
@@ -12897,7 +12891,7 @@ async function _ensureFacturatieRecord(partnerId, planDatumIso) {
   // Bucket op kalendermaand van plan_datum (of vandaag als fallback)
   var basisIso = (planDatumIso && /^\d{4}-\d{2}-\d{2}/.test(planDatumIso))
     ? planDatumIso.slice(0, 10)
-    : new Date().toISOString().slice(0, 10);
+    : todayISO();
   var ymd = basisIso.split('-');
   var year = parseInt(ymd[0], 10);
   var month = parseInt(ymd[1], 10); // 1-12
@@ -13134,7 +13128,7 @@ function onHandOffModusToggle(checked) {
     if (checked) {
       if (sinceRow) sinceRow.style.display = '';
       if (sinceInput && !sinceInput.value) {
-        sinceInput.value = new Date().toISOString().slice(0, 10);
+        sinceInput.value = todayISO();
       }
       var sinceVal = sinceInput ? sinceInput.value : '';
       if (window.FlanccoPipelineToolkit && typeof window.FlanccoPipelineToolkit.toggleHandOffMode === 'function') {
@@ -13209,7 +13203,7 @@ async function renderDashboardPipelineTegel() {
     var records = loaded[0];
     var partnerSlaMap = loaded[1];
 
-    var todayIso = new Date().toISOString().slice(0, 10);
+    var todayIso = todayISO();
     var slaBreach = 0, overdue = 0, vandaagPlan = 0, vandaagUitvoering = 0, wachtRapport = 0;
 
     records.forEach(function(r) {
@@ -13475,7 +13469,7 @@ function toggleFacturatieDetail(id) {
 
 async function updateFacturatieStatus(id, newStatus) {
   var updates = { status: newStatus, updated_at: new Date().toISOString() };
-  if (newStatus === 'gefactureerd') updates.factuurdatum = new Date().toISOString().slice(0, 10);
+  if (newStatus === 'gefactureerd') updates.factuurdatum = todayISO();
 
   var { error } = await sb.from('facturatie_records').update(updates).eq('id', id);
   if (error) { showToast('Fout: ' + error.message, 'error'); return; }
@@ -13578,7 +13572,7 @@ function exportFacturatieCSV() {
   var blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'facturatie_export_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.download = 'facturatie_export_' + todayISO() + '.csv';
   a.click();
   showToast('CSV geëxporteerd');
 }
@@ -13597,6 +13591,17 @@ function csvEsc(val) {
 function formatCurrency(val) {
   return '€ ' + Number(val).toFixed(2).replace('.', ',');
 }
+
+// Audit-fix 2026-05-12 HIGH-4: UTC-vs-CET datum-drift bij `todayISO()`.
+// Tussen 00:00-02:00 CEST/CET in BE is UTC-dag nog gisteren → facturatie-datum + overdue
+// detectie was 1 dag scheef. todayISO() geeft de **lokale** datum (Europe/Brussels via
+// browser) als YYYY-MM-DD. Voor server-side timestamps blijft new Date().toISOString() OK
+// want timestamptz-kolommen normaliseren zelf.
+function todayISO() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+window.todayISO = todayISO;
 
 // =============================================================================
 // FLANCCO-BASISTARIEVEN — admin-only Prijsbeheer sectie
@@ -14346,7 +14351,7 @@ function pafrExportCsv() {
   var blob = new Blob(['﻿' + lines.join('\n')], { type:'text/csv;charset=utf-8' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'partner_afrekening_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.download = 'partner_afrekening_' + todayISO() + '.csv';
   a.click();
   showToast('CSV geëxporteerd');
 }
@@ -24223,7 +24228,7 @@ function openUitgeefModal(drogerId) {
 
   document.getElementById('uitgeef-droger-id').value = drogerId;
   document.getElementById('uitgeef-droger-label').value = (d.serienummer || '—') + (d.model ? ' · ' + d.model : '') + ' · ' + regioLabel(d.regio);
-  document.getElementById('uitgeef-datum').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('uitgeef-datum').value = todayISO();
   document.getElementById('uitgeef-terug').value = '';
   document.getElementById('uitgeef-notitie').value = '';
   document.getElementById('uitgeef-regio-waarschuwing').style.display = 'none';
@@ -25137,7 +25142,7 @@ async function initAuditLogPage() {
     vanEl.value = d.toISOString().slice(0, 10);
   }
   if (totEl && !totEl.value) {
-    totEl.value = new Date().toISOString().slice(0, 10);
+    totEl.value = todayISO();
   }
   await _auditPopulateUserFilter();
   await loadAuditLogPage(true);
@@ -25424,7 +25429,7 @@ async function exportAuditCsv() {
     var csv = '\ufeff' + csvRows.join('\r\n'); // BOM voor Excel UTF-8
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a');
-    var stamp = new Date().toISOString().slice(0, 10);
+    var stamp = todayISO();
     a.href = URL.createObjectURL(blob);
     a.download = 'audit-log-' + stamp + '.csv';
     document.body.appendChild(a);
@@ -25587,7 +25592,7 @@ async function exportEWToCSV(filters) {
     var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    var stamp = new Date().toISOString().slice(0, 10);
+    var stamp = todayISO();
     a.href = url;
     a.download = 'ew_export_' + stamp + '.csv';
     document.body.appendChild(a);
