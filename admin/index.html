@@ -9764,6 +9764,15 @@ function paRenderCard(a) {
   html += originChip;
   html += '<span style="font-size:10px;color:var(--grey)">' + datum + '</span>';
   html += '</div>';
+  // Quick-action: enkel op LEAD-kaarten → promoveer naar 'demo_bekeken' wanneer
+  // admin ter plaatse demo gaf. Voor admin-aangemaakte rijen of andere statussen
+  // niet relevant. event.stopPropagation voorkomt openen van detail-modal.
+  if (a.status === 'lead') {
+    html += '<button type="button" onclick="event.stopPropagation();paMarkDemoGegeven(\'' + esc(a.id) + '\')" style="margin-top:8px;width:100%;padding:6px 10px;background:#F0F9FF;color:#0369A1;border:1px solid #BAE6FD;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background .15s" onmouseover="this.style.background=\'#E0F2FE\'" onmouseout="this.style.background=\'#F0F9FF\'" aria-label="Markeer demo gegeven">';
+    html += '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>';
+    html += 'Demo gegeven';
+    html += '</button>';
+  }
   html += '</div>';
   return html;
 }
@@ -9894,6 +9903,41 @@ function paField(label, value, gridColumn) {
     '<div style="font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px">' + esc(label) + '</div>' +
     '<div style="font-size:13px;color:var(--navy);font-weight:500">' + esc(value || '—') + '</div>' +
     '</div>';
+}
+
+// Quick-action handler: promoot een LEAD naar status 'demo_bekeken'.
+// Gebruikt vanuit kanban-kaart wanneer admin ter plaatse demo gaf.
+// confirmDialog vraagt bevestiging; audit-log entry voor traceerbaarheid.
+async function paMarkDemoGegeven(id) {
+  var a = partnerApplications.find(function(x) { return x.id === id; });
+  if (!a) return;
+  if (a.status !== 'lead') {
+    showToast('Aanvraag staat niet meer op "Lead"', 'error');
+    renderPartnerPipeline();
+    return;
+  }
+  var ok = await confirmDialog({
+    title: 'Demo gegeven?',
+    message: 'Verplaats ' + (a.bedrijfsnaam || 'deze aanvraag') + ' naar de kolom "Demo bekeken".\n\nGebruik dit nadat je een persoonlijke demo aan deze prospect gaf.',
+    confirmLabel: 'Markeer als demo gegeven',
+    cancelLabel: 'Annuleren'
+  });
+  if (!ok) return;
+  var oldSnap = JSON.stringify({ status: a.status });
+  var upd = await sb.from('partner_applications')
+    .update({ status: 'demo_bekeken', updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (upd.error) {
+    showToast('Status-wijziging mislukt: ' + upd.error.message, 'error');
+    return;
+  }
+  a.status = 'demo_bekeken';
+  try { auditLog('partner_applications', id, 'demo_gegeven', oldSnap, JSON.stringify({ status: 'demo_bekeken' })); } catch (_) {}
+  if (window.flanccoTrack) {
+    try { window.flanccoTrack('Partner Application Action', { action: 'mark_demo_gegeven' }); } catch (_) {}
+  }
+  showToast('Verplaatst naar "Demo bekeken"');
+  renderPartnerPipeline();
 }
 
 async function partnerApplicationAction(id, action) {
