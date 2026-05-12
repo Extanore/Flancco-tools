@@ -2684,6 +2684,10 @@
             <p class="dv-subtitle">Centrale forfaits per sector. Nieuwe contracten gebruiken deze prijzen tenzij een partner een eigen override heeft. Bij wijziging wordt het automatisch toegepast op nieuwe contracten — lopende contracten blijven bevroren.</p>
           </div>
           <div class="dv-header-actions">
+            <button type="button" id="pi-plan-btn" class="btn btn-ghost" onclick="piPlanShowModal()" title="Plan een prijsaanpassing met 30d aankondigingstermijn">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              Indexering plannen
+            </button>
             <button type="button" id="pi-basis-edit-btn" class="btn btn-ghost" onclick="piBasisToggleEdit()">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               <span id="pi-basis-edit-label">Tarieven bewerken</span>
@@ -2702,6 +2706,20 @@
           <button type="button" class="btn btn-ghost" onclick="piBasisCancelEdit()">Annuleren</button>
           <button type="button" class="btn btn-primary" onclick="piBasisSaveEdit()">Wijzigingen opslaan</button>
         </div>
+      </div>
+
+      <!-- ===== GEPLANDE INDEXERINGEN (admin-only) =======================
+           Lijst van toekomstige + verleden basis-prijswijzigingen met
+           cancel-mogelijkheid voor nog niet toegepaste plannen.
+           ================================================================ -->
+      <div class="card admin-only" id="pi-plan-history-card" style="margin-bottom:20px">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Geplande indexeringen</h2>
+            <p class="dv-subtitle">Toekomstige + uitgevoerde basis-prijswijzigingen. Partners worden automatisch geïnformeerd bij planning (30d termijn).</p>
+          </div>
+        </div>
+        <div id="pi-plan-history-wrap" style="min-height:60px"></div>
       </div>
 
       <div class="card">
@@ -2945,6 +2963,23 @@
           </div>
         </div>
       </div>
+      <!-- ===== Gezondheidsindex (BE FOD Economie) — maandelijkse invoer ===== -->
+      <div class="card admin-only" id="pi-gi-card" style="margin-bottom:20px">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Belgische gezondheidsindex</h2>
+            <p class="dv-subtitle">Maandelijkse waarde van FOD Economie. Voedt de jaarlijkse contract-indexering (gezondheidsindex_capped, min 1,5% / max 4%).</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-primary" onclick="piGiShowModal()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Meting toevoegen
+            </button>
+          </div>
+        </div>
+        <div id="pi-gi-table-wrap" style="min-height:60px"></div>
+      </div>
+
       <!-- ===== Slot V Toolkit-3 — Hand-off modus (Sarah-resilient) ===== -->
       <div class="card admin-only" id="handoff-mode-card" style="margin-bottom:20px">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -4994,6 +5029,108 @@
         <!-- Loader -->
         <div id="pa-loading" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Aanvragen laden…</div>
         <div id="pa-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--grey);font-size:13px">Nog geen partner-aanvragen ontvangen.</div>
+      </div>
+    </div>
+
+    <!-- ===== Modal: Plan indexering (admin-only) ===========================
+         Vraagt scope (alle sectoren / selectie), % aanpassing, effective_date
+         (min today+30d juridisch verplicht), reden. Preview toont impact.
+         INSERT met aangekondigd_op=now() triggert auto-mail naar partners.
+         ====================================================================== -->
+    <div class="modal-overlay" id="modal-pi-plan" style="z-index:9100">
+      <div class="modal" style="max-width:680px;max-height:92vh;overflow-y:auto">
+        <div class="modal-header" style="position:sticky;top:0;background:#fff;z-index:1">
+          <div>
+            <h3 style="margin:0">Indexering plannen</h3>
+            <small style="color:var(--grey)">Verhoog Flancco-basisforfaits met een percentage. Aankondiging gaat automatisch naar alle actieve partners.</small>
+          </div>
+          <button type="button" class="modal-close" onclick="piPlanCloseModal()" aria-label="Sluiten">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:18px 4px 4px">
+          <div style="margin-bottom:18px">
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Scope</label>
+            <div style="display:flex;gap:14px;align-items:center;font-size:13px">
+              <label style="display:flex;gap:6px;cursor:pointer">
+                <input type="radio" name="pi-plan-scope" value="all" checked onchange="piPlanScopeChange()"> Alle sectoren
+              </label>
+              <label style="display:flex;gap:6px;cursor:pointer">
+                <input type="radio" name="pi-plan-scope" value="selected" onchange="piPlanScopeChange()"> Specifieke sectoren
+              </label>
+            </div>
+            <div id="pi-plan-sectoren-wrap" style="display:none;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Percentage *</label>
+              <input type="number" id="pi-plan-pct" step="0.1" min="0.1" max="20" placeholder="bv. 2.5" oninput="piPlanRenderPreview()" style="width:100%;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+              <p style="margin:4px 0 0;font-size:11px;color:var(--grey)">Verhoging op alle geselecteerde basis-forfaits</p>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Effective date *</label>
+              <input type="date" id="pi-plan-effective-date" onchange="piPlanRenderPreview()" style="width:100%;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+              <p style="margin:4px 0 0;font-size:11px;color:var(--grey)">Minstens 30 dagen vooruit (juridisch verplicht)</p>
+            </div>
+          </div>
+
+          <div style="margin-bottom:18px">
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Reden (optioneel)</label>
+            <textarea id="pi-plan-reden" rows="2" maxlength="500" placeholder="Bv. jaarlijkse indexering 2026" style="width:100%;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;resize:vertical;font-family:inherit"></textarea>
+          </div>
+
+          <div id="pi-plan-preview-wrap" style="display:none;margin-bottom:18px;padding:14px 16px;background:#F8F9FA;border:1px solid var(--rule);border-radius:8px"></div>
+
+          <div style="padding:14px 16px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:12.5px;color:#92400E;line-height:1.6;margin-bottom:6px">
+            <strong>Aankondiging is automatisch</strong> — bij bevestigen wordt een mail naar alle actieve partners verzonden met datum + percentage + opzeg-recht (30d termijn juridisch verankerd in partner-contract).
+          </div>
+        </div>
+        <div class="modal-footer" style="position:sticky;bottom:0;background:#fff;border-top:1px solid var(--rule);padding:14px 4px 6px;display:flex;justify-content:flex-end;gap:8px">
+          <button type="button" class="btn btn-ghost" onclick="piPlanCloseModal()">Annuleren</button>
+          <button type="button" id="pi-plan-submit-btn" class="btn btn-primary" onclick="piPlanSubmit()">Plan indexering &amp; mail partners</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Modal: Nieuwe gezondheidsindex-meting (admin-only) ============= -->
+    <div class="modal-overlay" id="modal-pi-gi" style="z-index:9100">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+          <div>
+            <h3 style="margin:0">Nieuwe meting toevoegen</h3>
+            <small style="color:var(--grey)">Belgische gezondheidsindex (FOD Economie)</small>
+          </div>
+          <button type="button" class="modal-close" onclick="piGiCloseModal()" aria-label="Sluiten">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:18px 4px 4px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Jaar *</label>
+              <input type="number" id="pi-gi-jaar" min="2020" max="2050" style="width:100%;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Maand *</label>
+              <select id="pi-gi-maand" style="width:100%;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px;background:white">
+                <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maart</option>
+                <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                <option value="7">Juli</option><option value="8">Augustus</option><option value="9">September</option>
+                <option value="10">Oktober</option><option value="11">November</option><option value="12">December</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Index-waarde *</label>
+            <input type="number" id="pi-gi-waarde" step="0.01" min="0.01" placeholder="bv. 134.50" style="width:100%;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+            <p style="margin:4px 0 0;font-size:11px;color:var(--grey)">Officiële maand-waarde, te raadplegen op statbel.fgov.be → "Consumptieprijsindex → Gezondheidsindex"</p>
+          </div>
+          <div style="margin-bottom:6px">
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Notitie (optioneel)</label>
+            <input type="text" id="pi-gi-notitie" maxlength="200" style="width:100%;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;font-size:13px">
+          </div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid var(--rule);padding:14px 4px 6px;display:flex;justify-content:flex-end;gap:8px">
+          <button type="button" class="btn btn-ghost" onclick="piGiCloseModal()">Annuleren</button>
+          <button type="button" class="btn btn-primary" onclick="piGiSubmit()">Meting opslaan</button>
+        </div>
       </div>
     </div>
 
@@ -7642,9 +7779,10 @@ function showPage(name) {
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
   const titles = { dashboard: 'Dashboard', partners: 'Partners', 'partner-pipeline': 'Partner-aanvragen', contracten: 'Contracten', offertes: 'Offertes', klanten: 'Klanten', 'klant-detail': 'Klant', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'partner-afrekening': (userRole === 'partner' ? 'Afrekening Flancco' : 'Partner-afrekening'), marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes', onderhoud: 'Onderhoud', 'flancco-werk': 'Flancco-werk' };
   document.getElementById('page-title').textContent = titles[name] || name;
-  if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
+  if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); if (typeof piGiLoad === 'function') piGiLoad(); }
   if (name === 'partner-afrekening' && typeof pafrLoad === 'function') pafrLoad();
   if (name === 'pricing' && userRole === 'admin' && typeof piBasisLoad === 'function') piBasisLoad();
+  if (name === 'pricing' && userRole === 'admin' && typeof piPlanLoadHistory === 'function') piPlanLoadHistory();
   if (name === 'gebruikers') renderGebruikers();
   if (name === 'verlof-ew') renderVerlofEwPage();
   if (name === 'uren') renderUrenPage();
@@ -13653,6 +13791,320 @@ async function piBasisSaveEdit() {
   await piBasisLoad();
   // Trigger ook reload van de hoofd-allPricing array zodat partner-tabel synct
   if (typeof loadPricing === 'function') { try { loadPricing(); } catch (_) {} }
+}
+
+// =============================================================================
+// PLAN-INDEXERING — modal + history (admin-only)
+// -----------------------------------------------------------------------------
+// INSERT in pricing_indexering_planned met aangekondigd_op=now() triggert
+// AFTER INSERT DB-trigger → pg_net → send-partner-indexering-aankondiging.
+// 30d-cap is afgedwongen via CHECK-constraint EN client-side date-min.
+// =============================================================================
+
+var piPlanHistory = [];
+var piPlanModalOpen = false;
+
+function piPlanShowModal() {
+  piPlanModalOpen = true;
+  document.getElementById('pi-plan-pct').value = '';
+  // Default effective_date = today + 35 dagen (5 dagen buffer voor 30d-cap)
+  var d = new Date(); d.setDate(d.getDate() + 35);
+  document.getElementById('pi-plan-effective-date').value = d.toISOString().slice(0, 10);
+  document.getElementById('pi-plan-effective-date').min = (function(){
+    var min = new Date(); min.setDate(min.getDate() + 30);
+    return min.toISOString().slice(0, 10);
+  })();
+  document.getElementById('pi-plan-reden').value = '';
+  document.querySelector('input[name="pi-plan-scope"][value="all"]').checked = true;
+  // Sector-checkboxes opbouwen
+  var wrap = document.getElementById('pi-plan-sectoren-wrap');
+  wrap.innerHTML = PI_BASIS_SECTORS.map(function(s) {
+    return '<label style="display:flex;gap:6px;align-items:center;padding:6px 10px;background:#F8F9FA;border:1px solid var(--rule);border-radius:6px;cursor:pointer;font-size:12.5px">' +
+      '<input type="checkbox" name="pi-plan-sector" value="' + s.key + '" onchange="piPlanRenderPreview()"> ' + esc(s.label) +
+    '</label>';
+  }).join('');
+  piPlanScopeChange();
+  piPlanRenderPreview();
+  document.getElementById('modal-pi-plan').classList.add('open');
+}
+
+function piPlanCloseModal() {
+  piPlanModalOpen = false;
+  document.getElementById('modal-pi-plan').classList.remove('open');
+}
+
+function piPlanScopeChange() {
+  var scope = document.querySelector('input[name="pi-plan-scope"]:checked').value;
+  var wrap = document.getElementById('pi-plan-sectoren-wrap');
+  wrap.style.display = (scope === 'selected') ? 'flex' : 'none';
+  piPlanRenderPreview();
+}
+
+function piPlanGetScopeSectoren() {
+  var scope = document.querySelector('input[name="pi-plan-scope"]:checked').value;
+  if (scope === 'all') return null; // NULL = alle
+  var checked = Array.from(document.querySelectorAll('input[name="pi-plan-sector"]:checked')).map(function(c){return c.value;});
+  return checked.length > 0 ? checked : [];
+}
+
+function piPlanRenderPreview() {
+  var pct = parseFloat(document.getElementById('pi-plan-pct').value);
+  var date = document.getElementById('pi-plan-effective-date').value;
+  var sectoren = piPlanGetScopeSectoren();
+  var wrap = document.getElementById('pi-plan-preview-wrap');
+
+  if (isNaN(pct) || pct <= 0 || !date) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  // Filter basis-rijen op scope
+  var affected = piBasisData.filter(function(r) {
+    if (sectoren === null) return true;
+    return sectoren.indexOf(r.sector) !== -1;
+  });
+
+  if (affected.length === 0) {
+    wrap.style.display = 'block';
+    wrap.innerHTML = '<p style="margin:0;font-size:13px;color:var(--grey)">Geen basis-rijen vallen onder deze scope — selecteer minstens één sector met geconfigureerde tarieven.</p>';
+    return;
+  }
+
+  // Toon eerste 5 voorbeeld-rijen + totaal
+  var dateLbl = new Date(date).toLocaleDateString('nl-BE', { day:'2-digit', month:'long', year:'numeric' });
+  var daysFromNow = Math.round((new Date(date).getTime() - Date.now()) / 86400000);
+  var html = '<div style="font-size:12px;color:var(--grey);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Voorbeeld impact (eerste 5)</div>';
+  html += '<table style="width:100%;font-size:12.5px;border-collapse:collapse">' +
+    '<thead><tr><th style="text-align:left;padding:4px 0;color:var(--grey);font-weight:500">Staffel</th>' +
+    '<th style="text-align:right;padding:4px 0;color:var(--grey);font-weight:500">Huidig</th>' +
+    '<th style="text-align:right;padding:4px 0;color:var(--grey);font-weight:500">Nieuw</th>' +
+    '<th style="text-align:right;padding:4px 0;color:var(--grey);font-weight:500">Δ</th></tr></thead><tbody>';
+  affected.slice(0, 5).forEach(function(r) {
+    var huidig = parseFloat(r.flancco_forfait || 0);
+    var nieuw = Math.round(huidig * (1 + pct / 100) * 100) / 100;
+    var delta = nieuw - huidig;
+    html += '<tr><td style="padding:3px 0">' + esc(r.label || '—') + '</td>' +
+      '<td style="text-align:right;padding:3px 0;font-variant-numeric:tabular-nums">' + formatCurrency(huidig) + '</td>' +
+      '<td style="text-align:right;padding:3px 0;font-variant-numeric:tabular-nums;font-weight:600">' + formatCurrency(nieuw) + '</td>' +
+      '<td style="text-align:right;padding:3px 0;color:#10B981;font-variant-numeric:tabular-nums">+' + formatCurrency(delta) + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  html += '<p style="margin:10px 0 0;font-size:12px;color:var(--grey)">';
+  html += '<strong style="color:var(--navy)">' + affected.length + ' rijen</strong> worden gewijzigd op ';
+  html += '<strong style="color:var(--navy)">' + esc(dateLbl) + '</strong> (' + daysFromNow + ' dagen vanaf nu).';
+  html += '</p>';
+  wrap.style.display = 'block';
+  wrap.innerHTML = html;
+}
+
+async function piPlanSubmit() {
+  var pct = parseFloat(document.getElementById('pi-plan-pct').value);
+  var date = document.getElementById('pi-plan-effective-date').value;
+  var reden = document.getElementById('pi-plan-reden').value.trim() || null;
+  var sectoren = piPlanGetScopeSectoren();
+
+  if (isNaN(pct) || pct <= 0) { showToast('Percentage moet groter dan 0 zijn', 'error'); return; }
+  if (!date) { showToast('Kies een effective date', 'error'); return; }
+
+  var daysFromNow = Math.round((new Date(date).getTime() - Date.now()) / 86400000);
+  if (daysFromNow < 30) { showToast('Effective date moet minstens 30 dagen in de toekomst (juridisch verplicht)', 'error'); return; }
+  if (sectoren !== null && sectoren.length === 0) { showToast('Selecteer minstens één sector', 'error'); return; }
+
+  var ok = await confirmDialog({
+    title: 'Indexering bevestigen?',
+    message: 'Hierna worden alle actieve partners automatisch geïnformeerd via mail. De prijsaanpassing wordt op ' + new Date(date).toLocaleDateString('nl-BE', { day:'2-digit', month:'long', year:'numeric' }) + ' toegepast.',
+    confirmLabel: 'Plan & mail partners',
+    cancelLabel: 'Annuleren'
+  });
+  if (!ok) return;
+
+  var btn = document.getElementById('pi-plan-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Bezig...'; }
+
+  var sess = await sb.auth.getSession();
+  var uid = (sess && sess.data && sess.data.session) ? sess.data.session.user.id : null;
+
+  var ins = await sb.from('pricing_indexering_planned').insert({
+    effective_date: date,
+    pct_increase: pct,
+    scope_sectoren: sectoren,
+    reden: reden,
+    aangekondigd_op: new Date().toISOString(),
+    aangemaakt_door: uid
+  }).select().single();
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Plan indexering & mail partners'; }
+
+  if (ins.error) {
+    showToast('Plan opslaan mislukt: ' + ins.error.message, 'error');
+    return;
+  }
+
+  try { auditLog('pricing_indexering_planned', ins.data.id, 'gepland', null, JSON.stringify({ pct: pct, date: date, sectoren: sectoren })); } catch (_) {}
+  showToast('Indexering gepland — partners worden geïnformeerd');
+  piPlanCloseModal();
+  await piPlanLoadHistory();
+}
+
+async function piPlanLoadHistory() {
+  var res = await sb.from('pricing_indexering_planned').select('*').order('effective_date', { ascending: false }).limit(50);
+  if (res.error) {
+    console.error('[piPlanLoadHistory] error:', res.error);
+    piPlanHistory = [];
+  } else {
+    piPlanHistory = res.data || [];
+  }
+  piPlanRenderHistory();
+}
+
+function piPlanRenderHistory() {
+  var wrap = document.getElementById('pi-plan-history-wrap');
+  if (!wrap) return;
+  if (piPlanHistory.length === 0) {
+    wrap.innerHTML = '<p style="text-align:center;color:var(--grey);padding:20px 0;font-size:13px">Nog geen indexeringen gepland.</p>';
+    return;
+  }
+  var hs = 'text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)';
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr>' +
+      '<th style="' + hs + '">Effective date</th>' +
+      '<th style="' + hs + '">Aanpassing</th>' +
+      '<th style="' + hs + '">Scope</th>' +
+      '<th style="' + hs + '">Reden</th>' +
+      '<th style="' + hs + '">Status</th>' +
+      '<th style="' + hs + ';text-align:right">Acties</th>' +
+    '</tr></thead><tbody>';
+
+  piPlanHistory.forEach(function(p) {
+    var effLbl = new Date(p.effective_date).toLocaleDateString('nl-BE', { day:'2-digit', month:'short', year:'numeric' });
+    var scopeLbl = (p.scope_sectoren && p.scope_sectoren.length > 0) ? p.scope_sectoren.join(', ') : 'Alle sectoren';
+    var status, statusColor;
+    if (p.cancelled_at) { status = 'Geannuleerd'; statusColor = '#6B7280'; }
+    else if (p.applied_at) { status = 'Toegepast'; statusColor = '#10B981'; }
+    else if (new Date(p.effective_date) <= new Date()) { status = 'Wordt verwerkt'; statusColor = '#F59E0B'; }
+    else { status = 'Gepland'; statusColor = '#3B82F6'; }
+    var rowOpacity = (p.cancelled_at || p.applied_at) ? '0.6' : '1';
+    var actions = '';
+    if (!p.cancelled_at && !p.applied_at) {
+      actions = '<button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;color:#B91C1C" onclick="piPlanCancel(\'' + esc(p.id) + '\')">Annuleren</button>';
+    }
+    html += '<tr style="border-bottom:1px solid var(--rule);opacity:' + rowOpacity + '">' +
+      '<td style="padding:8px 6px;font-weight:500">' + esc(effLbl) + '</td>' +
+      '<td style="padding:8px 6px;font-variant-numeric:tabular-nums">+' + Number(p.pct_increase).toFixed(1) + '%</td>' +
+      '<td style="padding:8px 6px;color:var(--grey);font-size:12px">' + esc(scopeLbl) + '</td>' +
+      '<td style="padding:8px 6px;color:var(--grey);font-size:12px">' + esc(p.reden || '—') + '</td>' +
+      '<td style="padding:8px 6px"><span style="display:inline-block;padding:2px 8px;background:' + statusColor + '22;color:' + statusColor + ';border-radius:10px;font-size:11px;font-weight:600">' + status + '</span></td>' +
+      '<td style="padding:8px 6px;text-align:right">' + actions + '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+async function piPlanCancel(planId) {
+  var ok = await confirmDialog({
+    title: 'Geplande indexering annuleren?',
+    message: 'De prijsaanpassing wordt niet uitgevoerd. Partners die de aankondigingsmail al ontvingen, worden NIET automatisch geïnformeerd over de annulering — dat doe je manueel indien nodig.',
+    confirmLabel: 'Annuleren',
+    cancelLabel: 'Behouden',
+    variant: 'danger'
+  });
+  if (!ok) return;
+  var upd = await sb.from('pricing_indexering_planned').update({ cancelled_at: new Date().toISOString() }).eq('id', planId);
+  if (upd.error) {
+    showToast('Annuleren mislukt: ' + upd.error.message, 'error');
+    return;
+  }
+  try { auditLog('pricing_indexering_planned', planId, 'geannuleerd', null, null); } catch (_) {}
+  showToast('Indexering geannuleerd');
+  await piPlanLoadHistory();
+}
+
+// =============================================================================
+// GEZONDHEIDSINDEX-METINGEN — admin-only Instellingen
+// =============================================================================
+
+var piGiData = [];
+
+async function piGiLoad() {
+  var res = await sb.from('gezondheidsindex_metingen').select('*').order('jaar', { ascending: false }).order('maand', { ascending: false }).limit(24);
+  if (res.error) {
+    console.error('[piGiLoad] error:', res.error);
+    piGiData = [];
+  } else {
+    piGiData = res.data || [];
+  }
+  piGiRender();
+}
+
+function piGiRender() {
+  var wrap = document.getElementById('pi-gi-table-wrap');
+  if (!wrap) return;
+  if (piGiData.length === 0) {
+    wrap.innerHTML = '<p style="text-align:center;color:var(--grey);padding:20px 0;font-size:13px">Nog geen metingen ingevoerd. Voeg de actuele maand-waarde toe via "Meting toevoegen".</p>';
+    return;
+  }
+  var maandLabels = ['','Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+  var hs = 'text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)';
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr>' +
+      '<th style="' + hs + '">Jaar</th>' +
+      '<th style="' + hs + '">Maand</th>' +
+      '<th style="' + hs + ';text-align:right">Waarde</th>' +
+      '<th style="' + hs + '">Bron</th>' +
+      '<th style="' + hs + '">Notitie</th>' +
+    '</tr></thead><tbody>';
+  piGiData.forEach(function(m, idx) {
+    var isLatest = (idx === 0);
+    html += '<tr style="border-bottom:1px solid var(--rule);' + (isLatest ? 'background:#F0FDF4' : '') + '">' +
+      '<td style="padding:8px 6px;font-weight:' + (isLatest ? '600' : '500') + '">' + m.jaar + (isLatest ? ' <span style="color:#10B981;font-size:11px;font-weight:600">(actueel)</span>' : '') + '</td>' +
+      '<td style="padding:8px 6px">' + esc(maandLabels[m.maand] || m.maand) + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-variant-numeric:tabular-nums;font-weight:' + (isLatest ? '600' : '500') + '">' + Number(m.waarde).toFixed(2) + '</td>' +
+      '<td style="padding:8px 6px;color:var(--grey);font-size:12px">' + esc(m.bron || '—') + '</td>' +
+      '<td style="padding:8px 6px;color:var(--grey);font-size:12px">' + esc(m.notitie || '—') + '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+function piGiShowModal() {
+  var now = new Date();
+  document.getElementById('pi-gi-jaar').value = now.getFullYear();
+  document.getElementById('pi-gi-maand').value = String(now.getMonth() + 1);
+  document.getElementById('pi-gi-waarde').value = '';
+  document.getElementById('pi-gi-notitie').value = '';
+  document.getElementById('modal-pi-gi').classList.add('open');
+}
+
+function piGiCloseModal() {
+  document.getElementById('modal-pi-gi').classList.remove('open');
+}
+
+async function piGiSubmit() {
+  var jaar = parseInt(document.getElementById('pi-gi-jaar').value, 10);
+  var maand = parseInt(document.getElementById('pi-gi-maand').value, 10);
+  var waarde = parseFloat(String(document.getElementById('pi-gi-waarde').value).replace(',', '.'));
+  var notitie = document.getElementById('pi-gi-notitie').value.trim() || null;
+
+  if (!jaar || jaar < 2020 || jaar > 2050) { showToast('Jaar moet tussen 2020 en 2050', 'error'); return; }
+  if (!maand || maand < 1 || maand > 12) { showToast('Selecteer een geldige maand', 'error'); return; }
+  if (isNaN(waarde) || waarde <= 0) { showToast('Waarde moet groter dan 0', 'error'); return; }
+
+  var sess = await sb.auth.getSession();
+  var uid = (sess && sess.data && sess.data.session) ? sess.data.session.user.id : null;
+
+  // Upsert: bij conflict op (jaar, maand) → update
+  var ups = await sb.from('gezondheidsindex_metingen')
+    .upsert({ jaar: jaar, maand: maand, waarde: waarde, notitie: notitie, ingevoerd_door: uid }, { onConflict: 'jaar,maand' });
+  if (ups.error) {
+    showToast('Opslaan mislukt: ' + ups.error.message, 'error');
+    return;
+  }
+  try { auditLog('gezondheidsindex_metingen', null, 'meting_opgeslagen', null, JSON.stringify({ jaar: jaar, maand: maand, waarde: waarde })); } catch (_) {}
+  showToast('Meting opgeslagen');
+  piGiCloseModal();
+  await piGiLoad();
 }
 
 // =============================================================================
