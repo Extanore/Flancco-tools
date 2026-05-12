@@ -6225,9 +6225,11 @@ function applyBranding(p) {
   const sidebar = document.getElementById('sidebar');
   sidebar.style.background = primary;
 
-  // Sidebar logo
+  // Sidebar logo — esc() voorkomt XSS via partner.bedrijfsnaam/naam (admin-editable, maar
+  // partner-rol kan eigen branding ook wijzigen via Instellingen). Identiek aan pre-paint
+  // sidebar-logo write rond regel 2041 die ook een escape toepast.
   const logo = document.getElementById('sidebar-logo');
-  logo.innerHTML = `<h2 style="color:white;font-size:18px">${p.bedrijfsnaam || p.naam}</h2><small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>`;
+  logo.innerHTML = `<h2 style="color:white;font-size:18px">${esc(p.bedrijfsnaam || p.naam || '')}</h2><small style="color:rgba(255,255,255,0.5);font-size:11px;display:block;margin-top:2px">Partner Platform</small>`;
 
   // Stat cards and accents — `--navy` = brand-identiteit (knoppen, headers, links).
   // `--navy-light` = donkere accent-kleur (hover-states, secondary surfaces).
@@ -8563,12 +8565,12 @@ function renderDashboard() {
     tbody.innerHTML = recent.map(c => {
       const partner = partners.find(p => p.id === c.partner_id);
       return `<tr>
-        <td><strong>${c.klant_naam}</strong></td>
-        <td>${partner?.naam || '—'}</td>
-        <td>${c.aantal_panelen}</td>
+        <td><strong>${esc(c.klant_naam || '—')}</strong></td>
+        <td>${esc(partner?.naam || '—')}</td>
+        <td>${esc(String(c.aantal_panelen ?? ''))}</td>
         <td>€ ${parseFloat(c.totaal_incl_btw).toFixed(2).replace('.', ',')}</td>
-        <td>${fmtDate(c.datum_ondertekening)}</td>
-        <td><span class="badge ${statusBadge(c.status)}">${c.status}</span></td>
+        <td>${esc(fmtDate(c.datum_ondertekening))}</td>
+        <td><span class="badge ${statusBadge(c.status)}">${esc(c.status || '')}</span></td>
       </tr>`;
     }).join('');
   }
@@ -8614,7 +8616,7 @@ function renderPartners() {
     if (p.logo_url) {
       html += renderPartnerLogo(p.logo_url, 'avatar');
     } else {
-      html += '<div class="partner-logo-ph" style="background:' + (p.kleur_primair || '#098979') + '">' + esc((naam[0] || '?').toUpperCase()) + '</div>';
+      html += '<div class="partner-logo-ph" style="background:' + normalizeHex(p.kleur_primair, '#098979') + '">' + esc((naam[0] || '?').toUpperCase()) + '</div>';
     }
     html += '</td>';
     html += '<td><strong>' + esc(naam) + '</strong>' + (p.slug ? '<div style="font-size:11px;color:var(--grey)">/' + esc(p.slug) + '</div>' : '') + '</td>';
@@ -9214,7 +9216,7 @@ function renderAdminSettings() {
     // Editable fields
     var html = '<div style="border:1px solid var(--rule);border-radius:var(--radius);margin-bottom:16px;overflow:hidden">';
     html += '<div onclick="toggleAdminPartner(\'' + p.id + '\')" style="display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;background:var(--white)">';
-    html += '<span style="width:32px;height:32px;border-radius:8px;background:' + (p.kleur_primair || '#098979') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    html += '<span style="width:32px;height:32px;border-radius:8px;background:' + normalizeHex(p.kleur_primair, '#098979') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
     if (p.logo_url) {
       html += '<img src="' + esc(p.logo_url) + '" style="width:24px;height:24px;object-fit:contain;border-radius:4px">';
     } else {
@@ -13991,13 +13993,13 @@ function renderContracten() {
         ? ' <span title="Follow-up gemarkeerd" style="display:inline-flex;align-items:center;color:var(--red);vertical-align:middle"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M4 22V4a1 1 0 0 1 1-1h11l-1 4 1 4H6v11H4z"/></svg></span>'
         : '';
       return `<tr>
-        <td><strong>${c.klant_naam}</strong>${followIndicator}<br><small style="color:var(--grey)">${c.klant_gemeente || ''}</small></td>
-        <td class="admin-only">${partner?.bedrijfsnaam || partner?.naam || '—'}${partnerCellExtra}</td>
+        <td><strong>${esc(c.klant_naam || '—')}</strong>${followIndicator}<br><small style="color:var(--grey)">${esc(c.klant_gemeente || '')}</small></td>
+        <td class="admin-only">${esc(partner?.bedrijfsnaam || partner?.naam || '—')}${partnerCellExtra}</td>
         <td>${sectorHtml}</td>
-        <td>${c.frequentie || '—'}</td>
-        <td>${c.contractduur || '—'}</td>
+        <td>${esc(c.frequentie || '—')}</td>
+        <td>${esc(c.contractduur || '—')}</td>
         <td>${totaal}</td>
-        <td><span class="badge ${statusBadge(dispStatus)}">${dispStatus}</span></td>
+        <td><span class="badge ${statusBadge(dispStatus)}">${esc(dispStatus || '')}</span></td>
         <td style="white-space:nowrap">${contractActions(c)}</td>
       </tr>`;
     }).join('');

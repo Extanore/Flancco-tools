@@ -218,6 +218,28 @@ const MAX_AGE_MINUTES = parseInt(Deno.env.get("SEND_CONFIRM_MAX_AGE_MIN") || "30
 
 const OPT_OUT_BASE_URL = Deno.env.get("OPT_OUT_BASE_URL") || "https://flancco-platform.be/opt-out/";
 
+// Rate-limit (in-memory Deno isolate). Mitigeert mail-bombing / brute-force op contract_id.
+const RATE_LIMIT_PER_MIN = parseInt(Deno.env.get("SEND_CONFIRM_RATE_LIMIT") || "10", 10);
+const ipBuckets = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(ip: string): boolean {
+  const now = Date.now();
+  const bucket = ipBuckets.get(ip);
+  if (!bucket || bucket.resetAt < now) {
+    ipBuckets.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (bucket.count >= RATE_LIMIT_PER_MIN) return false;
+  bucket.count++;
+  return true;
+}
+function clientIp(req: Request): string {
+  return (
+    req.headers.get("CF-Connecting-IP") ||
+    (req.headers.get("X-Forwarded-For") || "").split(",")[0].trim() ||
+    "unknown"
+  );
+}
+
 // Juridische Flancco-entiteit voor het herroepingsformulier — blijft Flancco-only.
 const FLANCCO_LEGAL_NAME = Deno.env.get("FLANCCO_LEGAL_NAME") ?? "Flancco BV";
 const FLANCCO_LEGAL_ADDRESS = Deno.env.get("FLANCCO_LEGAL_ADDRESS") ?? "Industrieweg 25, 9080 Lochristi, België";
@@ -324,15 +346,13 @@ const FLANCCO_DEFAULT_BRANDING: PartnerBranding = {
 
 function resolveBranding(
   partner: ContractRow["partners"],
-  partnerSlugFromPayload: string | undefined,
 ): PartnerBranding {
-  // Explicit override path: caller provided a slug different from the contract's partner.
-  // We treat this as untrusted — only use it when no DB-partner is present.
+  // SEC-06: caller-controlled slug-override is verwijderd. Een ontbrekende partner-
+  // koppeling wordt nu hard-fail upstream gegooid; deze function ontvangt alleen
+  // nog gevalideerde, niet-null partner-records.
   if (!partner) {
-    if (partnerSlugFromPayload && partnerSlugFromPayload !== "flancco") {
-      // No partner-record but slug given → unknown partner, fall back to Flancco
-      return FLANCCO_DEFAULT_BRANDING;
-    }
+    // Defensive: should never be reached (caller asserts contract.partners !== null).
+    // Flancco-default branding is enkel een fail-safe placeholder, niet meer een fallback-pad.
     return FLANCCO_DEFAULT_BRANDING;
   }
 
@@ -380,6 +400,14 @@ Deno.serve(async (req: Request) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
+  // Rate-limit op IP — mitigeert mail-bombing en brute-force op contract_id.
+  if (!rateLimit(clientIp(req))) {
+    return new Response(
+      JSON.stringify({ success: false, error: "rate_limited" }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   try {
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
 
@@ -389,8 +417,10 @@ Deno.serve(async (req: Request) => {
       throw new Error("contract_id is required");
     }
 
-    // Optional payload-level overrides (back-compat: both undefined is the original behaviour).
-    const partnerSlugFromPayload = typeof body?.partner_slug === "string" ? body.partner_slug : undefined;
+    // SEC-06: partner_slug body-override is removed — branding wordt strikt afgeleid uit
+    // het DB-gekoppelde partner-record. Een payload-controlled slug zou anders een
+    // attack-surface zijn voor branding-mismatch en juridische zwakte (EU 2011/83/EU art. 6
+    // vereist dat het herroepingsformulier de juiste partner-entiteit benoemt).
     const langFromPayload = body?.lang === "fr" || body?.lang === "nl" ? (body.lang as Lang) : undefined;
 
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -411,8 +441,17 @@ Deno.serve(async (req: Request) => {
     if (contract.status && contract.status !== "getekend" && contract.status !== "actief") {
       throw new Error("Contract is niet getekend");
     }
-    if (!contract.partners || contract.partners.actief === false) {
-      throw new Error("Partner niet actief");
+    // SEC-06: hard-fail bij ontbrekende of inactieve partner-koppeling. Eerder werd
+    // FLANCCO_DEFAULT_BRANDING als fallback gebruikt — dat is juridisch onveilig omdat
+    // het herroepingsformulier de verkeerde partner-entiteit kan benoemen en branding-
+    // mismatch een attack-surface vormt. Admin moet contract-koppeling herstellen.
+    if (!contract.partners) {
+      console.warn("send-confirmation hard-fail: contract zonder partner-koppeling", { contract_id });
+      throw new Error("Contract zonder geldige partner-koppeling kan geen klant-bevestiging versturen — admin-tussenkomst vereist");
+    }
+    if (contract.partners.actief === false) {
+      console.warn("send-confirmation hard-fail: partner inactief", { contract_id, partner_slug: contract.partners.slug });
+      throw new Error("Contract zonder geldige partner-koppeling kan geen klant-bevestiging versturen — admin-tussenkomst vereist");
     }
 
     // Slot T — resolve recipient: contact-FK → client → contracten-snapshot
@@ -434,7 +473,7 @@ Deno.serve(async (req: Request) => {
     // ─────────────────────────────────────────────────────────────────────────
     // Resolve branding + language
     // ─────────────────────────────────────────────────────────────────────────
-    const branding = resolveBranding(contract.partners, partnerSlugFromPayload);
+    const branding = resolveBranding(contract.partners);
     const lang: Lang = (langFromPayload
       ?? (contract.lang === "fr" || contract.lang === "nl" ? (contract.lang as Lang) : "nl"));
 

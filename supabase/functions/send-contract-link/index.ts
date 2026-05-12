@@ -210,6 +210,28 @@ const FLANCCO_LEGAL_ADDRESS = Deno.env.get("FLANCCO_LEGAL_ADDRESS") ?? "Industri
 const FLANCCO_LEGAL_EMAIL   = Deno.env.get("FLANCCO_LEGAL_EMAIL")   ?? "info@flancco.be";
 const FLANCCO_LEGAL_VAT     = Deno.env.get("FLANCCO_LEGAL_VAT")     ?? "";
 
+// Rate-limit (in-memory Deno isolate). Admin/partner-initiated, 10/min ruim.
+const RATE_LIMIT_PER_MIN = parseInt(Deno.env.get("SEND_CONTRACT_LINK_RATE_LIMIT") || "10", 10);
+const ipBuckets = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(ip: string): boolean {
+  const now = Date.now();
+  const bucket = ipBuckets.get(ip);
+  if (!bucket || bucket.resetAt < now) {
+    ipBuckets.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (bucket.count >= RATE_LIMIT_PER_MIN) return false;
+  bucket.count++;
+  return true;
+}
+function clientIp(req: Request): string {
+  return (
+    req.headers.get("CF-Connecting-IP") ||
+    (req.headers.get("X-Forwarded-For") || "").split(",")[0].trim() ||
+    "unknown"
+  );
+}
+
 type Lang = "nl" | "fr";
 
 interface PartnerRow {
@@ -290,6 +312,14 @@ function resolveBranding(p: PartnerRow | null): PartnerBranding {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Rate-limit op IP.
+  if (!rateLimit(clientIp(req))) {
+    return new Response(
+      JSON.stringify({ success: false, error: "rate_limited" }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   try {
