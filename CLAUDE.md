@@ -41,7 +41,7 @@ Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onder
 Flancco-tools/
 ├── admin/index.html               — Admin dashboard (login, contracten, partners, pricing, winstgevendheid, instellingen)
 ├── admin/planning.html            — Planning + agenda (week/dag/maand views, QuickAdd, Interventie-modal)
-├── admin/contracten-wizard.html   — Multi-step contract-wizard (klantkeuze → sector → pricing → onderteken)
+├── admin/contracten-wizard.html   — Multi-step contract-wizard (5 stappen: Type → Klant → Diensten & tarieven → Frequentie/BTW/datum → Afronden)
 ├── admin/shared/                  — Shared componenten (gedeeld door admin/*.html)
 │   ├── client-combobox.js         — Searchable klant-picker (vervangt native <select>, bedrijven-grouping)
 │   ├── client-combobox.css        — Styles voor de combobox (.fcb- prefix)
@@ -117,20 +117,43 @@ Auto-attach pattern: MutationObserver luistert op `data-slot` attributen (`activ
 - **Auth**: Email/password login (geen public signup — registratie is uitgeschakeld)
 
 ### Database Tabellen
-- `partners` — id, naam, slug, marge_pct, planning_fee, kleur_primair, kleur_secundair, logo_url, contact_email, contact_telefoon, website, contract_getekend
+- `partners` — werkelijke kolommen per 2026-05-12:
+  - **Adres-set**: vanaf 2026-05-12 is `adres/postcode/gemeente/land` canonical (Dutch). De parallel set `street/postal_code/city/country` is deprecated — alleen lezen voor backwards-compat met oudere code-paden (register-partner edge function vult beide nog). Nieuwe schrijfpaden alleen Dutch-set.
+  - Identity: `id`, `naam`, `slug`, `bedrijfsnaam`, `btw_nummer`, `kvk_nummer`, `contactpersoon`
+  - Adres-set canonical (Dutch): `adres`, `postcode`, `gemeente`, `land`
+  - Adres-set legacy (deprecated 2026-05-12): `street`, `postal_code`, `city`, `country` — TE DEPRECATEN, niet meer schrijven in nieuwe code; lezen voor backwards-compat OK
+  - Contact account: `email`, `telefoon` (NIET `contact_email`/`contact_telefoon`)
+  - Contact klant-facing: `communicatie_email`, `communicatie_telefoon` (zie PR #40 fallback-pattern)
+  - Branding: `kleur_primair`, `kleur_donker` (NIET `kleur_secundair`), `font_heading`, `font_body`, `logo_url`, `intro_tekst`, `sector_namen` (jsonb), `website`
+  - Commercieel: `marge_pct`, `planning_fee`, `transport_gratis_km`
+  - Contract: `contract_getekend`, `contract_datum`, `akkoord_flancco_inzage`, `akkoord_datum`, `actief`
+  - Onboarding: `onboarding_completed_at`, `onboarding_tour_completed_at`
+  - SLA (Toolkit-5): `sla_fase_1_uren`, `sla_fase_2_uren`, `sla_fase_4_uren`, `sla_fase_5_uren`
+  - Audit: `created_at`, `updated_at`
 - `pricing` — id, partner_id, staffel_min, staffel_max, label, flancco_forfait
-- `contracten` — id, partner_id, klant_naam, klant_adres, klant_postcode, klant_gemeente, klant_email, klant_telefoon, aantal_panelen, frequentie, contractduur, forfait_per_beurt, totaal_excl_btw, totaal_incl_btw, handtekening (base64), datum_ondertekening, status. **Slot A2 (applied Wave 4a)** voegt 4 contract-terms kolommen toe:
-  - `speciale_instructies_technieker TEXT NULL` — vrije tekst, zichtbaar voor uitvoerend technieker
-  - `scope_akkoord_handtekening BOOLEAN NOT NULL DEFAULT false`
-  - `scope_akkoord_handtekening_base64 TEXT NULL` — PNG base64
-  - `scope_akkoord_handtekening_datum TIMESTAMPTZ NULL`
-  - CHECK-constraint `chk_scope_handtekening_consistent` enforced consistentie (alle 3 NULL of alle 3 NOT NULL bij scope_akkoord=true). Bestaande RLS dekt nieuwe kolommen automatisch.
+- `contracten` — werkelijke kolommen per 2026-05-12:
+  - Klant-info: `klant_naam`, `klant_adres`, `klant_postcode`, `klant_gemeente`, `klant_btw`, `klant_contact`, `klant_telefoon`, `klant_email`
+  - Scope/installation: `aantal_panelen`, `daktype`, `dakhoogte`, `bereikbaarheid`, `wateraansluiting`, `afstand_km`, `sector`, `sector_details` (jsonb), `sectoren` (jsonb), `bedrijfsnaam`, `client_id`, `client_contact_id`, `client_location_id`
+  - Contract: `frequentie`, `contractduur`, `contract_type`, `klant_type`, `klant_subtype`, `is_eenmalig`, `subtype`, `contract_nummer`, `lang`, `eerste_uitvoering_datum`, `contract_start`, `contract_einde`, `verlopen_op`
+  - Pricing: `forfait_bedrag` (NIET `forfait_per_beurt`), `supplement_vervuiling`, `supplement_transport`, `supplement_hoogte`, `korting_pct`, `korting_bedrag`, `totaal_incl_btw` (NIET `totaal_excl_btw`), `btw_type`, `uurtarief_interventie`, `pricing_breakdown` (jsonb), `beschrijving`, `po_number`
+  - Signing: `handtekening_data` (NIET `handtekening`), `handtekening_url`, `datum_ondertekening`, `signing_ip`, `signing_user_agent`, `signing_timestamp`, `signing_methode`, `teken_token` (uuid), `teken_url`, `verzonden_op`, `verzonden_bevestiging_op`, `pdf_url`, `btw_attest_url`
+  - Akkoord: `akkoord_voorwaarden`, `privacy_akkoord`, `herroeping_verstreken`, `btw_nummer_validated`, `btw_validated_at`, `btw_validated_payload`
+  - BTW 6%: `verklaring_6btw_privewoning_aangevinkt`, `verklaring_6btw_ouderdan10j_aangevinkt`, `verklaring_6btw_datum`
+  - Scope-handtekening (Slot A2): `speciale_instructies_technieker`, `scope_akkoord_handtekening`, `scope_akkoord_handtekening_base64`, `scope_akkoord_handtekening_datum`. CHECK-constraint `chk_scope_handtekening_consistent` enforced consistentie (alle 3 NULL of alle 3 NOT NULL bij scope_akkoord=true). Bestaande RLS dekt nieuwe kolommen automatisch.
+  - Follow-up (Slot W): `follow_up_needed`, `follow_up_set_at`, `follow_up_set_by`
+  - Installation-FKs: `installation_zonnepanelen_id`, `installation_warmtepomp_id`, `installation_ventilatie_id`, `installation_verwarming_id`
+  - Werkbon: `werkbon_aangemaakt`, `werkbon_datum`
+  - Status: `status` (CHECK: `concept|actief|verlopen|geannuleerd|getekend|uitgevoerd`)
+  - Audit: `aangemaakt_door` (FK auth.users), `created_at`, `updated_at`
 - `user_roles` — id, user_id (FK auth.users), role ('admin'|'partner'), partner_id (nullable FK partners)
 - `klant_consents` (Slot Q) — GDPR consent-trail per klant per kanaal: id, contract_id (FK), klant_email, kanaal ('email_service'|'email_marketing'|'sms'|'whatsapp'), opt_in, opt_in_ts/bron/ip/ua, opt_out_ts/bron/ip, opt_out_token (UNIQUE), notitie. View `v_klant_consent_actief` toont laatste status per email/kanaal voor send-* functions.
 - `klant_notification_log` (Slot F, applied Wave 2a) — append-only audit-trail voor elke klant-notificatie poging: id, beurt_id (FK), contract_id (FK), partner_id (FK), kanaal ('email'|'sms'|'whatsapp'), event_type ('reminder_24h'|'reminder_day'|'rapport_klaar'|'test'), recipient (gemaskeerd), status ('sent'|'failed'|'skipped_no_consent'|'skipped_already_sent'|'skipped_missing_contact'|'skipped_daily_cap'), provider_message_id, error_detail, created_at. RLS: admin full SELECT, partner SELECT enkel eigen `partner_id`. Idempotency wordt afgedwongen via 7 timestamp-kolommen op `onderhoudsbeurten` (`reminder_24h_email_ts`, `reminder_day_email_ts`, `_sms_ts` × 2, `_whatsapp_ts` × 2, `rapport_klaar_email_ts`).
 - `audit_log` (Slot H + v2, v2-effectief applied via Wave 4a) — business-kritieke mutatie-trail voor compliance, incidentonderzoek, klacht-verdediging: id, tabel, record_id, actie, oude_waarde (TEXT, JSON-string of scalar), nieuwe_waarde (TEXT, idem), user_id (nullable), created_at, **ip (INET)**, **user_agent (TEXT, max 500)**. Slot H v2 voegt `ip` + `user_agent` toe via `BEFORE INSERT` trigger `trg_audit_log_stamp_request_meta` die `current_setting('request.headers')` parst (cf-connecting-ip → x-forwarded-for first hop → x-real-ip). Service-role + pg_cron inserts → NULL (correcte system-vs-end-user-onderscheiding). Client-side helper `auditLog()` in `admin/index.html` past **PII-redactie** toe via `_auditSerializeSnapshot` + `AUDIT_PII_KEYS` whitelist (email/naam/adres/telefoon/handtekening/tokens → `[REDACTED:str:<len>]`, type-hint behouden voor zinvolle diff). Onder 7-jarige boekhoudkundige bewaarplicht — niet selectief purgeable. Partial index `audit_log_ip_idx WHERE ip IS NOT NULL` voor security-forensics. **`audit_log.user_id` FK is `ON DELETE SET NULL`** (migration `20260511220000_audit_log_user_id_set_null.sql`) — bij user-cleanup (test-flow, offboarding) vervalt enkel de naam-attribution, alle andere audit-info (rij, actie, oude/nieuwe waarde, IP, user_agent, timestamp) blijft bewaard. Compliance-veilig: IP + user_agent geven forensische trail.
 - `beurt_dispatch_log` (Slot V/W Toolkit-2) — append-only activity-log per onderhoudsbeurt voor planner hand-off + incident-reconstructie: id, beurt_id (FK onderhoudsbeurten), type CHECK (`manual`|`snooze`|`system`|`transitie`|`mail`), text, user_id (nullable), created_at. Index `(beurt_id, created_at DESC)`. RLS: 3 policies — admin/bediende SELECT+INSERT; partner SELECT enkel eigen via JOIN op `onderhoudsbeurten → contracten.partner_id`. Status-transition trigger op `onderhoudsbeurten` schrijft auto rij bij elke status-wijziging (type=`transitie`).
-- `runbook_tooltips` (Slot V/W Toolkit-5) — admin-bewerkbare contextuele tooltips per pipeline-fase + action_key voor planner-onboarding/hand-off: id, fase (1-5), action_key TEXT, text TEXT, updated_at. UNIQUE (fase, action_key). RLS: 4 policies — alle authenticated SELECT, admin INSERT/UPDATE/DELETE. **27 NL pre-seed entries** (uitgebreid in Wave 4a vanaf 10 originele defaults) dekken kern-acties per fase.
+- `runbook_tooltips` (Slot V/W Toolkit-5) — admin-bewerkbare contextuele tooltips per pipeline-fase + action_key voor planner-onboarding/hand-off:
+  - `id` uuid, `fase` text NOT NULL, `action_key` text NOT NULL, `content_nl` text NOT NULL, `content_fr` text NULL (bilingual support), `updated_by` uuid NULL, `updated_at` timestamptz
+  - UNIQUE (fase, action_key). RLS: 4 policies — alle authenticated SELECT, admin INSERT/UPDATE/DELETE. **27 NL pre-seed entries** (uitgebreid in Wave 4a vanaf 10 originele defaults) dekken kern-acties per fase.
+  - Note: FR-content is optioneel; frontend kiest `content_fr` als beschikbaar EN `lang=fr`, anders `content_nl` als fallback.
 - `feestdagen` (Slot K v2, applied Wave 4a) — BE-feestdagen + sluitingsperiodes voor planning-blokkades. Schema **v2** (vervangt v1):
   - `id` UUID PK (nieuw t.o.v. v1)
   - `datum` DATE NOT NULL
@@ -183,7 +206,7 @@ Admin-driven partner-activation flow vervangt de eerder geplande publieke self-s
 - Indexen: `idx_partner_applications_signing_token` (sparse) + `idx_partner_applications_created_by` (sparse)
 
 **6 nieuwe SECURITY DEFINER RPC's**:
-- `admin_create_partner_application(...)` — admin-only, maakt application aan met `status='demo_bekeken'`, marge_pct CHECK 10-20
+- `admin_create_partner_application(...)` — admin-only, maakt application aan met `status='demo_bekeken'`, marge_pct CHECK 10-15 (conform commercieel beleid 2026-05-11; constraint `chk_marge_pct_range_and_required_when_signed`)
 - `admin_record_in_person_signing(application_id, signature_base64, ip, ua)` — admin-only, Mode A, registreert signing met witness=caller
 - `admin_generate_signing_token(application_id, ttl_days)` — admin-only, returnt `(token, expires_at)`. 64-char hex via dubbele `gen_random_uuid()` (256 bits entropy, geen pgcrypto-extension nodig). Reset `used_count=0` bij re-genereren
 - `public_consume_signing_token(token, action='open'|'verify')` — anon, valideert + verhoogt `used_count` bij `open`. Returnt JSONB met partner-context + remaining_uses. Errors: `invalid_token`, `token_not_found`, `token_expired`, `token_max_uses_reached`, `already_signed`
@@ -315,6 +338,7 @@ Pattern voor hand-off modus: `localStorage['flancco_handoff_mode_since']` zet bo
 1. **Git push**: Alle recente wijzigingen moeten nog gepusht worden naar GitHub
 2. **Supabase email signup uitschakelen**: In Supabase Auth settings public signups disablen zodat niemand via de API een account kan aanmaken
 3. **Test partner login flow**: Er bestaan nog geen partner user accounts om de partner-weergave te testen
+4. **Adres-set deprecation `partners`**: Het English shadow-paar (`street/postal_code/city/country`) is per 2026-05-12 deprecated. Plan een migration die deze 4 kolommen DROP'pt zodra alle leescode is geconverteerd naar de Dutch-set (`adres/postcode/gemeente/land`). Lees-paden checken: `register-partner` edge function (regel ~297-309) en eventuele PDF-renderers.
 
 ### Medium prioriteit
 4. **Dynamische pricing in calculatoren**: TIERS array is hardcoded — zou uit Supabase `pricing` tabel moeten laden
