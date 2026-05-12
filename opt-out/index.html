@@ -138,6 +138,17 @@
         return fallback;
       }
 
+      // XSS-defensive escape voor server-response velden (email_masked, kanaal) die in
+      // innerHTML-context worden geplaatst. Volgt standaard 5-char HTML-escape pattern.
+      function escH(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
       function getKanaalLabel(kanaal) {
         var labels = {
           email_service:   { nl: 'Service-mails',     fr: 'E-mails de service' },
@@ -155,9 +166,9 @@
         var labelKanaal = lang === 'fr' ? 'Canal' : 'Kanaal';
         var labelEmail  = lang === 'fr' ? 'E-mail' : 'E-mailadres';
         var html = '';
-        html += '<div class="meta-row"><span>' + labelKanaal + '</span><strong>' + getKanaalLabel(data.kanaal) + '</strong></div>';
+        html += '<div class="meta-row"><span>' + escH(labelKanaal) + '</span><strong>' + escH(getKanaalLabel(data.kanaal)) + '</strong></div>';
         if (data.email_masked) {
-          html += '<div class="meta-row"><span>' + labelEmail + '</span><strong>' + data.email_masked + '</strong></div>';
+          html += '<div class="meta-row"><span>' + escH(labelEmail) + '</span><strong>' + escH(data.email_masked) + '</strong></div>';
         }
         meta.innerHTML = html;
       }

@@ -55,6 +55,28 @@ const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
   ?? "https://flancco-platform.be,https://app.flancco-platform.be,https://calculator.flancco-platform.be,https://www.flancco-platform.be"
 ).split(",").map((s) => s.trim()).filter(Boolean);
 
+// Rate-limit (in-memory Deno isolate). 5/min: een legit partner-registreer is one-shot.
+const RATE_LIMIT_PER_MIN = parseInt(Deno.env.get("REGISTER_PARTNER_RATE_LIMIT") || "5", 10);
+const ipBuckets = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(ip: string): boolean {
+  const now = Date.now();
+  const bucket = ipBuckets.get(ip);
+  if (!bucket || bucket.resetAt < now) {
+    ipBuckets.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (bucket.count >= RATE_LIMIT_PER_MIN) return false;
+  bucket.count++;
+  return true;
+}
+function clientIp(req: Request): string {
+  return (
+    req.headers.get("CF-Connecting-IP") ||
+    (req.headers.get("X-Forwarded-For") || "").split(",")[0].trim() ||
+    "unknown"
+  );
+}
+
 // Whitelist sectoren — 'verwarming' is Flancco-only (gas/stookolie expertise).
 // Partners kunnen enkel kiezen uit warmtepomp, zonnepanelen, ventilatie.
 const ALLOWED_SECTORS = ["warmtepomp", "zonnepanelen", "ventilatie"] as const;
@@ -188,6 +210,11 @@ Deno.serve(async (req: Request) => {
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonError(405, "method_not_allowed", corsHeaders);
+
+  // Rate-limit op IP — partner-registratie is one-shot, 5/min is ruim.
+  if (!rateLimit(clientIp(req))) {
+    return jsonError(429, "rate_limited", corsHeaders);
+  }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[register-partner] missing SUPABASE_URL or SERVICE_ROLE_KEY");

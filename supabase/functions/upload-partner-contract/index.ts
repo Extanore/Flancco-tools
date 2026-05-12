@@ -30,6 +30,28 @@ const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://flancco-pla
 const SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 dagen
 const MAX_PDF_BYTES = 5 * 1024 * 1024;            // 5 MB (matcht bucket-cap)
 
+// Rate-limit (in-memory Deno isolate). Mitigeert upload-spam naar partner-contracts bucket.
+const RATE_LIMIT_PER_MIN = parseInt(Deno.env.get("UPLOAD_RATE_LIMIT") || "10", 10);
+const ipBuckets = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(ip: string): boolean {
+  const now = Date.now();
+  const bucket = ipBuckets.get(ip);
+  if (!bucket || bucket.resetAt < now) {
+    ipBuckets.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (bucket.count >= RATE_LIMIT_PER_MIN) return false;
+  bucket.count++;
+  return true;
+}
+function clientIp(req: Request): string {
+  return (
+    req.headers.get("CF-Connecting-IP") ||
+    (req.headers.get("X-Forwarded-For") || "").split(",")[0].trim() ||
+    "unknown"
+  );
+}
+
 interface UploadPayload {
   application_id: string;
   pdf_base64: string; // 'data:application/pdf;base64,...' OR raw base64
@@ -51,6 +73,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   if (req.method !== "POST") {
     return jsonError(405, "method_not_allowed", corsHeaders);
+  }
+
+  // Rate-limit op IP — mitigeert upload-spam.
+  if (!rateLimit(clientIp(req))) {
+    return jsonError(429, "rate_limited", corsHeaders);
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
