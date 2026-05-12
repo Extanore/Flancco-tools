@@ -2442,10 +2442,15 @@
         duration_seconds: String(dur)
       });
       showPane('pane-success');
-      startRedirectCountdown();
-      // PDF op de achtergrond genereren + auto-trigger download
-      generateContractPDF({ autoDownload: true }).catch(function(e){
+      // Audit-fix 2026-05-12 HIGH-2 race: PDF leest state.*; redirect-countdown
+      // muteerde state vóór PDF klaar was → corrupte/lege PDF.
+      // Fix: countdown start pas NA PDF (of na 7s timeout-fallback) zodat state
+      // stabiel blijft tijdens html2canvas-render.
+      var _pdfPromise = generateContractPDF({ autoDownload: true }).catch(function(e){
         console.warn('[pdf-auto]', e);
+      });
+      Promise.race([_pdfPromise, new Promise(function(r){ setTimeout(r, 7000); })]).then(function(){
+        startRedirectCountdown();
       });
       // Best-effort bevestigingsmail naar prospect + admin-notificatie
       // (send-partner-application-confirmation: verify_jwt=false, anon-aanroepbaar).
