@@ -115,7 +115,8 @@
       privacy: 'J\'ai lu la {link} et j\'accepte le traitement de mes donn\u00e9es.',
       privacyLink: 'd\u00e9claration de confidentialit\u00e9',
       ctaNext: 'Voir le r\u00e9capitulatif \u2192',
-      ctaBack: '\u2190 Retour'
+      ctaBack: '\u2190 Retour',
+      fieldsFilled: 'champs compl\u00e9t\u00e9s'
     },
     klantType: {
       title: 'Vous \u00eates\u2026',
@@ -135,6 +136,7 @@
       viesValid: 'V\u00e9rifi\u00e9 via VIES \u2014 donn\u00e9es remplies automatiquement',
       viesInvalid: 'Num\u00e9ro de TVA invalide (format ou inconnu dans le registre VIES)',
       viesError: 'V\u00e9rification temporairement indisponible \u2014 vous pouvez continuer, nous validerons plus tard',
+      viesFallbackNotice: 'VIES est temporairement indisponible \u2014 votre num\u00e9ro de TVA sera v\u00e9rifi\u00e9 automatiquement plus tard. Vous pouvez signer en toute confiance.',
       // Slot T A5 \u2014 sous-toggle entreprise-uniquement
       bedrijfOnlyTitle: 'Qui signe ce contrat ?',
       bedrijfOnlyContactTitle: 'Personne de contact sp\u00e9cifique',
