@@ -2688,23 +2688,6 @@ async function saveContract(opts) {
       payload.dakhoogte = sc.hoog ? '> 7,5 m' : '< 7,5 m';
     }
 
-    // ─── Snapshot-kolommen voor partner-Flancco settlement ─────────────────
-    // Bevroren bij concept-creatie zodat latere prijswijzigingen lopend contract
-    // niet raken. Formule: klant_forfait_excl = flancco_forfait × (1+marge/100) + planFee
-    var _wizPartner = (window.partners || []).find(function(p){ return p.id === wizState.partnerId; });
-    if (_wizPartner) {
-      var _wizMarge = parseFloat(_wizPartner.marge_pct) || 0;
-      var _wizPlanFee = parseFloat(_wizPartner.planning_fee) || 0;
-      var _wizKlantForfait = parseFloat(wizState._subtotalExcl) || 0;
-      if (_wizKlantForfait > 0) {
-        var _wizFlanccoForfait = (_wizKlantForfait - _wizPlanFee) / (1 + _wizMarge / 100);
-        payload.flancco_forfait_per_beurt = Math.round(_wizFlanccoForfait * 100) / 100;
-      }
-      payload.marge_pct_snapshot = _wizMarge;
-      payload.planning_fee_snapshot = _wizPlanFee;
-    }
-    // indexering_start_index wordt automatisch gestempeld door trigger op signing-transitie
-
     // Pre-fill: koppel het contract aan de bron-installatie zodat het
     // klant-dossier ("welke contracten op deze installatie?") direct
     // klopt. Agent A levert de installation_<sector>_id FK-kolommen op
