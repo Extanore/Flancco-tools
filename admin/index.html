@@ -899,8 +899,10 @@
   .kl-btw-msg.warn { color: #92400E; }
 
   /* Sub-frame binnen Basis tab — visueel onderscheid voor adres-blok */
-  .kl-subframe { background: var(--light); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .kl-subframe { background: var(--light); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; margin-top: 14px; }
   .kl-subframe .loc-section-title { margin-top: 0; }
+  .kl-subframe .loc-sub-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--grey); letter-spacing: 0.4px; margin: 16px 0 8px; padding-top: 12px; border-top: 1px dashed var(--rule); }
+  .kl-subframe .loc-sub-title:first-of-type { margin-top: 12px; }
 
   /* DROPDOWN MENU — toolbar */
   .dropdown { position: relative; display: inline-block; }
@@ -5597,86 +5599,96 @@
           </div>
         </div>
 
-        <!-- Bedrijfsnaam (alleen bij bedrijf) -->
-        <div class="modal-field" id="kl-bedrijf-wrap">
-          <label>Bedrijfsnaam *</label>
-          <input id="kl-bedrijf" placeholder="Naam van de organisatie">
-        </div>
+        <!-- ──────────────────────────────────────────────────────────────
+             BEDRIJF-BLOK: bedrijfsgegevens + BTW + factuuradres + algemene contact
+             allemaal in één visueel kader. Contactpersonen erbuiten en optioneel.
+             ────────────────────────────────────────────────────────────── -->
+        <div id="kl-bedrijf-block">
+          <div class="kl-subframe" id="kl-bedrijf-frame">
+            <p class="loc-section-title">Bedrijfsgegevens</p>
+            <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:12px">Officiële gegevens van de organisatie voor facturatie. Tip: vul het BTW-nummer in en klik <strong>Valideer</strong> — we vullen bedrijfsnaam en adres aan via VIES.</small>
 
-        <!-- Slot T A4: bedrijf-only-toggle (verberg contactpersonen-velden bij bedrijf zonder vaste contact) -->
-        <label class="kl-bedrijf-only-toggle" id="kl-bedrijf-only-wrap" style="display:none;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;background:var(--light);margin:14px 0 12px;cursor:pointer;user-select:none">
-          <input type="checkbox" id="kl-bedrijf-only" style="width:16px;height:16px;accent-color:var(--navy)" onchange="onBedrijfOnlyToggle()">
-          <span style="font-size:13px;font-weight:500;color:var(--navy)">Bedrijf zonder vaste contactpersoon</span>
-          <span style="font-size:11px;color:var(--grey);margin-left:auto">Verberg contactpersonen-velden — facturatie naar bedrijfs-email</span>
-        </label>
-
-        <!-- Contactpersonen -->
-        <div class="modal-field" id="kl-contacts-wrap" style="margin-top:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <label style="margin:0" id="kl-contacts-label">Contactpersonen</label>
-            <small style="color:var(--grey);font-size:11px" id="kl-contacts-hint">Een primair contact is verplicht — andere contacten zijn optioneel.</small>
-          </div>
-          <div class="contact-repeater" id="kl-contacts-repeater"></div>
-          <button type="button" class="btn-add-loc" id="btn-add-contact" style="margin-top:10px" onclick="addKlantContact()">+ Contactpersoon toevoegen</button>
-        </div>
-
-        <!-- Algemene contactgegevens (factuur/hoofdkanaal) -->
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--rule)">
-          <p class="loc-section-title" id="kl-algemeen-title">Algemene contactgegevens</p>
-          <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px" id="kl-algemeen-hint">Voor facturen en algemene communicatie. Laat leeg om de gegevens van de primaire contactpersoon te gebruiken.</small>
-          <div class="modal-row">
-            <div class="modal-field"><label>Algemene email</label><input type="email" id="kl-email" placeholder="facturatie@bedrijf.be"></div>
-            <div class="modal-field"><label>Algemene telefoon</label><input id="kl-telefoon" placeholder="+32 ..."></div>
-          </div>
-        </div>
-
-        <!-- ADRES — particulier-variant (persoonsadres binnen Persoonsgegevens) -->
-        <div class="kl-subframe" id="kl-particulier-adres-wrap" style="display:none">
-          <p class="loc-section-title">Adres</p>
-          <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px">Het persoonlijke adres van de klant — facturatie en uitvoeringsadres tegelijk.</small>
-          <div class="modal-row">
-            <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-particulier-straat"></div>
-            <div class="modal-field"><label>Huisnr *</label><input id="kl-particulier-huisnr"></div>
-          </div>
-          <div class="modal-row">
-            <div class="modal-field"><label>Postcode *</label><input id="kl-particulier-postcode"></div>
-            <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-particulier-gemeente"></div>
-          </div>
-          <div class="modal-field">
-            <label>Land</label>
-            <select id="kl-particulier-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
-          </div>
-        </div>
-
-        <!-- FACTUURADRES — bedrijf-variant (factuuradres + BTW + VIES) -->
-        <div class="kl-subframe" id="kl-bedrijf-factuuradres-wrap">
-          <p class="loc-section-title">Factuuradres &amp; BTW</p>
-          <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px">Officieel adres van de organisatie voor facturatie. Tip: vul het BTW-nummer in en klik <strong>Valideer</strong> — we vullen bedrijfsnaam en adres aan via VIES.</small>
-
-          <div class="modal-field" style="margin-bottom:12px">
-            <label>BTW-nummer</label>
-            <div class="kl-btw-row">
-              <input id="kl-btw" placeholder="BE0123456789" autocomplete="off" oninput="onKlBtwInput()">
-              <button type="button" class="kl-btw-validate" id="kl-btw-validate" onclick="klValidateBTW()">Valideer</button>
+            <div class="modal-field">
+              <label>Bedrijfsnaam *</label>
+              <input id="kl-bedrijf" placeholder="Naam van de organisatie">
             </div>
-            <div class="kl-btw-msg" id="kl-btw-msg"></div>
+
+            <div class="modal-field" style="margin-top:12px">
+              <label>BTW-nummer</label>
+              <div class="kl-btw-row">
+                <input id="kl-btw" placeholder="BE0123456789" autocomplete="off" oninput="onKlBtwInput()">
+                <button type="button" class="kl-btw-validate" id="kl-btw-validate" onclick="klValidateBTW()">Valideer</button>
+              </div>
+              <div class="kl-btw-msg" id="kl-btw-msg"></div>
+            </div>
+
+            <p class="loc-sub-title">Factuuradres</p>
+            <div class="modal-row">
+              <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-straat"></div>
+              <div class="modal-field"><label>Huisnr *</label><input id="kl-huisnr"></div>
+            </div>
+            <div class="modal-row">
+              <div class="modal-field"><label>Postcode *</label><input id="kl-postcode"></div>
+              <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-gemeente"></div>
+            </div>
+            <div class="modal-field">
+              <label>Land</label>
+              <select id="kl-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
+            </div>
+
+            <p class="loc-sub-title">Algemene contactgegevens</p>
+            <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px">Voor facturen en algemene communicatie naar het bedrijf.</small>
+            <div class="modal-row">
+              <div class="modal-field"><label>Email *</label><input type="email" id="kl-email" placeholder="facturatie@bedrijf.be"></div>
+              <div class="modal-field"><label>Telefoon</label><input id="kl-telefoon" placeholder="+32 ..."></div>
+            </div>
           </div>
 
-          <div class="modal-row">
-            <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-straat"></div>
-            <div class="modal-field"><label>Huisnr *</label><input id="kl-huisnr"></div>
-          </div>
-          <div class="modal-row">
-            <div class="modal-field"><label>Postcode *</label><input id="kl-postcode"></div>
-            <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-gemeente"></div>
-          </div>
-          <div class="modal-field">
-            <label>Land</label>
-            <select id="kl-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
+          <!-- Contactpersonen — volledig OPTIONEEL voor bedrijven -->
+          <div class="modal-field" id="kl-contacts-wrap" style="margin-top:18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <label style="margin:0">Contactpersonen <span style="font-weight:400;color:var(--grey);font-size:12px">(optioneel)</span></label>
+              <small style="color:var(--grey);font-size:11px">Voeg toe als je per persoon wil kunnen communiceren.</small>
+            </div>
+            <div class="contact-repeater" id="kl-contacts-repeater"></div>
+            <button type="button" class="btn-add-loc" id="btn-add-contact" style="margin-top:10px" onclick="addKlantContact()">+ Contactpersoon toevoegen</button>
           </div>
         </div>
 
-        <!-- Hidden legacy fields voor backward-compat -->
+        <!-- ──────────────────────────────────────────────────────────────
+             PARTICULIER-BLOK: persoonsgegevens + adres in één visueel kader.
+             ────────────────────────────────────────────────────────────── -->
+        <div id="kl-particulier-block" style="display:none">
+          <div class="kl-subframe">
+            <p class="loc-section-title">Persoonsgegevens</p>
+            <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:12px">Naam, contactgegevens en adres van de klant.</small>
+
+            <div class="modal-row">
+              <div class="modal-field"><label>Voornaam *</label><input id="kl-part-voornaam" placeholder="Voornaam"></div>
+              <div class="modal-field"><label>Achternaam *</label><input id="kl-part-achternaam" placeholder="Achternaam"></div>
+            </div>
+            <div class="modal-row">
+              <div class="modal-field"><label>Email *</label><input type="email" id="kl-part-email" placeholder="naam@voorbeeld.be"></div>
+              <div class="modal-field"><label>Telefoon</label><input id="kl-part-telefoon" placeholder="+32 ..."></div>
+            </div>
+
+            <p class="loc-sub-title">Adres</p>
+            <div class="modal-row">
+              <div class="modal-field" style="flex:3"><label>Straat *</label><input id="kl-particulier-straat"></div>
+              <div class="modal-field"><label>Huisnr *</label><input id="kl-particulier-huisnr"></div>
+            </div>
+            <div class="modal-row">
+              <div class="modal-field"><label>Postcode *</label><input id="kl-particulier-postcode"></div>
+              <div class="modal-field" style="flex:2"><label>Gemeente *</label><input id="kl-particulier-gemeente"></div>
+            </div>
+            <div class="modal-field">
+              <label>Land</label>
+              <select id="kl-particulier-land"><option value="BE">België</option><option value="NL">Nederland</option><option value="LU">Luxemburg</option><option value="FR">Frankrijk</option></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden legacy fields voor backward-compat (oude flow leest deze nog) -->
         <input type="hidden" id="kl-voornaam">
         <input type="hidden" id="kl-achternaam">
       </div>
@@ -19654,76 +19666,36 @@ function klPartnerUnlockChanged() {
 
 function klTypeChanged() {
   var type = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
-  var bedrijfWrap    = document.getElementById('kl-bedrijf-wrap');
-  var bedrijfInput   = document.getElementById('kl-bedrijf');
-  var contactsLabel  = document.getElementById('kl-contacts-label');
-  var contactsHint   = document.getElementById('kl-contacts-hint');
-  var btnAddContact  = document.getElementById('btn-add-contact');
-  var algemeenTitle  = document.getElementById('kl-algemeen-title');
-  var algemeenHint   = document.getElementById('kl-algemeen-hint');
-  // Slot T A4: bedrijf-only-toggle wrapper (alleen relevant bij type=bedrijf)
-  var bedrijfOnlyWrap = document.getElementById('kl-bedrijf-only-wrap');
-  var bedrijfOnlyCb   = document.getElementById('kl-bedrijf-only');
-  // Adres-blokken op Basis tab (particulier vs. bedrijf)
-  var particulierAdresWrap = document.getElementById('kl-particulier-adres-wrap');
-  var bedrijfFactWrap      = document.getElementById('kl-bedrijf-factuuradres-wrap');
+  var bedrijfBlock     = document.getElementById('kl-bedrijf-block');
+  var particulierBlock = document.getElementById('kl-particulier-block');
+  var bedrijfInput     = document.getElementById('kl-bedrijf');
   // Werflocaties tab-knop (bedrijf-only)
-  var werflocatiesTabBtn   = document.getElementById('kl-tab-locaties');
+  var werflocatiesTabBtn = document.getElementById('kl-tab-locaties');
 
   if (type === 'particulier') {
-    // Bedrijfsnaam verbergen + input leegmaken zodat die bij save als null gaat
-    bedrijfWrap.style.display = 'none';
-    bedrijfInput.value = '';
-    // Slot T A4: toggle is irrelevant voor particulier — verberg + reset
-    if (bedrijfOnlyWrap) bedrijfOnlyWrap.style.display = 'none';
-    if (bedrijfOnlyCb) bedrijfOnlyCb.checked = false;
-    // Particulier = exact 1 contactpersoon (geen "meerdere")
-    if (contactsLabel) contactsLabel.textContent = 'Persoonsgegevens';
-    if (contactsHint) contactsHint.textContent = 'Naam en gegevens van de klant.';
-    if (btnAddContact) btnAddContact.style.display = 'none';
-    if (algemeenTitle) algemeenTitle.textContent = 'Factuurgegevens';
-    if (algemeenHint) algemeenHint.textContent = 'Optioneel — voor facturen. Laat leeg om de gegevens van de persoon hierboven te gebruiken.';
-    // Adres-blok: toon particulier-variant, verberg bedrijf-factuuradres
-    if (particulierAdresWrap) particulierAdresWrap.style.display = '';
-    if (bedrijfFactWrap)      bedrijfFactWrap.style.display = 'none';
+    // Toon particulier-kader, verberg bedrijf-kader + contactpersonen
+    if (particulierBlock) particulierBlock.style.display = '';
+    if (bedrijfBlock)     bedrijfBlock.style.display = 'none';
+    // Bedrijfsnaam-input leegmaken zodat die bij save als null gaat
+    if (bedrijfInput) bedrijfInput.value = '';
     // Werflocaties tab uit voor particulier (één adres = factuur + uitvoering)
     if (werflocatiesTabBtn) werflocatiesTabBtn.style.display = 'none';
-    // Als Werflocaties-tab actief was, switch terug naar Basis
     if (werflocatiesTabBtn && werflocatiesTabBtn.classList.contains('active')) {
       switchKlantTab('basis');
     }
-    // Forceer exact 1 contact (behoud eerste, primary)
-    if (klantContactsBuffer.length === 0) {
-      klantContactsBuffer.push(emptyContact(true));
-    } else if (klantContactsBuffer.length > 1) {
-      klantContactsBuffer = [klantContactsBuffer.find(function(c) { return c.is_primary; }) || klantContactsBuffer[0]];
-      klantContactsBuffer[0].is_primary = true;
-    } else {
-      klantContactsBuffer[0].is_primary = true;
-    }
+    // Voor particulier: leeg de contacten-buffer — de persoonsgegevens zelf
+    // worden direct uit de kl-part-* inputs gelezen op save (geen contact-card UI).
+    klantContactsBuffer = [];
   } else {
-    bedrijfWrap.style.display = '';
-    // Slot T A4: toon de toggle bij bedrijf-mode
-    if (bedrijfOnlyWrap) bedrijfOnlyWrap.style.display = 'flex';
-    if (contactsLabel) contactsLabel.textContent = 'Contactpersonen';
-    if (contactsHint) contactsHint.textContent = 'Een primair contact is verplicht — andere contacten zijn optioneel.';
-    if (btnAddContact) btnAddContact.style.display = '';
-    if (algemeenTitle) algemeenTitle.textContent = 'Algemene contactgegevens';
-    if (algemeenHint) algemeenHint.textContent = 'Voor facturen en algemene communicatie. Laat leeg om de gegevens van de primaire contactpersoon te gebruiken.';
-    // Adres-blok: bedrijf-factuuradres aan, particulier-variant uit
-    if (particulierAdresWrap) particulierAdresWrap.style.display = 'none';
-    if (bedrijfFactWrap)      bedrijfFactWrap.style.display = '';
+    // Toon bedrijf-kader + contactpersonen-sectie, verberg particulier-kader
+    if (particulierBlock) particulierBlock.style.display = 'none';
+    if (bedrijfBlock)     bedrijfBlock.style.display = '';
     // Werflocaties tab tonen voor bedrijf
     if (werflocatiesTabBtn) werflocatiesTabBtn.style.display = '';
-    if (klantContactsBuffer.length === 0) {
-      klantContactsBuffer.push(emptyContact(true));
-    }
   }
   renderKlantContacts();
-  // Werklocatie-contact-picker ververst ook
+  // Werklocatie-contact-picker ververst ook (contact-dropdowns hangen aan klantContactsBuffer)
   if (typeof renderKlantLocaties === 'function') renderKlantLocaties();
-  // Slot T A4: synchroniseer zichtbaarheid contactpersonen-sectie met toggle-state
-  if (typeof onBedrijfOnlyToggle === 'function') onBedrijfOnlyToggle();
 }
 
 // ─── VIES BTW-validatie op klant-modal (bedrijf-only) ─────────────
@@ -19837,29 +19809,10 @@ function _klSplitBeAdres(rawAdres, rawPostcode, rawGemeente) {
   return result;
 }
 
-// Slot T A4: bedrijf-only-toggle — verberg/toon de contactpersonen-repeater +
-// pas het hint-label aan zodat de admin weet dat facturatie naar bedrijfs-email
-// gestuurd wordt. Geen mutatie van klantContactsBuffer hier — pas tijdens save
-// wordt beslist of contact_person=null + insert wordt overgeslagen.
-function onBedrijfOnlyToggle() {
-  var cb       = document.getElementById('kl-bedrijf-only');
-  var contacts = document.getElementById('kl-contacts-wrap');
-  var algHint  = document.getElementById('kl-algemeen-hint');
-  if (!cb || !contacts) return;
-  // Toggle is enkel zinvol bij bedrijf-mode; bij particulier laten we het pane gewoon zichtbaar
-  var type = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
-  if (type !== 'bedrijf') {
-    contacts.style.display = '';
-    return;
-  }
-  if (cb.checked) {
-    contacts.style.display = 'none';
-    if (algHint) algHint.textContent = 'Verplicht — facturen en alle communicatie gaan naar dit adres (geen vaste contactpersoon ingesteld).';
-  } else {
-    contacts.style.display = '';
-    if (algHint) algHint.textContent = 'Voor facturen en algemene communicatie. Laat leeg om de gegevens van de primaire contactpersoon te gebruiken.';
-  }
-}
+// No-op stub — voorheen koppelde dit een toggle aan de contactpersonen-sectie.
+// Nu contactpersonen sowieso optioneel zijn voor bedrijven is de toggle weg, maar
+// we behouden de functienaam zodat eventuele legacy-callers niet crashen.
+function onBedrijfOnlyToggle() { /* deprecated 2026-05-13 — contactpersoon is altijd optioneel */ }
 
 function emptyContact(isPrimary) {
   return {
@@ -19873,37 +19826,46 @@ function emptyContact(isPrimary) {
   };
 }
 
+// Rendert de contactpersonen-repeater (alleen zichtbaar in bedrijf-mode).
+// Particulier-mode gebruikt deze repeater NIET — persoonsgegevens worden direct
+// uit het kl-part-* inputblok gelezen op save. Alle contactpersonen zijn optioneel
+// (geen verplichte primary), eerste contact krijgt impliciet primary-status voor
+// de DB-schemaeis op clients.contact_person (legacy display-kolom).
 function renderKlantContacts() {
   var cont = document.getElementById('kl-contacts-repeater');
   if (!cont) return;
   var type = (document.querySelector('input[name="kl-type"]:checked') || {}).value || 'bedrijf';
-  var showRole = type === 'bedrijf';
-  var showPrimaryControls = type === 'bedrijf' && klantContactsBuffer.length > 1;
-
-  // Zorg dat exact één is_primary = true staat
-  var primaryCount = klantContactsBuffer.filter(function(c) { return c.is_primary; }).length;
-  if (primaryCount === 0 && klantContactsBuffer.length > 0) {
-    klantContactsBuffer[0].is_primary = true;
-  } else if (primaryCount > 1) {
-    var first = true;
-    klantContactsBuffer.forEach(function(c) {
-      if (c.is_primary && first) { first = false; } else { c.is_primary = false; }
-    });
-  }
-
-  if (klantContactsBuffer.length === 0) {
-    cont.innerHTML = '<p style="color:var(--grey);font-size:12px;text-align:center;padding:12px 0;margin:0">Nog geen contactpersoon. Klik "+ Contactpersoon toevoegen".</p>';
+  if (type !== 'bedrijf') {
+    // Particulier: repeater leeg + onzichtbaar (het kl-particulier-block heeft de inputs)
+    cont.innerHTML = '';
     return;
   }
 
+  // Zorg dat eerste contact (impliciet) primary is — DB-side legacy contact_person
+  // verwacht een naam zodra er minstens 1 contact is.
+  if (klantContactsBuffer.length > 0) {
+    var primaryCount = klantContactsBuffer.filter(function(c) { return c.is_primary; }).length;
+    if (primaryCount === 0) klantContactsBuffer[0].is_primary = true;
+    else if (primaryCount > 1) {
+      var first = true;
+      klantContactsBuffer.forEach(function(c) {
+        if (c.is_primary && first) { first = false; } else { c.is_primary = false; }
+      });
+    }
+  }
+
+  if (klantContactsBuffer.length === 0) {
+    cont.innerHTML = '<p style="color:var(--grey);font-size:12px;text-align:left;padding:8px 0;margin:0">Nog geen contactpersonen toegevoegd — niet verplicht.</p>';
+    return;
+  }
+
+  var multipleContacts = klantContactsBuffer.length > 1;
   cont.innerHTML = klantContactsBuffer.map(function(ct, idx) {
     var isPrimary = !!ct.is_primary;
-    var canRemove = type === 'bedrijf' && klantContactsBuffer.length > 1 && !isPrimary;
-    var headerTitle = (type === 'particulier')
-      ? 'Klantgegevens'
-      : (isPrimary ? 'Primair contact' : 'Contactpersoon ' + (idx + 1));
+    var canRemove = klantContactsBuffer.length > 1;
+    var headerTitle = isPrimary ? 'Primair contact' : 'Contactpersoon ' + (idx + 1);
     var actions = '';
-    if (showPrimaryControls && !isPrimary) {
+    if (multipleContacts && !isPrimary) {
       actions += '<button type="button" class="btn-set-primary" onclick="setPrimaryKlantContact(' + idx + ')">Maak primair</button>';
     }
     if (canRemove) {
@@ -19911,20 +19873,18 @@ function renderKlantContacts() {
     }
     return '<div class="contact-card' + (isPrimary ? ' is-primary' : '') + '" data-idx="' + idx + '">' +
       '<div class="contact-card-header">' +
-        '<div class="contact-card-title">' + esc(headerTitle) + (isPrimary && type === 'bedrijf' ? ' <span class="contact-badge">Primair</span>' : '') + '</div>' +
+        '<div class="contact-card-title">' + esc(headerTitle) + (isPrimary && multipleContacts ? ' <span class="contact-badge">Primair</span>' : '') + '</div>' +
         (actions ? '<div class="contact-card-actions">' + actions + '</div>' : '') +
       '</div>' +
       '<div class="modal-row">' +
-        '<div class="modal-field"><label>Voornaam *</label><input data-contact-field="first_name" value="' + esc(ct.first_name || '') + '" placeholder="Voornaam"></div>' +
-        '<div class="modal-field"><label>Achternaam *</label><input data-contact-field="last_name" value="' + esc(ct.last_name || '') + '" placeholder="Achternaam"></div>' +
+        '<div class="modal-field"><label>Voornaam</label><input data-contact-field="first_name" value="' + esc(ct.first_name || '') + '" placeholder="Voornaam"></div>' +
+        '<div class="modal-field"><label>Achternaam</label><input data-contact-field="last_name" value="' + esc(ct.last_name || '') + '" placeholder="Achternaam"></div>' +
       '</div>' +
       '<div class="modal-row">' +
-        '<div class="modal-field"><label>Email' + (isPrimary ? ' *' : '') + '</label><input type="email" data-contact-field="email" value="' + esc(ct.email || '') + '" placeholder="naam@voorbeeld.be"></div>' +
+        '<div class="modal-field"><label>Email</label><input type="email" data-contact-field="email" value="' + esc(ct.email || '') + '" placeholder="naam@voorbeeld.be"></div>' +
         '<div class="modal-field"><label>Telefoon</label><input data-contact-field="phone" value="' + esc(ct.phone || '') + '" placeholder="+32 ..."></div>' +
       '</div>' +
-      (showRole
-        ? '<div class="modal-field"><label>Functie / Rol <span style="color:var(--grey);font-weight:400">(optioneel)</span></label><input data-contact-field="role" value="' + esc(ct.role || '') + '" placeholder="bv. Inkoop, Technisch, Facility..."></div>'
-        : '') +
+      '<div class="modal-field"><label>Functie / Rol <span style="color:var(--grey);font-weight:400">(optioneel)</span></label><input data-contact-field="role" value="' + esc(ct.role || '') + '" placeholder="bv. Inkoop, Technisch, Facility..."></div>' +
     '</div>';
   }).join('');
 
@@ -19949,7 +19909,8 @@ function addKlantContact() {
 }
 
 function removeKlantContact(idx) {
-  if (klantContactsBuffer[idx] && klantContactsBuffer[idx].is_primary) return;
+  // Primary mag verwijderd worden: render-helper schuift primary-flag dan
+  // automatisch door naar de volgende contact in de buffer (of laat leeg).
   klantContactsBuffer.splice(idx, 1);
   renderKlantContacts();
   if (typeof renderKlantLocaties === 'function') renderKlantLocaties();
@@ -20071,14 +20032,22 @@ async function openKlantModal(editData) {
   document.getElementById('klant-modal-sub').textContent = editData ? 'Wijzig gegevens, locaties of facturatie.' : 'Klantgegevens, locaties en facturatie in één overzicht.';
   document.getElementById('kl-id').value = editData ? editData.id : '';
   var nameParts = (editData ? editData.contact_person || '' : '').split(' ');
+  // Legacy hidden inputs voor backwards-compat met oude flow-paden
   document.getElementById('kl-voornaam').value = editData ? nameParts[0] || '' : '';
   document.getElementById('kl-achternaam').value = editData ? nameParts.slice(1).join(' ') || '' : '';
+  // Bedrijf-block inputs (alleen relevant als klType=bedrijf)
   document.getElementById('kl-bedrijf').value = editData ? editData.company_name || '' : '';
   document.getElementById('kl-email').value = editData ? editData.email || '' : '';
   document.getElementById('kl-telefoon').value = editData ? editData.phone || '' : '';
-  // Adres-velden: bedrijf-variant (kl-straat...) en particulier-variant (kl-particulier-*) zijn
-  // visueel gescheiden inputs maar mappen op dezelfde DB-kolommen. We populeren beide en
-  // saveKlant() leest uit de actieve variant op basis van klType.
+  // Particulier-block inputs (alleen relevant als klType=particulier).
+  // Naam komt uit contact_person, email/phone uit clients-tabel rechtstreeks
+  // — voor particulier zijn die kolommen de bron van waarheid (geen contact-row).
+  document.getElementById('kl-part-voornaam').value = editData ? nameParts[0] || '' : '';
+  document.getElementById('kl-part-achternaam').value = editData ? nameParts.slice(1).join(' ') || '' : '';
+  document.getElementById('kl-part-email').value = editData ? editData.email || '' : '';
+  document.getElementById('kl-part-telefoon').value = editData ? editData.phone || '' : '';
+  // Adres-velden: bedrijf-variant (kl-straat...) en particulier-variant (kl-particulier-*)
+  // mappen op dezelfde DB-kolommen. saveKlant() leest uit de actieve variant per klType.
   var _addr = {
     street:       editData ? editData.street || '' : '',
     house_number: editData ? editData.house_number || '' : '',
@@ -20164,10 +20133,11 @@ async function openKlantModal(editData) {
   // Reset naar tab Basis
   switchKlantTab('basis');
 
-  // Laad contactpersonen in buffer
+  // Laad contactpersonen in buffer — alleen voor bedrijf-edits, particulier
+  // gebruikt deze buffer niet (persoonsgegevens komen direct uit kl-part-* inputs).
   klantContactsBuffer = [];
   klantContactsInitialIds = [];
-  if (editData && editData.id) {
+  if (editData && editData.id && klType === 'bedrijf') {
     var contacts = await loadContactsVoorKlant(editData.id);
     if (contacts.length > 0) {
       klantContactsBuffer = contacts.map(function(ct) {
@@ -20184,24 +20154,16 @@ async function openKlantModal(editData) {
       klantContactsInitialIds = contacts.map(function(ct) { return ct.id; });
     }
   }
-  // Nieuwe klant of geen contacten in DB: pre-fill één primary uit legacy clients-velden
-  if (klantContactsBuffer.length === 0) {
-    var legacyFirst = editData ? (nameParts[0] || '') : '';
-    var legacyLast  = editData ? (nameParts.slice(1).join(' ') || '') : '';
-    klantContactsBuffer.push({
-      _id: null,
-      first_name: legacyFirst,
-      last_name: legacyLast,
-      email: editData ? (editData.email || '') : '',
-      phone: editData ? (editData.phone || '') : '',
-      role: '',
-      is_primary: true
-    });
+  // Particulier: noteer eventuele bestaande client_contacts-rij voor cleanup bij save
+  // (oude flow schreef altijd 1 contact-row voor particulier; we ruimen die nu op).
+  if (editData && editData.id && klType === 'particulier') {
+    var oldContacts = await loadContactsVoorKlant(editData.id);
+    klantContactsInitialIds = oldContacts.map(function(ct) { return ct.id; });
   }
 
-  // Laad werklocaties (niet-primaire) in de buffer
+  // Laad werklocaties (niet-primaire) in de buffer — alleen relevant voor bedrijf
   klantLocatiesBuffer = [];
-  if (editData && editData.id) {
+  if (editData && editData.id && klType === 'bedrijf') {
     var extras = await loadWerklocatiesVoorKlant(editData.id);
     klantLocatiesBuffer = extras.map(function(l) {
       // contact_id blijft een DB-id; we matchen later via buffer-_id bij save
@@ -20215,16 +20177,6 @@ async function openKlantModal(editData) {
         contact_id: l.contact_id || null
       };
     });
-  }
-
-  // Slot T A4: bedrijf-only-toggle pre-fill — bestaande klant met contact_person=null
-  // én client_type=bedrijf is een bedrijf-only-record. Voor nieuwe klanten of
-  // particulieren staat de toggle altijd uit.
-  var bedrijfOnlyCb = document.getElementById('kl-bedrijf-only');
-  if (bedrijfOnlyCb) {
-    var existingBedrijfOnly = !!(editData && klType === 'bedrijf'
-      && (editData.contact_person === null || (typeof editData.contact_person === 'string' && editData.contact_person.trim() === '')));
-    bedrijfOnlyCb.checked = existingBedrijfOnly;
   }
 
   // Render type-afhankelijke UI + repeaters
@@ -20323,77 +20275,63 @@ async function saveKlant() {
     return;
   }
 
-  // Slot T A4: bedrijf-only-mode — geen vaste contactpersoon, facturatie naar bedrijfs-email.
-  // We slaan de primary-contact-validatie over en zetten contact_person=NULL bij save.
-  // Actief enkel bij type=bedrijf (toggle is verborgen voor particulier en zou daar geen
-  // effect mogen hebben).
-  var isBedrijfOnly = klType === 'bedrijf'
-    && document.getElementById('kl-bedrijf-only')
-    && document.getElementById('kl-bedrijf-only').checked;
+  // ─── Type-specifieke validatie ────────────────────────────────────
+  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var primaryFullName = null;
+  var finalEmail = null;
+  var finalTelefoon = null;
 
-  // Validatie: primaire contactpersoon is verplicht (voor- en achternaam)
-  var primary = klantContactsBuffer.find(function(c) { return c.is_primary; }) || klantContactsBuffer[0];
-  if (!isBedrijfOnly) {
-    if (!primary) {
+  if (klType === 'particulier') {
+    // Particulier: voornaam, achternaam, email verplicht — uit het kl-part-* kader.
+    var partVoor = document.getElementById('kl-part-voornaam').value.trim();
+    var partAchter = document.getElementById('kl-part-achternaam').value.trim();
+    var partEmail = document.getElementById('kl-part-email').value.trim();
+    var partTel = document.getElementById('kl-part-telefoon').value.trim();
+    if (!partVoor || !partAchter) {
       switchKlantTab('basis');
-      showToast('Voeg minstens één contactpersoon toe.', 'error');
-      var addBtn = document.getElementById('btn-add-contact'); if (addBtn) addBtn.focus();
+      showToast('Vul voor- en achternaam van de klant in.', 'error');
+      var inpVoor = document.getElementById(!partVoor ? 'kl-part-voornaam' : 'kl-part-achternaam');
+      if (inpVoor) inpVoor.focus();
       return;
     }
-    primary.first_name = (primary.first_name || '').trim();
-    primary.last_name  = (primary.last_name  || '').trim();
-    primary.email      = (primary.email      || '').trim();
-    if (!primary.first_name || !primary.last_name) {
+    if (!partEmail || !emailRegex.test(partEmail)) {
       switchKlantTab('basis');
-      showToast(klType === 'particulier'
-        ? 'Vul voor- en achternaam van de klant in.'
-        : 'Vul voor- en achternaam van de primaire contactpersoon in.', 'error');
+      showToast(!partEmail ? 'Email is verplicht voor de klant.' : 'Vul een geldig emailadres in.', 'error');
+      var inpEm = document.getElementById('kl-part-email'); if (inpEm) inpEm.focus();
       return;
     }
-    // Email verplicht voor zowel bedrijf als particulier (primaire contact)
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!primary.email) {
-      switchKlantTab('basis');
-      showToast(klType === 'particulier'
-        ? 'Email is verplicht voor de klant.'
-        : 'Email is verplicht voor de primaire contactpersoon.', 'error');
-      var emInput = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
-                 || document.querySelector('input[data-contact-field="email"]');
-      if (emInput) emInput.focus();
-      return;
-    }
-    if (!emailRegex.test(primary.email)) {
-      switchKlantTab('basis');
-      showToast('Vul een geldig emailadres in (bv. naam@bedrijf.be).', 'error');
-      var emInput2 = document.querySelector('.contact-card.is-primary input[data-contact-field="email"]')
-                  || document.querySelector('input[data-contact-field="email"]');
-      if (emInput2) emInput2.focus();
-      return;
-    }
+    primaryFullName = (partVoor + ' ' + partAchter).trim();
+    finalEmail = partEmail;
+    finalTelefoon = partTel || null;
   } else {
-    // Slot T A4: bedrijf-only — algemene email is dan verplicht (facturatie-kanaal).
-    var emailRegexBO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!algEmail) {
+    // Bedrijf: algemene email + telefoon zijn primaire facturatie-kanaal.
+    // Contactpersonen zijn volledig optioneel — geen verplichte primary-validatie.
+    if (!algEmail || !emailRegex.test(algEmail)) {
       switchKlantTab('basis');
-      showToast('Algemene email is verplicht voor een bedrijf zonder vaste contactpersoon.', 'error');
-      var algEmEl = document.getElementById('kl-email'); if (algEmEl) algEmEl.focus();
+      showToast(!algEmail ? 'Email is verplicht voor het bedrijf — gebruikt voor facturen en algemene communicatie.' : 'Vul een geldig emailadres in (bv. facturatie@bedrijf.be).', 'error');
+      var inpAlgEm = document.getElementById('kl-email'); if (inpAlgEm) inpAlgEm.focus();
       return;
     }
-    if (!emailRegexBO.test(algEmail)) {
-      switchKlantTab('basis');
-      showToast('Vul een geldig algemeen emailadres in (bv. facturatie@bedrijf.be).', 'error');
-      var algEmEl2 = document.getElementById('kl-email'); if (algEmEl2) algEmEl2.focus();
-      return;
-    }
-  }
 
-  // Legacy display-cache: contact_person, email en phone op clients-niveau
-  // Primair contact is bron; algemene email/tel overrulen indien ingevuld.
-  // Slot T A4: bij bedrijf-only is er geen vaste contactpersoon → contact_person=null
-  // en algEmail/algTelefoon zijn de enige bron voor clients-niveau.
-  var primaryFullName = isBedrijfOnly ? null : (primary.first_name + ' ' + primary.last_name).trim();
-  var finalEmail = algEmail || (isBedrijfOnly ? null : (primary && primary.email ? primary.email.trim() : ''));
-  var finalTelefoon = algTelefoon || (isBedrijfOnly ? null : (primary && primary.phone ? primary.phone.trim() : ''));
+    // Optionele contacten: trim + filter lege rijen weg (admin kan een card toegevoegd
+    // hebben maar daarna leeg gelaten — niet wegschrijven naar DB).
+    klantContactsBuffer = klantContactsBuffer.filter(function(c) {
+      c.first_name = (c.first_name || '').trim();
+      c.last_name  = (c.last_name  || '').trim();
+      c.email      = (c.email      || '').trim();
+      c.phone      = (c.phone      || '').trim();
+      c.role       = (c.role       || '').trim();
+      return c.first_name || c.last_name || c.email || c.phone;
+    });
+    // Eerste contact wordt impliciet primary; clients.contact_person krijgt naam mee.
+    if (klantContactsBuffer.length > 0) {
+      klantContactsBuffer.forEach(function(c, i) { c.is_primary = (i === 0); });
+      var p0 = klantContactsBuffer[0];
+      primaryFullName = (p0.first_name + ' ' + p0.last_name).trim() || null;
+    }
+    finalEmail = algEmail;
+    finalTelefoon = algTelefoon || null;
+  }
 
   // Adres verplicht — voor particulier het persoonsadres (Basis-tab), voor bedrijf het factuuradres (Basis-tab).
   if (!straat || !huisnr || !postcode || !gemeente) {
@@ -20465,16 +20403,16 @@ async function saveKlant() {
   // Map van buffer-index → DB-uuid (gevuld na insert) zodat werklocaties
   // verwijzingen naar "buffer:<idx>" kunnen vervangen door een echte uuid.
   var bufferIdxToDbId = {};
-  // Slot T A4: bij bedrijf-only-mode worden alle contacten van deze klant verwijderd
-  // (toggle van "met contactpersonen" → "zonder" mag niet stille legacy-rijen achterlaten)
-  // en de upsert-loop wordt overgeslagen — clients.contact_person = null is voldoende.
-  if (clientId && isBedrijfOnly) {
+  // Particulier of bedrijf-zonder-contacten: alle bestaande client_contacts opruimen.
+  // Voor particulier zijn persoonsgegevens direct in clients-tabel, voor bedrijf-zonder-
+  // contacten gaat alle communicatie naar de algemene bedrijfs-email.
+  if (clientId && klantContactsBuffer.length === 0) {
     try {
       if (klantContactsInitialIds && klantContactsInitialIds.length > 0) {
         await sb.from('client_contacts').delete().in('id', klantContactsInitialIds);
       }
     } catch (err) {
-      console.warn('Contact-purge bij bedrijf-only faalde:', err);
+      console.warn('Contact-purge faalde:', err);
       showToast('Klant opgeslagen, maar bestaande contactpersonen konden niet verwijderd worden: ' + (err.message || err), 'error');
     }
   } else if (clientId) {
