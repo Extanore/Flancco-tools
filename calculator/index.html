@@ -6971,6 +6971,22 @@ async function submitContract() {
       payload.korting_bedrag = s.discountAmount;
     }
 
+    // ─── Snapshot-kolommen voor partner→Flancco settlement ──────────────────
+    // Bevroren bij signing zodat latere prijswijzigingen lopend contract niet raken.
+    // Formule: klant_forfait_excl = flancco_forfait × (1 + marge/100) + planning_fee
+    //   → flancco_forfait = (klant_forfait_excl - planning_fee) / (1 + marge/100)
+    var _margeSnap   = parseFloat(partner.marge_pct)    || 0;
+    var _planFeeSnap = parseFloat(partner.planning_fee) || 0;
+    var _klantForfait = parseFloat(payload.forfait_bedrag) || 0;
+    if (_klantForfait > 0) {
+      var _flanccoForfait = (_klantForfait - _planFeeSnap) / (1 + _margeSnap / 100);
+      payload.flancco_forfait_per_beurt = Math.round(_flanccoForfait * 100) / 100;
+    }
+    payload.marge_pct_snapshot    = _margeSnap;
+    payload.planning_fee_snapshot = _planFeeSnap;
+    // indexering_start_index wordt automatisch gestempeld door DB-trigger
+    // trg_contracten_set_indexering_start_index bij status='actief'.
+
     // Pre-fill: link het contract aan de bron-installatie zodat het
     // dossier-zicht ("welke contracten lopen er op deze installatie?")
     // klopt vanaf dag 1. Agent A levert deze FK-kolommen op contracten.

@@ -2151,6 +2151,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
       <span>Facturatie</span>
     </a>
+    <a class="nav-item admin-only" onclick="showPage('partner-afrekening')" data-page="partner-afrekening">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="7" y1="15" x2="9" y2="15"/></svg>
+      <span>Partner-afrekening</span>
+    </a>
     <a class="nav-item admin-only" onclick="showPage('forecast')" data-page="forecast">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
       <span>Winstgevendheid</span>
@@ -2162,6 +2166,10 @@
     <a class="nav-item partner-only" id="nav-partner-facturatie" style="display:none" onclick="showPage('facturatie')" data-page="facturatie">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
       <span>Facturatie</span>
+    </a>
+    <a class="nav-item partner-only" onclick="showPage('partner-afrekening')" data-page="partner-afrekening">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="7" y1="15" x2="9" y2="15"/></svg>
+      <span>Afrekening Flancco</span>
     </a>
     <a class="nav-item partner-only" onclick="showPage('marketing')" data-page="marketing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="5" rx="0.5"/><rect x="3" y="16" width="5" height="5" rx="0.5"/><rect x="16" y="3" width="5" height="5" rx="0.5"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
@@ -4701,6 +4709,84 @@
           </thead>
           <tbody id="bouwdroger-tbody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         Partner-afrekening — per beurt zicht op wat partner aan Flancco
+         verschuldigd is (bevroren Flancco-forfait + planning-fee uit snapshot
+         bij contract-signing, volgt automatisch jaarlijkse indexering mee).
+         Admin ziet alle partners; partner-portaal toont eigen scope via RLS
+         (security_invoker=on op v_partner_afrekening_* views).
+         ====================================================================== -->
+    <div class="page" id="page-partner-afrekening">
+      <div class="card">
+        <div class="dv-header">
+          <div class="dv-header-left">
+            <h2 class="dv-title">Partner-afrekening</h2>
+            <p class="dv-subtitle">Per uitgevoerde onderhoudsbeurt wat de partner aan Flancco verschuldigd is — bevroren bij contract-signing en automatisch geïndexeerd.</p>
+          </div>
+          <div class="dv-header-actions">
+            <button type="button" class="btn btn-ghost" onclick="pafrExportCsv()" title="Download huidig overzicht als CSV">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporteer CSV
+            </button>
+          </div>
+        </div>
+        <div class="dv-toolbar">
+          <div class="dv-toolbar-right" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+            <label class="admin-only" style="display:flex;flex-direction:column;font-size:11px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Partner
+              <select id="pafr-filter-partner" class="dv-select" onchange="pafrRender()" style="margin-top:4px;min-width:180px">
+                <option value="">Alle partners</option>
+              </select>
+            </label>
+            <label style="display:flex;flex-direction:column;font-size:11px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Maand
+              <input type="month" id="pafr-filter-maand" class="dv-select" onchange="pafrRender()" style="margin-top:4px">
+            </label>
+            <label style="display:flex;flex-direction:column;font-size:11px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Status
+              <select id="pafr-filter-status" class="dv-select" onchange="pafrRender()" style="margin-top:4px;min-width:170px">
+                <option value="">Alle statussen</option>
+                <option value="te_factureren">Te factureren</option>
+                <option value="gefactureerd">Gefactureerd</option>
+                <option value="ingepland">Nog uit te voeren</option>
+              </select>
+            </label>
+            <button type="button" class="btn btn-ghost" onclick="pafrResetFilters()" style="font-size:12px">Reset</button>
+          </div>
+        </div>
+
+        <!-- Samenvattings-cards -->
+        <div id="pafr-summary" style="display:flex;flex-wrap:wrap;gap:16px;padding:12px 0 16px;border-bottom:1px solid var(--rule);margin-bottom:14px"></div>
+
+        <!-- Detail-tabel per beurt -->
+        <div style="overflow-x:auto">
+          <table class="expandable-table" style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr>
+                <th class="admin-only" style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Partner</th>
+                <th style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Contract</th>
+                <th style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Klant</th>
+                <th style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Sector</th>
+                <th style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Datum</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Flancco-forfait</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Planning fee</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Totaal</th>
+                <th style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Status</th>
+              </tr>
+            </thead>
+            <tbody id="pafr-tbody"></tbody>
+          </table>
+        </div>
+        <p id="pafr-empty" style="display:none;text-align:center;color:var(--grey);padding:40px 0;font-size:13px">Geen beurten gevonden voor deze filters.</p>
+
+        <!-- Maand-totalen -->
+        <div id="pafr-maand-overzicht" style="margin-top:32px"></div>
+
+        <!-- Info-strook -->
+        <div style="margin-top:24px;padding:14px 16px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;font-size:12.5px;color:#0C4A6E;line-height:1.6">
+          <strong style="color:#075985">Hoe werkt dit?</strong>
+          De Flancco-forfait per beurt wordt bevroren op het moment van contract-ondertekening en volgt vervolgens dezelfde jaarlijkse indexering als de eindklant-prijs (Belgische gezondheidsindex, cap 1,5%&ndash;4%). Latere wijzigingen aan basisprijzen raken lopende contracten niet.
+        </div>
       </div>
     </div>
 
@@ -7522,9 +7608,10 @@ function showPage(name) {
   navItems.forEach(function(n) { if (!n.classList.contains('role-hidden')) n.classList.add('active'); });
   // Auto-expand planning dropdown when navigating to a sub-page
   if (name === 'interventies' || name === 'rapporten' || name === 'planning') openNavDropdown('planning');
-  const titles = { dashboard: 'Dashboard', partners: 'Partners', 'partner-pipeline': 'Partner-aanvragen', contracten: 'Contracten', offertes: 'Offertes', klanten: 'Klanten', 'klant-detail': 'Klant', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes', onderhoud: 'Onderhoud', 'flancco-werk': 'Flancco-werk' };
+  const titles = { dashboard: 'Dashboard', partners: 'Partners', 'partner-pipeline': 'Partner-aanvragen', contracten: 'Contracten', offertes: 'Offertes', klanten: 'Klanten', 'klant-detail': 'Klant', pricing: 'Prijsbeheer', 'calculator-config': 'Calculator-instellingen', forecast: 'Winstgevendheid', techniekers: 'Personeel', wagenpark: 'Wagenpark', bouwdrogers: 'Bouwdrogers', interventies: 'Interventies', rapporten: 'Rapporten', notificaties: 'Meldingen', facturatie: 'Facturatie', 'partner-afrekening': (userRole === 'partner' ? 'Afrekening Flancco' : 'Partner-afrekening'), marketing: 'Marketing-kit', 'admin-instellingen': 'Instellingen', instellingen: 'Instellingen', gebruikers: 'Gebruikers', 'verlof-ew': 'Verlof / EW', uren: 'Uren', auditlog: 'Audit-log', feestdagen: 'Feestdagen & sluitingsperiodes', onderhoud: 'Onderhoud', 'flancco-werk': 'Flancco-werk' };
   document.getElementById('page-title').textContent = titles[name] || name;
   if (name === 'admin-instellingen') { initChecklistTabs(); loadRapportConfig(); initDuurInstellingen(); loadPlanningLeadDays(); }
+  if (name === 'partner-afrekening' && typeof pafrLoad === 'function') pafrLoad();
   if (name === 'gebruikers') renderGebruikers();
   if (name === 'verlof-ew') renderVerlofEwPage();
   if (name === 'uren') renderUrenPage();
@@ -13338,6 +13425,250 @@ function csvEsc(val) {
 
 function formatCurrency(val) {
   return '€ ' + Number(val).toFixed(2).replace('.', ',');
+}
+
+// =============================================================================
+// PARTNER-AFREKENING — admin overzicht + partner read-only via RLS
+// -----------------------------------------------------------------------------
+// Leest views v_partner_afrekening_per_beurt + _per_maand. Snapshot-data
+// (flancco_forfait_per_beurt + planning_fee_snapshot) is bevroren per contract
+// op signing-moment en volgt automatisch jaarlijkse indexering.
+// =============================================================================
+
+var pafrBeurten = [];        // rows from v_partner_afrekening_per_beurt
+var pafrMaandStats = [];     // rows from v_partner_afrekening_per_maand
+var pafrLoading = false;
+
+async function pafrLoad() {
+  if (pafrLoading) return;
+  pafrLoading = true;
+  try {
+    // Populeer partner-filter (admin only — RLS filtert sowieso voor partners)
+    var partnerSel = document.getElementById('pafr-filter-partner');
+    if (partnerSel && partnerSel.options.length <= 1 && Array.isArray(partners)) {
+      partners.forEach(function(p) {
+        var opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.bedrijfsnaam || p.naam || p.slug;
+        partnerSel.appendChild(opt);
+      });
+    }
+    // Default maand-filter = huidige maand
+    var maandInput = document.getElementById('pafr-filter-maand');
+    if (maandInput && !maandInput.value) {
+      var now = new Date();
+      maandInput.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    }
+
+    var beurtenRes = await sb.from('v_partner_afrekening_per_beurt')
+      .select('*')
+      .order('plan_datum', { ascending: false })
+      .limit(2000);
+    if (beurtenRes.error) {
+      console.error('[pafrLoad] beurten error:', beurtenRes.error);
+      showToast('Laden mislukt: ' + beurtenRes.error.message, 'error');
+      pafrBeurten = [];
+    } else {
+      pafrBeurten = beurtenRes.data || [];
+    }
+
+    var maandRes = await sb.from('v_partner_afrekening_per_maand')
+      .select('*')
+      .order('maand', { ascending: false })
+      .limit(60);
+    pafrMaandStats = (maandRes && maandRes.data) ? maandRes.data : [];
+
+    pafrRender();
+  } finally {
+    pafrLoading = false;
+  }
+}
+
+function pafrRender() {
+  var filterPartner = (document.getElementById('pafr-filter-partner') || {}).value || '';
+  var filterMaand   = (document.getElementById('pafr-filter-maand')   || {}).value || '';
+  var filterStatus  = (document.getElementById('pafr-filter-status')  || {}).value || '';
+
+  var rows = pafrBeurten.filter(function(b) {
+    if (filterPartner && b.partner_id !== filterPartner) return false;
+    if (filterMaand) {
+      var d = b.eind_datum || b.plan_datum;
+      if (!d || String(d).slice(0, 7) !== filterMaand) return false;
+    }
+    if (filterStatus) {
+      if (filterStatus === 'gefactureerd'    && !b.gefactureerd_op) return false;
+      if (filterStatus === 'te_factureren'   && (b.gefactureerd_op || !['uitgevoerd','afgewerkt'].includes(b.beurt_status))) return false;
+      if (filterStatus === 'ingepland'       && !['ingepland','in_te_plannen'].includes(b.beurt_status)) return false;
+    }
+    return true;
+  });
+
+  // Samenvattings-balk
+  var sumTotaal = 0, sumOpenstaand = 0, sumUitgevoerd = 0;
+  rows.forEach(function(b) {
+    var bedrag = parseFloat(b.te_betalen_aan_flancco) || 0;
+    sumTotaal += bedrag;
+    if (!b.gefactureerd_op) sumOpenstaand += bedrag;
+    if (['uitgevoerd','afgewerkt'].includes(b.beurt_status)) sumUitgevoerd += bedrag;
+  });
+  var summaryEl = document.getElementById('pafr-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML =
+      pafrSummaryCard('Aantal beurten', rows.length, null) +
+      pafrSummaryCard('Uitgevoerd — te betalen', formatCurrency(sumUitgevoerd), '#10B981') +
+      pafrSummaryCard('Openstaand totaal', formatCurrency(sumOpenstaand), '#F59E0B') +
+      pafrSummaryCard('Totaal in scope', formatCurrency(sumTotaal), null);
+  }
+
+  // Detail-tabel
+  var tbody    = document.getElementById('pafr-tbody');
+  var emptyEl  = document.getElementById('pafr-empty');
+  if (!tbody) return;
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
+  } else {
+    if (emptyEl) emptyEl.style.display = 'none';
+    var isAdmin = (userRole === 'admin' || userRole === 'bediende');
+    tbody.innerHTML = rows.map(function(b) {
+      var datum     = b.eind_datum || b.plan_datum;
+      var datumLbl  = datum ? new Date(datum).toLocaleDateString('nl-BE', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      var sectorLbl = (typeof allSectorLabels === 'object' && allSectorLabels[b.sector]) || b.sector || '—';
+      var partnerLbl  = b.partner_bedrijfsnaam || b.partner_naam || '—';
+      var contractLbl = b.contract_nummer || (b.contract_id ? b.contract_id.slice(0, 8) : '—');
+      var klantLbl    = b.klant_naam || '—';
+      var flancco     = formatCurrency(b.flancco_forfait_per_beurt || 0);
+      var planFee     = formatCurrency(b.planning_fee_snapshot || 0);
+      var totaal      = formatCurrency(b.te_betalen_aan_flancco || 0);
+      return '<tr style="border-bottom:1px solid var(--rule)">' +
+        (isAdmin ? '<td style="padding:10px 6px;font-weight:500">' + esc(partnerLbl) + '</td>' : '') +
+        '<td style="padding:10px 6px;font-family:\'SF Mono\',monospace;font-size:12px;color:var(--grey)">' + esc(contractLbl) + '</td>' +
+        '<td style="padding:10px 6px">' + esc(klantLbl) + '</td>' +
+        '<td style="padding:10px 6px;color:var(--grey);font-size:12px">' + esc(sectorLbl) + '</td>' +
+        '<td style="padding:10px 6px;color:var(--grey);font-size:12px">' + esc(datumLbl) + '</td>' +
+        '<td style="padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums">' + flancco + '</td>' +
+        '<td style="padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums;color:var(--grey)">' + planFee + '</td>' +
+        '<td style="padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">' + totaal + '</td>' +
+        '<td style="padding:10px 6px">' + pafrStatusBadge(b) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  pafrRenderMaandOverzicht(filterPartner);
+}
+
+function pafrSummaryCard(label, value, color) {
+  var valColor = color || 'var(--navy)';
+  return '<div style="padding:10px 14px;background:#F8F9FA;border:1px solid var(--rule);border-radius:8px;min-width:140px">' +
+    '<div style="font-size:11px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">' + esc(label) + '</div>' +
+    '<div style="font-size:17px;font-weight:700;color:' + valColor + ';font-variant-numeric:tabular-nums">' + esc(String(value)) + '</div>' +
+  '</div>';
+}
+
+function pafrStatusBadge(b) {
+  if (b.gefactureerd_op) {
+    return '<span style="display:inline-block;padding:2px 8px;background:#D1FAE5;color:#065F46;border-radius:10px;font-size:11px;font-weight:600">Gefactureerd</span>';
+  }
+  if (['uitgevoerd','afgewerkt'].includes(b.beurt_status)) {
+    return '<span style="display:inline-block;padding:2px 8px;background:#FEF3C7;color:#92400E;border-radius:10px;font-size:11px;font-weight:600">Te factureren</span>';
+  }
+  if (['ingepland','in_te_plannen'].includes(b.beurt_status)) {
+    return '<span style="display:inline-block;padding:2px 8px;background:#E0E7FF;color:#3730A3;border-radius:10px;font-size:11px;font-weight:600">Nog uit te voeren</span>';
+  }
+  return '<span style="display:inline-block;padding:2px 8px;background:#F3F4F6;color:#6B7280;border-radius:10px;font-size:11px;font-weight:600">' + esc(b.beurt_status || '—') + '</span>';
+}
+
+function pafrRenderMaandOverzicht(filterPartner) {
+  var container = document.getElementById('pafr-maand-overzicht');
+  if (!container) return;
+  var stats = pafrMaandStats.slice();
+  if (filterPartner) stats = stats.filter(function(s) { return s.partner_id === filterPartner; });
+  if (stats.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  var isAdmin = (userRole === 'admin' || userRole === 'bediende');
+  var html = '<div class="card" style="margin-top:0">' +
+    '<div class="dv-header" style="margin-bottom:8px"><div class="dv-header-left"><h3 class="dv-title" style="font-size:14px">Maand-totalen' + (isAdmin ? ' per partner' : '') + '</h3><p class="dv-subtitle" style="font-size:12px">Aggregatie over alle uitgevoerde + geplande beurten.</p></div></div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr>' +
+    (isAdmin ? '<th style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Partner</th>' : '') +
+    '<th style="text-align:left;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Maand</th>' +
+    '<th style="text-align:right;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Aantal beurten</th>' +
+    '<th style="text-align:right;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Uitgevoerd</th>' +
+    '<th style="text-align:right;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Totaal Flancco</th>' +
+    '<th style="text-align:right;padding:8px 6px;color:var(--grey);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;border-bottom:1px solid var(--rule)">Openstaand</th>' +
+    '</tr></thead><tbody>';
+  stats.slice(0, 24).forEach(function(s) {
+    var maandLbl = new Date(s.maand).toLocaleDateString('nl-BE', { month:'long', year:'numeric' });
+    html += '<tr style="border-bottom:1px solid var(--rule)">' +
+      (isAdmin ? '<td style="padding:8px 6px;font-weight:500">' + esc(s.partner_bedrijfsnaam || s.partner_naam || '—') + '</td>' : '') +
+      '<td style="padding:8px 6px">' + esc(maandLbl) + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-variant-numeric:tabular-nums">' + (s.aantal_beurten || 0) + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-variant-numeric:tabular-nums;color:#10B981">' + (s.aantal_uitgevoerd || 0) + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">' + formatCurrency(s.totaal_te_betalen_aan_flancco || 0) + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-variant-numeric:tabular-nums;color:#92400E">' + formatCurrency(s.openstaand_te_factureren || 0) + '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+  container.innerHTML = html;
+}
+
+function pafrResetFilters() {
+  var p = document.getElementById('pafr-filter-partner'); if (p) p.value = '';
+  var m = document.getElementById('pafr-filter-maand');   if (m) m.value = '';
+  var s = document.getElementById('pafr-filter-status');  if (s) s.value = '';
+  pafrRender();
+}
+
+function pafrExportCsv() {
+  var filterPartner = (document.getElementById('pafr-filter-partner') || {}).value || '';
+  var filterMaand   = (document.getElementById('pafr-filter-maand')   || {}).value || '';
+  var filterStatus  = (document.getElementById('pafr-filter-status')  || {}).value || '';
+
+  var rows = pafrBeurten.filter(function(b) {
+    if (filterPartner && b.partner_id !== filterPartner) return false;
+    if (filterMaand) {
+      var d = b.eind_datum || b.plan_datum;
+      if (!d || String(d).slice(0, 7) !== filterMaand) return false;
+    }
+    if (filterStatus) {
+      if (filterStatus === 'gefactureerd'    && !b.gefactureerd_op) return false;
+      if (filterStatus === 'te_factureren'   && (b.gefactureerd_op || !['uitgevoerd','afgewerkt'].includes(b.beurt_status))) return false;
+      if (filterStatus === 'ingepland'       && !['ingepland','in_te_plannen'].includes(b.beurt_status)) return false;
+    }
+    return true;
+  });
+
+  var isAdmin = (userRole === 'admin' || userRole === 'bediende');
+  var headers = (isAdmin ? ['Partner'] : []).concat(['Contract','Klant','Sector','Datum','Flancco-forfait','Planning fee','Totaal','Status']);
+  var lines = [headers.join(';')];
+  rows.forEach(function(b) {
+    var datum = b.eind_datum || b.plan_datum;
+    var partnerLbl = b.partner_bedrijfsnaam || b.partner_naam || '';
+    var sectorLbl  = (typeof allSectorLabels === 'object' && allSectorLabels[b.sector]) || b.sector || '';
+    var statusLbl  = b.gefactureerd_op ? 'Gefactureerd'
+      : (['uitgevoerd','afgewerkt'].includes(b.beurt_status) ? 'Te factureren'
+      : (['ingepland','in_te_plannen'].includes(b.beurt_status) ? 'Nog uit te voeren' : b.beurt_status || ''));
+    var cells = (isAdmin ? [partnerLbl] : []).concat([
+      b.contract_nummer || b.contract_id || '',
+      b.klant_naam || '',
+      sectorLbl,
+      datum || '',
+      (b.flancco_forfait_per_beurt || 0).toFixed(2),
+      (b.planning_fee_snapshot || 0).toFixed(2),
+      (b.te_betalen_aan_flancco || 0).toFixed(2),
+      statusLbl
+    ]);
+    lines.push(cells.map(csvEsc).join(';'));
+  });
+
+  var blob = new Blob(['﻿' + lines.join('\n')], { type:'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'partner_afrekening_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  showToast('CSV geëxporteerd');
 }
 
 // =============================================================================
