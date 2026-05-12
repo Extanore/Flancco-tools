@@ -138,7 +138,7 @@
 ### WF-001 [High] Geen automatische admin-notificatie bij nieuwe lead
 - Na `anon_create_partner_application` zit prospect op success-pane; admin heeft enkel realtime-kanban-update als die tab open is.
 - **Impact**: leads liggen uren zonder reactie → bounce-risico.
-- **Suggestie**: Resend-trigger of DB-trigger op `partner_applications.insert` (mail naar partners@flancco.be).
+- **Suggestie**: Resend-trigger of DB-trigger op `partner_applications.insert` (mail naar gillian.geernaert@flancco.be).
 
 ### WF-002 [High] Onboard heeft 4 marketing-stappen vóór invul-actie
 - Prospect moet 5× scroll+klik voordat callback-form in beeld komt.
