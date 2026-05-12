@@ -3720,6 +3720,59 @@ function showToast(msg, type) {
   setTimeout(function() { t.classList.remove('show'); }, duration);
 }
 
+// Audit-fix 2026-05-12 UX-1.1: branded input-dialog vervangt native prompt().
+// Native prompt() breekt branding + werkt onbetrouwbaar op iOS Safari + bij
+// enterprise popup-blockers. Async, returnt Promise<string|null> (null = annuleer).
+function planningInputDialog(opts) {
+  return new Promise(function(resolve) {
+    opts = opts || {};
+    var title = opts.title || 'Invoer';
+    var message = opts.message || '';
+    var inputType = opts.type || 'text';
+    var defaultValue = opts.defaultValue || '';
+    var placeholder = opts.placeholder || '';
+    var confirmLabel = opts.confirmLabel || 'Bevestigen';
+    var cancelLabel = opts.cancelLabel || 'Annuleren';
+    var maxLength = opts.maxLength || 80;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2147482000;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML =
+      '<div role="dialog" aria-modal="true" style="background:#fff;border-radius:12px;padding:28px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">' +
+        '<h3 style="margin:0 0 10px;font-size:18px;color:var(--navy,#1A1A2E)">' + (title.replace(/[&<>"]/g, function(c){return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"})[c];})) + '</h3>' +
+        (message ? '<p style="margin:0 0 18px;color:#4B5563;font-size:14px;line-height:1.5">' + (message.replace(/[&<>"]/g, function(c){return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"})[c];})) + '</p>' : '') +
+        '<input type="' + inputType + '" data-role="input" maxlength="' + maxLength + '" style="width:100%;padding:10px 12px;border:1.5px solid var(--rule,#E5E7EB);border-radius:8px;font-size:14px;margin-bottom:18px;box-sizing:border-box">' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+          '<button type="button" data-role="cancel" style="padding:8px 16px;border:1.5px solid var(--rule,#E5E7EB);border-radius:8px;background:white;font-size:13px;font-weight:600;cursor:pointer">' + cancelLabel + '</button>' +
+          '<button type="button" data-role="confirm" style="padding:8px 16px;border:none;border-radius:8px;background:var(--navy,#1A1A2E);color:white;font-size:13px;font-weight:600;cursor:pointer">' + confirmLabel + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    var input = overlay.querySelector('[data-role="input"]');
+    if (placeholder) input.placeholder = placeholder;
+    input.value = defaultValue;
+    setTimeout(function(){ input.focus(); input.select && input.select(); }, 30);
+
+    function cleanup(result) {
+      document.removeEventListener('keydown', onKey);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      resolve(result);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); cleanup(null); }
+      else if (e.key === 'Enter') { e.preventDefault(); cleanup((input.value || '').trim() || null); }
+    }
+    document.addEventListener('keydown', onKey);
+    overlay.querySelector('[data-role="cancel"]').addEventListener('click', function(){ cleanup(null); });
+    overlay.querySelector('[data-role="confirm"]').addEventListener('click', function(){
+      cleanup((input.value || '').trim() || null);
+    });
+    overlay.addEventListener('click', function(e){ if (e.target === overlay) cleanup(null); });
+  });
+}
+
 // =============================================
 // SPLIT-BUTTON — generieke open/close + keyboard-handling
 // Pattern: <div class="btn-split" id="..."><button class="btn-split-main">...</button>
@@ -4171,7 +4224,14 @@ function savePresets(presets) {
 }
 
 async function saveCurrentAsPreset() {
-  var naam = prompt('Naam voor deze filter-combinatie:', '');
+  // Audit-fix 2026-05-12 UX-1.1: branded input-dialog ipv native prompt()
+  var naam = await planningInputDialog({
+    title: 'Filter-combinatie opslaan',
+    message: 'Geef deze combinatie een herkenbare naam.',
+    placeholder: 'bv. "Vakantieperiode juli"',
+    maxLength: 40,
+    confirmLabel: 'Opslaan'
+  });
   if (!naam || !naam.trim()) return;
   naam = naam.trim().slice(0, 40);
   var filters = {};
@@ -9196,7 +9256,14 @@ async function openExtraDagPrompt() {
   }
   var defaultDatum = formatDateISO(laatste);
 
-  var nieuweDatum = prompt('Datum voor extra dag (YYYY-MM-DD):', defaultDatum);
+  // Audit-fix 2026-05-12 UX-1.1: native date-input ipv prompt()
+  var nieuweDatum = await planningInputDialog({
+    title: 'Extra dag toevoegen',
+    message: 'Selecteer de datum voor de extra werkdag.',
+    type: 'date',
+    defaultValue: defaultDatum,
+    confirmLabel: 'Toevoegen'
+  });
   if (!nieuweDatum) return;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(nieuweDatum)) {
     showToast('Ongeldige datum (gebruik formaat YYYY-MM-DD)', 'error');

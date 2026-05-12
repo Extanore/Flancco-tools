@@ -1306,10 +1306,17 @@
         <input type="checkbox" id="nda-check">
         <span>Ik ga akkoord en bevestig — ik bevestig dat ik gemachtigd ben deze verklaring af te leggen namens mijn bedrijf en dat ik gebonden ben aan de bovenstaande voorwaarden.</span>
       </label>
-      <button type="button" class="btn primary" id="btn-nda-accept" disabled>
-        <span>Bevestigen</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </button>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end;width:100%">
+        <!-- Audit-fix 2026-05-12 UX-1.3: escape-pad voor prospect die wil afhaken
+             zonder NDA te ondertekenen. Geen dark-pattern, graceful exit. -->
+        <button type="button" class="btn" id="btn-nda-decline" style="background:transparent;color:var(--ink,#1A1A2E);border:1.5px solid var(--rule,#E5E7EB);font-weight:500" onclick="window._ndaDecline && window._ndaDecline()">
+          Niet akkoord — sluit pagina
+        </button>
+        <button type="button" class="btn primary" id="btn-nda-accept" disabled>
+          <span>Bevestigen</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -2681,6 +2688,15 @@
       $id('btn-nda-accept').disabled = !e.target.checked;
     });
     $id('btn-nda-accept').addEventListener('click', onNdaAccept);
+    // Audit-fix 2026-05-12 UX-1.3: graceful exit voor prospect die NDA niet aanvaardt.
+    // Probeer window.close() (werkt als tab via JS opende), anders redirect naar flancco-platform.be.
+    window._ndaDecline = function() {
+      try { window.close(); } catch(_) {}
+      // Als close niet werkte (meeste tabs geopend via link, niet via JS), redirect na korte delay
+      setTimeout(function() {
+        window.location.href = 'https://flancco-platform.be/';
+      }, 100);
+    };
     $id('ap-sig-clear').addEventListener('click', clearSignature);
     $id('ap-sign-ack').addEventListener('change', updateSignBtn);
     $id('btn-pdf-download').addEventListener('click', function(){
