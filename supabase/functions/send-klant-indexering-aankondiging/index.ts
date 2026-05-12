@@ -75,12 +75,23 @@ function isServiceRoleAuthorized(req: Request): boolean {
   return diff === 0;
 }
 
-const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Max-Age": "3600",
-};
+// CORS — Allow-Origin gewhitelist op productie-domeinen (admin/portal + calculator).
+// Override via ALLOWED_ORIGINS env var (comma-separated) voor staging-domeinen.
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
+  ?? "https://flancco-platform.be,https://app.flancco-platform.be,https://www.flancco-platform.be,https://calculator.flancco-platform.be"
+).split(",").map((s) => s.trim()).filter(Boolean);
+
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "3600",
+    "Vary": "Origin",
+  };
+}
 
 interface ContractRow {
   id: string;
@@ -123,16 +134,18 @@ interface IndexRow {
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
+  const corsHeaders = corsFor(req);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS });
+    return new Response("ok", { headers: corsHeaders });
   }
   if (req.method !== "POST") {
-    return jsonResp(405, { error: "method_not_allowed" });
+    return jsonResp(405, { error: "method_not_allowed" }, corsHeaders);
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RESEND_API_KEY) {
     console.error(`[${FN_NAME}] server_misconfigured`);
-    return jsonResp(500, { error: "server_misconfigured" });
+    return jsonResp(500, { error: "server_misconfigured" }, corsHeaders);
   }
 
   const ip = getClientIp(req);
@@ -143,7 +156,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       {
         status: 429,
         headers: {
-          ...CORS_HEADERS,
+          ...corsHeaders,
           "Content-Type": "application/json",
           "Retry-After": String(Math.ceil(rl.resetIn / 1000)),
         },
@@ -153,19 +166,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   if (!isServiceRoleAuthorized(req)) {
     console.log(`[${FN_NAME}] auth_rejected`);
-    return jsonResp(401, { error: "unauthorized" });
+    return jsonResp(401, { error: "unauthorized" }, corsHeaders);
   }
 
   let body: { contract_id?: string; gepland_voor_datum?: string };
   try {
     body = await req.json();
   } catch {
-    return jsonResp(400, { error: "invalid_json" });
+    return jsonResp(400, { error: "invalid_json" }, corsHeaders);
   }
 
   const contractId = body?.contract_id;
   if (!contractId || typeof contractId !== "string") {
-    return jsonResp(400, { error: "missing_contract_id" });
+    return jsonResp(400, { error: "missing_contract_id" }, corsHeaders);
   }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -184,17 +197,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   if (contractErr || !contract) {
     console.warn(`[${FN_NAME}] contract_not_found`, { contractId, err: contractErr?.message });
-    return jsonResp(200, { error: "contract_not_found", skipped: true });
+    return jsonResp(200, { error: "contract_not_found", skipped: true }, corsHeaders);
   }
 
   if (!contract.klant_email) {
     return await finalize(admin, contractId, body?.gepland_voor_datum ?? null, "skipped",
-      "missing_klant_email", null);
+      "missing_klant_email", null, corsHeaders);
   }
 
   if (!contract.indexering_start_index || contract.indexering_start_index <= 0) {
     return await finalize(admin, contractId, body?.gepland_voor_datum ?? null, "skipped",
-      "missing_start_index", null);
+      "missing_start_index", null, corsHeaders);
   }
 
   let partner: PartnerRow | null = null;
@@ -218,7 +231,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (idxErr || !idx) {
     console.warn(`[${FN_NAME}] no_index_meting`);
     return await finalize(admin, contractId, body?.gepland_voor_datum ?? null, "skipped",
-      "no_index_meting", null);
+      "no_index_meting", null, corsHeaders);
   }
 
   const startIndex = Number(contract.indexering_start_index);
@@ -298,6 +311,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     newStatus,
     reason ?? null,
     maskEmail(recipient),
+    corsHeaders,
     providerStatus,
   );
 });
@@ -310,6 +324,7 @@ async function finalize(
   status: "sent" | "failed" | "skipped",
   reason: string | null,
   maskedRecipient: string | null,
+  corsHeaders: Record<string, string>,
   providerStatus?: number,
 ): Promise<Response> {
   if (geplandVoorDatum) {
@@ -359,13 +374,13 @@ async function finalize(
     ok: status === "sent",
     status,
     reason: reason ?? undefined,
-  });
+  }, corsHeaders);
 }
 
-function jsonResp(status: number, body: unknown): Response {
+function jsonResp(status: number, body: unknown, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 

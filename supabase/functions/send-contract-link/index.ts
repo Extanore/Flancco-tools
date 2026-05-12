@@ -192,11 +192,23 @@ function uint8ToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-// CORS. Bewust permissief: partner-portal + admin-dashboard draaien op verschillende sub-domeinen.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// CORS — Allow-Origin gewhitelist op productie-domeinen (admin/portal + calculator).
+// Override via ALLOWED_ORIGINS env var (comma-separated) voor staging-domeinen.
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
+  ?? "https://flancco-platform.be,https://app.flancco-platform.be,https://www.flancco-platform.be,https://calculator.flancco-platform.be"
+).split(",").map((s) => s.trim()).filter(Boolean);
+
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "3600",
+    "Vary": "Origin",
+  };
+}
 
 // Sender + reply-to zijn env-var overridable zodat we zonder redeploy kunnen swappen
 // wanneer flancco.be DNS-toegang alsnog beschikbaar wordt.
@@ -310,6 +322,8 @@ function resolveBranding(p: PartnerRow | null): PartnerBranding {
 }
 
 serve(async (req) => {
+  const corsHeaders = corsFor(req);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

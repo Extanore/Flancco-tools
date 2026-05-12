@@ -55,12 +55,23 @@ const EMAIL_REPLY_TO = Deno.env.get("EMAIL_REPLY_TO")
 const APP_BASE_URL = (Deno.env.get("APP_BASE_URL") ?? "https://app.flancco-platform.be")
   .replace(/\/$/, "");
 
-const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Max-Age": "3600",
-};
+// CORS — Allow-Origin gewhitelist op productie-domeinen (admin/portal + calculator).
+// Override via ALLOWED_ORIGINS env var (comma-separated) voor staging-domeinen.
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS")
+  ?? "https://flancco-platform.be,https://app.flancco-platform.be,https://www.flancco-platform.be,https://calculator.flancco-platform.be"
+).split(",").map((s) => s.trim()).filter(Boolean);
+
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "3600",
+    "Vary": "Origin",
+  };
+}
 
 // ─── Validation ──────────────────────────────────────────────────────────────
 
@@ -88,29 +99,31 @@ interface RpcTokenRow {
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = corsFor(req);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS });
+    return new Response("ok", { headers: corsHeaders });
   }
   if (req.method !== "POST") {
-    return jsonResp({ ok: false, error: "method_not_allowed" }, 405);
+    return jsonResp({ ok: false, error: "method_not_allowed" }, 405, corsHeaders);
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY || !RESEND_API_KEY) {
     console.error("[send-partner-contract-link] missing env vars");
-    return jsonResp({ ok: false, error: "server_misconfigured" }, 500);
+    return jsonResp({ ok: false, error: "server_misconfigured" }, 500, corsHeaders);
   }
 
   // 1) Auth: JWT extraction & user-resolution
   const authHeader = req.headers.get("Authorization") || "";
   const userJwt = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!userJwt) {
-    return jsonResp({ ok: false, error: "missing_authorization" }, 401);
+    return jsonResp({ ok: false, error: "missing_authorization" }, 401, corsHeaders);
   }
 
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: userData, error: userErr } = await adminClient.auth.getUser(userJwt);
   if (userErr || !userData?.user) {
-    return jsonResp({ ok: false, error: "invalid_token" }, 401);
+    return jsonResp({ ok: false, error: "invalid_token" }, 401, corsHeaders);
   }
   const callerId = userData.user.id;
 
@@ -123,10 +136,10 @@ Deno.serve(async (req: Request) => {
 
   if (callerRoleErr) {
     console.error("[send-partner-contract-link] caller-role lookup failed", callerRoleErr.message);
-    return jsonResp({ ok: false, error: "role_lookup_failed" }, 500);
+    return jsonResp({ ok: false, error: "role_lookup_failed" }, 500, corsHeaders);
   }
   if (!callerRole || callerRole.role !== "admin") {
-    return jsonResp({ ok: false, error: "not_admin" }, 403);
+    return jsonResp({ ok: false, error: "not_admin" }, 403, corsHeaders);
   }
 
   // 3) Body parsing & validation
@@ -134,12 +147,12 @@ Deno.serve(async (req: Request) => {
   try {
     payload = await req.json();
   } catch {
-    return jsonResp({ ok: false, error: "invalid_json" }, 400);
+    return jsonResp({ ok: false, error: "invalid_json" }, 400, corsHeaders);
   }
 
   const applicationId = String(payload?.application_id ?? "").trim();
   if (!UUID_RE.test(applicationId)) {
-    return jsonResp({ ok: false, error: "invalid_application_id" }, 400);
+    return jsonResp({ ok: false, error: "invalid_application_id" }, 400, corsHeaders);
   }
 
   const rawTtl = payload?.ttl_days;
@@ -147,7 +160,7 @@ Deno.serve(async (req: Request) => {
     ? 7
     : (Number.isInteger(rawTtl) ? Number(rawTtl) : NaN);
   if (!Number.isInteger(ttlDays) || ttlDays < 1 || ttlDays > 30) {
-    return jsonResp({ ok: false, error: "invalid_ttl_days" }, 400);
+    return jsonResp({ ok: false, error: "invalid_ttl_days" }, 400, corsHeaders);
   }
 
   // 4) Lookup partner_application row (service-role; we're already admin-authorised)
@@ -162,13 +175,13 @@ Deno.serve(async (req: Request) => {
 
   if (appErr) {
     console.error("[send-partner-contract-link] application lookup failed", appErr.message);
-    return jsonResp({ ok: false, error: "application_lookup_failed" }, 500);
+    return jsonResp({ ok: false, error: "application_lookup_failed" }, 500, corsHeaders);
   }
   if (!app) {
-    return jsonResp({ ok: false, error: "application_not_found" }, 404);
+    return jsonResp({ ok: false, error: "application_not_found" }, 404, corsHeaders);
   }
   if (!app.contactpersoon_email) {
-    return jsonResp({ ok: false, error: "missing_contactpersoon_email" }, 400);
+    return jsonResp({ ok: false, error: "missing_contactpersoon_email" }, 400, corsHeaders);
   }
 
   // 5) RPC met user-JWT (SECURITY DEFINER admin-check passeert opnieuw)
@@ -188,7 +201,7 @@ Deno.serve(async (req: Request) => {
       message: rpcErr.message,
       code: rpcErr.code,
     });
-    return jsonResp({ ok: false, error: "rpc_failed", detail: rpcErr.message }, 500);
+    return jsonResp({ ok: false, error: "rpc_failed", detail: rpcErr.message }, 500, corsHeaders);
   }
 
   const tokenRow: RpcTokenRow | null = Array.isArray(rpcRows)
@@ -197,7 +210,7 @@ Deno.serve(async (req: Request) => {
 
   if (!tokenRow?.token || !tokenRow?.expires_at) {
     console.error("[send-partner-contract-link] rpc_returned_empty", { application_id: applicationId });
-    return jsonResp({ ok: false, error: "rpc_returned_empty" }, 500);
+    return jsonResp({ ok: false, error: "rpc_returned_empty" }, 500, corsHeaders);
   }
 
   const signingUrl = `${APP_BASE_URL}/onboard/sign/?token=${encodeURIComponent(tokenRow.token)}`;
@@ -249,7 +262,7 @@ Deno.serve(async (req: Request) => {
       // Token blijft geldig — admin kan handmatig URL ophalen uit DB
       expires_at: tokenRow.expires_at,
       signing_url: signingUrl,
-    }, 500);
+    }, 500, corsHeaders);
   }
 
   return jsonResp({
@@ -257,7 +270,7 @@ Deno.serve(async (req: Request) => {
     expires_at: tokenRow.expires_at,
     signing_url: signingUrl,
     message_id: resendResult.messageId,
-  }, 200);
+  }, 200, corsHeaders);
 });
 
 // ─── Resend wrapper ──────────────────────────────────────────────────────────
@@ -454,10 +467,10 @@ function formatBelgianDateTime(iso: string): string {
   }
 }
 
-function jsonResp(body: unknown, status: number) {
+function jsonResp(body: unknown, status: number, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 

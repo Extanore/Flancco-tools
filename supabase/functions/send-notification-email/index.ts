@@ -32,13 +32,25 @@ const FROM_DEFAULT = Deno.env.get('EMAIL_FROM_ADDRESS') ?? 'Flancco Platform <no
 const REPLY_TO     = Deno.env.get('EMAIL_REPLY_TO')      ?? 'gillian.geernaert@flancco.be';
 const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') ?? 'https://app.flancco-platform.be/').replace(/\/?$/, '/');
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// CORS — Allow-Origin gewhitelist op productie-domeinen (admin/portal + calculator).
+// Override via ALLOWED_ORIGINS env var (comma-separated) voor staging-domeinen.
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS')
+  ?? 'https://flancco-platform.be,https://app.flancco-platform.be,https://www.flancco-platform.be,https://calculator.flancco-platform.be'
+).split(',').map((s) => s.trim()).filter(Boolean);
 
-function json(status: number, body: unknown) {
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? 'null';
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '3600',
+    'Vary': 'Origin',
+  };
+}
+
+function json(status: number, body: unknown, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
@@ -82,20 +94,22 @@ function buildEmailHTML(notif: Notification, partner: Partner): string {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
+  const corsHeaders = corsFor(req);
 
-  if (!SUPABASE_URL || !SERVICE_KEY) return json(500, { error: 'supabase env missing' });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json(405, { error: 'method not allowed' }, corsHeaders);
+
+  if (!SUPABASE_URL || !SERVICE_KEY) return json(500, { error: 'supabase env missing' }, corsHeaders);
 
   let payload: Payload;
-  try { payload = await req.json() as Payload; } catch { return json(400, { error: 'invalid json' }); }
-  if (!payload.notification_id) return json(400, { error: 'notification_id required' });
+  try { payload = await req.json() as Payload; } catch { return json(400, { error: 'invalid json' }, corsHeaders); }
+  if (!payload.notification_id) return json(400, { error: 'notification_id required' }, corsHeaders);
 
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
 
   const { data: notif, error: nErr } = await sb.from('notifications').select('*').eq('id', payload.notification_id).single();
-  if (nErr || !notif) return json(404, { error: 'notification not found', detail: nErr?.message });
-  if (notif.email_sent) return json(200, { skipped: 'already_sent' });
+  if (nErr || !notif) return json(404, { error: 'notification not found', detail: nErr?.message }, corsHeaders);
+  if (notif.email_sent) return json(200, { skipped: 'already_sent' }, corsHeaders);
 
   // Recipient-lookup: partner-role users onder deze partner + alle admin-users (admins monitoren alles).
   let recipientUserIds: string[] = [];
@@ -116,7 +130,7 @@ Deno.serve(async (req: Request) => {
     (adminRoles ?? []).forEach((r: { user_id: string }) => { if (r.user_id) ids.add(r.user_id); });
     recipientUserIds = Array.from(ids);
   }
-  if (recipientUserIds.length === 0) return json(200, { skipped: 'no_recipients' });
+  if (recipientUserIds.length === 0) return json(200, { skipped: 'no_recipients' }, corsHeaders);
 
   const { data: prefs } = await sb
     .from('notification_preferences')
@@ -128,11 +142,11 @@ Deno.serve(async (req: Request) => {
   const sendTo = recipientUserIds.filter((u) => optedIn.has(u));
   if (sendTo.length === 0) {
     await sb.from('notifications').update({ email_sent: true }).eq('id', notif.id);
-    return json(200, { skipped: 'no_opt_in', checked_users: recipientUserIds.length });
+    return json(200, { skipped: 'no_opt_in', checked_users: recipientUserIds.length }, corsHeaders);
   }
 
   const { data: partner } = await sb.from('partners').select('id,bedrijfsnaam,naam,logo_url,kleur_primair,kleur_donker,website').eq('id', notif.partner_id).single();
-  if (!partner) return json(404, { error: 'partner not found' });
+  if (!partner) return json(404, { error: 'partner not found' }, corsHeaders);
 
   const emails: { email: string; user_id: string }[] = [];
   for (const uid of sendTo) {
@@ -142,12 +156,12 @@ Deno.serve(async (req: Request) => {
   }
   if (emails.length === 0) {
     await sb.from('notifications').update({ email_sent: true }).eq('id', notif.id);
-    return json(200, { skipped: 'no_emails' });
+    return json(200, { skipped: 'no_emails' }, corsHeaders);
   }
 
   if (!RESEND_KEY) {
     await sb.from('notifications').update({ email_sent: true }).eq('id', notif.id);
-    return json(200, { skipped: 'resend_not_configured' });
+    return json(200, { skipped: 'resend_not_configured' }, corsHeaders);
   }
 
   const html = buildEmailHTML(notif as Notification, partner as Partner);
@@ -173,5 +187,8 @@ Deno.serve(async (req: Request) => {
 
   await sb.from('notifications').update({ email_sent: true }).eq('id', notif.id);
 
-  return json(200, { sent: results });
+  // Strip per-recipient Resend detail uit response — vermijdt leak van provider-error-bodies + adressen.
+  const sent_count = results.filter((r) => !!(r as { ok?: boolean })?.ok).length;
+  const failed_count = results.length - sent_count;
+  return json(200, { sent_count, failed_count }, corsHeaders);
 });

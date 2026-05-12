@@ -1,10 +1,22 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// CORS — Allow-Origin gewhitelist op productie-domeinen (admin/portal + calculator).
+// Override via ALLOWED_ORIGINS env var (comma-separated) voor staging-domeinen.
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS')
+  ?? 'https://flancco-platform.be,https://app.flancco-platform.be,https://www.flancco-platform.be,https://calculator.flancco-platform.be'
+).split(',').map((s) => s.trim()).filter(Boolean);
+
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? 'null';
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '3600',
+    'Vary': 'Origin',
+  };
+}
 
 /*
   create-bediende — maakt een nieuwe gebruiker aan in Supabase Auth + user_roles + techniekers.
@@ -19,20 +31,22 @@ const CORS = {
 */
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  const corsHeaders = corsFor(req);
+
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     const body = await req.json();
     const { email, password, voornaam, naam, telefoon, functie, start_datum, adres, postcode, gemeente } = body || {};
 
     if (!email || !password || !voornaam || !naam) {
-      return json({ error: 'Verplichte velden ontbreken (email, password, voornaam, naam)' }, 400);
+      return json({ error: 'Verplichte velden ontbreken (email, password, voornaam, naam)' }, 400, corsHeaders);
     }
     if (typeof password !== 'string' || password.length < 6) {
-      return json({ error: 'Wachtwoord moet minstens 6 tekens zijn' }, 400);
+      return json({ error: 'Wachtwoord moet minstens 6 tekens zijn' }, 400, corsHeaders);
     }
 
     const authHeader = req.headers.get('Authorization') || '';
-    if (!authHeader) return json({ error: 'Niet ingelogd' }, 401);
+    if (!authHeader) return json({ error: 'Niet ingelogd' }, 401, corsHeaders);
 
     // 1) Verifieer caller
     const userClient = createClient(
@@ -41,7 +55,7 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
     const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user) return json({ error: 'Niet ingelogd' }, 401);
+    if (!userData?.user) return json({ error: 'Niet ingelogd' }, 401, corsHeaders);
 
     const { data: callerRole } = await userClient
       .from('user_roles')
@@ -55,7 +69,7 @@ Deno.serve(async (req) => {
                               && !!callerRole?.permissions?.manage_users;
 
     if (!isFlanccoInternal && !isPartnerOwner) {
-      return json({ error: 'Geen rechten om gebruikers aan te maken' }, 403);
+      return json({ error: 'Geen rechten om gebruikers aan te maken' }, 403, corsHeaders);
     }
 
     // 2) Bepaal role + partner_id o.b.v. caller-context (ALTIJD server-side — geen payload)
@@ -98,7 +112,7 @@ Deno.serve(async (req) => {
       user_metadata: { voornaam, naam },
     });
     if (authErr || !newUser?.user) {
-      return json({ error: 'Auth aanmaken faalde: ' + (authErr?.message || 'onbekend') }, 500);
+      return json({ error: 'Auth aanmaken faalde: ' + (authErr?.message || 'onbekend') }, 500, corsHeaders);
     }
     const newUserId = newUser.user.id;
 
@@ -111,7 +125,7 @@ Deno.serve(async (req) => {
     });
     if (roleErr) {
       await admin.auth.admin.deleteUser(newUserId);
-      return json({ error: 'user_roles aanmaken faalde: ' + roleErr.message }, 500);
+      return json({ error: 'user_roles aanmaken faalde: ' + roleErr.message }, 500, corsHeaders);
     }
 
     // 6) techniekers insert (type_personeel='bediende' — back-office medewerker)
@@ -134,7 +148,7 @@ Deno.serve(async (req) => {
     if (techErr || !techRow) {
       await admin.from('user_roles').delete().eq('user_id', newUserId);
       await admin.auth.admin.deleteUser(newUserId);
-      return json({ error: 'techniekers-rij aanmaken faalde: ' + (techErr?.message || 'onbekend') }, 500);
+      return json({ error: 'techniekers-rij aanmaken faalde: ' + (techErr?.message || 'onbekend') }, 500, corsHeaders);
     }
 
     // 7) Default verlof_saldi — enkel voor Flancco-intern (partners beheren eigen saldi separaat)
@@ -164,15 +178,15 @@ Deno.serve(async (req) => {
       user_id: newUserId,
       role: newUserRole,
       partner_id: newUserPartnerId,
-    });
+    }, 200, corsHeaders);
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    return json({ error: (e as Error).message }, 500, corsHeaders);
   }
 });
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status: number, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
