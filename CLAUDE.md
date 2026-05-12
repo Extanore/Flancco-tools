@@ -33,7 +33,7 @@ Commercial SaaS-platform voor Flancco BV (droogijsstralen + HVAC/technisch onder
   - App + portal: `https://app.flancco-platform.be`
   - Calculator:   `https://calculator.flancco-platform.be` (partner-slug in path of query)
   - Apex `https://flancco-platform.be` → 301 naar app
-  - Legacy fallback (90 dagen post-cutover): `https://extanore.github.io/Flancco-tools/`
+  - Legacy GitHub Pages fallback (`extanore.github.io/Flancco-tools/`) is uitgeschakeld per 2026-05-12; Cloudflare is single source of truth
 - **Supabase JS**: CDN via `@supabase/supabase-js@2` (UMD bundle)
 
 ## Bestandsstructuur
