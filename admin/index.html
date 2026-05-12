@@ -628,6 +628,19 @@
   .btn-cancel:hover:not(:disabled) { border-color: var(--navy); background:#F9FAFB; }
   .btn-cancel:active:not(:disabled) { transform: translateY(1px); }
 
+  /* EMPTY-STATE — audit-fix 2026-05-13: gedeelde lege-staat-component met optionele CTA.
+     Vervangt 7+ inline "Nog geen X" paragrafen die voorheen zonder action verschenen. */
+  .empty-state {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:48px 24px; text-align:center;
+    border:1.5px dashed var(--rule); border-radius:12px; background:#FAFBFC;
+    margin:8px 0;
+  }
+  .empty-state-icon { width:48px; height:48px; margin-bottom:16px; color:var(--grey); opacity:0.7; }
+  .empty-state-title { font-size:15px; font-weight:600; color:var(--navy); margin:0 0 6px; }
+  .empty-state-body { font-size:13.5px; color:var(--grey); line-height:1.55; margin:0 0 18px; max-width:380px; }
+  .empty-state .btn { margin-top:4px; }
+
   /* MODAL */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
   .modal-overlay.open { display:flex; }
@@ -2284,7 +2297,16 @@
           <thead><tr><th>Klant</th><th>Partner</th><th>Panelen</th><th>Bedrag</th><th>Datum</th><th>Status</th></tr></thead>
           <tbody id="recent-contracts"></tbody>
         </table>
-        <p id="no-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Nog geen contracten ontvangen.</p>
+        <div id="no-contracts" style="display:none">
+          <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            </div>
+            <div class="empty-state-title">Nog geen contracten</div>
+            <p class="empty-state-body">Wanneer een klant een contract ondertekent via de calculator-link, verschijnt hij hier. Je kan ook zelf een contract starten via de wizard.</p>
+            <a class="btn btn-primary" href="contracten-wizard.html">Nieuw contract starten</a>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2389,7 +2411,13 @@
         <!-- Slot C1 — Partner pipeline kanban (alleen zichtbaar bij tab=pipeline) -->
         <div id="pipeline-container" style="display:none">
           <div class="c-pipeline-board" id="pipeline-board"></div>
-          <p id="no-pipeline" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Nog geen contracten in uw pipeline.</p>
+          <div id="no-pipeline" style="display:none">
+            <div class="empty-state">
+              <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div>
+              <div class="empty-state-title">Pipeline is nog leeg</div>
+              <p class="empty-state-body">Zodra een klant je calculator-link gebruikt en een contract ondertekent, verschijnt hij hier.</p>
+            </div>
+          </div>
         </div>
         <!-- Standaard tabel-weergave (admin: lopend/eenmalig; partner: alle/followup) -->
         <div id="contracten-table-container">
@@ -2397,7 +2425,14 @@
             <thead><tr><th>Klant</th><th class="admin-only">Partner</th><th>Sector(en)</th><th>Frequentie</th><th>Duur</th><th>Totaal</th><th>Status</th><th>Acties</th></tr></thead>
             <tbody id="all-contracts"></tbody>
           </table>
-          <p id="no-all-contracts" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen contracten gevonden.</p>
+          <div id="no-all-contracts" style="display:none">
+            <div class="empty-state">
+              <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <div class="empty-state-title">Geen contracten gevonden</div>
+              <p class="empty-state-body">Probeer je filters aan te passen, of start een nieuw contract via de wizard.</p>
+              <a class="btn btn-primary" href="contracten-wizard.html">Nieuw contract starten</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2464,7 +2499,16 @@
           </tr></thead>
           <tbody id="klanten-tbody"></tbody>
         </table>
-        <p id="no-klanten" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen klanten gevonden.</p>
+        <div id="no-klanten" style="display:none">
+          <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="empty-state-title">Nog geen klanten</div>
+            <p class="empty-state-body">Voeg je eerste klant toe om contracten en interventies te starten. Bedrijven of particulieren — alles wordt centraal beheerd.</p>
+            <button type="button" class="btn btn-primary" onclick="openKlantModal()">+ Nieuwe klant</button>
+          </div>
+        </div>
       </div>
       <div id="klant-dossier" style="display:none"></div>
     </div>
@@ -4274,7 +4318,16 @@
             </tr></thead>
             <tbody id="fd-tbody"></tbody>
           </table>
-          <p id="fd-empty" style="color:var(--grey);font-size:13px;padding:16px 0;display:none">Geen feestdagen of sluitingsperiodes gevonden voor deze filter.</p>
+          <div id="fd-empty" style="display:none">
+            <div class="empty-state">
+              <div class="empty-state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="empty-state-title">Geen feestdagen of sluitingen</div>
+              <p class="empty-state-body">Voeg Belgische feestdagen en bedrijfssluitingen toe zodat planning ze automatisch overslaat.</p>
+              <button type="button" class="btn btn-primary" onclick="openFeestdagModal()">+ Toevoegen</button>
+            </div>
+          </div>
         </div>
       </div>
       <!-- /Feestdagen-pane -->
@@ -5028,7 +5081,16 @@
 
         <!-- Loader -->
         <div id="pa-loading" style="display:none;text-align:center;padding:40px;color:var(--grey);font-size:13px">Aanvragen laden…</div>
-        <div id="pa-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--grey);font-size:13px">Nog geen partner-aanvragen ontvangen.</div>
+        <div id="pa-empty" style="display:none">
+          <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </div>
+            <div class="empty-state-title">Nog geen partner-aanvragen</div>
+            <p class="empty-state-body">Wanneer een prospect via de publieke onboard-pagina een aanvraag indient, verschijnt hij hier. Je kan ook zelf direct een partner uitnodigen.</p>
+            <button type="button" class="btn btn-primary" onclick="openInvitePartnerModal()">+ Partner uitnodigen</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -13591,6 +13653,38 @@ function csvEsc(val) {
 function formatCurrency(val) {
   return '€ ' + Number(val).toFixed(2).replace('.', ',');
 }
+
+// Audit-fix 2026-05-13 (UX-2.3): gedeelde lege-staat-render. Vervangt 7+ inline
+// "Nog geen X"-paragrafen door consistente cards met optionele primary CTA.
+// Gebruik: renderEmptyState({title, body, ctaLabel, ctaAction, icon})
+//   - title: hoofdtekst (verplicht)
+//   - body: subtekst (optioneel)
+//   - ctaLabel + ctaAction: primary actie (beide optioneel — moet samen)
+//   - icon: 'plus' | 'file' | 'users' | 'calendar' | 'inbox' (default 'inbox')
+function renderEmptyState(opts) {
+  opts = opts || {};
+  var icons = {
+    inbox:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+    plus:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+    file:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    users:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    invoice:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+  };
+  var iconSvg = icons[opts.icon] || icons.inbox;
+  var ctaAttr = '';
+  if (opts.ctaLabel && opts.ctaAction) {
+    var actionStr = String(opts.ctaAction).replace(/"/g, '&quot;');
+    ctaAttr = '<button type="button" class="btn btn-primary" onclick="' + actionStr + '">' + esc(opts.ctaLabel) + '</button>';
+  }
+  return '<div class="empty-state">' +
+    '<div class="empty-state-icon" aria-hidden="true">' + iconSvg + '</div>' +
+    '<div class="empty-state-title">' + esc(opts.title || 'Geen gegevens gevonden') + '</div>' +
+    (opts.body ? '<p class="empty-state-body">' + esc(opts.body) + '</p>' : '') +
+    ctaAttr +
+  '</div>';
+}
+window.renderEmptyState = renderEmptyState;
 
 // Audit-fix 2026-05-12 HIGH-4: UTC-vs-CET datum-drift bij `todayISO()`.
 // Tussen 00:00-02:00 CEST/CET in BE is UTC-dag nog gisteren → facturatie-datum + overdue
