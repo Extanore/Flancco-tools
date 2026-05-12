@@ -1072,7 +1072,7 @@
     <div class="intro"><h1 data-i18n="step2b.title">Uw offerte samengevat</h1><p data-i18n="step2b.subtitle">Controleer onderstaande gegevens voordat u doorgaat naar de overeenkomst.</p></div>
     <div id="summary-container"></div>
     <div class="btn-row">
-      <button class="btn btn-outline" onclick="goToStep(2)" data-i18n="step2b.ctaBack">&larr; Aanpassen</button>
+      <button class="btn btn-outline" onclick="goToStep(2); setTimeout(function() { var step2 = document.getElementById('step-2'); if (step2) step2.scrollIntoView({ behavior: 'smooth', block: 'start' }); var firstInput = step2 ? step2.querySelector('input:not([type=&quot;hidden&quot;]), select') : null; if (firstInput) firstInput.focus({ preventScroll: true }); }, 100);" data-i18n="step2b.ctaBack">&larr; Aanpassen</button>
       <button class="btn" onclick="generateContract()" data-i18n="step2b.ctaNext">Akkoord, ga naar overeenkomst &rarr;</button>
     </div>
   </div>

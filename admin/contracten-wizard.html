@@ -535,6 +535,15 @@
   .field { position: relative; }
   .field input.is-valid { border-color: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,0.10); }
   .field input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,62,62,0.10); }
+  /* WF-008 — inline veld-validatie on blur (rode border bij leeg required-veld).
+     .has-err is een wrapper-klasse op .field of .form-row; cascade-style override
+     met !important zodat partner-branding (--brand-primary) niet wint. */
+  .field.has-err input,
+  .field.has-err select,
+  .field.has-err textarea,
+  .form-row.has-err input,
+  .form-row.has-err select,
+  .form-row.has-err textarea { border-color: var(--red, #E74C3C) !important; }
   .field-hint { font-size: 12px; color: var(--red); margin-top: 4px; min-height: 0; max-height: 0; overflow: hidden; transition: max-height 0.18s, margin-top 0.18s; }
   .field-hint.is-shown { max-height: 60px; margin-top: 4px; }
   .field-helper { font-size: 12px; color: var(--grey); margin-top: 4px; min-height: 16px; }
@@ -844,7 +853,11 @@
       </div>
       <div class="wizard-footer">
         <button class="btn btn-ghost" onclick="goStep(2)">&larr; Vorige</button>
-        <button class="btn btn-primary" id="btn-save-concept" onclick="saveContract()">Opslaan als concept</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn btn-ghost" id="btn-save-concept" onclick="saveContract()">Opslaan als concept</button>
+          <!-- WF-007 — tweede CTA: opslaan + meteen signing-link mailen via send-contract-link edge function. -->
+          <button class="btn btn-primary" id="btn-save-and-send" onclick="saveContractAndSendLink()">Opslaan + verstuur signing-link</button>
+        </div>
       </div>
     </div>
 
@@ -1498,6 +1511,38 @@ async function initApp() {
 }
 
 // =============================================
+// WF-008 — Inline veld-validatie (per-veld, niet pas bij stap-transitie)
+// =============================================
+// Markeert lege required-inputs met rode border + aria-invalid on blur. Kruist
+// alle wizard-velden (.field als wrapper, klassieke .form-row als fallback voor
+// toekomstige refactors). Idempotent: bij geldige waarde wordt has-err verwijderd.
+function wizValidateField(input) {
+  if (!input || typeof input.hasAttribute !== 'function') return;
+  // Enkel velden binnen de wizard-app evalueren (de login-form heeft eigen flow).
+  if (!input.closest || !input.closest('#app')) return;
+  // .field is de actieve wrapper-klasse in deze wizard; .form-row blijft als fallback.
+  var row = input.closest('.field') || input.closest('.form-row') || input.parentElement;
+  var val = (typeof input.value === 'string') ? input.value.trim() : input.value;
+  var isRequired = input.hasAttribute('required');
+  if (isRequired && !val) {
+    if (row) row.classList.add('has-err');
+    input.setAttribute('aria-invalid', 'true');
+  } else {
+    if (row) row.classList.remove('has-err');
+    input.removeAttribute('aria-invalid');
+  }
+}
+
+// Globale blur-listener: capture-phase zodat we elk wizard-veld zien zonder per-input bind.
+document.addEventListener('blur', function(e) {
+  var t = e.target;
+  if (!t || !t.tagName) return;
+  if (t.tagName !== 'INPUT' && t.tagName !== 'SELECT' && t.tagName !== 'TEXTAREA') return;
+  if (!t.closest || !t.closest('#app')) return;
+  wizValidateField(t);
+}, true);
+
+// =============================================
 // STEP NAVIGATION
 // =============================================
 function goStep(n) {
@@ -1578,6 +1623,26 @@ function goStep(n) {
     if (typeof wizState.duur !== 'number') {
       showToast('Kies een looptijd in stap 2');
       return;
+    }
+    // WF-009 — bij 6% BTW: partner moet expliciet bevestigen dat de klant geïnformeerd
+    // is over de verklaring-op-eer (privé-woning + ouder dan 10 jaar). De klant tekent
+    // de verklaring zelf bij signing, maar zonder voorafgaande info riskeer je een
+    // niet-conform contract. Blokkeert "Volgende" zolang geen bevestiging.
+    // Eenmaal-per-wizard-sessie: state-bit op wizState voorkomt nag bij heen-en-weer
+    // klikken tussen stappen.
+    if (wizState.btwPct === 6 && !wizState._btw6Acknowledged) {
+      var ok = window.confirm(
+        'Bevestiging 6% BTW\n\n' +
+        'Het 6%-tarief vereist dat de klant verklaart dat:\n' +
+        '  1. de woning hoofdzakelijk als privéwoning gebruikt wordt, én\n' +
+        '  2. ouder is dan 10 jaar (eerste ingebruikname).\n\n' +
+        'De klant bekrachtigt deze verklaring zelf bij ondertekening. ' +
+        'Bevestig dat je de klant hiervan op de hoogte hebt gebracht ' +
+        'voordat het contract verstuurd wordt.\n\n' +
+        'Doorgaan naar afronden?'
+      );
+      if (!ok) return;
+      wizState._btw6Acknowledged = true;
     }
     renderSummary();
   }
@@ -2217,7 +2282,14 @@ function mountWizCalc() {
 function onWizCalcChange(state, result) {
   wizState.selectedSectors = (state && state.selectedSectors) || [];
   // Bridge: calculator-UI controls → wizState (geen DOM-input meer voor freq/duur).
-  if (state && typeof state.btwPct === 'number') wizState.btwPct = state.btwPct;
+  if (state && typeof state.btwPct === 'number') {
+    // WF-009 — reset 6%-acknowledgement wanneer BTW van 6% terug naar 21% (of andersom)
+    // schakelt. Voorkomt dat een eerder akkoord blijft hangen na een tarief-wissel.
+    if (state.btwPct !== wizState.btwPct) {
+      wizState._btw6Acknowledged = false;
+    }
+    wizState.btwPct = state.btwPct;
+  }
   if (state && typeof state.freq === 'number') wizState.freq = state.freq;
   if (state && typeof state.duur === 'number') wizState.duur = state.duur;
   if (state && typeof state.afstandKm === 'number') wizState.afstandKm = state.afstandKm;
@@ -2445,15 +2517,27 @@ function renderSummary() {
 // =============================================
 // SAVE CONTRACT
 // =============================================
-async function saveContract() {
+// WF-007 — wrapper voor "Opslaan + verstuur signing-link" CTA: voert eerst de
+// reguliere saveContract uit, en bij succes wordt automatisch de signing-link
+// gemaild via de send-contract-link edge function.
+async function saveContractAndSendLink() {
+  return saveContract({ sendLink: true });
+}
+
+async function saveContract(opts) {
+  opts = opts || {};
+  var sendLink = !!opts.sendLink;
   // 6% BTW verklaring-op-eer wordt door de klant zelf bekrachtigd in de signing-stap
   // (calculator). Partner mag het contract opslaan met 6% BTW zonder vooraf-bevestiging;
   // de signing-RPC (anon_sign_contract_complete) zet de drie verklaring-kolommen pas bij
   // de feitelijke ondertekening. Geen guard meer hier.
 
-  var btn = document.getElementById('btn-save-concept');
-  btn.disabled = true;
-  btn.textContent = 'Opslaan...';
+  // WF-007 — beide CTA's tegelijk locken zodat dubbel-klikken niet kan racen.
+  var btn = document.getElementById(sendLink ? 'btn-save-and-send' : 'btn-save-concept');
+  var siblingBtn = document.getElementById(sendLink ? 'btn-save-concept' : 'btn-save-and-send');
+  var btnLabelOriginal = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = sendLink ? 'Opslaan + versturen...' : 'Opslaan...'; }
+  if (siblingBtn) { siblingBtn.disabled = true; }
 
   try {
     // Defense-in-depth: partner-users moeten altijd in eigen scope opslaan,
@@ -2631,20 +2715,43 @@ async function saveContract() {
       }).then(function(){}, function(e){ console.warn('Audit log failed:', e); });
     } catch (e) { console.warn('Audit log failed:', e); }
 
-    showToast('Contract opgeslagen als concept');
+    // WF-007 — als sendLink: roep send-contract-link edge function aan om signing-link
+    // direct naar klant te mailen. Faalt-niet-fataal: contract is al opgeslagen, dus we
+    // tonen een duidelijke fout-toast maar redirecten alsnog zodat de partner de link
+    // handmatig kan versturen vanaf de contracten-pagina. Edge function vereist auth (verify_jwt=true).
+    if (sendLink) {
+      try {
+        var fnRes = await sb.functions.invoke('send-contract-link', { body: { contract_id: contractId } });
+        if (fnRes && fnRes.error) {
+          console.error('send-contract-link error:', fnRes.error);
+          showToast('Contract opgeslagen, maar mail versturen mislukte: ' + (fnRes.error.message || 'onbekende fout'), 'error');
+        } else {
+          showToast('Contract opgeslagen + signing-link verzonden naar klant');
+        }
+      } catch (sendErr) {
+        console.error('send-contract-link exception:', sendErr);
+        showToast('Contract opgeslagen, maar mail versturen mislukte: ' + (sendErr.message || sendErr), 'error');
+      }
+    } else {
+      showToast('Contract opgeslagen als concept');
+    }
 
     clearWizDraft();
 
-    // Redirect to contracten page
+    // Redirect to contracten page (langere delay bij sendLink zodat toast leesbaar is).
     setTimeout(function() {
       window.location.href = 'index.html?page=contracten';
-    }, 1000);
+    }, sendLink ? 1800 : 1000);
 
   } catch (err) {
     console.error('Save error:', err);
     showToast('Fout bij opslaan: ' + (err.message || err));
-    btn.disabled = false;
-    btn.textContent = 'Opslaan als concept';
+    // WF-007 — beide CTA's terug enablen + originele labels herstellen.
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btnLabelOriginal || (sendLink ? 'Opslaan + verstuur signing-link' : 'Opslaan als concept');
+    }
+    if (siblingBtn) { siblingBtn.disabled = false; }
   }
 }
 
