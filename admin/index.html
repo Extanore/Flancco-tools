@@ -9086,13 +9086,15 @@ async function deletePartner(partnerId) {
     sb.from('contracten').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId),
     sb.from('clients').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId),
     sb.from('pricing').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId),
-    sb.from('user_roles').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId)
+    sb.from('user_roles').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId),
+    sb.from('partner_applications').select('id', { count: 'exact', head: true }).eq('partner_id', partnerId)
   ]);
   var cnt = {
     contracten: results[0].count || 0,
     klanten: results[1].count || 0,
     pricing: results[2].count || 0,
-    users: results[3].count || 0
+    users: results[3].count || 0,
+    applications: results[4].count || 0
   };
 
   // Contracten / klanten = harde blokker (echte data, geen accidentele cascade)
@@ -9100,7 +9102,20 @@ async function deletePartner(partnerId) {
   if (cnt.contracten) harde.push(cnt.contracten + ' contract(en)');
   if (cnt.klanten) harde.push(cnt.klanten + ' klant(en)');
   if (harde.length) {
-    await infoDialog('Kan partner "' + (p.bedrijfsnaam || p.naam) + '" niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + harde.join('\n\u2022 ') + '\n\nVerwijder of herverbind eerst deze records.', 'Verwijdering geblokkeerd');
+    var blokkerMsg = 'Kan partner "' + (p.bedrijfsnaam || p.naam) + '" niet verwijderen.\n\nEr zijn nog gekoppelde records:\n\u2022 ' + harde.join('\n\u2022 ') + '\n\nVerwijder of herverbind eerst deze records.';
+    if (cnt.contracten) {
+      // Click-through: bied directe navigatie naar gefilterde contractenlijst aan
+      var openContracten = await confirmDialog({
+        title: 'Verwijdering geblokkeerd',
+        message: blokkerMsg,
+        confirmLabel: 'Open gekoppelde contracten',
+        cancelLabel: 'Sluiten',
+        variant: 'primary'
+      });
+      if (openContracten) filterContractenByPartner(partnerId);
+    } else {
+      await infoDialog(blokkerMsg, 'Verwijdering geblokkeerd');
+    }
     return;
   }
 
@@ -9109,6 +9124,7 @@ async function deletePartner(partnerId) {
   var extras = [];
   if (cnt.users) extras.push(cnt.users + ' gebruiker(s) (login-account wordt verwijderd)');
   if (cnt.pricing) extras.push(cnt.pricing + ' pricing-staffel(s)');
+  if (cnt.applications) extras.push(cnt.applications + ' partner-aanvra(a)g(en) (kanban-kaarten worden gewist)');
   var extraMsg = extras.length ? '\n\nWordt ook verwijderd:\n\u2022 ' + extras.join('\n\u2022 ') : '';
   if (!(await confirmDialog({ title: 'Partner verwijderen?', message: 'Partner "' + naam + '" definitief verwijderen?' + extraMsg, variant: 'danger', confirmLabel: 'Verwijderen' }))) return;
 
@@ -9165,7 +9181,7 @@ async function deletePartner(partnerId) {
   // Audit: snapshot bewaren want partner is nu weg.
   auditLog('partners', partnerId, 'verwijderd',
     JSON.stringify({ bedrijfsnaam: p.bedrijfsnaam || p.naam, slug: p.slug, marge_pct: p.marge_pct, planning_fee: p.planning_fee }),
-    JSON.stringify({ cascade_users: cnt.users || 0, cascade_pricing: cnt.pricing || 0 }));
+    JSON.stringify({ cascade_users: cnt.users || 0, cascade_pricing: cnt.pricing || 0, cascade_applications: cnt.applications || 0 }));
 
   // Refresh lokale cache
   partners = partners.filter(function(x) { return x.id !== partnerId; });
