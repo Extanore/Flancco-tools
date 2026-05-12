@@ -445,7 +445,7 @@ function buildNlSignedHtml(c: SignedCtx): string {
     <ol style="margin:0 0 28px;padding-left:22px;font-size:14px;line-height:1.85;color:#374151">
       <li style="margin-bottom:6px"><strong>Binnen 1 werkdag</strong> ontvang je een aparte e-mail met een veilige activatie-link voor je partner-portaal</li>
       <li style="margin-bottom:6px"><strong>Bij eerste login</strong> doorloop je een korte onboarding-tour: branding (logo + kleuren), calculator-instellingen en eerste teamleden</li>
-      <li style="margin-bottom:6px"><strong>Marketing-kit</strong> wordt automatisch klaargezet in je portaal: QR-codes, share-templates en banner-snippets voor je calculator</li>
+      <li style="margin-bottom:6px"><strong>Marketing-kit</strong> staat klaar in je portaal &mdash; QR-codes, share-templates en banner-snippets voor je calculator, vanaf dag 1 door jou inzetbaar in je netwerk</li>
       <li style="margin-bottom:6px"><strong>Persoonlijke begeleiding</strong> door je account-manager voor de eerste live-leads</li>
     </ol>
 
@@ -519,7 +519,7 @@ function buildFrSignedHtml(c: SignedCtx): string {
     <ol style="margin:0 0 28px;padding-left:22px;font-size:14px;line-height:1.85;color:#374151">
       <li style="margin-bottom:6px"><strong>Dans 1 jour ouvrable</strong> vous recevrez un e-mail séparé avec un lien d'activation sécurisé pour votre portail partenaire</li>
       <li style="margin-bottom:6px"><strong>À la première connexion</strong> vous suivrez une courte visite d'onboarding</li>
-      <li style="margin-bottom:6px"><strong>Kit marketing</strong> sera automatiquement préparé dans votre portail</li>
+      <li style="margin-bottom:6px"><strong>Kit marketing</strong> est prêt dans votre portail &mdash; QR-codes, share-templates et banner-snippets pour votre calculateur, déployables par vous dès le jour 1 dans votre réseau</li>
       <li style="margin-bottom:6px"><strong>Accompagnement personnel</strong> par votre account-manager pour les premiers leads en direct</li>
     </ol>
 
