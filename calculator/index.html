@@ -996,7 +996,7 @@
       <div class="accept-box" style="border-color:var(--rule);background:var(--light)">
         <label>
           <input type="checkbox" id="privacy-check" onchange="refreshCtaProgress()">
-          <div class="accept-text" style="font-size:12px;color:var(--grey)">Ik heb de <a href="#" id="privacy-link" target="_blank" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens.</div>
+          <div class="accept-text" style="font-size:12px;color:var(--grey)">Ik heb de <a href="https://flancco-platform.be/privacy/" id="privacy-link" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens.</div>
         </label>
       </div>
     </div>
@@ -3882,8 +3882,8 @@ function setupPreviewMode() {
     ].join(';');
     document.body.appendChild(badge);
 
-    // Print-versie verbergen via stylesheet (niet inline want @media werkt
-    // niet met cssText). Eén keer toevoegen.
+    // Print-versie verbergen via stylesheet (inline cssText ondersteunt geen
+    // @media-regels). Eén keer toevoegen.
     if (!document.getElementById('preview-badge-print-style')) {
       var st = document.createElement('style');
       st.id = 'preview-badge-print-style';
@@ -4316,7 +4316,7 @@ function renderSigningUI() {
   html += '<div class="accept-box" style="border:2px solid var(--rule);border-radius:8px;padding:12px;margin-bottom:16px">';
   html += '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">';
   html += '<input type="checkbox" id="signing-accept" style="width:20px;height:20px;margin-top:2px;accent-color:var(--primary)" onchange="checkSigningReady()">';
-  html += '<span style="font-size:13px;color:var(--grey)">Ik heb de voorwaarden en de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met dit onderhoudscontract.</span>';
+  html += '<span style="font-size:13px;color:var(--grey)">Ik heb de voorwaarden en de <a href="https://flancco-platform.be/privacy/" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met dit onderhoudscontract.</span>';
   html += '</label></div>';
 
   html += '<div style="margin-bottom:12px"><strong style="font-size:13px">Uw handtekening</strong></div>';
@@ -4900,9 +4900,9 @@ function applyBranding(p, sector) {
   // Privacy link
   var privText = document.querySelector('#privacy-card .accept-text');
   if (p.slug === 'flancco') {
-    privText.innerHTML = 'Ik heb de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>Flancco BV</strong>.';
+    privText.innerHTML = 'Ik heb de <a href="https://flancco-platform.be/privacy/" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>Flancco BV</strong>.';
   } else {
-    privText.innerHTML = 'Ik heb de <a href="#" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>' + esc(getPartnerDisplayName(p, selectedSectors[0] || null)) + '</strong> en <strong>Flancco BV</strong>.';
+    privText.innerHTML = 'Ik heb de <a href="https://flancco-platform.be/privacy/" target="_blank" rel="noopener" style="color:var(--primary)">privacyverklaring</a> gelezen en ga akkoord met de verwerking van mijn gegevens door <strong>' + esc(getPartnerDisplayName(p, selectedSectors[0] || null)) + '</strong> en <strong>Flancco BV</strong>.';
   }
 }
 
