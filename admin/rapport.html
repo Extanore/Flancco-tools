@@ -1602,36 +1602,123 @@ function renderFotoCategories(cats) {
   }).join('');
 }
 
-function handleCatFotos(e, catKey) {
-  Array.from(e.target.files).forEach(function(file) {
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      if (!fotosByCategory[catKey]) fotosByCategory[catKey] = [];
-      fotosByCategory[catKey].push({ file: file, preview: ev.target.result });
-      // Also keep in flat fotos array for backward compat
-      fotos.push({ file: file, preview: ev.target.result, category: catKey });
-      renderFotoCategories();
-    };
-    reader.readAsDataURL(file);
+// Read een File/Blob als data-URL — Promise-based wrapper rond FileReader.
+function _readAsDataURL(file) {
+  return new Promise(function(resolve) {
+    if (!file) return resolve('');
+    try {
+      var reader = new FileReader();
+      reader.onload = function(ev) { resolve(ev && ev.target ? ev.target.result : ''); };
+      reader.onerror = function() { resolve(''); };
+      reader.readAsDataURL(file);
+    } catch (_) { resolve(''); }
   });
+}
+
+/**
+ * Comprimeert een afbeelding client-side via canvas voordat upload.
+ *
+ * Default targets: max 1920px op de langste zijde, JPEG quality 0.85.
+ * Resultaat: typisch 400-800 KB i.p.v. 5-8 MB phone-camera output.
+ *
+ * Voordelen:
+ *   • Snellere upload voor de planner in het veld (mobiele data)
+ *   • Storage-kosten 5-10× lager
+ *   • PDFs blijven licht (edge function PHOTO_MAX_BYTES blijft ruim onder cap)
+ *
+ * Falt graceful: bij decode-fout retourneert de originele File (met preview
+ * via FileReader-fallback). Geen kritisch pad — als compressie faalt mag de
+ * planner gewoon doorgaan met de originele foto.
+ *
+ * @param {File} file
+ * @param {Object} [opts] — { maxWidth: 1920, quality: 0.85 }
+ * @returns {Promise<{file: Blob, preview: string}>}
+ */
+async function compressImageFile(file, opts) {
+  opts = opts || {};
+  var maxWidth = opts.maxWidth || 1920;
+  var quality  = opts.quality  || 0.85;
+
+  // Niet-afbeeldingen of falsy: zonder compressie doorlaten
+  if (!file || !file.type || file.type.indexOf('image/') !== 0) {
+    return { file: file, preview: await _readAsDataURL(file) };
+  }
+  // Heel kleine bestanden (< 200 KB): compressie zou nauwelijks effect hebben,
+  // skip om CPU-tijd te besparen op laag-spec mobile devices.
+  if (file.size && file.size < 200 * 1024) {
+    return { file: file, preview: await _readAsDataURL(file) };
+  }
+
+  try {
+    // createImageBitmap respecteert EXIF orientation in moderne browsers
+    // (Chrome 79+, Safari 13.1+, Firefox 90+). Bij oudere browsers krijg je
+    // de raw pixel-data — voor MVP acceptabel.
+    var bitmap;
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (_) {
+      // Fallback voor browsers zonder imageOrientation-optie
+      bitmap = await createImageBitmap(file);
+    }
+
+    var w = bitmap.width;
+    var h = bitmap.height;
+    var longSide = Math.max(w, h);
+    if (longSide > maxWidth) {
+      var ratio = maxWidth / longSide;
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+    }
+
+    var canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    // Bitmap manueel sluiten — release GPU/decoder-buffers; modern browsers
+    // do dit zelf bij garbage collect maar expliciet is cleaner.
+    if (typeof bitmap.close === 'function') { try { bitmap.close(); } catch (_) {} }
+
+    var blob = await new Promise(function(resolve) {
+      canvas.toBlob(function(b) { resolve(b); }, 'image/jpeg', quality);
+    });
+    if (!blob) {
+      return { file: file, preview: await _readAsDataURL(file) };
+    }
+
+    // Preview direct uit canvas — sneller dan FileReader op de gecomprimeerde blob.
+    var preview = canvas.toDataURL('image/jpeg', quality);
+    return { file: blob, preview: preview };
+  } catch (e) {
+    if (window.console && console.warn) console.warn('[compressImageFile] mislukt, gebruik originele file:', e && e.message);
+    return { file: file, preview: await _readAsDataURL(file) };
+  }
+}
+
+async function handleCatFotos(e, catKey) {
+  var files = Array.from(e.target.files || []);
+  for (var i = 0; i < files.length; i++) {
+    var result = await compressImageFile(files[i]);
+    if (!fotosByCategory[catKey]) fotosByCategory[catKey] = [];
+    fotosByCategory[catKey].push({ file: result.file, preview: result.preview });
+    // Also keep in flat fotos array for backward compat
+    fotos.push({ file: result.file, preview: result.preview, category: catKey });
+  }
+  renderFotoCategories();
   e.target.value = '';
 }
 
-function handleFotoDrop(e, catKey) {
+async function handleFotoDrop(e, catKey) {
   e.preventDefault();
   e.currentTarget.classList.remove('dragover');
-  var files = e.dataTransfer.files;
-  Array.from(files).forEach(function(file) {
-    if (!file.type.startsWith('image/')) return;
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      if (!fotosByCategory[catKey]) fotosByCategory[catKey] = [];
-      fotosByCategory[catKey].push({ file: file, preview: ev.target.result });
-      fotos.push({ file: file, preview: ev.target.result, category: catKey });
-      renderFotoCategories();
-    };
-    reader.readAsDataURL(file);
-  });
+  var files = Array.from(e.dataTransfer.files || []).filter(function(f) { return f.type && f.type.indexOf('image/') === 0; });
+  for (var i = 0; i < files.length; i++) {
+    var result = await compressImageFile(files[i]);
+    if (!fotosByCategory[catKey]) fotosByCategory[catKey] = [];
+    fotosByCategory[catKey].push({ file: result.file, preview: result.preview });
+    fotos.push({ file: result.file, preview: result.preview, category: catKey });
+  }
+  renderFotoCategories();
 }
 
 function removeCatFoto(catKey, idx) {
