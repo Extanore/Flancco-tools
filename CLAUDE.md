@@ -254,7 +254,7 @@ Volledige rebuild na zero-state cleanup (PR #68). Drie samenhangende UI-pagina's
 - Transitional vandaag: Flancco-partner (slug='flancco') heeft eigen pricing-rijen die als de facto basis dienen. UI toont rijen met `partner_id IS NULL OR slug='flancco'` zodat Optie Z-migratie zonder UI-wijziging kan plaatsvinden.
 
 **5 nieuwe triggers + 2 nieuwe trigger-helper-functies:**
-- `trg_contracten_set_template_versie` + `trg_partner_applications_set_template_versie` (BEFORE INSERT/UPDATE) — stempelen versie uit `app_settings` (partner_contract_versie=`v1.1-2026-05-12`, eindklant_contract_versie=`v2.0-2026-05-12`)
+- `trg_contracten_set_template_versie` + `trg_partner_applications_set_template_versie` (BEFORE INSERT/UPDATE) — stempelen versie uit `app_settings` (partner_contract_versie=`v1.2-2026-05-13`, eindklant_contract_versie=`v2.0-2026-05-12`). Partner-versie gebumped van v1.1 → v1.2 op 2026-05-13: drie IP-bescherming-artikelen toegevoegd (intellectuele eigendom & gebruiksrecht, verbod op kopiëren/reverse-engineering met 24-maanden niet-concurrentie, vertrouwelijkheid + audit-recht + €25k forfaitair schadebeding per inbreuk). Migration `20260513020000_partner_contract_v1_2_ip_bescherming.sql`. Nog geen officiële partners onder v1.1 dus geen addendum-flow nodig — Flancco Direct blijft formeel op v1.1 (zelf-contract, niet afdwingbaar).
 - `trg_contracten_set_indexering_start_index` — vult gezondheidsindex op signing-transitie
 - `trg_gezondheidsindex_touch_updated_at` — updated_at touch
 - `trg_pricing_indexering_planned_dispatch` (AFTER INSERT) — bij INSERT met `aangekondigd_op IS NOT NULL` triggert `pg_net.http_post` naar `send-partner-indexering-aankondiging` edge function
