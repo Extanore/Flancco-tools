@@ -461,6 +461,11 @@
       </div>
 
       <div class="step" id="step-fotos">
+        <div class="card" id="existing-fotos-card" style="display:none">
+          <h3>Bestaande foto's</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Foto's uit het opgeslagen rapport. Klik op de × om er een te verwijderen.</p>
+          <div id="existing-fotos-grid" class="foto-cat-grid"></div>
+        </div>
         <div class="card">
           <h3>Foto's</h3>
           <p style="font-size:13px;color:var(--grey);margin-bottom:16px">Upload foto's per categorie (voor en na onderhoud)</p>
@@ -658,6 +663,11 @@ var lastSavedRapportId = '';
 // detecteert dit en doet UPDATE i.p.v. INSERT, en re-gebruikt bestaande foto-URLs.
 var existingRapportId = null;
 var existingRapport = null;
+// Bestaande foto-URLs uit het opgeslagen rapport + set van URLs die de gebruiker
+// in de edit-flow wil verwijderen. Bij save: foto_urls = existingFotoUrls minus
+// removedExistingFotoUrls + nieuw geüploade URLs.
+var existingFotoUrls = [];
+var removedExistingFotoUrls = {};
 var steps = ['checklist','fotos','uren','opmerkingen','samenvatting','success'];
 
 // Sector-specifieke data (uit app_settings.rapport_config)
@@ -1289,6 +1299,10 @@ async function selectBeurt() {
   // Reset bestaande-rapport state (kan blijven hangen tussen multiple selectBeurt calls)
   existingRapportId = null;
   existingRapport = null;
+  existingFotoUrls = [];
+  removedExistingFotoUrls = {};
+  var existingFotosCard = document.getElementById('existing-fotos-card');
+  if (existingFotosCard) existingFotosCard.style.display = 'none';
 
   // Check of er al een rapport bestaat voor deze beurt ("Bewerken"-flow van
   // afgewerkt-tab). Indien ja: pre-fill alle wizard-velden vanuit dat rapport.
@@ -1756,10 +1770,41 @@ async function loadInterventiesForBeurt(beurtId) {
   }
 }
 
+// Rendert de "Bestaande foto's"-sectie bovenaan de Foto's-tab met thumbnails
+// + remove-knop per foto. Toont alleen niet-verwijderde URLs (filterd op
+// removedExistingFotoUrls). Verbergt de card als er geen bestaande foto's
+// (meer) zijn — bv. nieuwe rapport-flow of alle bestaande verwijderd.
+function renderExistingFotos() {
+  var card = document.getElementById('existing-fotos-card');
+  var grid = document.getElementById('existing-fotos-grid');
+  if (!card || !grid) return;
+  var visibleUrls = existingFotoUrls.filter(function(u) { return !removedExistingFotoUrls[u]; });
+  if (visibleUrls.length === 0) {
+    card.style.display = 'none';
+    grid.innerHTML = '';
+    return;
+  }
+  card.style.display = '';
+  grid.innerHTML = visibleUrls.map(function(url) {
+    return '<div class="foto-thumb">' +
+      '<img src="' + esc(url) + '" alt="">' +
+      '<button class="remove-foto" type="button" onclick="removeExistingFoto(\'' + esc(url).replace(/'/g, "\\'") + '\')" title="Verwijderen">x</button>' +
+    '</div>';
+  }).join('');
+}
+
+// Markeert een bestaande foto-URL voor verwijdering bij save. Re-rendert de grid
+// zodat de thumbnail meteen verdwijnt. saveRapport leest removedExistingFotoUrls
+// bij de samenstelling van foto_urls.
+function removeExistingFoto(url) {
+  removedExistingFotoUrls[url] = true;
+  renderExistingFotos();
+}
+
 // Centrale pre-fill van een bestaand rapport: checklist, uren, materialen,
-// opmerkingen, handtekening, sector-meta + interventies. Wordt aangeroepen
-// in selectBeurt() wanneer er een bestaand rapporten-record gevonden wordt
-// (= "Bewerken"-knop op afgewerkte beurt).
+// opmerkingen, handtekening, sector-meta + interventies + bestaande foto's.
+// Wordt aangeroepen in selectBeurt() wanneer er een bestaand rapporten-record
+// gevonden wordt (= "Bewerken"-knop op afgewerkte beurt).
 async function applyExistingRapportData(rapport) {
   if (!rapport) return;
 
@@ -1792,6 +1837,11 @@ async function applyExistingRapportData(rapport) {
   materiaalCount = 0;
   var matData = Array.isArray(rapport.materiaal_data) ? rapport.materiaal_data : [];
   matData.forEach(function(m) { addMateriaalRijFromSavedData(m); });
+
+  // Bestaande foto's pre-fillen + grid renderen
+  existingFotoUrls = Array.isArray(rapport.foto_urls) ? rapport.foto_urls.slice() : [];
+  removedExistingFotoUrls = {};
+  renderExistingFotos();
 
   // Interventies (apart fetch want zit in eigen tabel)
   await loadInterventiesForBeurt(currentBeurt.id);
@@ -2453,12 +2503,12 @@ async function saveRapport() {
       ? existingRapport.referentie
       : ('RPT-' + datum.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase());
 
-    // Upload foto's — bij bestaand rapport: combine bestaande URLs + nieuwe uploads.
-    // De wizard-fotos[] bevat enkel nieuw toegevoegde File-objects (oude staan al in
-    // existingRapport.foto_urls). Bij INSERT-flow is er geen existingRapport, dus
-    // we starten met een lege array.
+    // Upload foto's — bij bestaand rapport: combine bestaande URLs + nieuwe uploads,
+    // met filter op door de gebruiker verwijderde foto's. De wizard-fotos[] bevat
+    // enkel nieuw toegevoegde File-objects (oude staan in existingRapport.foto_urls).
+    // Bij INSERT-flow is er geen existingRapport, dus we starten met een lege array.
     var fotoUrls = (existingRapport && Array.isArray(existingRapport.foto_urls))
-      ? existingRapport.foto_urls.slice()
+      ? existingRapport.foto_urls.filter(function(u) { return !removedExistingFotoUrls[u]; })
       : [];
     for (var i = 0; i < fotos.length; i++) {
       var path = 'rapporten/' + ref + '/' + Date.now() + '_' + i + '.jpg';
