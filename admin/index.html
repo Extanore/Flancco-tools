@@ -5589,11 +5589,11 @@
           <label>Type klant *</label>
           <div class="kl-type-toggle" role="radiogroup" aria-label="Type klant">
             <label>
-              <input type="radio" name="kl-type" value="bedrijf" checked onchange="klTypeChanged()">
+              <input type="radio" name="kl-type" value="bedrijf" onchange="klTypeChanged()">
               <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M10 9h4"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>Bedrijf</span>
             </label>
             <label>
-              <input type="radio" name="kl-type" value="particulier" onchange="klTypeChanged()">
+              <input type="radio" name="kl-type" value="particulier" checked onchange="klTypeChanged()">
               <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Particulier</span>
             </label>
           </div>
@@ -20072,12 +20072,11 @@ async function openKlantModal(editData) {
   var _btwMsg = document.getElementById('kl-btw-msg');
   if (_btwMsg) { _btwMsg.textContent = ''; _btwMsg.className = 'kl-btw-msg'; }
 
-  // Zet type-toggle. Default rol-afhankelijk: partner-rol typisch zonnepanelen-
-  // installateur met overwegend particuliere klanten → default 'particulier'.
-  // Admin/bediende default 'bedrijf' (Flancco-portefeuille is meer B2B).
-  // Bij bewerken: altijd de bestaande DB-waarde gebruiken.
-  var klTypeDefault = (userRole === 'partner') ? 'particulier' : 'bedrijf';
-  var klType = (editData && editData.client_type) ? editData.client_type : klTypeDefault;
+  // Zet type-toggle. Default 'particulier' voor élke rol — zowel partners als
+  // Flancco-intern (admin/bediende) hebben overwegend particuliere klanten in de
+  // zonnepanelen- en HVAC-portefeuille. Bedrijf wordt actief gekozen wanneer
+  // van toepassing. Bij bewerken: altijd de bestaande DB-waarde gebruiken.
+  var klType = (editData && editData.client_type) ? editData.client_type : 'particulier';
   var typeRadio = document.querySelector('input[name="kl-type"][value="' + klType + '"]');
   if (typeRadio) typeRadio.checked = true;
 
