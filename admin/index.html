@@ -5602,9 +5602,13 @@
             <small style="color:var(--grey);font-size:11px;display:block;margin-top:4px">Onder welke partner valt deze klant commercieel.</small>
           </div>
         </div>
-        <div class="modal-field partner-only" id="kl-partner-display-wrap" style="margin-bottom:16px">
-          <label>Partner</label>
-          <input type="text" id="kl-partner-display" disabled style="background:var(--light);color:var(--grey)">
+        <!-- Partner-display weggehaald voor partner-rol — eigen naam tonen voegt geen
+             informatie toe (partner werkt impliciet onder zijn eigen account).
+             Hidden input #kl-partner blijft de partner_id meedragen naar saveKlant().
+             Display-input #kl-partner-display behouden zodat eventuele JS-callers
+             die hem nog refereren niet crashen — input zit nu in een display:none wrap. -->
+        <div class="modal-field partner-only" id="kl-partner-display-wrap" style="display:none">
+          <input type="text" id="kl-partner-display" disabled>
         </div>
 
         <!-- Klanttype toggle -->
