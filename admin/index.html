@@ -5457,7 +5457,7 @@
     <div id="rapport-detail-content"></div>
     <div class="modal-buttons" style="margin-top:16px">
       <button class="btn btn-ghost" onclick="document.getElementById('modal-rapport-detail').classList.remove('open')">Sluiten</button>
-      <a id="rapport-detail-pdf" href="#" target="_blank" class="btn btn-primary" style="display:none;text-decoration:none">Download PDF</a>
+      <a id="rapport-detail-pdf" href="javascript:void(0)" class="btn btn-primary" style="display:none;text-decoration:none">Download PDF</a>
     </div>
   </div>
 </div>
@@ -21415,7 +21415,7 @@ function renderDossierHistoriek(clientId) {
       rapportLink = '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
         '<span style="font-size:11px;color:var(--text-secondary)">' + esc(rapport.referentie) + '</span>' +
         '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showRapportDetail(\'' + rapport.id + '\')">Bekijk rapport</button>' +
-        (rapport.pdf_url ? '<a href="' + rapport.pdf_url + '" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none" onclick="event.stopPropagation()">Download PDF</a>' : '') +
+        '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();downloadRapportPDFInline(\'' + rapport.id + '\', this)">Download PDF</button>' +
       '</div>';
     }
 
@@ -21591,14 +21591,17 @@ async function showRapportDetail(rapportId) {
 
   document.getElementById('rapport-detail-content').innerHTML = html;
 
-  // PDF link
+  // PDF download — regenereert via edge function (geen directe link naar
+  // mogelijk leeg-opgeslagen pdf_url). Tonen zodra er een rapport-record is,
+  // ook als pdf_url ontbreekt of stale is.
   var pdfBtn = document.getElementById('rapport-detail-pdf');
-  if (rapport.pdf_url) {
-    pdfBtn.href = rapport.pdf_url;
-    pdfBtn.style.display = '';
-  } else {
-    pdfBtn.style.display = 'none';
-  }
+  pdfBtn.href = 'javascript:void(0)';
+  pdfBtn.onclick = function(ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    downloadRapportPDFInline(rapport.id, pdfBtn);
+    return false;
+  };
+  pdfBtn.style.display = '';
 
   document.getElementById('modal-rapport-detail').classList.add('open');
 }
@@ -25282,6 +25285,230 @@ async function sendInterventieBericht() {
 }
 
 // =============================================
+// RAPPORT PDF — INLINE REGENERATION
+// =============================================
+// Een direct-link naar rapporten.pdf_url kan een leeg-opgeslagen PDF tonen
+// (legacy bug pre-PR #106/#107). Onderstaande helpers regenereren de PDF
+// on-demand via de generate-pdf edge function op basis van de DB-record,
+// identiek aan de flow in admin/rapport.html?view=1.
+
+function _isFotoUrlsObjectInline(v) {
+  return v != null && typeof v === 'object' && !Array.isArray(v);
+}
+function _flattenFotoUrlsInline(v) {
+  if (Array.isArray(v)) return v.slice();
+  if (_isFotoUrlsObjectInline(v)) {
+    var out = [];
+    Object.keys(v).forEach(function(k) {
+      var arr = v[k];
+      if (Array.isArray(arr)) arr.forEach(function(u) { if (u) out.push(u); });
+    });
+    return out;
+  }
+  return [];
+}
+
+// Bouwt het rapport_branded payload uit DB-records (geen UI-state vereist).
+// Vereenvoudigde variant van buildRapportPayloadFromRecord in admin/rapport.html:
+// werkt zonder CHECKLISTS-lookup door label direct uit checklist_data te halen
+// (saved-shape) met item-key als fallback.
+function _buildRapportPayloadInline(rapport, beurt, contract) {
+  var r = rapport || {};
+  var b = beurt || {};
+  var c = contract || {};
+  var checkData = r.checklist_data || {};
+  var sector = r.sector || b.sector || null;
+
+  // Bevindingen: NOK-checklist-items + sector-meta + opmerkingen
+  var bevindingenLines = [];
+  Object.keys(checkData).forEach(function(key) {
+    if (key === '_meta') return;
+    var v = checkData[key];
+    if (!v || v.status !== 'nok') return;
+    var label = v.label || key;
+    var line = '• ' + label;
+    if (v.note) line += ': ' + v.note;
+    bevindingenLines.push(line);
+  });
+  var meta = checkData._meta || {};
+  if (Array.isArray(meta.ic_zones) && meta.ic_zones.length) {
+    bevindingenLines.push('Behandelde zones: ' + meta.ic_zones.length);
+    meta.ic_zones.forEach(function(z, i) {
+      var lbl = (z.zone_naam || ('Zone ' + (i + 1))) + (z.opmerkingen ? ' — ' + z.opmerkingen : '');
+      bevindingenLines.push('  · ' + lbl);
+    });
+  }
+  if (meta.klussen) {
+    if (meta.klussen.omschrijving) bevindingenLines.push(meta.klussen.omschrijving);
+    if (meta.klussen.meerwerk) bevindingenLines.push('Meerwerk: ' + meta.klussen.meerwerk);
+  }
+  if (r.opmerkingen) bevindingenLines.push(r.opmerkingen);
+
+  // Materiaal: enkel naam + aantal (geen prijs — feedback_uren_materiaal_intern)
+  var materiaalLines = [];
+  (Array.isArray(r.materiaal_data) ? r.materiaal_data : []).forEach(function(m) {
+    if (!m || !m.naam) return;
+    materiaalLines.push('• ' + m.naam + (m.aantal && m.aantal !== 1 ? ' (' + m.aantal + 'x)' : ''));
+  });
+
+  // Foto's: rapport_branded template limiteert tot 6
+  var fotoUrls = _flattenFotoUrlsInline(r.foto_urls).slice(0, 6);
+
+  // Handtekening
+  var sig = meta.handtekening || {};
+  var sigImage = sig.image || null;
+  var sigNaam = sig.naam || null;
+  var sigDatum = sigImage ? (r.datum_onderhoud || b.plan_datum || null) : null;
+
+  return {
+    beurt_id: b.id || r.onderhoudsbeurt_id || null,
+    contract_id: c.id || r.contract_id || null,
+    contract_nummer: c.contract_nummer || r.referentie || null,
+    klant_naam: c.klant_naam || null,
+    klant_adres: c.klant_adres || null,
+    klant_postcode: c.klant_postcode || null,
+    klant_gemeente: c.klant_gemeente || null,
+    klant_email: c.klant_email || null,
+    klant_telefoon: c.klant_telefoon || null,
+    datum: r.datum_onderhoud || b.plan_datum || new Date().toISOString().split('T')[0],
+    aantal_panelen: c.aantal_panelen || null,
+    frequentie: c.frequentie || null,
+    contractduur: c.contractduur || null,
+    sector: sector,
+    bevindingen: bevindingenLines.length ? bevindingenLines.join('\n') : null,
+    aanbevelingen: null,
+    materiaal: materiaalLines.length ? materiaalLines.join('\n') : null,
+    fotos: fotoUrls,
+    handtekening_url: sigImage,
+    handtekening_naam: sigNaam,
+    handtekening_datum: sigDatum
+  };
+}
+
+async function _fetchPDFBlobInline(url) {
+  try {
+    var r = await fetch(url, { method: 'GET' });
+    if (!r.ok) return null;
+    return await r.blob();
+  } catch (_) { return null; }
+}
+
+// Bron-of-truth voor de Download PDF-knoppen in admin/index.html (rapport-card,
+// rapport-detail-modal, klant-dossier historiek). Regenereert via edge function
+// en download als blob — geen popup-blocker (zie PR #103) en geen leeg-opgeslagen
+// PDF-risico (zie PR #107).
+async function downloadRapportPDFInline(rapportId, btnEl) {
+  var origLabel = null;
+  if (btnEl) {
+    try { origLabel = btnEl.textContent; btnEl.textContent = 'Bezig…'; btnEl.disabled = true; } catch (_) {}
+  }
+  try {
+    // 1) Rapport-record ophalen
+    var rapport = (allRapporten || []).find(function(x) { return x.id === rapportId; });
+    if (!rapport) {
+      var rRes = await sb.from('rapporten').select('*').eq('id', rapportId).single();
+      if (rRes.error || !rRes.data) { showToast('Rapport niet gevonden.', 'error'); return; }
+      rapport = rRes.data;
+    }
+
+    // 2) Contract opzoeken (uit cache of fetch)
+    var contract = (allContracten || []).find(function(x) { return x.id === rapport.contract_id; });
+    if (!contract && rapport.contract_id) {
+      var cRes = await sb.from('contracten').select('*').eq('id', rapport.contract_id).single();
+      if (!cRes.error) contract = cRes.data;
+    }
+
+    // 3) Beurt opzoeken (voor sector + plan_datum fallback)
+    var beurt = (allOnderhoudsbeurten || []).find(function(x) { return x.id === rapport.onderhoudsbeurt_id; });
+    if (!beurt && rapport.onderhoudsbeurt_id) {
+      var bRes = await sb.from('onderhoudsbeurten').select('*').eq('id', rapport.onderhoudsbeurt_id).single();
+      if (!bRes.error) beurt = bRes.data;
+    }
+
+    // 4) Partner-slug bepalen (per-contract, niet per-user — admin kan rapport van elke partner downloaden)
+    var partnerSlug = 'flancco';
+    if (contract && contract.partner_id) {
+      var partner = (partners || []).find(function(p) { return p.id === contract.partner_id; });
+      if (partner && partner.slug) partnerSlug = partner.slug;
+    }
+
+    // 5) Sessie + payload
+    var session = null;
+    try {
+      var sess = await sb.auth.getSession();
+      session = sess && sess.data && sess.data.session;
+    } catch (_) {}
+    if (!session || !session.access_token) {
+      showToast('Sessie verlopen — log opnieuw in.', 'error');
+      return;
+    }
+    var payload = _buildRapportPayloadInline(rapport, beurt, contract);
+
+    // 6) Edge function aanroepen
+    var resp = await fetch(SUPA_URL + '/functions/v1/generate-pdf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({
+        template: 'rapport_branded',
+        partner_slug: partnerSlug,
+        lang: 'nl',
+        data: payload
+      })
+    });
+    if (!resp.ok) {
+      // Fallback naar oude pdf_url (best-effort, kan leeg zijn)
+      if (rapport.pdf_url) {
+        showToast('PDF-regeneratie faalde — open opgeslagen versie.', 'warning');
+        window.location.href = rapport.pdf_url;
+        return;
+      }
+      showToast('PDF kon niet gegenereerd worden — probeer later opnieuw.', 'error');
+      return;
+    }
+    var json = await resp.json();
+    var pdfUrl = json && (json.url || json.signedUrl);
+    if (!pdfUrl) { showToast('PDF kon niet gegenereerd worden.', 'error'); return; }
+
+    // 7) Download als blob (geen popup-blocker, zie PR #103)
+    var filename = (rapport.referentie || 'rapport') + '.pdf';
+    var blob = await _fetchPDFBlobInline(pdfUrl);
+    if (blob) {
+      var blobUrl = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { try { URL.revokeObjectURL(blobUrl); } catch (_) {} }, 2000);
+    } else {
+      // Fallback: directe redirect (zelfde tab, geen popup)
+      window.location.href = pdfUrl;
+    }
+
+    // 8) Best-effort: update pdf_url in DB zodat toekomstige bekijk-flows de
+    //    actuele content tonen. Mag falen (RLS, off-line).
+    try {
+      await sb.from('rapporten').update({ pdf_url: pdfUrl }).eq('id', rapport.id);
+      var idx = (allRapporten || []).findIndex(function(x) { return x.id === rapport.id; });
+      if (idx >= 0) allRapporten[idx].pdf_url = pdfUrl;
+    } catch (_) {}
+  } catch (e) {
+    if (window.console && console.warn) console.warn('[downloadRapportPDFInline]', e);
+    showToast('PDF-download faalde — probeer later opnieuw.', 'error');
+  } finally {
+    if (btnEl && origLabel != null) {
+      try { btnEl.textContent = origLabel; btnEl.disabled = false; } catch (_) {}
+    }
+  }
+}
+window.downloadRapportPDFInline = downloadRapportPDFInline;
+
+// =============================================
 // RAPPORTEN PAGINA
 // =============================================
 function renderRapportenPage() {
@@ -25383,7 +25610,7 @@ function renderRapportenPage() {
         '<div class="wf-card-ref">' + esc(r.referentie || '') + ' ' + chkBadge + '</div>' +
       '</div>' +
       '<div class="wf-card-actions">' +
-        (r.pdf_url ? '<a href="' + esc(r.pdf_url) + '" target="_blank" class="wf-btn" style="text-decoration:none">Download PDF</a>' : '') +
+        '<button class="wf-btn" onclick="downloadRapportPDFInline(\'' + r.id + '\', this)">Download PDF</button>' +
         '<button class="wf-btn" onclick="window.open(\'rapport.html?beurt=' + r.onderhoudsbeurt_id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
         '<button class="wf-btn" onclick="window.open(\'rapport.html?beurt=' + r.onderhoudsbeurt_id + '\',\'_blank\')">Bewerken</button>' +
         '<button class="wf-btn" style="color:var(--red);border-color:var(--red)" onclick="deleteRapport(\'' + r.id + '\',\'' + (r.onderhoudsbeurt_id || '') + '\')">Verwijderen</button>' +
