@@ -25612,8 +25612,12 @@ function renderRapportenPage() {
       '<div class="wf-card-actions">' +
         '<button class="wf-btn" onclick="downloadRapportPDFInline(\'' + r.id + '\', this)">Download PDF</button>' +
         '<button class="wf-btn" onclick="window.open(\'rapport.html?beurt=' + r.onderhoudsbeurt_id + '&view=1\',\'_blank\')">Bekijk rapport</button>' +
-        '<button class="wf-btn" onclick="window.open(\'rapport.html?beurt=' + r.onderhoudsbeurt_id + '\',\'_blank\')">Bewerken</button>' +
-        '<button class="wf-btn" style="color:var(--red);border-color:var(--red)" onclick="deleteRapport(\'' + r.id + '\',\'' + (r.onderhoudsbeurt_id || '') + '\')">Verwijderen</button>' +
+        // Bewerken + Verwijderen alleen voor Flancco-intern (admin + bediende).
+        // Partners hebben read-only toegang via de Bekijk-knop.
+        (userRole === 'admin' || userRole === 'bediende'
+          ? '<button class="wf-btn" onclick="window.open(\'rapport.html?beurt=' + r.onderhoudsbeurt_id + '\',\'_blank\')">Bewerken</button>' +
+            '<button class="wf-btn" style="color:var(--red);border-color:var(--red)" onclick="deleteRapport(\'' + r.id + '\',\'' + (r.onderhoudsbeurt_id || '') + '\')">Verwijderen</button>'
+          : '') +
       '</div>' +
     '</div>';
   }).join('');
