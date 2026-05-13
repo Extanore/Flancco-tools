@@ -658,6 +658,11 @@ var materiaalCount = 0;
 var wizardStep = 0;
 var lastSavedRef = '';
 var lastSavedRapportId = '';
+// URL van de PDF die saveRapport() naar storage heeft geüpload. Wordt door
+// downloadPDF() gebruikt zodat we niet opnieuw via de edge function moeten —
+// dat zou de wizard-UI opnieuw uitlezen via getChecklistData() etc., maar op
+// het success-scherm is die UI al gewist → resultaat is een blanco PDF.
+var lastSavedPdfUrl = '';
 // Indien de wizard wordt geopend voor een beurt waarvoor al een rapport bestaat
 // (= "Bewerken"-knop op afgewerkt-tab), houden we de id + record vast. saveRapport
 // detecteert dit en doet UPDATE i.p.v. INSERT, en re-gebruikt bestaande foto-URLs.
@@ -2782,13 +2787,15 @@ async function saveRapport() {
     // ref vooraf in lastSavedRef plaatsen zodat rapport_branded payload (contract_nummer)
     // én legacy buildPDF() (lastSavedRef in header/footer) consistent zijn.
     lastSavedRef = ref;
+    lastSavedPdfUrl = ''; // reset; wordt hieronder gezet zodra PDF effectief geüpload
     var pdfBlob = await generatePDFBlob();
     if (pdfBlob) {
       var pdfPath = 'rapporten/' + ref + '.pdf';
-      var pdfUpload = await sb.storage.from('handtekeningen').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' });
+      var pdfUpload = await sb.storage.from('handtekeningen').upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
       if (!pdfUpload.error) {
         var pdfUrl = sb.storage.from('handtekeningen').getPublicUrl(pdfPath).data.publicUrl;
         await sb.from('rapporten').update({ pdf_url: pdfUrl }).eq('id', rapportId);
+        lastSavedPdfUrl = pdfUrl;
       }
     }
 
@@ -3031,40 +3038,54 @@ async function generatePDFBlob() {
 // Download-knop op succes-scherm: probeert edge function (verse signed URL),
 // valt terug op legacy jsPDF lokale download.
 async function downloadPDF() {
+  // Helper — download een URL als blob (geen popup-blocker, zie PR #103)
+  async function _downloadUrlAsBlob(url, filename) {
+    try {
+      var blob = await fetchPDFAsBlob(url);
+      if (!blob) return false;
+      var blobUrl = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { try { URL.revokeObjectURL(blobUrl); } catch (_) {} }, 2000);
+      return true;
+    } catch (e) {
+      if (window.console && console.warn) console.warn('[downloadPDF] blob-fetch faalde:', e && e.message);
+      return false;
+    }
+  }
+
+  var filename = (lastSavedRef || 'rapport') + '.pdf';
+
+  // Primair pad: gebruik de PDF die saveRapport() al heeft geüpload naar storage.
+  // Voorkomt dat we generatePDFViaEdge() nogmaals aanroepen — die zou via
+  // buildRapportBrandedPayloadData() de wizard-UI opnieuw uitlezen, maar op het
+  // success-scherm zijn checklist/foto's/handtekening al weg → blanco PDF.
+  if (lastSavedPdfUrl) {
+    if (await _downloadUrlAsBlob(lastSavedPdfUrl, filename)) return;
+    // Bij blob-fetch failure: redirect naar de URL (zelfde tab, geen popup)
+    window.location.href = lastSavedPdfUrl;
+    return;
+  }
+
+  // Fallback 1: PDF nog niet geüpload (bv. user navigeerde via Rapporten-detail) —
+  // genereer via edge function. Werkt alleen als de wizard-UI nog actief is.
   var edge = await generatePDFViaEdge();
   if (edge && edge.url) {
-    // Download via blob-URL i.p.v. directe cross-origin link.
-    // Reden: na de await voor PDF-generatie is de user-gesture context
-    // verlopen, waardoor browsers (vooral Safari + Chrome) `<a target="_blank">`
-    // als pop-up blokkeren. Blob-URLs zijn same-origin en omzeilen die check —
-    // de browser ziet het als een normale download in dezelfde tab.
-    try {
-      var blob = await fetchPDFAsBlob(edge.url);
-      if (blob) {
-        var blobUrl = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = (lastSavedRef || 'rapport') + '.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        // Cleanup na korte delay zodat de browser de download heeft kunnen starten
-        setTimeout(function() { try { URL.revokeObjectURL(blobUrl); } catch (_) {} }, 2000);
-        return;
-      }
-    } catch (e) {
-      if (window.console && console.warn) console.warn('[downloadPDF] blob-fetch faalde, fallback naar directe link:', e && e.message);
-    }
-    // Fallback: directe link in zelfde tab. Geen target=_blank meer (= geen popup).
+    if (await _downloadUrlAsBlob(edge.url, filename)) return;
     window.location.href = edge.url;
     return;
   }
-  // Fallback 2: client-side genereren + lokale save
+
+  // Fallback 2: client-side genereren + lokale save (jsPDF)
   console.warn('[downloadPDF] valt terug op legacy jsPDF');
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF('p', 'mm', 'a4');
   await buildPDF(doc);
-  doc.save((lastSavedRef || 'rapport') + '.pdf');
+  doc.save(filename);
 }
 
 async function buildPDF(doc) {
