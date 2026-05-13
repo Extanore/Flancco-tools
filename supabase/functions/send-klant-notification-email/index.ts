@@ -397,6 +397,32 @@ Deno.serve(async (req: Request) => {
       ? `${OPT_OUT_BASE_URL}?token=${encodeURIComponent(optOutToken)}&lang=${lang}`
       : null;
 
+    // Voor rapport_klaar: regenereer PDF on-demand uit DB-data wanneer caller
+    // geen explicit rapport_url meegaf. Voorkomt dat leeg-opgeslagen PDFs uit
+    // pre-PR#107 nog naar de klant gestuurd worden (zie PR #111 voor admin UI).
+    let effectiveRapportUrl = rapport_url;
+    if (event_type === "rapport_klaar" && !effectiveRapportUrl && beurt?.id) {
+      const regen = await regenerateRapportPdfUrl(admin, beurt.id, branding.slug, lang);
+      if (regen) {
+        effectiveRapportUrl = regen.url;
+        logJson({ event: "rapport_pdf_regenerated", beurt_id: beurt.id, rapport_id: regen.rapportId });
+      } else {
+        // Fallback: rapport.pdf_url uit DB (kan stale zijn maar beter dan niets).
+        // Generate-pdf-failure-modi: missing secrets, expired session, network.
+        const { data: rRow } = await admin
+          .from("rapporten")
+          .select("pdf_url")
+          .eq("onderhoudsbeurt_id", beurt.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle<{ pdf_url: string | null }>();
+        if (rRow?.pdf_url) {
+          effectiveRapportUrl = rRow.pdf_url;
+          logJson({ event: "rapport_pdf_regen_fallback_stale", beurt_id: beurt.id });
+        }
+      }
+    }
+
     const ctx: TemplateCtx = {
       branding, lang,
       klantNaam: resolved.greetingName,
@@ -405,7 +431,7 @@ Deno.serve(async (req: Request) => {
       startTijd: beurt?.start_tijd ?? null,
       heleDag: beurt?.hele_dag === true,
       technieker: technieker ? `${technieker.voornaam ?? ""} ${technieker.naam ?? ""}`.trim() : "",
-      rapportUrl: rapport_url || "",
+      rapportUrl: effectiveRapportUrl || "",
     };
 
     const tpl = buildTemplate(event_type, ctx);
@@ -511,6 +537,235 @@ async function fetchOptOutToken(admin: SupabaseClient, contractId: string, klant
     return data.opt_out_token as string;
   } catch (e) {
     logJson({ event: "opt_out_token_lookup_failed", err: e instanceof Error ? e.message : "unknown" });
+    return null;
+  }
+}
+
+// ─── Rapport PDF regeneration ────────────────────────────────────────────────
+// Bij `event_type='rapport_klaar'` zonder explicit `rapport_url`: regenereer via
+// generate-pdf edge function uit DB-data en update `rapporten.pdf_url`. Voorkomt
+// dat leeg-opgeslagen PDFs naar de klant gestuurd worden (zie PR #107, #111).
+
+interface RapportRow {
+  id: string;
+  contract_id: string | null;
+  onderhoudsbeurt_id: string | null;
+  referentie: string | null;
+  sector: string | null;
+  datum_onderhoud: string | null;
+  checklist_data: Record<string, unknown> | null;
+  materiaal_data: unknown[] | null;
+  foto_urls: unknown;
+  opmerkingen: string | null;
+  pdf_url: string | null;
+}
+
+interface ContractFullRow {
+  id: string;
+  partner_id: string | null;
+  contract_nummer: string | null;
+  klant_naam: string | null;
+  klant_adres: string | null;
+  klant_postcode: string | null;
+  klant_gemeente: string | null;
+  klant_email: string | null;
+  klant_telefoon: string | null;
+  aantal_panelen: number | null;
+  frequentie: string | null;
+  contractduur: number | null;
+  sector: string | null;
+  lang: string | null;
+}
+
+function _isFotoUrlsObject(v: unknown): v is Record<string, unknown[]> {
+  return v != null && typeof v === "object" && !Array.isArray(v);
+}
+
+function _flattenFotoUrls(v: unknown): string[] {
+  if (Array.isArray(v)) return (v as unknown[]).filter((u) => typeof u === "string") as string[];
+  if (_isFotoUrlsObject(v)) {
+    const out: string[] = [];
+    for (const k of Object.keys(v)) {
+      const arr = (v as Record<string, unknown>)[k];
+      if (Array.isArray(arr)) {
+        for (const u of arr) if (typeof u === "string" && u) out.push(u);
+      }
+    }
+    return out;
+  }
+  return [];
+}
+
+function buildRapportPayload(
+  rapport: RapportRow,
+  beurt: BeurtRow | null,
+  contract: ContractFullRow | null,
+): Record<string, unknown> {
+  const checkData = (rapport.checklist_data || {}) as Record<string, { status?: string; label?: string; note?: string }>;
+  const sector = rapport.sector || null;
+
+  const bevindingenLines: string[] = [];
+  for (const key of Object.keys(checkData)) {
+    if (key === "_meta") continue;
+    const v = checkData[key];
+    if (!v || v.status !== "nok") continue;
+    const label = v.label || key;
+    let line = "• " + label;
+    if (v.note) line += ": " + v.note;
+    bevindingenLines.push(line);
+  }
+  const meta = (checkData as Record<string, unknown>)._meta as Record<string, unknown> | undefined;
+  const icZones = meta && Array.isArray(meta.ic_zones) ? meta.ic_zones as Array<{ zone_naam?: string; opmerkingen?: string }> : null;
+  if (icZones && icZones.length) {
+    bevindingenLines.push("Behandelde zones: " + icZones.length);
+    icZones.forEach((z, i) => {
+      const lbl = (z.zone_naam || ("Zone " + (i + 1))) + (z.opmerkingen ? " — " + z.opmerkingen : "");
+      bevindingenLines.push("  · " + lbl);
+    });
+  }
+  const klussen = meta && typeof meta.klussen === "object" ? meta.klussen as { omschrijving?: string; meerwerk?: string } : null;
+  if (klussen) {
+    if (klussen.omschrijving) bevindingenLines.push(klussen.omschrijving);
+    if (klussen.meerwerk) bevindingenLines.push("Meerwerk: " + klussen.meerwerk);
+  }
+  if (rapport.opmerkingen) bevindingenLines.push(rapport.opmerkingen);
+
+  const materiaalLines: string[] = [];
+  const mat = Array.isArray(rapport.materiaal_data) ? rapport.materiaal_data : [];
+  for (const m of mat) {
+    if (!m || typeof m !== "object") continue;
+    const row = m as { naam?: string; aantal?: number };
+    if (!row.naam) continue;
+    materiaalLines.push("• " + row.naam + (row.aantal && row.aantal !== 1 ? " (" + row.aantal + "x)" : ""));
+  }
+
+  const fotoUrls = _flattenFotoUrls(rapport.foto_urls).slice(0, 6);
+
+  const sig = (meta && typeof meta.handtekening === "object") ? meta.handtekening as { image?: string; naam?: string } : null;
+  const sigImage = sig?.image || null;
+  const sigNaam = sig?.naam || null;
+  const sigDatum = sigImage ? (rapport.datum_onderhoud || beurt?.plan_datum || null) : null;
+
+  return {
+    beurt_id: beurt?.id || rapport.onderhoudsbeurt_id || null,
+    contract_id: contract?.id || rapport.contract_id || null,
+    contract_nummer: contract?.contract_nummer || rapport.referentie || null,
+    klant_naam: contract?.klant_naam || null,
+    klant_adres: contract?.klant_adres || null,
+    klant_postcode: contract?.klant_postcode || null,
+    klant_gemeente: contract?.klant_gemeente || null,
+    klant_email: contract?.klant_email || null,
+    klant_telefoon: contract?.klant_telefoon || null,
+    datum: rapport.datum_onderhoud || beurt?.plan_datum || new Date().toISOString().split("T")[0],
+    aantal_panelen: contract?.aantal_panelen || null,
+    frequentie: contract?.frequentie || null,
+    contractduur: contract?.contractduur || null,
+    sector,
+    bevindingen: bevindingenLines.length ? bevindingenLines.join("\n") : null,
+    aanbevelingen: null,
+    materiaal: materiaalLines.length ? materiaalLines.join("\n") : null,
+    fotos: fotoUrls,
+    handtekening_url: sigImage,
+    handtekening_naam: sigNaam,
+    handtekening_datum: sigDatum,
+  };
+}
+
+/**
+ * Roept generate-pdf edge function aan met service-role bearer en regenereert
+ * de PDF uit DB-data. Updatet `rapporten.pdf_url` bij succes. Returnt de verse
+ * signed URL, of null bij elke faal-modus. Time-out 25s.
+ */
+async function regenerateRapportPdfUrl(
+  admin: SupabaseClient,
+  beurtId: string,
+  partnerSlug: string,
+  lang: Lang,
+): Promise<{ url: string; rapportId: string } | null> {
+  try {
+    // 1) Rapport ophalen (latest by created_at als er meerdere zijn)
+    const { data: rRows, error: rErr } = await admin
+      .from("rapporten")
+      .select(`id, contract_id, onderhoudsbeurt_id, referentie, sector, datum_onderhoud,
+               checklist_data, materiaal_data, foto_urls, opmerkingen, pdf_url`)
+      .eq("onderhoudsbeurt_id", beurtId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (rErr || !rRows || rRows.length === 0) {
+      logJson({ event: "rapport_regen_no_record", beurt_id: beurtId, err: rErr?.message });
+      return null;
+    }
+    const rapport = rRows[0] as RapportRow;
+
+    // 2) Beurt + contract context
+    const { data: beurtData } = await admin
+      .from("onderhoudsbeurten")
+      .select(`id, contract_id, plan_datum, start_tijd, hele_dag, status, technieker_id,
+               reminder_24h_email_ts, reminder_day_email_ts, rapport_klaar_email_ts`)
+      .eq("id", beurtId)
+      .maybeSingle<BeurtRow>();
+    const beurt = beurtData;
+
+    let contract: ContractFullRow | null = null;
+    if (rapport.contract_id || beurt?.contract_id) {
+      const { data: cr } = await admin
+        .from("contracten")
+        .select(`id, partner_id, contract_nummer, klant_naam, klant_adres, klant_postcode,
+                 klant_gemeente, klant_email, klant_telefoon, aantal_panelen,
+                 frequentie, contractduur, sector, lang`)
+        .eq("id", rapport.contract_id || beurt?.contract_id)
+        .maybeSingle<ContractFullRow>();
+      contract = cr;
+    }
+
+    const payload = buildRapportPayload(rapport, beurt, contract);
+
+    // 3) generate-pdf edge function aanroepen (service-role bearer)
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => { try { ctrl.abort(); } catch (_) {} }, 25_000);
+    let resp: Response;
+    try {
+      resp = await fetch(`${SUPABASE_URL}/functions/v1/generate-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_SERVICE_ROLE_KEY,
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          template: "rapport_branded",
+          partner_slug: partnerSlug,
+          lang,
+          data: payload,
+        }),
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      logJson({ event: "rapport_regen_http_fail", status: resp.status, detail: errText.slice(0, 300) });
+      return null;
+    }
+    const j = await resp.json().catch(() => null) as { url?: string; signedUrl?: string } | null;
+    const url = j?.url || j?.signedUrl;
+    if (!url) {
+      logJson({ event: "rapport_regen_no_url", body: JSON.stringify(j).slice(0, 200) });
+      return null;
+    }
+
+    // 4) Best-effort patch op rapporten.pdf_url
+    try {
+      await admin.from("rapporten").update({ pdf_url: url }).eq("id", rapport.id);
+    } catch (e) {
+      logJson({ event: "rapport_pdf_url_patch_failed", err: e instanceof Error ? e.message : "unknown" });
+    }
+
+    return { url, rapportId: rapport.id };
+  } catch (err) {
+    logJson({ event: "rapport_regen_exception", err: err instanceof Error ? err.message : "unknown" });
     return null;
   }
 }

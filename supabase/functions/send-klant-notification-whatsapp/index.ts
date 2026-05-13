@@ -376,11 +376,35 @@ Deno.serve(async (req: Request) => {
     const tijd = beurt?.hele_dag ? (lang === "fr" ? "toute la journée" : "ganse dag") : (beurt?.start_tijd ? beurt.start_tijd.slice(0, 5) : "");
     const techName = technieker ? `${technieker.voornaam ?? ""} ${technieker.naam ?? ""}`.trim() : "";
 
+    // Voor rapport_klaar: regenereer PDF on-demand uit DB-data wanneer caller
+    // geen explicit rapport_url meegaf. Voorkomt stale/leeg-opgeslagen PDFs.
+    let effectiveRapportUrl = rapport_url;
+    if (event_type === "rapport_klaar" && !effectiveRapportUrl && beurt?.id) {
+      const partnerSlug = partner?.slug || "flancco";
+      const regen = await regenerateRapportPdfUrl(admin, beurt.id, partnerSlug, lang);
+      if (regen) {
+        effectiveRapportUrl = regen.url;
+        logJson({ event: "rapport_pdf_regenerated", beurt_id: beurt.id, rapport_id: regen.rapportId });
+      } else {
+        const { data: rRow } = await admin
+          .from("rapporten")
+          .select("pdf_url")
+          .eq("onderhoudsbeurt_id", beurt.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle<{ pdf_url: string | null }>();
+        if (rRow?.pdf_url) {
+          effectiveRapportUrl = rRow.pdf_url;
+          logJson({ event: "rapport_pdf_regen_fallback_stale", beurt_id: beurt.id });
+        }
+      }
+    }
+
     let waBody: Record<string, unknown>;
     if (freeform) {
       // Plain-text message — only works in 24h user-initiated window
       const text = buildFreeformText({
-        event: event_type, lang, partnerName, datum, tijd, technieker: techName, rapportUrl: rapport_url,
+        event: event_type, lang, partnerName, datum, tijd, technieker: techName, rapportUrl: effectiveRapportUrl,
       });
       waBody = {
         messaging_product: "whatsapp",
@@ -391,7 +415,7 @@ Deno.serve(async (req: Request) => {
     } else {
       // Template payload
       waBody = buildTemplatePayload({
-        event: event_type, lang, partnerName, datum, tijd, technieker: techName, rapportUrl: rapport_url, waPhone,
+        event: event_type, lang, partnerName, datum, tijd, technieker: techName, rapportUrl: effectiveRapportUrl, waPhone,
       });
     }
 
@@ -466,6 +490,187 @@ interface LogEntry {
 async function insertLog(admin: SupabaseClient, entry: LogEntry): Promise<void> {
   try { await admin.from("klant_notification_log").insert(entry); }
   catch { /* swallow — log-failures shouldn't block */ }
+}
+
+// ─── Rapport PDF regeneration ────────────────────────────────────────────────
+// Bij `event_type='rapport_klaar'` zonder explicit `rapport_url`: regenereer via
+// generate-pdf edge function uit DB-data en update `rapporten.pdf_url`. Voorkomt
+// dat leeg-opgeslagen PDFs naar de klant gestuurd worden. Zie ook PR #111 voor
+// dezelfde fix in admin UI + send-klant-notification-email.
+
+interface RapportRow {
+  id: string;
+  contract_id: string | null;
+  onderhoudsbeurt_id: string | null;
+  referentie: string | null;
+  sector: string | null;
+  datum_onderhoud: string | null;
+  checklist_data: Record<string, unknown> | null;
+  materiaal_data: unknown[] | null;
+  foto_urls: unknown;
+  opmerkingen: string | null;
+  pdf_url: string | null;
+}
+
+function _flattenFotoUrls(v: unknown): string[] {
+  if (Array.isArray(v)) return (v as unknown[]).filter((u) => typeof u === "string") as string[];
+  if (v != null && typeof v === "object") {
+    const out: string[] = [];
+    for (const k of Object.keys(v as Record<string, unknown>)) {
+      const arr = (v as Record<string, unknown>)[k];
+      if (Array.isArray(arr)) for (const u of arr) if (typeof u === "string" && u) out.push(u);
+    }
+    return out;
+  }
+  return [];
+}
+
+function buildRapportPayload(
+  rapport: RapportRow,
+  beurt: BeurtRow | null,
+  contract: { id?: string; partner_id?: string | null; contract_nummer?: string | null; klant_naam?: string | null; klant_adres?: string | null; klant_postcode?: string | null; klant_gemeente?: string | null; klant_email?: string | null; klant_telefoon?: string | null; aantal_panelen?: number | null; frequentie?: string | null; contractduur?: number | null; sector?: string | null; } | null,
+): Record<string, unknown> {
+  const checkData = (rapport.checklist_data || {}) as Record<string, { status?: string; label?: string; note?: string }>;
+  const sector = rapport.sector || null;
+  const bevindingenLines: string[] = [];
+  for (const key of Object.keys(checkData)) {
+    if (key === "_meta") continue;
+    const v = checkData[key];
+    if (!v || v.status !== "nok") continue;
+    let line = "• " + (v.label || key);
+    if (v.note) line += ": " + v.note;
+    bevindingenLines.push(line);
+  }
+  const meta = (checkData as Record<string, unknown>)._meta as Record<string, unknown> | undefined;
+  const icZones = meta && Array.isArray(meta.ic_zones) ? meta.ic_zones as Array<{ zone_naam?: string; opmerkingen?: string }> : null;
+  if (icZones && icZones.length) {
+    bevindingenLines.push("Behandelde zones: " + icZones.length);
+    icZones.forEach((z, i) => {
+      const lbl = (z.zone_naam || ("Zone " + (i + 1))) + (z.opmerkingen ? " — " + z.opmerkingen : "");
+      bevindingenLines.push("  · " + lbl);
+    });
+  }
+  const klussen = meta && typeof meta.klussen === "object" ? meta.klussen as { omschrijving?: string; meerwerk?: string } : null;
+  if (klussen) {
+    if (klussen.omschrijving) bevindingenLines.push(klussen.omschrijving);
+    if (klussen.meerwerk) bevindingenLines.push("Meerwerk: " + klussen.meerwerk);
+  }
+  if (rapport.opmerkingen) bevindingenLines.push(rapport.opmerkingen);
+
+  const materiaalLines: string[] = [];
+  const mat = Array.isArray(rapport.materiaal_data) ? rapport.materiaal_data : [];
+  for (const m of mat) {
+    if (!m || typeof m !== "object") continue;
+    const row = m as { naam?: string; aantal?: number };
+    if (!row.naam) continue;
+    materiaalLines.push("• " + row.naam + (row.aantal && row.aantal !== 1 ? " (" + row.aantal + "x)" : ""));
+  }
+
+  const fotoUrls = _flattenFotoUrls(rapport.foto_urls).slice(0, 6);
+  const sig = (meta && typeof meta.handtekening === "object") ? meta.handtekening as { image?: string; naam?: string } : null;
+  const sigImage = sig?.image || null;
+  const sigNaam = sig?.naam || null;
+  const sigDatum = sigImage ? (rapport.datum_onderhoud || beurt?.plan_datum || null) : null;
+
+  return {
+    beurt_id: beurt?.id || rapport.onderhoudsbeurt_id || null,
+    contract_id: contract?.id || rapport.contract_id || null,
+    contract_nummer: contract?.contract_nummer || rapport.referentie || null,
+    klant_naam: contract?.klant_naam || null,
+    klant_adres: contract?.klant_adres || null,
+    klant_postcode: contract?.klant_postcode || null,
+    klant_gemeente: contract?.klant_gemeente || null,
+    klant_email: contract?.klant_email || null,
+    klant_telefoon: contract?.klant_telefoon || null,
+    datum: rapport.datum_onderhoud || beurt?.plan_datum || new Date().toISOString().split("T")[0],
+    aantal_panelen: contract?.aantal_panelen || null,
+    frequentie: contract?.frequentie || null,
+    contractduur: contract?.contractduur || null,
+    sector,
+    bevindingen: bevindingenLines.length ? bevindingenLines.join("\n") : null,
+    aanbevelingen: null,
+    materiaal: materiaalLines.length ? materiaalLines.join("\n") : null,
+    fotos: fotoUrls,
+    handtekening_url: sigImage,
+    handtekening_naam: sigNaam,
+    handtekening_datum: sigDatum,
+  };
+}
+
+async function regenerateRapportPdfUrl(
+  admin: SupabaseClient,
+  beurtId: string,
+  partnerSlug: string,
+  lang: Lang,
+): Promise<{ url: string; rapportId: string } | null> {
+  try {
+    const { data: rRows } = await admin
+      .from("rapporten")
+      .select(`id, contract_id, onderhoudsbeurt_id, referentie, sector, datum_onderhoud,
+               checklist_data, materiaal_data, foto_urls, opmerkingen, pdf_url`)
+      .eq("onderhoudsbeurt_id", beurtId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (!rRows || rRows.length === 0) {
+      logJson({ event: "rapport_regen_no_record", beurt_id: beurtId });
+      return null;
+    }
+    const rapport = rRows[0] as RapportRow;
+
+    const { data: beurtData } = await admin
+      .from("onderhoudsbeurten")
+      .select(`id, contract_id, plan_datum, start_tijd, hele_dag, status, technieker_id,
+               reminder_24h_whatsapp_ts, reminder_day_whatsapp_ts`)
+      .eq("id", beurtId)
+      .maybeSingle<BeurtRow>();
+
+    let contract: { id?: string; partner_id?: string | null; contract_nummer?: string | null; klant_naam?: string | null; klant_adres?: string | null; klant_postcode?: string | null; klant_gemeente?: string | null; klant_email?: string | null; klant_telefoon?: string | null; aantal_panelen?: number | null; frequentie?: string | null; contractduur?: number | null; sector?: string | null; } | null = null;
+    const cid = rapport.contract_id || beurtData?.contract_id;
+    if (cid) {
+      const { data: cr } = await admin
+        .from("contracten")
+        .select(`id, partner_id, contract_nummer, klant_naam, klant_adres, klant_postcode,
+                 klant_gemeente, klant_email, klant_telefoon, aantal_panelen,
+                 frequentie, contractduur, sector`)
+        .eq("id", cid)
+        .maybeSingle();
+      contract = cr;
+    }
+
+    const payload = buildRapportPayload(rapport, beurtData, contract);
+
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => { try { ctrl.abort(); } catch (_) {} }, 25_000);
+    let resp: Response;
+    try {
+      resp = await fetch(`${SUPABASE_URL}/functions/v1/generate-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_SERVICE_ROLE_KEY,
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ template: "rapport_branded", partner_slug: partnerSlug, lang, data: payload }),
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      logJson({ event: "rapport_regen_http_fail", status: resp.status, detail: errText.slice(0, 300) });
+      return null;
+    }
+    const j = await resp.json().catch(() => null) as { url?: string; signedUrl?: string } | null;
+    const url = j?.url || j?.signedUrl;
+    if (!url) return null;
+    try { await admin.from("rapporten").update({ pdf_url: url }).eq("id", rapport.id); }
+    catch (_) { /* best-effort */ }
+    return { url, rapportId: rapport.id };
+  } catch (err) {
+    logJson({ event: "rapport_regen_exception", err: err instanceof Error ? err.message : "unknown" });
+    return null;
+  }
 }
 
 /**
