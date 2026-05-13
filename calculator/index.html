@@ -158,6 +158,20 @@
   .radio-option .radio-text small { font-weight: 400; color: var(--grey); display: block; font-size: 12px; margin-top: 2px; }
   .radio-option:has(input:checked) { border-color: var(--primary); background: var(--primary-bg); }
 
+  /* Meerjaren-tier cards — Goldilocks layout met "Meest gekozen"-badge op 3-jaar */
+  .radio-option-tier { position: relative; padding-top: 18px; padding-bottom: 14px; }
+  .radio-option-tier .radio-text { line-height: 1.4; }
+  .radio-option-tier .radio-text small { line-height: 1.5; margin-top: 4px; }
+  .radio-option-recommended { border-color: var(--primary); background: var(--primary-bg); }
+  .radio-option-recommended .radio-badge {
+    position: absolute; top: -10px; right: 14px;
+    background: var(--primary); color: #fff;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .tier-footnote { margin: 14px 0 0; padding: 10px 12px; background: var(--light); border-radius: 8px; font-size: 11.5px; line-height: 1.55; color: var(--grey); }
+
   /* KLANT-TYPE TOGGLE (Slot O1) — chip-pills bovenaan stap 2 */
   .ktype-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .ktype-chip { position: relative; display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: var(--white); border: 1.5px solid var(--rule); border-radius: 12px; cursor: pointer; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
@@ -848,11 +862,31 @@
 
       <div class="card">
         <div class="card-title" data-i18n="step1.cards.duur">Contractduur</div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="duur" value="0" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duurEenmalig">Eenmalige interventie</span><small data-i18n="step1.cards.duurEenmaligSub">Standaardtarief, geen doorlopend contract</small></div></label>
-          <label class="radio-option"><input type="radio" name="duur" value="3" checked onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duur3">3 jaar</span><small data-i18n="step1.cards.duurKortingSub">5% korting op alle tarieven</small></div></label>
-          <label class="radio-option"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text"><span data-i18n="step1.cards.duur5">5 jaar</span><small data-i18n="step1.cards.duurKortingSub">5% korting op alle tarieven</small></div></label>
+        <div class="radio-group radio-group-tiers">
+          <label class="radio-option radio-option-tier">
+            <input type="radio" name="duur" value="0" onchange="calculateAll()">
+            <div class="radio-text">
+              <span data-i18n="step1.cards.duurEenmalig">Eenmalige interventie</span>
+              <small data-i18n="step1.cards.duurEenmaligSub">Standaardtarief, geen doorlopend contract</small>
+            </div>
+          </label>
+          <label class="radio-option radio-option-tier radio-option-recommended">
+            <input type="radio" name="duur" value="3" checked onchange="calculateAll()">
+            <span class="radio-badge" data-i18n="step1.cards.duurBadge">Meest gekozen</span>
+            <div class="radio-text">
+              <span data-i18n="step1.cards.duur3">3 jaar</span>
+              <small data-i18n="step1.cards.duur3Sub">Vaste prijs tot eind jaar 2 + klantenportaal + voorrang bij weersgevoelige periodes</small>
+            </div>
+          </label>
+          <label class="radio-option radio-option-tier">
+            <input type="radio" name="duur" value="5" onchange="calculateAll()">
+            <div class="radio-text">
+              <span data-i18n="step1.cards.duur5">5 jaar</span>
+              <small data-i18n="step1.cards.duur5Sub">Vaste prijs tot eind jaar 3 + voorrang bij defect-interventies</small>
+            </div>
+          </label>
         </div>
+        <p class="tier-footnote" data-i18n="step1.cards.tierFootnote">"Vaste prijs" betekent dat uw tarief tijdens deze periode niet stijgt volgens de jaarlijkse Belgische gezondheidsindex (normaal 1,5 tot 4% per jaar). Na de vaste periode geldt opnieuw de standaard indexering.</p>
       </div>
     </div>
 
@@ -1566,7 +1600,38 @@ function buildContractHTMLShared(c, p, opts) {
 
   html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.prijsindexatie.heading')) + '</h2>';
   html += '<p>' + esc(tt('contract.artikel.prijsindexatie.body')) + '</p>';
+  // Vaste-prijs-clausule bij meerjaren-contracten (3j / 5j) \u2014 uitstel jaarlijkse indexering.
+  // Parse contractduur text \u2192 numeriek; '3 jaar' / '5 jaar' / 'eenmalig'.
+  var _shDuurMatch = String(c.contractduur || '').match(/^(\d+)/);
+  var _shDuurNum = _shDuurMatch ? parseInt(_shDuurMatch[1], 10) : 0;
+  if (_shDuurNum === 3) {
+    html += '<p><strong>Vaste prijs bij driejarig contract:</strong> de jaarlijkse indexering wordt uitgesteld. Uw tarief blijft vast tot het einde van het tweede contractjaar en wordt pas voor het eerst ge\u00efndexeerd op de tweede verjaardag van het contract.</p>';
+  } else if (_shDuurNum === 5) {
+    html += '<p><strong>Vaste prijs bij vijfjarig contract:</strong> de jaarlijkse indexering wordt uitgesteld. Uw tarief blijft vast tot het einde van het derde contractjaar en wordt pas voor het eerst ge\u00efndexeerd op de derde verjaardag van het contract.</p>';
+  }
   artNum++;
+
+  // Artikel "Bijkomende voordelen" \u2014 enkel bij meerjaren-contracten
+  if (_shDuurNum === 3 || _shDuurNum === 5) {
+    html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 Bijkomende voordelen bij dit contract</h2>';
+    if (_shDuurNum === 3) {
+      html += '<p>Als klant met een driejarig contract geniet u van de volgende bijkomende voordelen, bovenop de standaarduitvoering:</p>' +
+              '<ul>' +
+                '<li><strong>Vaste prijs tot eind jaar 2</strong> \u2014 geen jaarlijkse indexering volgens de Belgische gezondheidsindex tijdens de eerste twee contractjaren.</li>' +
+                '<li><strong>Online klantenportaal</strong> met uw volledige rapport-historiek, foto\u2019s en uitvoeringsdata op \u00e9\u00e9n centrale plek.</li>' +
+                '<li><strong>Voorrang in onze planning bij weersgevoelige periodes</strong> \u2014 u wordt eerst bediend wanneer er minder uitvoeringscapaciteit beschikbaar is.</li>' +
+              '</ul>';
+    } else {
+      html += '<p>Als klant met een vijfjarig contract geniet u van de volgende bijkomende voordelen, bovenop de standaarduitvoering:</p>' +
+              '<ul>' +
+                '<li><strong>Vaste prijs tot eind jaar 3</strong> \u2014 geen jaarlijkse indexering volgens de Belgische gezondheidsindex tijdens de eerste drie contractjaren.</li>' +
+                '<li><strong>Online klantenportaal</strong> met uw volledige rapport-historiek, foto\u2019s en uitvoeringsdata op \u00e9\u00e9n centrale plek.</li>' +
+                '<li><strong>Voorrang in onze planning bij weersgevoelige periodes</strong>.</li>' +
+                '<li><strong>Voorrang bij defect-interventies en spoedreparaties</strong>.</li>' +
+              '</ul>';
+    }
+    artNum++;
+  }
 
   html += '<h2>' + esc(ART) + ' ' + artNum + ' \u2014 ' + esc(tt('contract.artikel.facturatie.heading')) + '</h2>';
   html += '<p>' + esc(tt('contract.artikel.facturatie.body')) + '</p>';
@@ -2987,11 +3052,14 @@ var FREQUENTIE_DEFAULT = {
 var CONTRACTDUUR_DEFAULT = {
   available: [0, 3, 5],
   default: 3,
-  korting_pct: { 0: 0, 3: 5, 5: 5 },
+  // Meerjaren-tiers 2026-05-13: geen procentuele korting meer — klantvoordeel
+  // komt uit "vaste prijs" tier (uitgestelde indexering). Flancco-forfait blijft
+  // intact, partner-marge blijft intact. korting_pct=0 voor alle tiers.
+  korting_pct: { 0: 0, 3: 0, 5: 0 },
   options: {
     0: { label_nl: 'Eenmalige interventie', sub_nl: 'Standaardtarief, geen doorlopend contract' },
-    3: { label_nl: '3 jaar',                sub_nl: '5% korting op alle tarieven' },
-    5: { label_nl: '5 jaar',                sub_nl: '5% korting op alle tarieven' }
+    3: { label_nl: '3 jaar',                sub_nl: 'Vaste prijs tot eind jaar 2 + klantenportaal + voorrang bij weersgevoelige periodes' },
+    5: { label_nl: '5 jaar',                sub_nl: 'Vaste prijs tot eind jaar 3 + voorrang bij defect-interventies' }
   }
 };
 
@@ -4315,9 +4383,32 @@ function renderSigningUI() {
   html += '<div style="padding:12px 0;line-height:1.8">';
   html += '<p><strong>1. Voorwerp</strong><br>Dit contract omvat het professioneel onderhoud van de geselecteerde installaties volgens de hierboven vermelde specificaties.</p>';
   html += '<p style="margin-top:8px"><strong>2. Duur en opzegging</strong><br>Het contract gaat in op de startdatum en loopt voor de aangegeven duur. Bij afloop wordt het contract stilzwijgend verlengd met telkens één (1) jaar tegen de op dat moment geldende basistarieven, tenzij één van de partijen het contract opzegt per aangetekend schrijven minstens 3 maanden vóór het einde van de lopende periode.</p>';
-  html += '<p style="margin-top:8px"><strong>3. Prijzen en indexering</strong><br>De vermelde prijzen zijn van toepassing tijdens het eerste contractjaar. Vanaf de eerste verjaardag van het contract worden de tarieven jaarlijks geïndexeerd op basis van de Belgische gezondheidsindex (gepubliceerd door FOD Economie), volgens de formule: nieuwe prijs = oude prijs × (gezondheidsindex maand vóór indexering / gezondheidsindex bij contractondertekening). De jaarlijkse indexering bedraagt minimum 1,5% en maximum 4% per jaar. De klant ontvangt jaarlijks ten minste 14 kalenderdagen vóór de indexeringsdatum een schriftelijke aankondiging met de nieuwe tarieven. Bij contractverlenging na de initiële looptijd kunnen de tarieven herzien worden naar de op dat moment geldende basistarieven.</p>';
-  html += '<p style="margin-top:8px"><strong>4. Uitvoering</strong><br>De werken worden uitgevoerd door gekwalificeerde techniekers. De klant zorgt voor vrije toegang tot de installatie(s).</p>';
-  html += '<p style="margin-top:8px"><strong>5. Facturatie</strong><br>Facturatie gebeurt na elke uitgevoerde onderhoudsbeurt. Betalingstermijn: 30 dagen.</p>';
+  html += '<p style="margin-top:8px"><strong>3. Prijzen en indexering</strong><br>De vermelde prijzen zijn van toepassing tijdens het eerste contractjaar. Vanaf de verjaardag van het contract worden de tarieven jaarlijks geïndexeerd op basis van de Belgische gezondheidsindex (gepubliceerd door FOD Economie), volgens de formule: nieuwe prijs = oude prijs × (gezondheidsindex maand vóór indexering / gezondheidsindex bij contractondertekening). De jaarlijkse indexering bedraagt minimum 1,5% en maximum 4% per jaar. De klant ontvangt jaarlijks ten minste 14 kalenderdagen vóór de indexeringsdatum een schriftelijke aankondiging met de nieuwe tarieven.<br><br><strong>Vaste prijs bij meerjarige contracten:</strong> bij een driejarig contract wordt de jaarlijkse indexering uitgesteld; uw tarief blijft vast tot het einde van het tweede contractjaar en wordt pas voor het eerst geïndexeerd op de tweede verjaardag van het contract. Bij een vijfjarig contract blijft uw tarief vast tot het einde van het derde contractjaar (eerste indexering op de derde verjaardag). Bij contractverlenging na de initiële looptijd kunnen de tarieven herzien worden naar de op dat moment geldende basistarieven.</p>';
+  // Tier-features per duur expliciet vermelden in een eigen artikel (4).
+  // Parse contractduur ("3 jaar" / "5 jaar" / "eenmalig") → numeriek.
+  var _duurMatch = String(c.contractduur || '').match(/^(\d+)/);
+  var _duurNum = _duurMatch ? parseInt(_duurMatch[1], 10) : 0;
+  if (_duurNum === 3 || _duurNum === 5) {
+    html += '<p style="margin-top:8px"><strong>4. Bijkomende voordelen bij dit contract</strong><br>';
+    if (_duurNum === 3) {
+      html += 'Als klant met een driejarig contract geniet u van de volgende bijkomende voordelen, bovenop de standaarduitvoering: ' +
+              '(a) <em>vaste prijs tot eind jaar 2</em> — geen jaarlijkse indexering volgens de Belgische gezondheidsindex tijdens de eerste twee contractjaren; ' +
+              '(b) <em>online klantenportaal</em> met uw volledige rapport-historiek, foto’s en uitvoeringsdata op één centrale plek; ' +
+              '(c) <em>voorrang in onze planning bij weersgevoelige periodes</em> — u wordt eerst bediend wanneer er minder uitvoeringscapaciteit beschikbaar is.';
+    } else {
+      html += 'Als klant met een vijfjarig contract geniet u van de volgende bijkomende voordelen, bovenop de standaarduitvoering: ' +
+              '(a) <em>vaste prijs tot eind jaar 3</em> — geen jaarlijkse indexering volgens de Belgische gezondheidsindex tijdens de eerste drie contractjaren; ' +
+              '(b) <em>online klantenportaal</em> met uw volledige rapport-historiek, foto’s en uitvoeringsdata op één centrale plek; ' +
+              '(c) <em>voorrang in onze planning bij weersgevoelige periodes</em>; ' +
+              '(d) <em>voorrang bij defect-interventies en spoedreparaties</em>.';
+    }
+    html += '</p>';
+  }
+  // Artikel-nummering schuift op als artikel 4 (Bijkomende voordelen) actief is
+  var _aNum_uitvoering = (_duurNum === 3 || _duurNum === 5) ? 5 : 4;
+  var _aNum_facturatie = (_duurNum === 3 || _duurNum === 5) ? 6 : 5;
+  html += '<p style="margin-top:8px"><strong>' + _aNum_uitvoering + '. Uitvoering</strong><br>De werken worden uitgevoerd door gekwalificeerde techniekers. De klant zorgt voor vrije toegang tot de installatie(s).</p>';
+  html += '<p style="margin-top:8px"><strong>' + _aNum_facturatie + '. Facturatie</strong><br>Facturatie gebeurt na elke uitgevoerde onderhoudsbeurt. Betalingstermijn: 30 dagen.</p>';
   html += '</div></details>';
   html += '</div>';
 
