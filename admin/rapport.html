@@ -1281,8 +1281,11 @@ async function selectBeurt() {
   // Sector-specifieke blokken initialiseren op basis van sector
   initSectorBlocks();
 
-  // Pre-add one uren row
-  addUrenRij();
+  // Pre-vul uren-tabel met bevestigde uren uit planning (beurt_uren_registraties)
+  // i.p.v. een lege rij met 08:00–12:00 defaults. Voorkomt dat de planner zijn
+  // al ingevoerde uren opnieuw typt én voorkomt miscommunicatie wanneer de
+  // default 4u in het rapport gefactureerd zou worden.
+  prefillUrenFromBeurt();
 
   // Slot A2 — Contract-tab populeren met scope/klant/instructies/handtekening.
   // Async fire-and-forget: blokkeert het renderen van de Rapport-wizard niet
@@ -1556,6 +1559,75 @@ function addUrenRij() {
       '<td><button class="remove-row" onclick="removeUrenRij(' + urenCount + ')">&times;</button></td>' +
     '</tr>');
   updateUrenTotaal();
+}
+
+// Format Date → "HH:MM" voor type=time input
+function _formatHM(d) {
+  if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '';
+  var h = String(d.getHours()).padStart(2, '0');
+  var m = String(d.getMinutes()).padStart(2, '0');
+  return h + ':' + m;
+}
+
+// Pre-vul één uren-rij vanuit een bestaande beurt_uren_registraties record.
+// Wordt aangeroepen bij rapport-init wanneer er reeds uren bevestigd zijn vanuit
+// de planning-flow (start/eind/uurtarief/km). Voorkomt dat de planner zijn al
+// ingevoerde uren opnieuw moet typen — én voorkomt miscommunicatie wanneer de
+// default 08:00–12:00 (= 4 uur) per ongeluk in het rapport gefactureerd wordt.
+function addUrenRijFromRegistration(r) {
+  urenCount++;
+  var techNaam = '';
+  if (r.techniekers) {
+    techNaam = ((r.techniekers.voornaam || '') + ' ' + (r.techniekers.naam || '')).trim();
+  }
+  var startTime = r.start_tijd ? new Date(r.start_tijd) : null;
+  var eindTime  = r.eind_tijd  ? new Date(r.eind_tijd)  : null;
+  var datum = startTime
+    ? startTime.toISOString().split('T')[0]
+    : (currentBeurt.plan_datum || new Date().toISOString().split('T')[0]);
+  var startStr = _formatHM(startTime) || '';
+  var eindStr  = _formatHM(eindTime)  || '';
+  var uren = (r.duur_minuten != null) ? (r.duur_minuten / 60).toFixed(2) : '';
+  var tarief = (r.uurtarief_facturatie_snapshot != null) ? r.uurtarief_facturatie_snapshot : '';
+  var km = (r.km != null) ? r.km : '';
+  document.getElementById('uren-body').insertAdjacentHTML('beforeend',
+    '<tr id="uren-' + urenCount + '">' +
+      '<td><input type="text" class="uur-tech" placeholder="Naam" value="' + esc(techNaam) + '"></td>' +
+      '<td><input type="date" class="uur-datum" value="' + esc(datum) + '"></td>' +
+      '<td><input type="time" class="uur-start" value="' + esc(startStr) + '"></td>' +
+      '<td><input type="time" class="uur-eind" value="' + esc(eindStr) + '" onchange="berekenUren(this)"></td>' +
+      '<td><input type="number" class="uur-uren" step="0.25" value="' + esc(String(uren)) + '" min="0" onchange="updateUrenTotaal()"></td>' +
+      '<td><input type="number" class="uur-tarief" step="0.01" placeholder="0.00" value="' + esc(String(tarief)) + '" onchange="updateUrenTotaal()"></td>' +
+      '<td><input type="number" class="uur-km" step="1" placeholder="0" min="0" value="' + esc(String(km)) + '"></td>' +
+      '<td><button class="remove-row" onclick="removeUrenRij(' + urenCount + ')">&times;</button></td>' +
+    '</tr>');
+  updateUrenTotaal();
+}
+
+// Pre-laadt de uren-tabel vanuit beurt_uren_registraties. Wordt aangeroepen
+// bij rapport-init i.p.v. de oude default-add. Indien geen registraties bestaan
+// (bv. ad-hoc rapport zonder voorafgaande planning-bevestiging), fallback naar
+// de gewone addUrenRij() met defaults.
+async function prefillUrenFromBeurt() {
+  if (!currentBeurt || !currentBeurt.id) {
+    addUrenRij();
+    return;
+  }
+  try {
+    var res = await sb.from('beurt_uren_registraties')
+      .select('*, techniekers(voornaam, naam)')
+      .eq('beurt_id', currentBeurt.id)
+      .order('start_tijd', { ascending: true });
+    var rows = (res && res.data) || [];
+    if (rows.length === 0) {
+      addUrenRij();
+      return;
+    }
+    rows.forEach(function(r) { addUrenRijFromRegistration(r); });
+  } catch (e) {
+    if (window.console && console.warn) console.warn('[rapport] uren-prefill faalde:', e && e.message);
+    addUrenRij();
+  }
 }
 
 function removeUrenRij(id) {
