@@ -1165,15 +1165,50 @@ async function loadRapportView(beurtId) {
   var sectorHtml = buildSectorSpecificHtml(meta);
   var sigHtml = buildHandtekeningHtml(meta.handtekening);
 
-  // Foto's
-  // foto_urls kan nieuwe object-shape (per categorie) of legacy array zijn. Voor de
-  // read-only viewer maken we het plat — categorie-detail toont enkel in edit-UI.
-  var fotoUrls = _flattenFotoUrls(rapport.foto_urls);
+  // Foto's — shape-aware rendering:
+  //   • Object-shape (nieuwe rapporten): per categorie sectie met label-header,
+  //     identiek aan de edit-UI, zodat "Bekijk rapport" en "Bewerken" dezelfde
+  //     structuur tonen.
+  //   • Legacy array: plat zoals voorheen (geen categorie-info beschikbaar).
   var fotoHtml = '';
-  if (fotoUrls.length > 0) {
-    fotoHtml = '<div class="rp-foto-grid">';
-    fotoUrls.forEach(function(url) { fotoHtml += '<img src="' + esc(url) + '" style="max-width:180px;max-height:140px;border-radius:6px;object-fit:cover">'; });
-    fotoHtml += '</div>';
+  if (_isFotoUrlsObject(rapport.foto_urls)) {
+    var fotoCats = FOTO_CATEGORIES[sector] || FOTO_CATEGORIES.klussen || [];
+    var labelByKey = {};
+    fotoCats.forEach(function(c) { labelByKey[c.key] = c.label; });
+    var sectionsHtml = '';
+    // Gekende categorieën in volgorde van FOTO_CATEGORIES (stabiele weergave)
+    fotoCats.forEach(function(c) {
+      var arr = rapport.foto_urls[c.key];
+      if (!Array.isArray(arr) || arr.length === 0) return;
+      sectionsHtml += '<div class="rp-foto-section" style="margin-bottom:14px">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:6px">' + esc(c.label) + '</div>' +
+        '<div class="rp-foto-grid">' +
+        arr.map(function(url) { return '<img src="' + esc(url) + '" style="max-width:180px;max-height:140px;border-radius:6px;object-fit:cover">'; }).join('') +
+        '</div></div>';
+    });
+    // Onbekende keys (bv. _legacy of foto's van een andere sector) → "Overige"
+    var otherUrls = [];
+    Object.keys(rapport.foto_urls).forEach(function(k) {
+      if (labelByKey[k]) return;
+      var arr = rapport.foto_urls[k];
+      if (Array.isArray(arr)) arr.forEach(function(u) { if (u) otherUrls.push(u); });
+    });
+    if (otherUrls.length > 0) {
+      sectionsHtml += '<div class="rp-foto-section">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:6px">Overige</div>' +
+        '<div class="rp-foto-grid">' +
+        otherUrls.map(function(url) { return '<img src="' + esc(url) + '" style="max-width:180px;max-height:140px;border-radius:6px;object-fit:cover">'; }).join('') +
+        '</div></div>';
+    }
+    if (sectionsHtml) fotoHtml = sectionsHtml;
+  } else {
+    // Legacy platte array
+    var fotoUrls = _flattenFotoUrls(rapport.foto_urls);
+    if (fotoUrls.length > 0) {
+      fotoHtml = '<div class="rp-foto-grid">';
+      fotoUrls.forEach(function(url) { fotoHtml += '<img src="' + esc(url) + '" style="max-width:180px;max-height:140px;border-radius:6px;object-fit:cover">'; });
+      fotoHtml += '</div>';
+    }
   }
 
   // Klant snapshot
