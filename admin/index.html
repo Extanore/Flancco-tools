@@ -21543,11 +21543,22 @@ async function showRapportDetail(rapportId) {
     html += '<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;white-space:pre-wrap">' + esc(rapport.opmerkingen) + '</p>';
   }
 
-  // Foto's
-  if (rapport.foto_urls && rapport.foto_urls.length > 0) {
-    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Foto\'s (' + rapport.foto_urls.length + ')</h3>';
+  // Foto's — schema 2026-05-13 ondersteunt zowel platte array als object-shape
+  // { categoryKey: [urls...] }. We flatten lokaal voor de admin-detail-view; de
+  // edit-flow in admin/rapport.html toont ze per categorie.
+  var _flatFotos = [];
+  if (Array.isArray(rapport.foto_urls)) {
+    _flatFotos = rapport.foto_urls.slice();
+  } else if (rapport.foto_urls && typeof rapport.foto_urls === 'object') {
+    Object.keys(rapport.foto_urls).forEach(function(k) {
+      var arr = rapport.foto_urls[k];
+      if (Array.isArray(arr)) arr.forEach(function(u) { if (u) _flatFotos.push(u); });
+    });
+  }
+  if (_flatFotos.length > 0) {
+    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Foto\'s (' + _flatFotos.length + ')</h3>';
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:16px">';
-    rapport.foto_urls.forEach(function(url) {
+    _flatFotos.forEach(function(url) {
       html += '<a href="' + url + '" target="_blank"><img src="' + url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--rule)"></a>';
     });
     html += '</div>';

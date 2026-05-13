@@ -666,8 +666,33 @@ var existingRapport = null;
 // Bestaande foto-URLs uit het opgeslagen rapport + set van URLs die de gebruiker
 // in de edit-flow wil verwijderen. Bij save: foto_urls = existingFotoUrls minus
 // removedExistingFotoUrls + nieuw geüploade URLs.
-var existingFotoUrls = [];
+// Schema-evolutie 2026-05-13: nieuwe rapporten slaan foto_urls op als object
+// { categoryKey: [urls...] } i.p.v. platte array, zodat categorie-info behouden
+// blijft bij latere edits. Legacy rapporten (array shape) blijven werken via
+// shape-detectie + helpers _flattenFotoUrls / _isFotoUrlsObject.
+var existingFotoUrls = [];           // flat array (voor remove-tracking; werkt voor beide shapes)
+var existingFotoUrlsByCat = null;    // object { catKey: [urls] } voor nieuwe shape; null voor legacy
 var removedExistingFotoUrls = {};
+
+// Detecteert moderne object-shape vs legacy array. null/undefined => array-shape.
+function _isFotoUrlsObject(v) {
+  return v != null && typeof v === 'object' && !Array.isArray(v);
+}
+
+// Plat-array helper — accepteert beide shapes. Wordt gebruikt door PDF-flow en
+// read-only viewer waar categorie-info niet relevant is.
+function _flattenFotoUrls(v) {
+  if (Array.isArray(v)) return v.slice();
+  if (_isFotoUrlsObject(v)) {
+    var out = [];
+    Object.keys(v).forEach(function(k) {
+      var arr = v[k];
+      if (Array.isArray(arr)) arr.forEach(function(u) { if (u) out.push(u); });
+    });
+    return out;
+  }
+  return [];
+}
 var steps = ['checklist','fotos','uren','opmerkingen','samenvatting','success'];
 
 // Sector-specifieke data (uit app_settings.rapport_config)
@@ -1141,7 +1166,9 @@ async function loadRapportView(beurtId) {
   var sigHtml = buildHandtekeningHtml(meta.handtekening);
 
   // Foto's
-  var fotoUrls = rapport.foto_urls || [];
+  // foto_urls kan nieuwe object-shape (per categorie) of legacy array zijn. Voor de
+  // read-only viewer maken we het plat — categorie-detail toont enkel in edit-UI.
+  var fotoUrls = _flattenFotoUrls(rapport.foto_urls);
   var fotoHtml = '';
   if (fotoUrls.length > 0) {
     fotoHtml = '<div class="rp-foto-grid">';
@@ -1300,6 +1327,7 @@ async function selectBeurt() {
   existingRapportId = null;
   existingRapport = null;
   existingFotoUrls = [];
+  existingFotoUrlsByCat = null;
   removedExistingFotoUrls = {};
   var existingFotosCard = document.getElementById('existing-fotos-card');
   if (existingFotosCard) existingFotosCard.style.display = 'none';
@@ -1771,26 +1799,73 @@ async function loadInterventiesForBeurt(beurtId) {
 }
 
 // Rendert de "Bestaande foto's"-sectie bovenaan de Foto's-tab met thumbnails
-// + remove-knop per foto. Toont alleen niet-verwijderde URLs (filterd op
-// removedExistingFotoUrls). Verbergt de card als er geen bestaande foto's
-// (meer) zijn — bv. nieuwe rapport-flow of alle bestaande verwijderd.
+// + remove-knop per foto. Twee shapes worden ondersteund:
+//   - Object-shape (nieuw): rendert per categorie met label-header
+//   - Legacy array: rendert plat zoals voorheen (geen categorie-info bekend)
+// Verbergt de card als er geen bestaande foto's (meer) zijn.
 function renderExistingFotos() {
   var card = document.getElementById('existing-fotos-card');
   var grid = document.getElementById('existing-fotos-grid');
   if (!card || !grid) return;
-  var visibleUrls = existingFotoUrls.filter(function(u) { return !removedExistingFotoUrls[u]; });
-  if (visibleUrls.length === 0) {
+
+  // Per-foto thumb-renderer (gedeeld door beide paths)
+  function _thumbHtml(url) {
+    return '<div class="foto-thumb">' +
+      '<img src="' + esc(url) + '" alt="">' +
+      '<button class="remove-foto" type="button" onclick="removeExistingFoto(\'' + esc(url).replace(/'/g, "\\'") + '\')" title="Verwijderen">x</button>' +
+    '</div>';
+  }
+
+  // Helper om visibleUrls binnen een set te bepalen
+  function _visibleOf(urls) {
+    return (urls || []).filter(function(u) { return u && !removedExistingFotoUrls[u]; });
+  }
+
+  // Snelle leeg-check (over alle paths)
+  var hasAny = existingFotoUrls.some(function(u) { return !removedExistingFotoUrls[u]; });
+  if (!hasAny) {
     card.style.display = 'none';
     grid.innerHTML = '';
     return;
   }
   card.style.display = '';
-  grid.innerHTML = visibleUrls.map(function(url) {
-    return '<div class="foto-thumb">' +
-      '<img src="' + esc(url) + '" alt="">' +
-      '<button class="remove-foto" type="button" onclick="removeExistingFoto(\'' + esc(url).replace(/'/g, "\\'") + '\')" title="Verwijderen">x</button>' +
-    '</div>';
-  }).join('');
+
+  // Path A: Object-shape — render per categorie met label-headers
+  if (existingFotoUrlsByCat) {
+    var sector = currentBeurt ? currentBeurt.sector : 'klussen';
+    var cats = FOTO_CATEGORIES[sector] || FOTO_CATEGORIES.klussen || [];
+    var labelByKey = {};
+    cats.forEach(function(c) { labelByKey[c.key] = c.label; });
+
+    var html = '';
+    // Sectie per gekende categorie (in volgorde van FOTO_CATEGORIES voor stabiliteit)
+    cats.forEach(function(c) {
+      var visible = _visibleOf(existingFotoUrlsByCat[c.key]);
+      if (visible.length === 0) return;
+      html += '<div class="foto-cat-section" style="margin-bottom:14px">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:8px">' + esc(c.label) + '</div>' +
+        '<div class="foto-cat-grid">' + visible.map(_thumbHtml).join('') + '</div>' +
+      '</div>';
+    });
+    // Onbekende categorieën (bv. data uit andere sector of legacy _legacy-key) → onder een "Overige" sectie
+    var otherUrls = [];
+    Object.keys(existingFotoUrlsByCat).forEach(function(k) {
+      if (labelByKey[k]) return; // al gerendered
+      _visibleOf(existingFotoUrlsByCat[k]).forEach(function(u) { otherUrls.push(u); });
+    });
+    if (otherUrls.length > 0) {
+      html += '<div class="foto-cat-section">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:8px">Overige</div>' +
+        '<div class="foto-cat-grid">' + otherUrls.map(_thumbHtml).join('') + '</div>' +
+      '</div>';
+    }
+    grid.innerHTML = html;
+    return;
+  }
+
+  // Path B: Legacy array — render plat
+  var visibleUrls = _visibleOf(existingFotoUrls);
+  grid.innerHTML = visibleUrls.map(_thumbHtml).join('');
 }
 
 // Markeert een bestaande foto-URL voor verwijdering bij save. Re-rendert de grid
@@ -1838,8 +1913,16 @@ async function applyExistingRapportData(rapport) {
   var matData = Array.isArray(rapport.materiaal_data) ? rapport.materiaal_data : [];
   matData.forEach(function(m) { addMateriaalRijFromSavedData(m); });
 
-  // Bestaande foto's pre-fillen + grid renderen
-  existingFotoUrls = Array.isArray(rapport.foto_urls) ? rapport.foto_urls.slice() : [];
+  // Bestaande foto's pre-fillen + grid renderen.
+  // Shape-detectie: nieuwe object-shape behouden voor per-categorie weergave;
+  // legacy array behouden voor plat weergave (geen categorie-info beschikbaar).
+  if (_isFotoUrlsObject(rapport.foto_urls)) {
+    existingFotoUrlsByCat = JSON.parse(JSON.stringify(rapport.foto_urls)); // deep copy
+    existingFotoUrls = _flattenFotoUrls(rapport.foto_urls);
+  } else {
+    existingFotoUrlsByCat = null;
+    existingFotoUrls = Array.isArray(rapport.foto_urls) ? rapport.foto_urls.slice() : [];
+  }
   removedExistingFotoUrls = {};
   renderExistingFotos();
 
@@ -2503,20 +2586,49 @@ async function saveRapport() {
       ? existingRapport.referentie
       : ('RPT-' + datum.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase());
 
-    // Upload foto's — bij bestaand rapport: combine bestaande URLs + nieuwe uploads,
-    // met filter op door de gebruiker verwijderde foto's. De wizard-fotos[] bevat
-    // enkel nieuw toegevoegde File-objects (oude staan in existingRapport.foto_urls).
-    // Bij INSERT-flow is er geen existingRapport, dus we starten met een lege array.
-    var fotoUrls = (existingRapport && Array.isArray(existingRapport.foto_urls))
-      ? existingRapport.foto_urls.filter(function(u) { return !removedExistingFotoUrls[u]; })
-      : [];
-    for (var i = 0; i < fotos.length; i++) {
-      var path = 'rapporten/' + ref + '/' + Date.now() + '_' + i + '.jpg';
-      var uploadRes = await sb.storage.from('handtekeningen').upload(path, fotos[i].file, { contentType: fotos[i].file.type });
-      if (!uploadRes.error) fotoUrls.push(SUPA_URL + '/storage/v1/object/public/handtekeningen/' + path);
+    // Upload foto's — schema 2026-05-13:
+    //   foto_urls wordt opgeslagen als object { categoryKey: [urls...] } zodat
+    //   categorie-info behouden blijft bij latere edits.
+    //   Legacy rapporten met array foto_urls worden behouden onder `_legacy`-key
+    //   (kunnen niet meer aan categorie gehangen worden — geen info bij save).
+    //   Foto-storage-pad krijgt categorie-prefix: rapporten/{ref}/{cat}/...
+    var fotoUrlsObj = {};
+
+    // (a) Bestaande gestructureerde foto's (object-shape) — per categorie filteren
+    if (existingRapport && _isFotoUrlsObject(existingRapport.foto_urls)) {
+      Object.keys(existingRapport.foto_urls).forEach(function(catKey) {
+        var kept = (existingRapport.foto_urls[catKey] || []).filter(function(u) {
+          return u && !removedExistingFotoUrls[u];
+        });
+        if (kept.length > 0) fotoUrlsObj[catKey] = kept;
+      });
     }
-    // Beschikbaar maken voor edge-function payload (rapport_branded.fotos[])
-    window._rapport_lastFotoUrls = fotoUrls.slice();
+    // (b) Bestaande legacy foto's (platte array) — onder _legacy-key bewaren
+    else if (existingRapport && Array.isArray(existingRapport.foto_urls)) {
+      var keptLegacy = existingRapport.foto_urls.filter(function(u) {
+        return u && !removedExistingFotoUrls[u];
+      });
+      if (keptLegacy.length > 0) fotoUrlsObj._legacy = keptLegacy;
+    }
+
+    // (c) Nieuwe uploads — per categorie naar path rapporten/{ref}/{cat}/...
+    //     Maakt gebruik van fotos[].category-prop die bij upload is gezet
+    //     (zie handleCatFotos / handleFotoDrop).
+    for (var fi = 0; fi < fotos.length; fi++) {
+      var fObj = fotos[fi];
+      var catKey = fObj.category || 'overig';
+      // Sanitize cat key voor URL-pad (geen slashes, alleen lower alnum + underscore)
+      var safeCat = String(catKey).replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+      var path = 'rapporten/' + ref + '/' + safeCat + '/' + Date.now() + '_' + fi + '.jpg';
+      var uploadRes = await sb.storage.from('handtekeningen').upload(path, fObj.file, { contentType: fObj.file.type });
+      if (!uploadRes.error) {
+        var publicUrl = SUPA_URL + '/storage/v1/object/public/handtekeningen/' + path;
+        if (!fotoUrlsObj[catKey]) fotoUrlsObj[catKey] = [];
+        fotoUrlsObj[catKey].push(publicUrl);
+      }
+    }
+    // Beschikbaar maken voor edge-function payload (rapport_branded.fotos[]) — flat shape
+    window._rapport_lastFotoUrls = _flattenFotoUrls(fotoUrlsObj);
 
     var details = currentContract.sector_details || {};
     var formule = null, systeem = null;
@@ -2578,7 +2690,7 @@ async function saveRapport() {
       formule: formule,
       systeem: systeem,
       checklist_data: checkData,
-      foto_urls: fotoUrls,
+      foto_urls: fotoUrlsObj, // 2026-05-13: object-shape { categoryKey: [urls...] }
       opmerkingen: document.getElementById('rapport-opmerkingen').value.trim() || null,
       technieker_id: currentBeurt.technieker_id,
       datum_onderhoud: datum,
