@@ -203,7 +203,7 @@ const MAX_PHOTOS = 6;
 const PHOTO_GRID_COLS = 3;
 const PHOTO_GAP = 10;
 const PHOTO_FETCH_TIMEOUT_MS = 4000;
-const PHOTO_MAX_BYTES = 4 * 1024 * 1024; // 4 MB per photo — keeps total PDF under bucket cap
+const PHOTO_MAX_BYTES = 10 * 1024 * 1024; // 10 MB per photo (was 4 MB — bumped 2026-05-13 omdat moderne phone-camera's typisch 5-8 MB per foto leveren, en dat moest niet stilzwijgend worden gedropt uit het PDF; PDF blijft onder bucket-cap)
 
 const SECTION_HEADING_GAP = 14;
 const SECTION_BODY_GAP = 18;
