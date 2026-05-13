@@ -272,6 +272,16 @@
   }
   #wiz-calc-host .tier-footnote { margin: 14px 0 0; padding: 10px 12px; background: var(--light); border-radius: 8px; font-size: 11.5px; line-height: 1.55; color: var(--grey); }
 
+  /* Verplichte-veld-markering + invalid-state (zelfde patroon als publieke calculator) */
+  #wiz-calc-host .req-asterisk { color: #DC2626; font-weight: 700; margin-left: 2px; }
+  #wiz-calc-host .field.field-invalid input,
+  #wiz-calc-host .field.field-invalid select,
+  #wiz-calc-host .field.field-invalid textarea {
+    border-color: #DC2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+  }
+  #wiz-calc-host .field.field-invalid label { color: #DC2626; }
+
   /* TOGGLES (calculator versie) — overschrijft wizard's mini-versie */
   #wiz-calc-host .toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--light); border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: background 0.2s; }
   #wiz-calc-host .toggle-group:hover { background: var(--primary-bg); }
@@ -1638,6 +1648,30 @@ function goStep(n) {
       showToast('Kies een looptijd in stap 2');
       return;
     }
+    // Validatie verplichte installatie-velden (zonnepanelen): aantal panelen, type dak,
+    // dakrandhoogte, bereikbaarheid, watervoorziening. Geen defaults → admin moet expliciet
+    // invullen om miscommunicatie met de klant te voorkomen.
+    var _wizCalcHost = document.getElementById('wiz-calc-host');
+    if (_wizCalcHost) {
+      var _required = _wizCalcHost.querySelectorAll('[data-required="true"]');
+      var _invalidIds = [];
+      _required.forEach(function(el) {
+        var _val = (el.value || '').trim();
+        var _isInvalid = !_val || (el.type === 'number' && (isNaN(parseFloat(_val)) || parseFloat(_val) <= 0));
+        var _wrap = el.closest('.field');
+        if (_wrap) _wrap.classList.toggle('field-invalid', _isInvalid);
+        if (_isInvalid && el.id) _invalidIds.push(el.id);
+      });
+      if (_invalidIds.length > 0) {
+        showToast('Vul alle verplichte installatie-velden in voor je doorgaat');
+        var _firstEl = document.getElementById(_invalidIds[0]);
+        if (_firstEl) {
+          _firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          try { _firstEl.focus({ preventScroll: true }); } catch (_) { _firstEl.focus(); }
+        }
+        return;
+      }
+    }
     // WF-009 — bij 6% BTW: partner moet expliciet bevestigen dat de klant geïnformeerd
     // is over de verklaring-op-eer (privé-woning + ouder dan 10 jaar). De klant tekent
     // de verklaring zelf bij signing, maar zonder voorafgaande info riskeer je een
@@ -2893,14 +2927,34 @@ checkAuth();
       renderForm: function(pricing, supplements) {
         var vervBedrag = getSectorSupplement('zonnepanelen', 'vervuiling');
         var vervBedragStr = vervBedrag > 0 ? fmt(vervBedrag) : '€ 2,00';
+        // Alle vijf velden in "Uw installatie" zijn verplicht zonder default-waarde —
+        // voorkomt miscommunicatie (default "12 panelen" terwijl realiteit 24). Lege
+        // placeholder-option = ongekozen state; validatie blokkeert doorgaan tot ingevuld.
         return '<div class="card">' +
           '<div class="card-title">Uw installatie</div>' +
-          '<div class="field"><label>Aantal zonnepanelen</label>' +
-          '<input type="number" id="solar-panelen" min="1" max="200" value="12" oninput="calculateAll()"></div>' +
+          '<div class="field"><label>Aantal zonnepanelen <span class="req-asterisk">*</span></label>' +
+          '<input type="number" id="solar-panelen" min="1" max="200" placeholder="Aantal panelen" data-required="true" oninput="calculateAll()"></div>' +
           '<div class="field-row">' +
-          '<div class="field"><label>Type dak</label><select id="solar-daktype" onchange="calculateAll()"><option value="hellend">Hellend dak</option><option value="plat">Plat dak</option><option value="grond">Grondopstelling</option></select></div>' +
-          '<div class="field"><label>Dakrandhoogte <small>(ca.)</small></label><select id="solar-dakhoogte" onchange="calculateAll()"><option value="laag">Lager dan 7,5 m</option><option value="hoog">7,5 – 17 m (hoogtewerker)</option></select><small style="display:block;margin-top:4px;color:#6B6B7E;font-size:11px;line-height:1.4">Boven 17 m: niet bereikbaar met onze standaard-hoogtewerker — offerte op maat.</small></div>' +
-          '</div></div>' +
+          '<div class="field"><label>Type dak <span class="req-asterisk">*</span></label><select id="solar-daktype" data-required="true" onchange="calculateAll()"><option value="">— Maak een keuze —</option><option value="hellend">Hellend dak</option><option value="plat">Plat dak</option><option value="grond">Grondopstelling</option></select></div>' +
+          '<div class="field"><label>Dakrandhoogte <small>(ca.)</small> <span class="req-asterisk">*</span></label><select id="solar-dakhoogte" data-required="true" onchange="calculateAll()"><option value="">— Maak een keuze —</option><option value="laag">Lager dan 7,5 m</option><option value="hoog">7,5 – 17 m (hoogtewerker)</option></select><small style="display:block;margin-top:4px;color:#6B6B7E;font-size:11px;line-height:1.4">Boven 17 m: niet bereikbaar met onze standaard-hoogtewerker — offerte op maat.</small></div>' +
+          '</div>' +
+          // Bereikbaarheid + watervoorziening verplaatst uit "Bijzonderheden" — horen bij installatie-info
+          '<div class="field" style="margin-top:18px"><label>Hoe goed is uw woning bereikbaar voor onze servicewagen? <span class="req-asterisk">*</span></label>' +
+            '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Onze bestelwagen heeft een korte parkeerplaats nodig in de buurt van uw woning om materiaal vlot te lossen.</small>' +
+            '<select id="klant-bereik" data-required="true" onchange="calculateAll()">' +
+              '<option value="">— Maak een keuze —</option>' +
+              '<option value="Goed">Goed bereikbaar &mdash; bestelwagen kan vlot tot bij de woning</option>' +
+              '<option value="Beperkt">Beperkt bereikbaar &mdash; smalle straat, paaltjes of obstakels op de oprit</option>' +
+              '<option value="Parkeervergunning">Parkeervergunning nodig &mdash; woning in centrum of zone met betalend parkeren (+€25)</option>' +
+            '</select></div>' +
+          '<div class="field"><label>Is er een werkende buitenkraan beschikbaar? <span class="req-asterisk">*</span></label>' +
+            '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Met een buitenkraan werken we het vlotst; zonder geen probleem &mdash; we brengen onze eigen watertank mee.</small>' +
+            '<select id="klant-water" data-required="true" onchange="calculateAll()">' +
+              '<option value="">— Maak een keuze —</option>' +
+              '<option value="Ja">Ja, er is een werkende buitenkraan beschikbaar</option>' +
+              '<option value="Nee">Nee, breng zelf water mee</option>' +
+            '</select></div>' +
+          '</div>' +
           '<div class="card"><div class="card-title">Bijzonderheden</div>' +
           '<div style="background:var(--primary-bg);border-left:3px solid var(--primary);border-radius:6px;padding:14px 18px;margin-bottom:14px;font-size:13px;line-height:1.55;color:#1A1A2E;display:flex;gap:12px;align-items:flex-start">' +
             '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;color:var(--primary)" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
@@ -2919,30 +2973,25 @@ checkAuth();
           '</div>' +
           '<label class="toggle-group" for="solar-vervuiling"><div class="toggle-label">Mijn panelen zijn hevig vervuild<small>Optioneel &mdash; geeft de technieker vooraf een seintje, factuur klopt direct</small></div>' +
           '<div class="switch"><input type="checkbox" id="solar-vervuiling" onchange="calculateAll()"><span class="slider"></span></div></label>' +
-          '<div class="field" style="margin-top:22px"><label>Hoe goed is uw woning bereikbaar voor onze servicewagen?</label>' +
-            '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Onze bestelwagen heeft een korte parkeerplaats nodig in de buurt van uw woning om materiaal vlot te lossen.</small>' +
-            '<select id="klant-bereik" onchange="calculateAll()">' +
-              '<option value="Goed">Goed bereikbaar &mdash; bestelwagen kan vlot tot bij de woning</option>' +
-              '<option value="Beperkt">Beperkt bereikbaar &mdash; smalle straat, paaltjes of obstakels op de oprit</option>' +
-              '<option value="Parkeervergunning">Parkeervergunning nodig &mdash; woning in centrum of zone met betalend parkeren (+€25)</option>' +
-            '</select></div>' +
-          '<div class="field"><label>Is er een werkende buitenkraan beschikbaar?</label>' +
-            '<small style="display:block;color:var(--grey);font-size:12px;margin:-2px 0 8px;line-height:1.45">Met een buitenkraan werken we het vlotst; zonder geen probleem &mdash; we brengen onze eigen watertank mee.</small>' +
-            '<select id="klant-water">' +
-              '<option value="Ja">Ja, er is een werkende buitenkraan beschikbaar</option>' +
-              '<option value="Nee">Nee, breng zelf water mee</option>' +
-            '</select></div>' +
           '</div>';
       },
 
       readInputs: function() {
+        // Defensief: lege waarden worden doorgegeven, calculate() detecteert incompletes.
+        var panRaw = document.getElementById('solar-panelen').value;
+        var panNum = parseInt(panRaw, 10);
+        var daktype = document.getElementById('solar-daktype').value;
+        var dakhoogteVal = document.getElementById('solar-dakhoogte').value;
         var bereikEl = document.getElementById('klant-bereik');
+        var waterEl = document.getElementById('klant-water');
         return {
-          pan: Math.max(1, parseInt(document.getElementById('solar-panelen').value) || 1),
-          daktype: document.getElementById('solar-daktype').value,
-          hoog: document.getElementById('solar-dakhoogte').value === 'hoog',
+          pan: (isFinite(panNum) && panNum > 0) ? panNum : 0,
+          daktype: daktype,
+          hoog: dakhoogteVal === 'hoog',
+          dakhoogteVal: dakhoogteVal,
           verv: document.getElementById('solar-vervuiling').checked,
-          bereik: bereikEl ? bereikEl.value : 'Goed'
+          bereik: bereikEl ? bereikEl.value : '',
+          water: waterEl ? waterEl.value : ''
         };
       },
 
@@ -2960,6 +3009,18 @@ checkAuth();
       calculate: function(inputs, pricing, supplements, partner) {
         var marge = parseFloat(partner.marge_pct) / 100;
         var planFee = parseFloat(partner.planning_fee);
+
+        // Validatie 2026-05-13: bij incomplete inputs, geen prijs tonen.
+        var _incomplete = (!inputs.pan || inputs.pan < 1)
+                       || !inputs.daktype || !inputs.dakhoogteVal
+                       || !inputs.bereik || !inputs.water;
+        if (_incomplete) {
+          return {
+            lines: [], subtotalExcl: 0, forfaitLabel: 'Vul alle velden in',
+            forfaitExcl: 0, vervC: 0, hoogC: 0, hoogBedrag: 0, vervPP: 0,
+            parkeerC: 0, parkeerFee: 0, opAanvraag: true, incomplete: true
+          };
+        }
 
         if (inputs.pan > 75) {
           return {
@@ -3686,6 +3747,16 @@ checkAuth();
         onChangeCb(getStateSnapshot(), getResultSnapshot());
       }
       return;
+    }
+
+    // Auto-clear invalid-markers zodra user iets invult (directe positieve feedback)
+    if (hostEl) {
+      hostEl.querySelectorAll('[data-required="true"]').forEach(function(el) {
+        var val = (el.value || '').trim();
+        var isStillInvalid = !val || (el.type === 'number' && (isNaN(parseFloat(val)) || parseFloat(val) <= 0));
+        var wrap = el.closest('.field');
+        if (wrap && !isStillInvalid) wrap.classList.remove('field-invalid');
+      });
     }
 
     var afst = Math.max(0, parseInt((document.getElementById('afstand') || {}).value) || 0);
