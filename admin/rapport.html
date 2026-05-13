@@ -2998,18 +2998,33 @@ async function generatePDFBlob() {
 async function downloadPDF() {
   var edge = await generatePDFViaEdge();
   if (edge && edge.url) {
-    // Direct download via browser — opent in nieuwe tab als browser pop-up blokkeert
-    var a = document.createElement('a');
-    a.href = edge.url;
-    a.download = (lastSavedRef || 'rapport') + '.pdf';
-    a.target = '_blank';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Download via blob-URL i.p.v. directe cross-origin link.
+    // Reden: na de await voor PDF-generatie is de user-gesture context
+    // verlopen, waardoor browsers (vooral Safari + Chrome) `<a target="_blank">`
+    // als pop-up blokkeren. Blob-URLs zijn same-origin en omzeilen die check —
+    // de browser ziet het als een normale download in dezelfde tab.
+    try {
+      var blob = await fetchPDFAsBlob(edge.url);
+      if (blob) {
+        var blobUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = (lastSavedRef || 'rapport') + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        // Cleanup na korte delay zodat de browser de download heeft kunnen starten
+        setTimeout(function() { try { URL.revokeObjectURL(blobUrl); } catch (_) {} }, 2000);
+        return;
+      }
+    } catch (e) {
+      if (window.console && console.warn) console.warn('[downloadPDF] blob-fetch faalde, fallback naar directe link:', e && e.message);
+    }
+    // Fallback: directe link in zelfde tab. Geen target=_blank meer (= geen popup).
+    window.location.href = edge.url;
     return;
   }
-  // Fallback: client-side genereren + lokale save
+  // Fallback 2: client-side genereren + lokale save
   console.warn('[downloadPDF] valt terug op legacy jsPDF');
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF('p', 'mm', 'a4');
