@@ -5667,7 +5667,7 @@
             <small style="color:var(--grey);font-size:11px;display:block;margin-bottom:10px">Voor facturen en algemene communicatie naar het bedrijf.</small>
             <div class="modal-row">
               <div class="modal-field"><label>Email *</label><input type="email" id="kl-email" placeholder="facturatie@bedrijf.be"></div>
-              <div class="modal-field"><label>Telefoon</label><input id="kl-telefoon" placeholder="+32 ..."></div>
+              <div class="modal-field"><label>Telefoon *</label><input id="kl-telefoon" placeholder="+32 ..."></div>
             </div>
           </div>
 
@@ -5696,7 +5696,7 @@
             </div>
             <div class="modal-row">
               <div class="modal-field"><label>Email *</label><input type="email" id="kl-part-email" placeholder="naam@voorbeeld.be"></div>
-              <div class="modal-field"><label>Telefoon</label><input id="kl-part-telefoon" placeholder="+32 ..."></div>
+              <div class="modal-field"><label>Telefoon *</label><input id="kl-part-telefoon" placeholder="+32 ..."></div>
             </div>
 
             <p class="loc-sub-title">Adres</p>
@@ -20512,9 +20512,15 @@ async function saveKlant() {
       var inpEm = document.getElementById('kl-part-email'); if (inpEm) inpEm.focus();
       return;
     }
+    if (!partTel) {
+      switchKlantTab('basis');
+      showToast('Telefoonnummer is verplicht — nodig voor uitvoeringsafspraken en reminders.', 'error');
+      var inpTel = document.getElementById('kl-part-telefoon'); if (inpTel) inpTel.focus();
+      return;
+    }
     primaryFullName = (partVoor + ' ' + partAchter).trim();
     finalEmail = partEmail;
-    finalTelefoon = partTel || null;
+    finalTelefoon = partTel;
   } else {
     // Bedrijf: algemene email + telefoon zijn primaire facturatie-kanaal.
     // Contactpersonen zijn volledig optioneel — geen verplichte primary-validatie.
@@ -20522,6 +20528,12 @@ async function saveKlant() {
       switchKlantTab('basis');
       showToast(!algEmail ? 'Email is verplicht voor het bedrijf — gebruikt voor facturen en algemene communicatie.' : 'Vul een geldig emailadres in (bv. facturatie@bedrijf.be).', 'error');
       var inpAlgEm = document.getElementById('kl-email'); if (inpAlgEm) inpAlgEm.focus();
+      return;
+    }
+    if (!algTelefoon) {
+      switchKlantTab('basis');
+      showToast('Telefoon is verplicht voor het bedrijf — nodig voor uitvoeringsafspraken en reminders.', 'error');
+      var inpAlgTel = document.getElementById('kl-telefoon'); if (inpAlgTel) inpAlgTel.focus();
       return;
     }
 
@@ -20542,7 +20554,7 @@ async function saveKlant() {
       primaryFullName = (p0.first_name + ' ' + p0.last_name).trim() || null;
     }
     finalEmail = algEmail;
-    finalTelefoon = algTelefoon || null;
+    finalTelefoon = algTelefoon;
   }
 
   // Adres verplicht — voor particulier het persoonsadres (Basis-tab), voor bedrijf het factuuradres (Basis-tab).
