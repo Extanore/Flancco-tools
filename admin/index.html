@@ -21544,24 +21544,46 @@ async function showRapportDetail(rapportId) {
   }
 
   // Foto's — schema 2026-05-13 ondersteunt zowel platte array als object-shape
-  // { categoryKey: [urls...] }. We flatten lokaal voor de admin-detail-view; de
-  // edit-flow in admin/rapport.html toont ze per categorie.
-  var _flatFotos = [];
+  // { categoryKey: [urls...] }. Bij object-shape tonen we per categorie met
+  // label-headers; bij legacy array vlakke grid (geen categorie-info beschikbaar).
+  // Categorie-labels worden lokaal afgeleid uit de key (FOTO_CATEGORIES leeft
+  // in admin/rapport.html en is hier niet beschikbaar; key→label kunnen we
+  // afleiden via humanize-functie).
+  function _humanizeFotoKey(k) {
+    // 'overzichtsfoto_dak_voor' → 'Overzichtsfoto dak voor'
+    if (!k || k === '_legacy') return 'Overige';
+    return String(k).replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+  }
+  function _imgTag(url) {
+    return '<a href="' + url + '" target="_blank"><img src="' + url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--rule)"></a>';
+  }
+
+  var _totalFotos = 0;
+  var _fotoHtml = '';
   if (Array.isArray(rapport.foto_urls)) {
-    _flatFotos = rapport.foto_urls.slice();
+    // Legacy plat
+    _totalFotos = rapport.foto_urls.length;
+    if (_totalFotos > 0) {
+      _fotoHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:16px">' +
+        rapport.foto_urls.map(_imgTag).join('') +
+      '</div>';
+    }
   } else if (rapport.foto_urls && typeof rapport.foto_urls === 'object') {
+    // Object-shape per categorie
     Object.keys(rapport.foto_urls).forEach(function(k) {
       var arr = rapport.foto_urls[k];
-      if (Array.isArray(arr)) arr.forEach(function(u) { if (u) _flatFotos.push(u); });
+      if (!Array.isArray(arr) || arr.length === 0) return;
+      _totalFotos += arr.length;
+      _fotoHtml += '<div style="margin-bottom:16px">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--dark);margin:0 0 6px">' + esc(_humanizeFotoKey(k)) + '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">' +
+        arr.map(_imgTag).join('') +
+        '</div></div>';
     });
   }
-  if (_flatFotos.length > 0) {
-    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Foto\'s (' + _flatFotos.length + ')</h3>';
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:16px">';
-    _flatFotos.forEach(function(url) {
-      html += '<a href="' + url + '" target="_blank"><img src="' + url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--rule)"></a>';
-    });
-    html += '</div>';
+  if (_totalFotos > 0) {
+    html += '<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Foto\'s (' + _totalFotos + ')</h3>';
+    html += _fotoHtml;
   }
 
   document.getElementById('rapport-detail-content').innerHTML = html;
