@@ -653,6 +653,11 @@ var materiaalCount = 0;
 var wizardStep = 0;
 var lastSavedRef = '';
 var lastSavedRapportId = '';
+// Indien de wizard wordt geopend voor een beurt waarvoor al een rapport bestaat
+// (= "Bewerken"-knop op afgewerkt-tab), houden we de id + record vast. saveRapport
+// detecteert dit en doet UPDATE i.p.v. INSERT, en re-gebruikt bestaande foto-URLs.
+var existingRapportId = null;
+var existingRapport = null;
 var steps = ['checklist','fotos','uren','opmerkingen','samenvatting','success'];
 
 // Sector-specifieke data (uit app_settings.rapport_config)
@@ -1281,11 +1286,21 @@ async function selectBeurt() {
   // Sector-specifieke blokken initialiseren op basis van sector
   initSectorBlocks();
 
-  // Pre-vul uren-tabel met bevestigde uren uit planning (beurt_uren_registraties)
-  // i.p.v. een lege rij met 08:00–12:00 defaults. Voorkomt dat de planner zijn
-  // al ingevoerde uren opnieuw typt én voorkomt miscommunicatie wanneer de
-  // default 4u in het rapport gefactureerd zou worden.
-  prefillUrenFromBeurt();
+  // Reset bestaande-rapport state (kan blijven hangen tussen multiple selectBeurt calls)
+  existingRapportId = null;
+  existingRapport = null;
+
+  // Check of er al een rapport bestaat voor deze beurt ("Bewerken"-flow van
+  // afgewerkt-tab). Indien ja: pre-fill alle wizard-velden vanuit dat rapport.
+  // Indien nee: standaard "nieuwe rapport"-flow met uren uit planning-bevestiging.
+  var loadedExisting = await loadExistingRapportIfAny();
+  if (!loadedExisting) {
+    // Pre-vul uren-tabel met bevestigde uren uit planning (beurt_uren_registraties)
+    // i.p.v. een lege rij met 08:00–12:00 defaults. Voorkomt dat de planner zijn
+    // al ingevoerde uren opnieuw typt én voorkomt miscommunicatie wanneer de
+    // default 4u in het rapport gefactureerd zou worden.
+    prefillUrenFromBeurt();
+  }
 
   // Slot A2 — Contract-tab populeren met scope/klant/instructies/handtekening.
   // Async fire-and-forget: blokkeert het renderen van de Rapport-wizard niet
@@ -1627,6 +1642,180 @@ async function prefillUrenFromBeurt() {
   } catch (e) {
     if (window.console && console.warn) console.warn('[rapport] uren-prefill faalde:', e && e.message);
     addUrenRij();
+  }
+}
+
+// Voegt één uren-rij toe met data uit rapport.uren_data (saveRapport-shape:
+// { technieker, datum, start, eind, uren, uurtarief, km }).
+function addUrenRijFromSavedData(r) {
+  urenCount++;
+  document.getElementById('uren-body').insertAdjacentHTML('beforeend',
+    '<tr id="uren-' + urenCount + '">' +
+      '<td><input type="text" class="uur-tech" placeholder="Naam" value="' + esc(r.technieker || '') + '"></td>' +
+      '<td><input type="date" class="uur-datum" value="' + esc(r.datum || '') + '"></td>' +
+      '<td><input type="time" class="uur-start" value="' + esc(r.start || '') + '"></td>' +
+      '<td><input type="time" class="uur-eind" value="' + esc(r.eind || '') + '" onchange="berekenUren(this)"></td>' +
+      '<td><input type="number" class="uur-uren" step="0.25" value="' + esc(String(r.uren != null ? r.uren : '')) + '" min="0" onchange="updateUrenTotaal()"></td>' +
+      '<td><input type="number" class="uur-tarief" step="0.01" placeholder="0.00" value="' + esc(String(r.uurtarief != null ? r.uurtarief : '')) + '" onchange="updateUrenTotaal()"></td>' +
+      '<td><input type="number" class="uur-km" step="1" placeholder="0" min="0" value="' + esc(String(r.km != null ? r.km : '')) + '"></td>' +
+      '<td><button class="remove-row" onclick="removeUrenRij(' + urenCount + ')">&times;</button></td>' +
+    '</tr>');
+  updateUrenTotaal();
+}
+
+// Voegt één materiaal-rij toe met data uit rapport.materiaal_data
+// (shape: { naam, aantal, stukprijs, leverancier }).
+function addMateriaalRijFromSavedData(m) {
+  materiaalCount++;
+  document.getElementById('materiaal-body').insertAdjacentHTML('beforeend',
+    '<tr id="materiaal-' + materiaalCount + '">' +
+      '<td><input type="text" class="mat-naam" placeholder="Omschrijving" value="' + esc(m.naam || '') + '"></td>' +
+      '<td><input type="number" class="mat-aantal" step="0.01" min="0" value="' + esc(String(m.aantal != null ? m.aantal : '')) + '" onchange="updateMateriaalTotaal()"></td>' +
+      '<td><input type="number" class="mat-prijs" step="0.01" placeholder="0.00" value="' + esc(String(m.stukprijs != null ? m.stukprijs : '')) + '" onchange="updateMateriaalTotaal()"></td>' +
+      '<td><input type="text" class="mat-leverancier" placeholder="Optioneel" value="' + esc(m.leverancier || '') + '"></td>' +
+      '<td><button class="remove-row" onclick="removeMateriaalRij(' + materiaalCount + ')">&times;</button></td>' +
+    '</tr>');
+  updateMateriaalTotaal();
+}
+
+// Pre-vult checklist UI vanuit opgeslagen rapport.checklist_data.
+// Iterate over item-keys + set toggle-state + note. _meta wordt apart verwerkt.
+function applyChecklistFromData(checklistData) {
+  if (!checklistData || typeof checklistData !== 'object') return;
+  Object.keys(checklistData).forEach(function(key) {
+    if (key === '_meta') return;
+    var entry = checklistData[key];
+    if (!entry) return;
+    var row = document.querySelector('.cl-item[data-key="' + CSS.escape(key) + '"]');
+    if (!row) return;
+    var btn = row.querySelector('.cl-toggle');
+    var note = row.querySelector('.cl-note');
+    if (entry.status === 'ok') {
+      btn.classList.add('checked');
+      row.classList.add('has-value');
+      row.classList.remove('is-nok');
+      row.dataset.value = 'ok';
+    } else if (entry.status === 'nok') {
+      btn.classList.add('nok');
+      row.classList.add('has-value', 'is-nok');
+      row.dataset.value = 'nok';
+    }
+    if (note && entry.note) note.value = entry.note;
+  });
+}
+
+// Pre-vult handtekening UI vanuit _meta.handtekening (saved shape:
+// { enabled, image, naam }). Tekent de afbeelding op het canvas.
+function applyHandtekeningFromMeta(sig) {
+  if (!sig || !sig.image) return;
+  var toggle = document.getElementById('handtekening-enabled');
+  var box = document.getElementById('handtekening-box');
+  var naamInp = document.getElementById('handtekening-naam');
+  var canvas = document.getElementById('handtekening-canvas');
+  if (toggle) toggle.checked = true;
+  if (box) box.classList.add('visible');
+  if (naamInp && sig.naam) naamInp.value = sig.naam;
+  // Update module-state zodat saveRapport de waarde kent
+  handtekeningData = { enabled: true, image: sig.image, naam: sig.naam || '' };
+  // Teken bestaande dataURL op canvas
+  if (canvas) {
+    try {
+      var ctx = canvas.getContext('2d');
+      var img = new Image();
+      img.onload = function() {
+        try { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height); } catch (_) {}
+      };
+      img.src = sig.image;
+    } catch (_) { /* canvas niet beschikbaar of dataURL invalid → skip */ }
+  }
+}
+
+// Pre-vult interventies-lijst uit interventies-tabel (apart van rapport-record).
+async function loadInterventiesForBeurt(beurtId) {
+  if (!beurtId) return;
+  try {
+    var res = await sb.from('interventies').select('*').eq('onderhoudsbeurt_id', beurtId);
+    var rows = (res && res.data) || [];
+    rows.forEach(function(iv) {
+      addInterventie();
+      var card = document.getElementById('int-' + interventieCount);
+      if (!card) return;
+      var setVal = function(sel, val) { var el = card.querySelector(sel); if (el && val != null) el.value = String(val); };
+      setVal('.int-omschrijving', iv.omschrijving);
+      setVal('.int-ernst', iv.ernst);
+      setVal('.int-type', iv.type);
+      setVal('.int-opgelost', iv.opgelost_ter_plaatse ? 'true' : 'false');
+      setVal('.int-prijs', iv.prijs_voorstel);
+      setVal('.int-actie', iv.actie_door);
+      // Trigger prijsveld-toggle want type kan op 'aanvraag' staan
+      var typeSel = card.querySelector('.int-type');
+      if (typeSel && typeof togglePrijsVeld === 'function') togglePrijsVeld(typeSel);
+    });
+  } catch (e) {
+    if (window.console && console.warn) console.warn('[rapport] interventies-prefill faalde:', e && e.message);
+  }
+}
+
+// Centrale pre-fill van een bestaand rapport: checklist, uren, materialen,
+// opmerkingen, handtekening, sector-meta + interventies. Wordt aangeroepen
+// in selectBeurt() wanneer er een bestaand rapporten-record gevonden wordt
+// (= "Bewerken"-knop op afgewerkte beurt).
+async function applyExistingRapportData(rapport) {
+  if (!rapport) return;
+
+  // Checklist (incl. _meta)
+  var checkData = rapport.checklist_data || {};
+  applyChecklistFromData(checkData);
+
+  // Sector-specifieke meta (ic_zones, klussen) — eerst even bekijken of helpers
+  // bestaan. Voor nu skippen — admin kan zonder probleem opnieuw vinken.
+  // Handtekening (gestructureerd opgeslagen in _meta.handtekening)
+  var meta = checkData._meta || {};
+  if (meta.handtekening) applyHandtekeningFromMeta(meta.handtekening);
+
+  // Opmerkingen
+  var opm = document.getElementById('rapport-opmerkingen');
+  if (opm) opm.value = rapport.opmerkingen || '';
+
+  // Uren (override de prefillUrenFromBeurt-default)
+  document.getElementById('uren-body').innerHTML = '';
+  urenCount = 0;
+  var urenData = Array.isArray(rapport.uren_data) ? rapport.uren_data : [];
+  if (urenData.length > 0) {
+    urenData.forEach(function(r) { addUrenRijFromSavedData(r); });
+  } else {
+    addUrenRij(); // fallback: één lege rij
+  }
+
+  // Materialen
+  document.getElementById('materiaal-body').innerHTML = '';
+  materiaalCount = 0;
+  var matData = Array.isArray(rapport.materiaal_data) ? rapport.materiaal_data : [];
+  matData.forEach(function(m) { addMateriaalRijFromSavedData(m); });
+
+  // Interventies (apart fetch want zit in eigen tabel)
+  await loadInterventiesForBeurt(currentBeurt.id);
+}
+
+// Haal bestaand rapport op voor de huidige beurt + pre-fill UI. Returns
+// true als een rapport gevonden + pre-filled, false anders.
+async function loadExistingRapportIfAny() {
+  if (!currentBeurt || !currentBeurt.id) return false;
+  try {
+    var res = await sb.from('rapporten')
+      .select('*')
+      .eq('onderhoudsbeurt_id', currentBeurt.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (res.error || !res.data) return false;
+    existingRapportId = res.data.id;
+    existingRapport = res.data;
+    await applyExistingRapportData(res.data);
+    return true;
+  } catch (e) {
+    if (window.console && console.warn) console.warn('[rapport] existing-rapport prefill faalde:', e && e.message);
+    return false;
   }
 }
 
@@ -2258,10 +2447,19 @@ async function saveRapport() {
 
   try {
     var datum = currentBeurt.plan_datum || new Date().toISOString().split('T')[0];
-    var ref = 'RPT-' + datum.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+    // Bij update van bestaand rapport: hergebruik referentie. Bij nieuw rapport:
+    // genereer een unieke ref (RPT-YYYYMMDD-XXXX).
+    var ref = (existingRapport && existingRapport.referentie)
+      ? existingRapport.referentie
+      : ('RPT-' + datum.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase());
 
-    // Upload foto's
-    var fotoUrls = [];
+    // Upload foto's — bij bestaand rapport: combine bestaande URLs + nieuwe uploads.
+    // De wizard-fotos[] bevat enkel nieuw toegevoegde File-objects (oude staan al in
+    // existingRapport.foto_urls). Bij INSERT-flow is er geen existingRapport, dus
+    // we starten met een lege array.
+    var fotoUrls = (existingRapport && Array.isArray(existingRapport.foto_urls))
+      ? existingRapport.foto_urls.slice()
+      : [];
     for (var i = 0; i < fotos.length; i++) {
       var path = 'rapporten/' + ref + '/' + Date.now() + '_' + i + '.jpg';
       var uploadRes = await sb.storage.from('handtekeningen').upload(path, fotos[i].file, { contentType: fotos[i].file.type });
@@ -2322,7 +2520,7 @@ async function saveRapport() {
     var urenData = getUrenData();
     var materiaalData = getMateriaalData();
 
-    var rapportRes = await sb.from('rapporten').insert([{
+    var rapportPayload = {
       onderhoudsbeurt_id: currentBeurt.id,
       contract_id: currentContract.id,
       referentie: ref,
@@ -2339,14 +2537,29 @@ async function saveRapport() {
       installatie_snapshot: installatieSnapshot,
       uren_data: urenData.length > 0 ? urenData : null,
       materiaal_data: materiaalData.length > 0 ? materiaalData : null
-    }]).select();
-    if (rapportRes.error) throw rapportRes.error;
+    };
 
-    var rapportId = rapportRes.data[0].id;
+    // Bewerken bestaand rapport → UPDATE; nieuw rapport → INSERT.
+    // De "Bewerken"-knop op afgewerkt-tab zet existingRapportId in selectBeurt(),
+    // zodat we hier kunnen onderscheiden welk pad te volgen.
+    var rapportId;
+    if (existingRapportId) {
+      var updateRes = await sb.from('rapporten').update(rapportPayload).eq('id', existingRapportId).select();
+      if (updateRes.error) throw updateRes.error;
+      rapportId = existingRapportId;
+    } else {
+      var insertRes = await sb.from('rapporten').insert([rapportPayload]).select();
+      if (insertRes.error) throw insertRes.error;
+      rapportId = insertRes.data[0].id;
+    }
     lastSavedRapportId = rapportId;
 
-    // Interventies — extended with type, prijs_voorstel, doorgespeeld_naar_partner_id
+    // Interventies — bij update verwijderen we eerst de oude (cascade via rapport_id-FK
+    // is hier niet beschikbaar; cleanup expliciet zodat we geen dubbele entries krijgen).
     var ints = getInterventies();
+    if (existingRapportId) {
+      await sb.from('interventies').delete().eq('rapport_id', rapportId);
+    }
     if (ints.length > 0) {
       await sb.from('interventies').insert(ints.map(function(iv) {
         return {
@@ -2382,10 +2595,16 @@ async function saveRapport() {
       }
     }
 
-    // Update beurt status to 'afgewerkt'
-    await sb.from('onderhoudsbeurten').update({ status: 'afgewerkt', uitvoer_datum: datum, updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
-    auditLog('onderhoudsbeurten', currentBeurt.id, 'status_wijziging', currentBeurt.status, 'afgewerkt');
-    auditLog('rapporten', rapportId, 'aangemaakt', null, ref);
+    // Update beurt status — bij nieuw rapport naar 'afgewerkt', bij edit alleen
+    // updated_at bumpen (status staat al op 'afgewerkt' sinds eerste save).
+    if (existingRapportId) {
+      await sb.from('onderhoudsbeurten').update({ updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
+      auditLog('rapporten', rapportId, 'bewerkt', null, ref);
+    } else {
+      await sb.from('onderhoudsbeurten').update({ status: 'afgewerkt', uitvoer_datum: datum, updated_at: new Date().toISOString() }).eq('id', currentBeurt.id);
+      auditLog('onderhoudsbeurten', currentBeurt.id, 'status_wijziging', currentBeurt.status, 'afgewerkt');
+      auditLog('rapporten', rapportId, 'aangemaakt', null, ref);
+    }
 
     lastSavedRef = ref;
     document.getElementById('success-ref').textContent = 'Referentie: ' + ref;
