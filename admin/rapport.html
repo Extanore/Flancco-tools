@@ -1052,12 +1052,19 @@ async function init() {
   if (!session) { window.location.href = './'; return; }
   currentUser = session.user;
 
-  var roleRes = await sb.from('user_roles').select('role').eq('user_id', currentUser.id).single();
-  if (!roleRes.data || roleRes.data.role !== 'admin') { window.location.href = './'; return; }
-
+  // Bepaal eerst view-mode want toegangs-regels verschillen per mode:
+  //   • Edit/create (?beurt=X zonder view=1) → enkel Flancco-intern personeel
+  //     (admin + bediende) want hier wordt content naar DB geschreven
+  //   • Read-only (?view=1) → admin + bediende + partner. Partners mogen
+  //     rapporten van eigen klanten bekijken (RLS filtert in DB).
   var params = new URLSearchParams(window.location.search);
   var beurtId = params.get('beurt');
   var viewMode = params.get('view') === '1';
+
+  var roleRes = await sb.from('user_roles').select('role').eq('user_id', currentUser.id).single();
+  var userRole = roleRes.data && roleRes.data.role;
+  var allowedRoles = viewMode ? ['admin', 'bediende', 'partner'] : ['admin', 'bediende'];
+  if (!userRole || allowedRoles.indexOf(userRole) === -1) { window.location.href = './'; return; }
 
   // Rapport-config (IC-technieken, klussen-categorieen etc.) laden uit app_settings
   await loadAppRapportConfig();
