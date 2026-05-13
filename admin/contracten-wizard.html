@@ -262,7 +262,9 @@
   #wiz-calc-host .radio-option-tier { position: relative; padding-top: 18px; padding-bottom: 14px; }
   #wiz-calc-host .radio-option-tier .radio-text { line-height: 1.4; }
   #wiz-calc-host .radio-option-tier .radio-text small { line-height: 1.5; margin-top: 4px; }
-  #wiz-calc-host .radio-option-recommended { border-color: var(--primary); background: var(--primary-bg); }
+  /* Recommended: subtiele border-accent, GEEN background-tint zodat de :checked-state
+     onderscheidbaar blijft van de "Meest gekozen"-markering. */
+  #wiz-calc-host .radio-option-recommended { border-color: var(--primary); }
   #wiz-calc-host .radio-option-recommended .radio-badge {
     position: absolute; top: -10px; right: 14px;
     background: var(--primary); color: #fff;
@@ -3973,9 +3975,9 @@ checkAuth();
       '<div class="card">' +
         '<div class="card-title">Contractduur</div>' +
         '<div class="radio-group radio-group-tiers">' +
-          '<label class="radio-option radio-option-tier"><input type="radio" name="duur" value="0" onchange="calculateAll()"><div class="radio-text"><span>Eenmalige interventie</span><small>Standaardtarief, geen doorlopend contract</small></div></label>' +
-          '<label class="radio-option radio-option-tier radio-option-recommended"><input type="radio" name="duur" value="3" checked onchange="calculateAll()"><span class="radio-badge">Meest gekozen</span><div class="radio-text"><span>3 jaar</span><small>Vaste prijs tot eind jaar 2 + klantenportaal + voorrang bij weersgevoelige periodes</small></div></label>' +
-          '<label class="radio-option radio-option-tier"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text"><span>5 jaar</span><small>Vaste prijs tot eind jaar 3 + voorrang bij defect-interventies</small></div></label>' +
+          '<label class="radio-option radio-option-tier"><input type="radio" name="duur" value="0" onchange="calculateAll()"><div class="radio-text"><span>Eenmalige interventie</span><small>Standaardtarief · Geen doorlopend contract</small></div></label>' +
+          '<label class="radio-option radio-option-tier radio-option-recommended"><input type="radio" name="duur" value="3" checked onchange="calculateAll()"><span class="radio-badge">Meest gekozen</span><div class="radio-text"><span>3 jaar</span><small>Twee jaar dezelfde prijs · Online klantendossier · Voorrang bij druk seizoen</small></div></label>' +
+          '<label class="radio-option radio-option-tier"><input type="radio" name="duur" value="5" onchange="calculateAll()"><div class="radio-text"><span>5 jaar</span><small>Drie jaar dezelfde prijs · Voorrang bij defect-interventies</small></div></label>' +
         '</div>' +
         '<p class="tier-footnote">"Vaste prijs" betekent dat het tarief tijdens deze periode niet stijgt volgens de jaarlijkse Belgische gezondheidsindex (normaal 1,5 tot 4% per jaar). Na de vaste periode geldt opnieuw de standaard indexering.</p>' +
       '</div>' +

@@ -162,7 +162,9 @@
   .radio-option-tier { position: relative; padding-top: 18px; padding-bottom: 14px; }
   .radio-option-tier .radio-text { line-height: 1.4; }
   .radio-option-tier .radio-text small { line-height: 1.5; margin-top: 4px; }
-  .radio-option-recommended { border-color: var(--primary); background: var(--primary-bg); }
+  /* Recommended: subtiele border-accent, GEEN background-tint zodat de :checked-state
+     onderscheidbaar blijft van de "Meest gekozen"-markering. */
+  .radio-option-recommended { border-color: var(--primary); }
   .radio-option-recommended .radio-badge {
     position: absolute; top: -10px; right: 14px;
     background: var(--primary); color: #fff;
@@ -879,7 +881,7 @@
             <input type="radio" name="duur" value="0" onchange="calculateAll()">
             <div class="radio-text">
               <span data-i18n="step1.cards.duurEenmalig">Eenmalige interventie</span>
-              <small data-i18n="step1.cards.duurEenmaligSub">Standaardtarief, geen doorlopend contract</small>
+              <small data-i18n="step1.cards.duurEenmaligSub">Standaardtarief · Geen doorlopend contract</small>
             </div>
           </label>
           <label class="radio-option radio-option-tier radio-option-recommended">
@@ -887,14 +889,14 @@
             <span class="radio-badge" data-i18n="step1.cards.duurBadge">Meest gekozen</span>
             <div class="radio-text">
               <span data-i18n="step1.cards.duur3">3 jaar</span>
-              <small data-i18n="step1.cards.duur3Sub">Vaste prijs tot eind jaar 2 + klantenportaal + voorrang bij weersgevoelige periodes</small>
+              <small data-i18n="step1.cards.duur3Sub">Twee jaar dezelfde prijs · Online klantendossier · Voorrang bij druk seizoen</small>
             </div>
           </label>
           <label class="radio-option radio-option-tier">
             <input type="radio" name="duur" value="5" onchange="calculateAll()">
             <div class="radio-text">
               <span data-i18n="step1.cards.duur5">5 jaar</span>
-              <small data-i18n="step1.cards.duur5Sub">Vaste prijs tot eind jaar 3 + voorrang bij defect-interventies</small>
+              <small data-i18n="step1.cards.duur5Sub">Drie jaar dezelfde prijs · Voorrang bij defect-interventies</small>
             </div>
           </label>
         </div>
@@ -3103,10 +3105,12 @@ var CONTRACTDUUR_DEFAULT = {
   // komt uit "vaste prijs" tier (uitgestelde indexering). Flancco-forfait blijft
   // intact, partner-marge blijft intact. korting_pct=0 voor alle tiers.
   korting_pct: { 0: 0, 3: 0, 5: 0 },
+  // Subtitles 2026-05-13 — kort, action-oriented met · separator voor leesbaarheid
+  // op smalle schermen. Werkwoord-vorm waar mogelijk om motiverend te zijn.
   options: {
-    0: { label_nl: 'Eenmalige interventie', sub_nl: 'Standaardtarief, geen doorlopend contract' },
-    3: { label_nl: '3 jaar',                sub_nl: 'Vaste prijs tot eind jaar 2 + klantenportaal + voorrang bij weersgevoelige periodes' },
-    5: { label_nl: '5 jaar',                sub_nl: 'Vaste prijs tot eind jaar 3 + voorrang bij defect-interventies' }
+    0: { label_nl: 'Eenmalige interventie', sub_nl: 'Standaardtarief · Geen doorlopend contract' },
+    3: { label_nl: '3 jaar',                sub_nl: 'Twee jaar dezelfde prijs · Online klantendossier · Voorrang bij druk seizoen' },
+    5: { label_nl: '5 jaar',                sub_nl: 'Drie jaar dezelfde prijs · Voorrang bij defect-interventies' }
   }
 };
 
@@ -3360,6 +3364,15 @@ function renderContractduurOptions() {
   var allKnown = CONTRACTDUUR_DEFAULT.available.slice();
   resolved.available.forEach(function(v) { if (allKnown.indexOf(v) < 0) allKnown.push(v); });
 
+  // Default-tier (3 jaar) krijgt de "Meest gekozen"-badge + recommended-styling.
+  // Bij re-render via deze functie moeten we de tier-classes meegeven, anders
+  // verdwijnt de visuele tier-aanduiding (badge, recommended border) die in de
+  // native HTML staat. Recommended = de tier-die-overeenkomt-met de default-keuze.
+  var recommendedVal = resolved.defaultVal;
+  var i18nBadge = (window.flanccoI18n && typeof window.flanccoI18n.t === 'function')
+    ? window.flanccoI18n.t('step1.cards.duurBadge') : '';
+  var badgeText = i18nBadge || 'Meest gekozen';
+
   var html = allKnown.map(function(val) {
     var opt = (firstSrc && firstSrc[val]) || (CONTRACTDUUR_DEFAULT.options[val] || {});
     var label = getLangText(opt, 'label', (CONTRACTDUUR_DEFAULT.options[val] || {}).label_nl || (val + ' jaar'));
@@ -3367,12 +3380,19 @@ function renderContractduurOptions() {
     var checked = val === checkedVal ? ' checked' : '';
     var allowed = resolved.available.indexOf(val) >= 0;
     var displayStyle = allowed ? '' : ' style="display:none"';
-    return '<label class="radio-option"' + displayStyle + '><input type="radio" name="duur" value="' + val + '"' + checked + (allowed ? '' : ' disabled') + ' onchange="calculateAll()">' +
+    var isRecommended = val === recommendedVal && allowed;
+    var extraClass = ' radio-option-tier' + (isRecommended ? ' radio-option-recommended' : '');
+    var badgeHtml = isRecommended ? '<span class="radio-badge">' + esc(badgeText) + '</span>' : '';
+    return '<label class="radio-option' + extraClass + '"' + displayStyle + '><input type="radio" name="duur" value="' + val + '"' + checked + (allowed ? '' : ' disabled') + ' onchange="calculateAll()">' +
+      badgeHtml +
       '<div class="radio-text"><span>' + esc(label) + '</span>' +
       (sub ? '<small>' + esc(sub) + '</small>' : '') +
       '</div></label>';
   }).join('');
   groupRoot.innerHTML = html;
+
+  // Footnote (vaste-prijs uitleg) overleeft de re-render want hij staat buiten
+  // .radio-group in de DOM. Geen actie nodig.
 }
 
 /**
