@@ -1830,6 +1830,21 @@
     .mkt-copy-btn { width:100%; margin-top:6px; }
   }
 
+  /* Sector-picker pills boven de templates — segmented control style */
+  .mkt-sector-pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .mkt-sector-pill {
+    appearance:none; border:1.5px solid var(--rule); background:#fff;
+    padding:9px 18px; border-radius:999px; font-size:13px; font-weight:600;
+    color:var(--grey); cursor:pointer; transition: background .15s ease, color .15s ease, border-color .15s ease;
+    line-height:1.2; min-height:38px;
+  }
+  .mkt-sector-pill:hover:not(.active) { border-color: var(--navy); color: var(--navy); background:var(--light); }
+  .mkt-sector-pill.active { background: var(--navy); color:#fff; border-color: var(--navy); cursor:default; }
+  .mkt-sector-pill:focus-visible { outline:2px solid var(--navy); outline-offset:2px; }
+  @media (max-width: 540px) {
+    .mkt-sector-pill { flex:1 1 calc(50% - 4px); min-width:0; padding:10px 12px; text-align:center; }
+  }
+
   /* ===== KLANT-DETAIL PAGINA (page-klant-detail) ===== */
   #page-klant-detail .kd-breadcrumb { display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:13px; }
   #page-klant-detail .kd-breadcrumb a { color:var(--navy); cursor:pointer; text-decoration:none; font-weight:500; }
@@ -3720,6 +3735,14 @@
         </div>
       </div>
 
+      <!-- Sector-picker (pills) — bepaalt welke template-set rechts wordt getoond.
+           Hidden bij 0/1 sector beschikbaar. Renderlogic: renderMarketingSectorPicker(). -->
+      <div class="card" id="mkt-sector-card" style="margin-bottom:18px">
+        <div class="card-header"><span class="card-title">Sector</span></div>
+        <p style="font-size:12px;color:var(--grey);margin:0 0 10px">Kies de sector waarvoor je marketingmateriaal nodig hebt. Elke sector heeft eigen teksten, afgestemd op de zorgen van die klanten.</p>
+        <div id="mkt-sector-pills" class="mkt-sector-pills" role="tablist" aria-label="Marketing-sector"></div>
+      </div>
+
       <!-- Content grid: QR links, templates rechts -->
       <div class="mkt-grid">
         <!-- QR-code paneel -->
@@ -3759,7 +3782,7 @@
               </span>
               <div class="mkt-tpl-meta">
                 <h4 class="mkt-tpl-title">LinkedIn-post</h4>
-                <p class="mkt-tpl-sub">Professionele bekendmaking van de partnership — ~150 woorden</p>
+                <p class="mkt-tpl-sub">Insight-gedreven post over rendementsverlies en onze service — ~110 woorden</p>
               </div>
               <button type="button" class="btn btn-primary mkt-copy-btn" id="mkt-copy-btn-linkedin" onclick="copyMarketingTemplate('linkedin')">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -9072,40 +9095,160 @@ var MKT_QR_PNG_CELL_SIZE = 12;        // Pixels per module → ≈ 512 px voor 2
 var MKT_QR_SVG_CELL_SIZE = 10;        // Cellsize voor SVG (viewBox is intrinsiek schaalbaar)
 var MKT_QR_MARGIN = 4;                // Quiet zone in modules (spec minimum = 4)
 
-// Marketing-kit templates. Plain text (geen HTML) → veilig voor clipboard-paste.
+// Marketing-kit templates per sector. Plain text (geen HTML) → veilig voor clipboard-paste.
 // Placeholders: {{partner_naam}} en {{calculator_url}} worden vervangen op render-time.
+// White-label conventie 2026-05-13: nooit "Flancco" of "partnership" in copy — partner
+// positioneert dienst als eigen aanbod (eindklant mag tussenpartij niet opmerken).
+// Sectoren `ic` (industrial cleaning) en `klussen` hebben bewust geen marketing-templates:
+// die zijn B2B-industrieel of ad-hoc en passen niet in recurrent-onderhoud-narratief.
 var MKT_TEMPLATES = {
-  linkedin:
-    'Bij {{partner_naam}} kiezen we voor partnerships die onze klanten écht vooruit helpen. ' +
-    'Daarom werken we samen met Flancco voor het onderhoud en de reiniging van zonnepanelen — ' +
-    'een specialist met jarenlange ervaring in technisch onderhoud, droogijsstralen en HVAC.\n\n' +
-    'Wat wij waarderen: transparante staffelprijzen, duidelijke contracten en een professionele ' +
-    'opvolging via een eigen platform. Onze klanten kunnen via onderstaande persoonlijke link ' +
-    'zelf snel een onderhoudscontract aanvragen — volledig digitaal, in onze huisstijl en met ' +
-    'prijzen op maat.\n\n' +
-    'Klanten met zonnepanelen die hun rendement willen bewaken: nodig je je eigen netwerk uit ' +
-    'om een offerte op te vragen, dan zorgt Flancco voor de opvolging van A tot Z.\n\n' +
-    'Vraag direct je contract aan: {{calculator_url}}\n\n' +
-    '#partnership #zonnepanelen #onderhoud #B2B',
+  zonnepanelen: {
+    linkedin:
+      'Uw zonnepanelen leveren vandaag minder dan op dag één. Niet omdat ze defect zijn — ' +
+      'omdat ze drie tot vijf jaar lang stof, pollen en uitwerpselen hebben opgevangen.\n\n' +
+      'Voor een gemiddelde dakinstallatie staat dat gelijk aan honderd tot tweehonderd euro per jaar ' +
+      'aan stroom die u nooit op uw teller heeft gezien. Eén beurt onderhoud verdient zich typisch ' +
+      'terug binnen het jaar.\n\n' +
+      'Bij {{partner_naam}} brengen we het voor u in beeld. Voorstel in drie minuten, en na elke beurt ' +
+      'een rapport met foto’s vóór en na de reiniging. U beslist op feiten, niet op beloften.\n\n' +
+      '{{calculator_url}}',
+    email:
+      'Beste klant,\n\n' +
+      'Wist u dat uw zonnepanelen vandaag waarschijnlijk minder leveren dan in hun eerste jaar? ' +
+      'Niet omdat ze versleten zijn — omdat ze sinds hun installatie elke dag stof, pollen en ' +
+      'uitwerpselen hebben opgevangen.\n\n' +
+      'Voor een gemiddelde dakinstallatie staat dat verlies gelijk aan honderd tot tweehonderd euro ' +
+      'per jaar aan stroom die u nooit op uw teller heeft gezien. Stille verliezen die zich opstapelen ' +
+      '— terwijl één beurt onderhoud zich typisch al binnen het eerste jaar terugverdient.\n\n' +
+      'We brengen het graag voor u in beeld. Drie minuten op de calculator volstaan voor een voorstel ' +
+      'op maat, en na elke uitgevoerde beurt krijgt u een rapport met foto’s vóór en na de reiniging — ' +
+      'zodat u zelf op uw omvormer-app het verschil ziet.\n\n' +
+      'Bekijk uw voorstel: {{calculator_url}}\n\n' +
+      'Liever even bellen om het te bespreken? Antwoord op deze mail, we plannen een moment.\n\n' +
+      'Hartelijke groet,\n' +
+      'Het team van {{partner_naam}}',
+    whatsapp:
+      'Hoi {voornaam}, uw zonnepanelen leveren waarschijnlijk 100 tot 200 euro per jaar minder dan op ' +
+      'dag één — door vervuiling die niemand vanaf de grond ziet. Check uw cijfer in 3 minuten: ' +
+      '{{calculator_url}}'
+  },
 
-  email:
-    'Beste klant,\n\n' +
-    'Bij {{partner_naam}} willen we ervoor zorgen dat uw zonnepanelen jaar na jaar maximaal ' +
-    'blijven renderen. Daarom werken wij samen met Flancco — specialist in professioneel ' +
-    'paneel-onderhoud — om u een onderhoudscontract op maat aan te bieden.\n\n' +
-    'Via onderstaande persoonlijke link kunt u in enkele minuten een voorstel opvragen, ' +
-    'volledig in onze huisstijl en met prijzen die we voor u onderhandeld hebben:\n\n' +
-    '{{calculator_url}}\n\n' +
-    'Heeft u vragen of wenst u eerst telefonisch te overleggen? Antwoord gerust op deze mail, ' +
-    'we helpen u graag verder.\n\n' +
-    'Met vriendelijke groet,\n' +
-    'Het team van {{partner_naam}}',
+  warmtepomp: {
+    linkedin:
+      'Een goed onderhouden warmtepomp gebruikt 15 tot 25 procent minder stroom dan dezelfde unit ' +
+      'zonder onderhoud. Niet door een upgrade — door iets simpels: schone warmtewisselaars, een ' +
+      'vrije buitenunit en correct gevuld koelmiddel.\n\n' +
+      'Voor een gemiddelde gezinswoning staat dat gelijk aan honderd vijftig tot driehonderd euro per ' +
+      'jaar aan stroomkosten die u zonder reden betaalt. En een klein koelmiddellek wordt vaak pas ' +
+      'zichtbaar wanneer uw unit volledig uitvalt — meestal in januari.\n\n' +
+      'Bij {{partner_naam}} brengen we het voor u in beeld. Voorstel in drie minuten, en na elke beurt ' +
+      'een rapport met foto’s vóór en na waarin u zelf ziet wat we hebben aangepakt. U beslist op ' +
+      'feiten, niet op beloften.\n\n' +
+      '{{calculator_url}}',
+    email:
+      'Beste klant,\n\n' +
+      'Wist u dat een warmtepomp zonder onderhoud na drie tot vijf jaar typisch 15 tot 25 procent meer ' +
+      'stroom verbruikt dan in haar eerste winter? Niet door slijtage — door stof op de warmtewisselaars, ' +
+      'een vervuilde buitenunit en koelmiddel dat langzaam weglekt.\n\n' +
+      'Voor een gemiddelde gezinswoning betekent dat tussen honderd vijftig en driehonderd euro per jaar ' +
+      'aan stroomkosten die u zonder reden betaalt. Erger nog: een klein lek dat onopgemerkt blijft, ' +
+      'kost uw unit jaren van haar levensduur.\n\n' +
+      'We brengen het graag voor u in beeld. Drie minuten op de calculator volstaan voor een voorstel op ' +
+      'maat, en na elke uitgevoerde beurt krijgt u een rapport met foto’s vóór en na — zodat u zelf ' +
+      'ziet wat we hebben aangepakt en waarom.\n\n' +
+      'Bekijk uw voorstel: {{calculator_url}}\n\n' +
+      'Liever even bellen om het te bespreken? Antwoord op deze mail, we plannen een moment.\n\n' +
+      'Hartelijke groet,\n' +
+      'Het team van {{partner_naam}}',
+    whatsapp:
+      'Hoi {voornaam}, uw warmtepomp verbruikt na een paar jaar zonder onderhoud al snel 150 tot 300 ' +
+      'euro per jaar extra aan stroom — door vervuiling die u niet ziet. Check uw cijfer in 3 minuten: ' +
+      '{{calculator_url}}'
+  },
 
-  whatsapp:
-    'Hoi {voornaam}, namens {{partner_naam}} — onze partner Flancco verzorgt voortaan het ' +
-    'onderhoud van zonnepanelen. Via deze link kan je snel een offerte op maat aanvragen, ' +
-    'in onze huisstijl: {{calculator_url}} — handig om je rendement te beschermen!'
+  ventilatie: {
+    linkedin:
+      'De lucht in een gemiddelde woning is vijf tot tien keer vervuilder dan de buitenlucht. Stof, ' +
+      'vocht, fijnstof, schoonmaakproducten — uw ventilatie is gebouwd om die buiten te krijgen. ' +
+      'Tot ze het zelf niet meer kan.\n\n' +
+      'Vervuilde afzuigkanalen, sturingskleppen die niet meer correct reageren of verzadigde filters: ' +
+      'een ventilatiesysteem in slechte staat verliest tot 40 procent van zijn efficiëntie. En u betaalt ' +
+      'voor het verschil — een ventilator die continu op maximum draait, vocht dat blijft hangen, ' +
+      'warmte die mee de afvoer op gaat.\n\n' +
+      'Bij {{partner_naam}} brengen we het voor u in beeld. Voorstel in drie minuten, en na elke beurt ' +
+      'een rapport met foto’s van uw kanalen, kleppen en filters vóór en na. U beslist op feiten, ' +
+      'niet op beloften.\n\n' +
+      '{{calculator_url}}',
+    email:
+      'Beste klant,\n\n' +
+      'Wist u dat de lucht in uw woning gemiddeld vijf tot tien keer vervuilder is dan buiten? Stof, ' +
+      'vocht, fijnstof, schoonmaakproducten — uw ventilatie is gebouwd om die buiten te krijgen. Maar ' +
+      'alleen zolang ze goed werkt.\n\n' +
+      'Of u nu een vraaggestuurd C+-systeem heeft dat de afzuiging automatisch aanpast aan uw ' +
+      'luchtkwaliteit, of een D-systeem met warmteterugwinning: na enkele jaren raken kanalen vervuild, ' +
+      'sturingskleppen vastzitten en filters verzadigd. Uw ventilatie kan dan tot 40 procent van haar ' +
+      'capaciteit verliezen. Het gevolg is zelden direct zichtbaar — wel aan vocht op het raam, een ' +
+      'muffe slaapkamer, terugkerende allergieën, of een ventilator die continu op maximum draait en ' +
+      'uw stroomrekening stilletjes laat oplopen.\n\n' +
+      'We brengen het graag voor u in beeld. Drie minuten op de calculator volstaan voor een voorstel op ' +
+      'maat, en na elke uitgevoerde beurt krijgt u een rapport met foto’s van uw kanalen, kleppen ' +
+      'en filters vóór en na — zodat u zelf ziet wat er weer doet wat het moet doen.\n\n' +
+      'Bekijk uw voorstel: {{calculator_url}}\n\n' +
+      'Liever even bellen om het te bespreken? Antwoord op deze mail, we plannen een moment.\n\n' +
+      'Hartelijke groet,\n' +
+      'Het team van {{partner_naam}}',
+    whatsapp:
+      'Hoi {voornaam}, vervuilde kanalen, vastzittende sturingskleppen of verzadigde filters laten uw ' +
+      'ventilatie tot 40% minder efficiënt werken — vocht, geuren en een hogere stroomrekening zijn ' +
+      'het gevolg. Check uw systeem in 3 min: {{calculator_url}}'
+  },
+
+  verwarming: {
+    linkedin:
+      'Wist u dat een slecht onderhouden CV-ketel u tot tweehonderd vijftig euro per jaar extra kost — ' +
+      'en dat een ontbrekend onderhoudsattest bij schade een lastige discussie met uw verzekeraar ' +
+      'oplevert?\n\n' +
+      'De wettelijke onderhoudsbeurt is geen formaliteit. Een ketel die niet correct verbrandt, gebruikt ' +
+      'vijf tot vijftien procent meer gas of mazout. Bovendien is het keuringsattest in Vlaanderen ' +
+      'wettelijk verplicht — en het eerste papier dat uw verzekeraar opvraagt bij brand- of CO-schade.\n\n' +
+      'Bij {{partner_naam}} brengen we het voor u in beeld. Voorstel in drie minuten, attest na elke ' +
+      'beurt, en een rapport met uw verbrandingswaarden vóór en na. U beslist op cijfers, niet op ' +
+      'beloften.\n\n' +
+      '{{calculator_url}}',
+    email:
+      'Beste klant,\n\n' +
+      'Heeft u uw laatste CV-ketelonderhoud nog goed in herinnering? De wettelijke beurt is geen ' +
+      'formaliteit. Een ketel die niet meer optimaal verbrandt, gebruikt typisch vijf tot vijftien ' +
+      'procent meer gas of mazout — voor een gemiddeld gezin is dat tussen honderd en tweehonderd ' +
+      'vijftig euro per jaar.\n\n' +
+      'En er is meer: het onderhoudsattest dat u na elke beurt ontvangt, is in Vlaanderen wettelijk ' +
+      'verplicht. Het is bovendien het eerste papier dat uw verzekeraar opvraagt bij brand- of ' +
+      'CO-schade. Zonder geldig attest wordt elke discussie achteraf moeilijker.\n\n' +
+      'We brengen het graag voor u in beeld. Drie minuten op de calculator volstaan voor een voorstel ' +
+      'op maat, en na elke uitgevoerde beurt krijgt u een rapport met uw verbrandingswaarden vóór en ' +
+      'na — naast het attest dat u veilig bij de hand moet houden.\n\n' +
+      'Bekijk uw voorstel: {{calculator_url}}\n\n' +
+      'Liever even bellen om het te bespreken? Antwoord op deze mail, we plannen een moment.\n\n' +
+      'Hartelijke groet,\n' +
+      'Het team van {{partner_naam}}',
+    whatsapp:
+      'Hoi {voornaam}, weet u dat uw CV-ketelonderhoud wettelijk verplicht is — en dat een slecht ' +
+      'onderhouden ketel u tot 250 euro per jaar extra kost? Voorstel op maat in 3 minuten: ' +
+      '{{calculator_url}}'
+  }
 };
+
+// Sector-metadata voor de marketing-kit picker. Volgorde = display-volgorde.
+// Sluit `ic` en `klussen` bewust uit — die hebben geen B2C-marketing-narratief.
+var MKT_SECTOR_KEYS = ['zonnepanelen', 'warmtepomp', 'ventilatie', 'verwarming'];
+var MKT_SECTOR_LABELS = {
+  zonnepanelen: 'Zonnepanelen',
+  warmtepomp:   'Warmtepomp',
+  ventilatie:   'Ventilatie',
+  verwarming:   'Verwarming'
+};
+// Module-state: actieve sector op de marketing-kit pagina. Persistent binnen sessie.
+var mktActiveSector = 'zonnepanelen';
 
 /**
  * Bouw het kale qrcode-object op met juiste type-number + error-correctie.
@@ -9160,14 +9303,77 @@ function mktPartnerNaam() {
   return userPartner.bedrijfsnaam || userPartner.naam || 'ons bedrijf';
 }
 
+/**
+ * Bouwt de gesorteerde lijst sectoren die de partner mag zien.
+ * Filtert op `userPartner.sector_namen` (jsonb array) wanneer beschikbaar — partners
+ * die enkel zonnepanelen doen, krijgen geen warmtepomp-templates te zien. Bewuste
+ * skip van 'ic' + 'klussen' — die hebben geen B2C marketing-narratief.
+ * Bij ontbrekende sector_namen: toon alle 4 (fail-open zodat user altijd iets ziet).
+ */
+function mktAvailableSectors() {
+  var partnerSectors = (userPartner && Array.isArray(userPartner.sector_namen)) ? userPartner.sector_namen : null;
+  if (!partnerSectors || !partnerSectors.length) return MKT_SECTOR_KEYS.slice();
+  // Normalize sector-keys (lowercase) en intersect met onze whitelist.
+  var partnerSet = {};
+  partnerSectors.forEach(function(s) {
+    if (typeof s === 'string') partnerSet[s.toLowerCase()] = true;
+  });
+  var filtered = MKT_SECTOR_KEYS.filter(function(k) { return partnerSet[k]; });
+  // Failsafe: als filtering 0 sectoren oplevert (mismatch in spelling), val terug op alles
+  return filtered.length ? filtered : MKT_SECTOR_KEYS.slice();
+}
+
 /** Render één template met placeholders ingevuld. Retourneert plain string. */
 function mktRenderTemplate(key) {
-  var raw = MKT_TEMPLATES[key];
+  var sectorBucket = MKT_TEMPLATES[mktActiveSector];
+  if (!sectorBucket) return '';
+  var raw = sectorBucket[key];
   if (!raw) return '';
   var url = mktCalcUrl();
   return raw
     .split('{{partner_naam}}').join(mktPartnerNaam())
     .split('{{calculator_url}}').join(url || '[link wordt zichtbaar zodra je slug is ingesteld]');
+}
+
+/** Rendert de sector-picker pills bovenaan de Marketing-pagina. */
+function renderMarketingSectorPicker() {
+  var host = document.getElementById('mkt-sector-pills');
+  var card = document.getElementById('mkt-sector-card');
+  if (!host) return;
+  var sectors = mktAvailableSectors();
+  // Forceer actieve sector binnen beschikbare set — voorkomt lege body wanneer partner
+  // initiële default ('zonnepanelen') niet in zijn portefeuille heeft.
+  if (sectors.indexOf(mktActiveSector) === -1) mktActiveSector = sectors[0];
+  // Eén sector → volledige card verbergen (geen keuze, geen UI-noise)
+  if (sectors.length <= 1) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  if (card) card.style.display = '';
+  host.innerHTML = sectors.map(function(k) {
+    var label = MKT_SECTOR_LABELS[k] || k;
+    var active = k === mktActiveSector ? ' active' : '';
+    return '<button type="button" class="mkt-sector-pill' + active + '" data-sector="' + esc(k) + '" onclick="setMarketingSector(\'' + esc(k) + '\')">' + esc(label) + '</button>';
+  }).join('');
+}
+
+/** Wisselt actieve sector + her-rendert templates. Geen QR-rebuild nodig (URL is partner-niveau). */
+function setMarketingSector(sector) {
+  if (!MKT_TEMPLATES[sector]) return;
+  if (mktActiveSector === sector) return;
+  mktActiveSector = sector;
+  renderMarketingSectorPicker();
+  // Alleen template-bodies refreshen — QR + calculator-link blijven identiek per sector.
+  ['linkedin', 'email', 'whatsapp'].forEach(function(key) {
+    var el = document.getElementById('mkt-tpl-body-' + key);
+    if (el) el.textContent = mktRenderTemplate(key);
+  });
+  if (typeof window.flanccoTrack === 'function') {
+    window.flanccoTrack('Marketing Sector Switched', {
+      sector: sector,
+      partner: (userPartner && userPartner.slug) || 'unknown'
+    });
+  }
 }
 
 /**
@@ -9185,10 +9391,13 @@ function renderMarketingPage() {
     else { open.href = '#'; open.setAttribute('aria-disabled', 'true'); open.style.pointerEvents = 'none'; open.style.opacity = '0.5'; }
   }
 
+  // Sector-picker (pills) — eerst zodat mktActiveSector binnen partner's sectoren forced is
+  renderMarketingSectorPicker();
+
   // QR-preview (sync — qrcode-generator is non-blocking)
   renderMarketingQrPreview();
 
-  // Templates renderen (placeholders ingevuld)
+  // Templates renderen (placeholders ingevuld voor actieve sector)
   ['linkedin', 'email', 'whatsapp'].forEach(function(key) {
     var el = document.getElementById('mkt-tpl-body-' + key);
     if (el) el.textContent = mktRenderTemplate(key);
