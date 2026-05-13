@@ -67,12 +67,12 @@
         freqHalfjaarSub: '2 entretiens par an',
         duur: 'Dur\u00e9e du contrat',
         duurEenmalig: 'Intervention unique',
-        duurEenmaligSub: 'Tarif standard, sans contrat r\u00e9current',
+        duurEenmaligSub: 'Tarif standard \u00b7 Sans contrat r\u00e9current',
         duur3: '3 ans',
         duur5: '5 ans',
         duurBadge: 'Choix le plus fr\u00e9quent',
-        duur3Sub: 'Prix fixe jusqu\u2019\u00e0 la fin de l\u2019ann\u00e9e 2 + portail client + priorit\u00e9 lors des p\u00e9riodes sensibles \u00e0 la m\u00e9t\u00e9o',
-        duur5Sub: 'Prix fixe jusqu\u2019\u00e0 la fin de l\u2019ann\u00e9e 3 + priorit\u00e9 lors d\u2019interventions sur d\u00e9faut',
+        duur3Sub: 'Deux ans au m\u00eame prix \u00b7 Dossier client en ligne \u00b7 Priorit\u00e9 durant les saisons charg\u00e9es',
+        duur5Sub: 'Trois ans au m\u00eame prix \u00b7 Priorit\u00e9 lors d\u2019interventions sur d\u00e9faut',
         tierFootnote: '\u00ab Prix fixe \u00bb signifie que votre tarif n\u2019augmente pas selon l\u2019indice sant\u00e9 belge annuel (g\u00e9n\u00e9ralement 1,5 \u00e0 4\u202f% par an) durant cette p\u00e9riode. Apr\u00e8s la p\u00e9riode fixe, l\u2019indexation standard s\u2019applique \u00e0 nouveau.',
         // Legacy \u2014 conserv\u00e9 pour compat HTML cach\u00e9 anciens
         duurKortingSub: '5\u202f% de remise sur tous les tarifs'
