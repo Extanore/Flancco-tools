@@ -233,7 +233,22 @@ Volledige rebuild na zero-state cleanup (PR #68). Drie samenhangende UI-pagina's
 - `indexering_max_pct NUMERIC NOT NULL DEFAULT 4.0` — maximum (cap) jaarlijkse indexering
 - `indexering_start_index NUMERIC` — gezondheidsindex-waarde bij signing (auto-fill via trigger)
 - `indexering_laatste_datum DATE` — datum van laatste toegepaste yearly-indexering
+- `indexering_eerste_aanpassing_op DATE NULL` — **(2026-05-13)** datum waarop de eerste yearly-indexering toegepast mag worden. Bij meerjaren-contracten (3j → start+2y, 5j → start+3y) vooruitgeschoven om "vaste prijs" tier-voordeel te garanderen. Auto-gevuld door trigger `trg_contracten_set_indexering_eerste_aanpassing` (BEFORE INSERT/UPDATE van contract_start/contractduur/indexering_type). NULL = geen indexering (eenmalig of indexering_type=geen). Cron-job `apply_yearly_contract_indexering` checkt `(indexering_eerste_aanpassing_op IS NULL OR <= CURRENT_DATE)`.
 - CHECK-constraints: `chk_contracten_indexering_type`, `chk_contracten_indexering_cap_consistent` (min ≤ max)
+
+### Meerjaren-tier architectuur (2026-05-13)
+De originele "5% korting bij ≥3 jaar contract"-mechaniek is volledig **vervangen** door een tier-architectuur waarbij Flancco-forfait, partner-marge en eindklant-prijs **identiek blijven over alle tiers**. Het klantvoordeel komt nu uit **tier-features** + **uitstel van de jaarlijkse indexering** ("vaste prijs"):
+
+| Tier | Vaste prijs | Bijkomende voordelen |
+|---|---|---|
+| Eenmalig | n.v.t. | Standaarduitvoering |
+| 3 jaar (Meest gekozen) | tot eind jaar 2 | + klantenportaal + voorrang weersgevoelig |
+| 5 jaar | tot eind jaar 3 | + voorrang defect-interventies |
+
+**Code-implicaties:**
+- `calculator/index.html` + `admin/contracten-wizard.html`: `korting=0` geforceerd, `korting_pct=0` in INSERT-payload, `CONTRACTDUUR_DEFAULT.korting_pct = {0:0, 3:0, 5:0}`
+- Eindklant-contract (artikel 3 "Prijzen en indexering") expliciet uitgebreid met vaste-prijs-uitleg per duur, plus apart artikel 4 "Bijkomende voordelen bij dit contract" (alleen bij 3j/5j)
+- Migration `20260513030000_meerjaren_tier_uitgestelde_indexering.sql` voegt kolom + trigger + cron-filter toe
 
 **Schema-additions op `partner_applications`:**
 - `contract_template_versie TEXT` — auto-stamped bij contract_signed-transitie

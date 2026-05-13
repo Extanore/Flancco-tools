@@ -80,6 +80,11 @@
         duurEenmaligSub: 'Standaardtarief, geen doorlopend contract',
         duur3: '3 jaar',
         duur5: '5 jaar',
+        duurBadge: 'Meest gekozen',
+        duur3Sub: 'Vaste prijs tot eind jaar 2 + klantenportaal + voorrang bij weersgevoelige periodes',
+        duur5Sub: 'Vaste prijs tot eind jaar 3 + voorrang bij defect-interventies',
+        tierFootnote: '"Vaste prijs" betekent dat uw tarief tijdens deze periode niet stijgt volgens de jaarlijkse Belgische gezondheidsindex (normaal 1,5 tot 4% per jaar). Na de vaste periode geldt opnieuw de standaard indexering.',
+        // Legacy key — niet meer gebruikt sinds 2026-05-13 tier-rewrite; bewust behouden om backwards-compat bij oude cached HTML te vermijden.
         duurKortingSub: '5% korting op alle tarieven'
       },
       result: {
