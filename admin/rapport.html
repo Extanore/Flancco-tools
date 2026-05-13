@@ -1237,11 +1237,19 @@ async function loadRapportView(beurtId) {
   // Opmerkingen
   var opmerkingen = rapport.opmerkingen || '';
 
-  // PDF download button
-  var pdfBtn = '';
-  if (rapport.pdf_url) {
-    pdfBtn = '<div style="text-align:center;margin-top:20px"><a href="' + esc(rapport.pdf_url) + '" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-block">Download PDF</a></div>';
-  }
+  // PDF download — regenereert on-demand via DB-data (i.p.v. een directe link
+  // naar rapport.pdf_url te gebruiken). Reden: oudere rapporten kunnen leeg
+  // opgeslagen PDFs hebben uit een vorige bug. Door bij elke download de PDF
+  // opnieuw te genereren met de huidige DB-record-data, blijft de download
+  // altijd up-to-date met de werkelijke rapport-inhoud.
+  // Bewaar rapport+beurt+contract refs op window voor de download-handler.
+  window._rapport_lastViewRapport = rapport;
+  window._rapport_lastViewBeurt = beurt;
+  window._rapport_lastViewContract = contract;
+  window._rapport_lastViewPartner = partner;
+  var pdfBtn = '<div style="text-align:center;margin-top:20px">' +
+    '<button type="button" class="btn btn-primary" onclick="downloadRapportFromRecord()">Download PDF</button>' +
+  '</div>';
 
   // Hide beurt picker, show read-only view
   document.getElementById('beurt-picker').style.display = 'none';
@@ -2788,7 +2796,12 @@ async function saveRapport() {
     // én legacy buildPDF() (lastSavedRef in header/footer) consistent zijn.
     lastSavedRef = ref;
     lastSavedPdfUrl = ''; // reset; wordt hieronder gezet zodra PDF effectief geüpload
-    var pdfBlob = await generatePDFBlob();
+    // PDF-payload bouwen uit DB-data (niet uit wizard-UI), zodat de upload-PDF
+    // altijd consistent is met wat in DB staat — ongeacht of de wizard nog
+    // actief is of niet. Belangrijk: rapportPayload is het JUST-INSERTED-record
+    // dus dezelfde data die we zojuist hebben weggeschreven.
+    var _pdfPayload = buildRapportPayloadFromRecord(rapportPayload, currentBeurt, currentContract);
+    var pdfBlob = await generatePDFBlob(_pdfPayload);
     if (pdfBlob) {
       var pdfPath = 'rapporten/' + ref + '.pdf';
       var pdfUpload = await sb.storage.from('handtekeningen').upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
@@ -2839,6 +2852,92 @@ var GEN_PDF_TIMEOUT_MS = 30000;
 // Bouwt summary-strings voor het rapport_branded template uit de wizard-state.
 // rapport_branded verwacht prozaïsche bevindingen / aanbevelingen — geen
 // gestructureerde tabellen — dus we synthetiseren die uit de checklist + interventies.
+/**
+ * Bouwt het rapport_branded edge-function payload uit een DB-record + bijhorende
+ * beurt/contract refs. Identiek aan buildRapportBrandedPayloadData() qua output,
+ * maar leest GEEN UI-state — bruikbaar in flows waar de wizard al gewist is
+ * (loadRapportView, post-save success-scherm, retroactieve regeneratie).
+ *
+ * Interventies worden niet meegenomen (apart aanwezig in `interventies`-tabel,
+ * vereist extra fetch); voor v1 acceptabel verlies — bevindingen + materiaal +
+ * foto's + handtekening dekken het rapport-volume.
+ */
+function buildRapportPayloadFromRecord(rapport, beurt, contract) {
+  var c = contract || {};
+  var b = beurt || {};
+  var checkData = (rapport && rapport.checklist_data) || {};
+  var sector = (rapport && rapport.sector) || b.sector || null;
+
+  // ─ Bevindingen: NOK-checklist-items + sector-meta + algemene opmerkingen
+  var bevindingenLines = [];
+  var items = (typeof CHECKLISTS !== 'undefined' && CHECKLISTS[sector]) || [];
+  items.forEach(function(item) {
+    var v = checkData[item.key] || {};
+    if (v.status === 'nok') {
+      var line = '• ' + item.label;
+      if (v.note) line += ': ' + v.note;
+      bevindingenLines.push(line);
+    }
+  });
+  // _meta.ic_zones (IC-sector)
+  var meta = checkData._meta || {};
+  if (Array.isArray(meta.ic_zones) && meta.ic_zones.length) {
+    bevindingenLines.push('Behandelde zones: ' + meta.ic_zones.length);
+    meta.ic_zones.forEach(function(z, i) {
+      var lbl = (z.zone_naam || ('Zone ' + (i+1))) + (z.opmerkingen ? ' — ' + z.opmerkingen : '');
+      bevindingenLines.push('  · ' + lbl);
+    });
+  }
+  // _meta.klussen (klussen-sector)
+  if (meta.klussen) {
+    if (meta.klussen.omschrijving) bevindingenLines.push(meta.klussen.omschrijving);
+    if (meta.klussen.meerwerk) bevindingenLines.push('Meerwerk: ' + meta.klussen.meerwerk);
+  }
+  // Algemene opmerkingen
+  if (rapport && rapport.opmerkingen) bevindingenLines.push(rapport.opmerkingen);
+
+  // ─ Materiaal: enkel naam + aantal (geen prijs — interne info)
+  var materiaalLines = [];
+  (rapport && Array.isArray(rapport.materiaal_data) ? rapport.materiaal_data : []).forEach(function(m) {
+    if (!m || !m.naam) return;
+    materiaalLines.push('• ' + m.naam + (m.aantal && m.aantal !== 1 ? ' (' + m.aantal + 'x)' : ''));
+  });
+
+  // ─ Foto's: max 6 (rapport_branded template-limiet). Flat-shape voor zowel
+  //   legacy array als nieuwe object-shape per categorie.
+  var fotoUrls = _flattenFotoUrls(rapport && rapport.foto_urls).slice(0, 6);
+
+  // ─ Handtekening uit _meta.handtekening (saved-shape: {enabled, image, naam})
+  var sig = meta.handtekening || {};
+  var sigImage = sig.image || null;
+  var sigNaam = sig.naam || null;
+  var sigDatum = sigImage ? ((rapport && rapport.datum_onderhoud) || b.plan_datum || null) : null;
+
+  return {
+    beurt_id: b.id || null,
+    contract_id: c.id || null,
+    contract_nummer: c.contract_nummer || (rapport && rapport.referentie) || null,
+    klant_naam: c.klant_naam || null,
+    klant_adres: c.klant_adres || null,
+    klant_postcode: c.klant_postcode || null,
+    klant_gemeente: c.klant_gemeente || null,
+    klant_email: c.klant_email || null,
+    klant_telefoon: c.klant_telefoon || null,
+    datum: (rapport && rapport.datum_onderhoud) || b.plan_datum || new Date().toISOString().split('T')[0],
+    aantal_panelen: c.aantal_panelen || null,
+    frequentie: c.frequentie || null,
+    contractduur: c.contractduur || null,
+    sector: sector,
+    bevindingen: bevindingenLines.length ? bevindingenLines.join('\n') : null,
+    aanbevelingen: null, // interventies leven apart — niet meegenomen in v1
+    materiaal: materiaalLines.length ? materiaalLines.join('\n') : null,
+    fotos: fotoUrls,
+    handtekening_url: sigImage,
+    handtekening_naam: sigNaam,
+    handtekening_datum: sigDatum
+  };
+}
+
 function buildRapportBrandedPayloadData() {
   var c = currentContract || {};
   var b = currentBeurt || {};
@@ -2943,9 +3042,20 @@ function buildRapportBrandedPayloadData() {
 }
 
 // Roept de Slot P edge function aan; returnt {url, path, blob} bij succes, null bij failure.
-async function generatePDFViaEdge() {
-  var partnerSlug = (currentPartner && (currentPartner.slug || '')) || 'flancco';
-  var lang = 'nl'; // toekomstig: detecteer via klant-taal-veld
+/**
+ * Roept de generate-pdf edge function aan met template `rapport_branded`.
+ * @param {Object} [dataOverride] — explicit payload. Wanneer niet meegegeven,
+ *   wordt buildRapportBrandedPayloadData() (UI-state) gebruikt. Gebruik de
+ *   override bij flows zonder live wizard-UI (post-save success-scherm,
+ *   read-only viewer, retroactieve regeneratie).
+ * @param {Object} [opts] — { partnerSlug, lang }
+ */
+async function generatePDFViaEdge(dataOverride, opts) {
+  opts = opts || {};
+  var partnerSlug = opts.partnerSlug
+    || (currentPartner && (currentPartner.slug || ''))
+    || 'flancco';
+  var lang = opts.lang || 'nl';
 
   var session = null;
   try {
@@ -2972,7 +3082,7 @@ async function generatePDFViaEdge() {
         template: 'rapport_branded',
         partner_slug: partnerSlug,
         lang: lang,
-        data: buildRapportBrandedPayloadData()
+        data: dataOverride || buildRapportBrandedPayloadData()
       }),
       signal: ctrl ? ctrl.signal : undefined
     });
@@ -3019,8 +3129,11 @@ async function _legacyGeneratePDFBlob() {
 
 // Public API: gebruikt door saveRapport() voor PDF-upload naar `handtekeningen`-bucket.
 // Probeert eerst de centrale edge function; valt graceful terug op legacy jsPDF.
-async function generatePDFBlob() {
-  var edge = await generatePDFViaEdge();
+// @param {Object} [dataOverride] — explicit payload. Geef DB-data-payload mee
+//   wanneer de wizard-UI niet meer beschikbaar is (success-scherm) of bij
+//   retroactieve regeneratie uit DB-record.
+async function generatePDFBlob(dataOverride) {
+  var edge = await generatePDFViaEdge(dataOverride);
   if (edge && edge.url) {
     var blob = await fetchPDFAsBlob(edge.url);
     if (blob) {
@@ -3037,6 +3150,67 @@ async function generatePDFBlob() {
 
 // Download-knop op succes-scherm: probeert edge function (verse signed URL),
 // valt terug op legacy jsPDF lokale download.
+/**
+ * Download PDF voor een READ-ONLY-bekeken rapport (loadRapportView).
+ * Regenereert de PDF via edge function met DB-data — gebruikt rapport-record
+ * uit window._rapport_lastView* die in loadRapportView is gezet. Voorkomt
+ * dat oude leeg-opgeslagen PDFs naar de gebruiker komen.
+ */
+async function downloadRapportFromRecord() {
+  var rapport = window._rapport_lastViewRapport;
+  var beurt = window._rapport_lastViewBeurt;
+  var contract = window._rapport_lastViewContract;
+  var partner = window._rapport_lastViewPartner;
+  if (!rapport) { alert('Rapport-data niet beschikbaar.'); return; }
+
+  var ref = rapport.referentie || 'rapport';
+  var filename = ref + '.pdf';
+
+  // Bouw payload uit DB-record (niet uit UI — read-only viewer heeft geen wizard-state)
+  var payload = buildRapportPayloadFromRecord(rapport, beurt, contract);
+  var partnerSlug = (partner && partner.slug) || 'flancco';
+
+  // Genereer + download via blob-URL (geen popup-blocker, zie PR #103)
+  var edge = await generatePDFViaEdge(payload, { partnerSlug: partnerSlug, lang: 'nl' });
+  if (edge && edge.url) {
+    try {
+      var blob = await fetchPDFAsBlob(edge.url);
+      if (blob) {
+        var blobUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() { try { URL.revokeObjectURL(blobUrl); } catch (_) {} }, 2000);
+
+        // Bonus: update pdf_url in DB met de nieuwe (correcte) URL zodat
+        // toekomstige bekijk-flows ook de juiste content tonen. Best-effort.
+        try {
+          if (rapport.id) {
+            await sb.from('rapporten').update({ pdf_url: edge.url }).eq('id', rapport.id);
+          }
+        } catch (_) {}
+        return;
+      }
+    } catch (e) {
+      if (window.console && console.warn) console.warn('[downloadRapportFromRecord] blob-fetch faalde:', e && e.message);
+    }
+    // Fallback: directe link (zelfde tab, geen popup)
+    window.location.href = edge.url;
+    return;
+  }
+  // Final fallback: als edge function down is, vallen we terug op de eventueel
+  // opgeslagen pdf_url. Niet ideaal (kan leeg zijn) maar beter dan niets.
+  if (rapport.pdf_url) {
+    window.location.href = rapport.pdf_url;
+    return;
+  }
+  alert('PDF kon niet gegenereerd worden — probeer later opnieuw.');
+}
+window.downloadRapportFromRecord = downloadRapportFromRecord;
+
 async function downloadPDF() {
   // Helper — download een URL als blob (geen popup-blocker, zie PR #103)
   async function _downloadUrlAsBlob(url, filename) {
